@@ -59,6 +59,44 @@ That command uses the `local` profile. `application-local.yaml` contains no pass
 
 When a later task needs something like a database URL on your machine, export it in the shell or set it on the IntelliJ run configuration. Copy names from `.env.example` if you keep a private `.env` for your own tools. Do not commit that private file.
 
+## Local PostgreSQL
+
+The root `compose.yaml` runs PostgreSQL for local development: service `postgres`, image `postgres:17`, named volume `postgres-data`, container name `researchhub-postgres`, healthcheck via `pg_isready`.
+
+```bash
+docker compose up -d postgres
+```
+
+`application-local.yaml` connects to it with these variables. Each already has a default matching `compose.yaml`, so the local profile and `docker compose up -d postgres` work together with no environment variables set:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DB_HOST` | `localhost` | Host running the Postgres container |
+| `DB_PORT` | `5432` | Host port mapped to the container's `5432` |
+| `DB_NAME` | `researchhub` | Database name |
+| `DB_USER` | `researchhub` | Database role |
+| `DB_PASSWORD` | `researchhub` | Password for that role |
+
+Set one to override its default, for example `DB_PORT` when `5432` is already in use. Docker Compose and Spring Boot read the same variable, so exporting it in the shell, or placing it in a private root `.env` (gitignored, loaded automatically by `docker compose`), keeps both in sync.
+
+These are local-only, throwaway defaults, not secrets, and they are unrelated to the cloud profile's `DB_URL`: `DB_URL` is one full JDBC URL required only when the cloud profile is active, while `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` are discrete local values the local profile assembles into its own URL. Neither is reused for the other.
+
+They are also deliberately not named `RESEARCHHUB_*`: see Frontend below for why that prefix is reserved for values that are safe to expose in the browser bundle.
+
+Flyway migrations live in `backend/src/main/resources/db/migration`. The local profile runs them on startup (`spring.flyway.enabled: true`); the test and cloud profiles exclude JDBC and Flyway auto-configuration entirely, so neither needs a reachable database.
+
+Stop the container, keeping its data:
+
+```bash
+docker compose stop postgres
+```
+
+Reset it, deleting the named volume and all local data:
+
+```bash
+docker compose down -v
+```
+
 ## Test profile
 
 `BackendApplicationTests` is annotated with `@ActiveProfiles("test")`. It loads `application-test.yaml` and does not load the cloud profile.
@@ -95,10 +133,10 @@ Cloud hosts are expected to inject the same variable names from a managed secret
 
 Public build-time values use the prefix `RESEARCHHUB_`. When the Webpack build is wired, pass them through `DefinePlugin` or an equivalent env plugin. Anything with that prefix can end up in the browser bundle.
 
-Never put backend or Azure secrets in frontend configuration. `DB_URL`, `BLOB_ENDPOINT`, storage keys, and API credentials are not `RESEARCHHUB_*` variables.
+Never put backend or Azure secrets in frontend configuration. `DB_URL`, `BLOB_ENDPOINT`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, storage keys, and API credentials are not `RESEARCHHUB_*` variables.
 
 A later public value can look like `RESEARCHHUB_API_BASE_URL`. No frontend variable is read today. `frontend/src` is still empty, and there is no Webpack config.
 
 ## Names for later
 
-Environment variables use uppercase snake case. Concrete variables are added here when a task starts reading them. Examples already reserved for the cloud profile: `DB_URL`, `BLOB_ENDPOINT`.
+Environment variables use uppercase snake case. Concrete variables are added here when a task starts reading them. Examples already reserved for the cloud profile: `DB_URL`, `BLOB_ENDPOINT`. Examples already reserved for local PostgreSQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
