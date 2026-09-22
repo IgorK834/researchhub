@@ -180,7 +180,9 @@ researchhub/
 ├── docs/
 │   ├── context.md
 │   └── development/
-│       └── configuration.md
+│       ├── configuration.md
+│       ├── backend-architecture.md
+│       └── api-errors.md
 │
 ├── .editorconfig
 ├── .env.example
@@ -795,6 +797,8 @@ workspace/
 ```
 
 Avoid premature base classes and generic abstractions.
+
+Module boundaries, dependency direction, and which packages exist in code today: [development/backend-architecture.md](development/backend-architecture.md). REST error responses: [development/api-errors.md](development/api-errors.md).
 
 ---
 

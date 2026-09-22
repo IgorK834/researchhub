@@ -8,6 +8,8 @@ Architecture and product context: [docs/context.md](docs/context.md).
 
 Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
 
+Backend module rules: [docs/development/backend-architecture.md](docs/development/backend-architecture.md). REST error contract: [docs/development/api-errors.md](docs/development/api-errors.md).
+
 ## Stack
 
 - Backend: Java 25, Spring Boot 4.1.1, Maven
