@@ -1,0 +1,1408 @@
+# ResearchHub — Project Context
+
+> Central project context for development, architecture decisions, AI coding assistants, and future contributors.
+
+## 1. Project summary
+
+**ResearchHub** is a collaborative AI workspace for students and researchers.
+
+The core workflow is:
+
+1. A group receives source materials such as PDFs, DOCX, presentations, scientific papers, XLSX/CSV datasets, and images.
+2. Everyone works inside the same shared workspace.
+3. The group collaboratively writes a report, paper, laboratory report, or research document.
+4. AI can answer questions using workspace sources, generate sections, rewrite fragments, find evidence, suggest citations, compare sources, summarize documents, detect contradictions, and support data analysis.
+5. Spreadsheet/data files can be analyzed through executable Python code.
+6. Charts, tables, calculations, and AI-generated claims should preserve provenance back to the source file, source fragment, dataset, or executed analysis.
+
+Long-term vision:
+
+> **From sources and raw data to a reproducible collaborative report.**
+
+ResearchHub is not intended to be only a “chat with PDF” app, generic LLM wrapper, Notion clone, or programmer-only notebook. It should combine collaborative writing, shared research sources, grounded AI, executable data analysis, citations, reproducibility, and provenance.
+
+---
+
+## 2. Primary users
+
+### 2.1 Students
+
+Example input:
+
+```text
+lab_03/
+├── instructions.pdf
+├── lecture_01.pdf
+├── lecture_02.pdf
+├── theory.docx
+├── measurements.xlsx
+└── sample_data.csv
+```
+
+Expected output:
+
+```text
+Laboratory Report
+
+1. Objective
+2. Theory
+3. Methodology
+4. Results
+5. Analysis
+6. Conclusions
+```
+
+The team should be able to use one shared source library, edit the report together, generate draft sections from selected sources, improve manually written text, ask questions about lectures, analyze measurement files, create charts, and insert results directly into the report.
+
+### 2.2 Researchers
+
+Possible workflows:
+
+- literature reviews,
+- shared paper writing,
+- experimental data analysis,
+- paper comparison,
+- evidence extraction,
+- source-grounded drafting,
+- reproducible research notes,
+- collaborative review.
+
+---
+
+## 3. Core product principles
+
+### 3.1 Source-grounded by default
+
+AI-generated research content should be based on explicit workspace sources whenever possible.
+
+Example:
+
+```text
+Generate section: "Theoretical Background"
+
+Sources:
+[x] lecture_03.pdf
+[x] laboratory_instructions.pdf
+[x] smith_2025.pdf
+[ ] internet
+
+Length:
+~700 words
+
+Citations:
+required
+```
+
+### 3.2 Human remains in control
+
+AI suggestions should normally be proposed rather than silently modifying the document.
+
+Typical actions:
+
+```text
+Improve writing
+Expand
+Shorten
+Explain
+Find supporting evidence
+Check claim
+Add citation
+```
+
+Suggested changes should be presented as:
+
+```text
+[Accept] [Reject] [Edit]
+```
+
+### 3.3 Reproducibility
+
+A chart should not be only an image. An analysis result should be tied to:
+
+- source dataset,
+- sheet and columns,
+- generated/executed code,
+- parameters,
+- execution timestamp,
+- output data,
+- resulting chart/table.
+
+This allows analyses to be re-run when data changes.
+
+### 3.4 Provenance
+
+ResearchHub should distinguish between:
+
+- human-written content,
+- AI-generated content,
+- AI-rewritten content,
+- imported content,
+- source-derived claims,
+- analysis-derived claims.
+
+Example:
+
+```text
+This paragraph uses:
+
+lecture_03.pdf — page 12
+instructions.pdf — page 5
+analysis #17 — measurements.xlsx
+```
+
+### 3.5 Security before convenience
+
+AI-generated Python code must never execute inside the Spring Boot application process or the main AI worker process.
+
+Code execution must happen in a separate isolated sandbox with CPU/memory/time limits, restricted filesystem, no secrets, restricted networking, controlled input files, and controlled outputs.
+
+---
+
+## 4. Current repository state
+
+The Git repository root is the monorepo root. There is no nested Git repository under `backend/` or `frontend/`.
+
+```text
+researchhub/
+├── backend/
+│   ├── .mvn/
+│   ├── src/
+│   ├── pom.xml
+│   ├── mvnw
+│   └── mvnw.cmd
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   └── package-lock.json
+│
+├── docs/
+│   └── context.md
+│
+├── .editorconfig
+├── .gitignore
+└── README.md
+```
+
+`frontend/public/` and `frontend/src/` are empty. They are not tracked until they contain files. Webpack is not configured yet. `ai-worker/` is not in the repository yet.
+
+Local-only paths are ignored and must not be committed:
+
+```text
+.idea/                 # including nested backend/.idea/
+*.iml
+out/
+backend/target/
+frontend/node_modules/
+frontend/dist/
+```
+
+The project is at the **scaffolding stage**. No product feature should be considered implemented yet.
+
+---
+
+## 5. Current technology decisions
+
+### 5.1 Backend
+
+Current backend:
+
+```text
+Java 25
+Spring Boot 4.1.1
+Maven
+Jar packaging
+```
+
+Base package:
+
+```text
+dev.researchhub
+```
+
+Spring Boot is the main domain/application backend.
+
+Responsibilities:
+
+- users,
+- authentication,
+- authorization,
+- workspaces,
+- memberships,
+- documents,
+- source metadata,
+- comments,
+- citations,
+- analysis metadata,
+- AI request orchestration,
+- audit events,
+- API,
+- persistence,
+- business rules.
+
+Start as a **modular monolith**. Do not introduce microservices without a concrete architectural reason.
+
+### 5.2 Frontend
+
+Current frontend direction:
+
+```text
+React
+TypeScript
+Node.js / npm
+Webpack
+Babel
+```
+
+The project intentionally does not use Vite.
+
+Expected frontend responsibilities:
+
+- workspace UI,
+- collaborative editor,
+- source browser,
+- PDF/source viewer,
+- AI sidebar,
+- comments,
+- analysis blocks,
+- charts and tables,
+- presence indicators,
+- API integration.
+
+Likely later libraries:
+
+```text
+React Router
+TanStack Query
+Tiptap / ProseMirror
+Yjs
+```
+
+No large UI framework has been selected yet.
+
+### 5.3 Python
+
+Python is planned but not yet added to the repository.
+
+Future directory:
+
+```text
+ai-worker/
+```
+
+Responsibilities:
+
+- document preprocessing,
+- chunking,
+- embeddings,
+- retrieval support,
+- AI/data orchestration helpers,
+- spreadsheet processing,
+- scientific/data ecosystem integration,
+- generated analysis code preparation,
+- result post-processing.
+
+Likely libraries later:
+
+```text
+pandas
+numpy
+scipy
+matplotlib
+openpyxl
+pydantic
+```
+
+Core domain logic stays in Spring Boot.
+
+---
+
+## 6. Target repository structure
+
+```text
+researchhub/
+│
+├── backend/
+│   └── Spring Boot domain/API application
+│
+├── frontend/
+│   └── React + TypeScript application
+│
+├── ai-worker/
+│   └── Python AI/data processing
+│
+├── collaboration/
+│   └── optional Yjs/Hocuspocus service if required
+│
+├── sandbox/
+│   └── isolated analysis execution environment
+│
+├── infrastructure/
+│   └── Azure / Docker / IaC configuration
+│
+├── docs/
+│   ├── context.md
+│   ├── architecture/
+│   └── adr/
+│
+├── docker-compose.yml
+├── .gitignore
+└── README.md
+```
+
+Do not create every directory immediately. Add parts only when implementation reaches them.
+
+---
+
+## 7. High-level domain model
+
+```text
+User
+  |
+  +-- WorkspaceMember
+        |
+        v
+    Workspace
+        |
+        +-- Documents
+        +-- Sources
+        +-- Analyses
+        +-- AI Conversations
+        +-- Audit Events
+```
+
+---
+
+## 8. Workspace
+
+A workspace is the main collaboration and security boundary.
+
+Example:
+
+```text
+Workspace: Electronics Lab — Team 4
+
+Members:
+- Adam — OWNER
+- Kasia — EDITOR
+- Michał — EDITOR
+
+Sources:
+- instructions.pdf
+- lecture_05.pdf
+- measurements.xlsx
+
+Documents:
+- final_report
+- notes
+```
+
+Initial roles:
+
+```text
+OWNER
+EDITOR
+VIEWER
+```
+
+Every workspace-owned entity should carry a workspace relationship, e.g. `workspace_id`.
+
+---
+
+## 9. Collaborative document editor
+
+Long-term document capabilities:
+
+- rich text,
+- headings,
+- lists,
+- tables,
+- equations,
+- comments,
+- citations,
+- AI suggestions,
+- analysis blocks,
+- charts,
+- simultaneous editing,
+- presence,
+- version/history metadata.
+
+Likely stack:
+
+```text
+React
+  |
+Tiptap / ProseMirror
+  |
+Yjs CRDT
+  |
+WebSocket / realtime service
+```
+
+Potential realtime backend: Hocuspocus.
+
+Do not implement CRDT from scratch.
+
+---
+
+## 10. Source library
+
+Eventually supported:
+
+```text
+PDF
+DOCX
+PPTX
+XLSX
+CSV
+TXT
+images
+scientific papers
+```
+
+Conceptual source entity:
+
+```text
+Source
+
+id
+workspace_id
+name
+type
+storage_key
+status
+uploaded_by
+created_at
+updated_at
+```
+
+Processing states:
+
+```text
+UPLOADED
+PROCESSING
+READY
+FAILED
+```
+
+Binary files go to object storage; metadata goes to PostgreSQL; processed chunks are indexed for retrieval.
+
+---
+
+## 11. Source ingestion pipeline
+
+```text
+User uploads source
+      |
+      v
+Spring Boot
+      |
+      +--> Blob/Object Storage
+      |
+      +--> PostgreSQL metadata
+      |
+      +--> processing event/job
+                |
+                v
+          Python AI Worker
+                |
+         parse / extract
+                |
+             clean
+                |
+            chunk
+                |
+          embeddings
+                |
+         search index
+```
+
+Candidate Azure services later:
+
+```text
+Azure Blob Storage
+Azure Service Bus
+Azure AI Search
+Azure Document Intelligence
+Microsoft Foundry
+```
+
+Local development should avoid unnecessary cloud dependency.
+
+---
+
+## 12. RAG architecture
+
+```text
+User question
+     |
+     v
+Spring Boot authorization
+     |
+     v
+AI request
+     |
+     v
+query embedding / search
+     |
+     v
+hybrid retrieval
+     |
+     v
+workspace permission filter
+     |
+     v
+reranking
+     |
+     v
+context assembly
+     |
+     v
+LLM
+     |
+     v
+structured answer + citations
+```
+
+Critical rule:
+
+> Retrieval must always be restricted by workspace and user permissions.
+
+The LLM is never the security boundary.
+
+---
+
+## 13. Planned AI features
+
+### Ask Workspace
+
+Ask questions over all permitted workspace sources.
+
+### Ask Source
+
+Ask questions using one explicitly selected source.
+
+### Generate Section
+
+Generate an entire document section from selected sources with citations.
+
+### Rewrite Selection
+
+Improve, shorten, expand, explain, or clarify selected text.
+
+### Find Evidence
+
+Find source fragments supporting a selected claim.
+
+### Compare Sources
+
+Compare papers/documents using structured output.
+
+### Contradiction Detection
+
+Surface sources that make conflicting claims instead of hiding uncertainty.
+
+---
+
+## 14. Data analysis
+
+This is a major differentiator.
+
+Example input:
+
+```text
+measurements.xlsx
+
+frequency | voltage | current
+100       | 4.81    | 0.12
+200       | 4.63    | 0.19
+300       | 4.21    | 0.31
+```
+
+User request:
+
+```text
+Calculate impedance for each measurement
+and create a chart of impedance vs frequency.
+```
+
+Pipeline:
+
+```text
+Natural language request
+       |
+       v
+AI planner
+       |
+       v
+generated Python
+       |
+       v
+isolated sandbox
+       |
+       v
+pandas / numpy / scipy
+       |
+       +--> result table
+       +--> chart
+       +--> execution metadata
+```
+
+---
+
+## 15. Analysis Artifact
+
+An analysis is a first-class domain object.
+
+Conceptual model:
+
+```text
+AnalysisArtifact
+
+id
+workspace_id
+created_by
+source_files
+source_version_ids
+user_request
+generated_code
+parameters
+execution_status
+execution_started_at
+execution_finished_at
+result_data
+result_metadata
+chart_definition
+chart_file
+created_at
+```
+
+UI example:
+
+```text
+Analysis
+
+Source:
+measurements.xlsx
+
+Sheet:
+measurement_01
+
+Operation:
+Z = U / I
+
+[Show code]
+[Re-run]
+[Insert table]
+[Insert chart]
+```
+
+---
+
+## 16. Analysis blocks in documents
+
+The editor should eventually support semantic blocks:
+
+```text
++ Text
++ Heading
++ Table
++ Equation
++ Citation
++ Chart
++ Analysis
+```
+
+This is conceptually closer to **Google Docs + NotebookLM + Jupyter** than a normal editor.
+
+---
+
+## 17. Analysis sandbox
+
+Generated code is untrusted.
+
+```text
+Spring Boot / AI Worker
+          |
+          v
+      Job request
+          |
+          v
+ isolated execution sandbox
+          |
+          +--> input dataset copy
+          +--> generated Python
+          +--> temporary output
+          |
+          v
+      result artifact
+```
+
+Requirements:
+
+- no production credentials,
+- no database credentials,
+- no unrestricted host filesystem,
+- no Docker socket,
+- strict timeout,
+- CPU/memory limits,
+- output size limits,
+- restricted networking,
+- package allowlist if installation is ever supported.
+
+Do not execute generated analysis with `exec(...)` in the main AI worker.
+
+---
+
+## 18. Backend architecture
+
+Use a modular monolith.
+
+Suggested modules:
+
+```text
+dev.researchhub
+
+├── auth
+├── user
+├── workspace
+├── document
+├── collaboration
+├── source
+├── citation
+├── comment
+├── analysis
+├── ai
+├── audit
+└── shared
+```
+
+Prefer domain-oriented modules over one global `controllers/services/repositories` hierarchy.
+
+Within a module, layers may exist:
+
+```text
+workspace/
+├── api/
+├── application/
+├── domain/
+└── infrastructure/
+```
+
+Avoid premature base classes and generic abstractions.
+
+---
+
+## 19. Persistence
+
+Primary database:
+
+```text
+PostgreSQL
+```
+
+Planned usage:
+
+- users,
+- workspaces,
+- memberships,
+- documents,
+- comments,
+- source metadata,
+- analysis metadata,
+- audit events,
+- AI conversation metadata,
+- job metadata.
+
+Schema migrations:
+
+```text
+Flyway
+```
+
+Do not rely on Hibernate auto-creating production schema.
+
+---
+
+## 20. Preliminary entities
+
+Not final schema:
+
+```text
+users
+workspaces
+workspace_members
+
+documents
+document_versions
+
+sources
+source_versions
+source_chunks
+
+comments
+citations
+
+analysis_artifacts
+analysis_executions
+
+ai_conversations
+ai_messages
+
+processing_jobs
+audit_events
+```
+
+---
+
+## 21. Authentication and authorization
+
+Not yet implemented.
+
+Initial possibility:
+
+```text
+email + password
+JWT or session strategy — not yet selected
+```
+
+Future possibilities:
+
+```text
+GitHub login
+Google login
+Microsoft login
+university SSO
+```
+
+Authorization is more important than authentication mechanics.
+
+Every API operation must enforce resource access on the backend.
+
+---
+
+## 22. API style
+
+Primary API style:
+
+```text
+REST
+```
+
+Conceptual routes:
+
+```text
+POST   /api/auth/register
+POST   /api/auth/login
+
+GET    /api/workspaces
+POST   /api/workspaces
+GET    /api/workspaces/{workspaceId}
+
+GET    /api/workspaces/{workspaceId}/members
+POST   /api/workspaces/{workspaceId}/members
+
+GET    /api/workspaces/{workspaceId}/documents
+POST   /api/workspaces/{workspaceId}/documents
+
+GET    /api/workspaces/{workspaceId}/sources
+POST   /api/workspaces/{workspaceId}/sources
+
+POST   /api/workspaces/{workspaceId}/ai/query
+POST   /api/workspaces/{workspaceId}/analyses
+```
+
+Do not freeze API design before MVP stories are defined.
+
+---
+
+## 23. Async/event-driven work
+
+Likely asynchronous operations:
+
+```text
+source upload processing
+document parsing
+embedding generation
+search indexing
+large analysis execution
+chart generation
+notification delivery
+```
+
+Pattern:
+
+```text
+request
+   |
+   v
+create job
+   |
+   v
+202 Accepted
+   |
+   v
+worker processes
+   |
+   v
+job status updates
+```
+
+Potential cloud messaging later: Azure Service Bus.
+
+Do not introduce Kafka merely for portfolio value.
+
+---
+
+## 24. Transactional outbox
+
+Use a transactional outbox when reliable domain-event publication becomes necessary.
+
+Do not implement it before there is an actual event-delivery problem to solve.
+
+---
+
+## 25. Realtime collaboration
+
+Long-term:
+
+```text
+User A ----\
+User B -----+--> Yjs realtime sync
+User C ----/
+```
+
+Features:
+
+- simultaneous editing,
+- user presence,
+- cursors,
+- reconnect,
+- offline/local updates,
+- conflict-free synchronization.
+
+Likely tools:
+
+```text
+Yjs
+Hocuspocus
+WebSocket
+```
+
+Azure Web PubSub may be evaluated later.
+
+---
+
+## 26. Azure target architecture
+
+```text
+                    Internet
+                       |
+                       v
+                 React frontend
+                       |
+                       v
+                Spring Boot API
+                       |
+       +---------------+----------------+
+       |               |                |
+       v               v                v
+ PostgreSQL       Blob Storage      Service Bus
+                                         |
+                                         v
+                                  Python AI Worker
+                                         |
+                     +-------------------+------------------+
+                     |                   |                  |
+                     v                   v                  v
+              Document processing   AI Search          Foundry models
+
+Separate:
+analysis execution sandbox/jobs
+```
+
+Candidate services:
+
+```text
+Azure Container Apps
+Azure Container Apps Jobs
+Azure Database for PostgreSQL
+Azure Blob Storage
+Azure Service Bus
+Azure AI Search
+Azure Document Intelligence
+Microsoft Foundry
+Application Insights
+```
+
+Azure should be introduced incrementally to avoid wasting student credits.
+
+---
+
+## 27. Local development strategy
+
+Local-first development.
+
+Expected later stack:
+
+```text
+Spring Boot
+React
+Python worker
+PostgreSQL
+Azurite or local object storage
+optional Redis
+optional collaboration server
+```
+
+During early development:
+
+- run Spring Boot directly from IntelliJ,
+- run React through npm,
+- run PostgreSQL in Docker.
+
+Do not Dockerize everything immediately.
+
+---
+
+## 28. Observability
+
+Later:
+
+```text
+Spring Boot Actuator
+structured logs
+metrics
+tracing
+Application Insights / OpenTelemetry
+```
+
+AI request telemetry should eventually include:
+
+- model,
+- latency,
+- token usage,
+- retrieval timing,
+- retrieved chunks,
+- prompt/template version,
+- cost estimate where practical.
+
+Analysis telemetry should include:
+
+- execution duration,
+- exit status,
+- resource usage,
+- input versions,
+- code hash.
+
+---
+
+## 29. AI debugger
+
+Developer-only screen showing:
+
+```text
+Question
+Retrieved chunks + scores
+Reranked order
+Context token count
+Model
+LLM latency
+Retrieval latency
+Estimated cost
+Prompt/template version
+```
+
+This supports debugging and demonstrates AI engineering depth.
+
+---
+
+## 30. AI evaluation
+
+Create evaluation datasets later.
+
+Example:
+
+```text
+Question:
+What dataset did Smith use?
+
+Expected answer:
+SWaT
+
+Expected source:
+smith_2024.pdf, page 8
+```
+
+Compare:
+
+```text
+chunk size
+overlap
+vector-only vs hybrid search
+top-k
+reranker
+models
+prompt versions
+```
+
+Track:
+
+```text
+retrieval accuracy
+citation accuracy
+answer correctness
+latency
+token usage
+cost
+```
+
+---
+
+## 31. Testing strategy
+
+### Backend
+
+Planned:
+
+```text
+JUnit
+Spring Boot Test
+Testcontainers
+```
+
+Prefer integration tests for important domain flows.
+
+### Frontend
+
+Later choose between:
+
+```text
+Vitest or Jest
+React Testing Library
+Playwright
+```
+
+### Python
+
+```text
+pytest
+```
+
+---
+
+## 32. Development rules
+
+1. Keep the architecture understandable.
+2. Do not add technology only because it looks good on a CV.
+3. Prefer modular monolith over premature microservices.
+4. Use Java/Spring for domain/application backend logic.
+5. Use Python where the AI/data ecosystem provides real value.
+6. Never execute generated code in the main application process.
+7. Authorization must be enforced server-side.
+8. AI is not a trusted security boundary.
+9. Preserve source provenance for AI-generated claims.
+10. Preserve analysis provenance for computed results.
+11. Prefer explicit, maintainable code over clever abstractions.
+12. Use migrations for persistent schema changes.
+13. Never commit secrets.
+14. Never commit `node_modules`, `.idea`, build outputs, or local virtual environments.
+15. Every significant feature should have clear user value.
+
+---
+
+## 33. Rules for AI coding assistants
+
+AI coding assistants should:
+
+- respect the modular-monolith design,
+- keep core business logic in Spring Boot,
+- use Python only for AI/data responsibilities,
+- preserve workspace authorization boundaries,
+- write clear code suitable for learning Java/Spring,
+- explain non-obvious Spring concepts when introducing them,
+- prefer small incremental tasks,
+- add tests for domain-critical behavior,
+- justify new dependencies.
+
+They should not:
+
+- convert the backend to FastAPI,
+- introduce microservices by default,
+- add Kafka just because it is popular,
+- add Kubernetes early,
+- hide important Java concepts behind Lombok everywhere,
+- execute arbitrary generated Python in the AI worker,
+- let the frontend enforce security,
+- bypass workspace permission checks,
+- replace grounded answers with unsupported model knowledge,
+- create large generic base-service frameworks prematurely.
+
+---
+
+## 34. MVP philosophy
+
+The MVP should prove this flow:
+
+```text
+create workspace
+      |
+      v
+collaborate
+      |
+      v
+upload shared sources
+      |
+      v
+create/write report
+      |
+      v
+ask AI about sources
+      |
+      v
+generate/edit source-grounded text
+      |
+      v
+upload spreadsheet
+      |
+      v
+perform analysis
+      |
+      v
+insert result into report
+```
+
+The MVP does not need every long-term feature.
+
+---
+
+## 35. Proposed MVP scope
+
+### A. Accounts and workspaces
+
+- registration/login,
+- create workspace,
+- list workspaces,
+- add/invite member,
+- owner/editor/viewer permissions.
+
+### B. Basic document authoring
+
+- create document/report,
+- basic rich-text editor,
+- save document,
+- reopen document.
+
+Realtime collaboration can come after persistence is stable.
+
+### C. Shared source library
+
+- upload PDF,
+- upload DOCX,
+- upload XLSX/CSV,
+- list workspace sources,
+- processing status.
+
+### D. Initial RAG
+
+- extract source text,
+- chunk,
+- embed/index,
+- Ask Workspace,
+- citations to source/page/section.
+
+### E. AI writing
+
+- generate section from selected sources,
+- rewrite selected text,
+- find evidence for a claim.
+
+### F. Initial data analysis
+
+- choose spreadsheet,
+- describe analysis in natural language,
+- generate code,
+- execute in isolated environment,
+- return table/chart,
+- save AnalysisArtifact.
+
+### G. Document integration
+
+- insert AI suggestion,
+- insert table,
+- insert chart,
+- retain provenance links.
+
+---
+
+## 36. Suggested implementation order
+
+```text
+Phase 1  — Repository + local development foundations
+Phase 2  — Users + workspaces + permissions
+Phase 3  — Documents without realtime collaboration
+Phase 4  — Source upload + object storage + metadata
+Phase 5  — PDF/text ingestion + basic RAG
+Phase 6  — AI writing/editing
+Phase 7  — Spreadsheet ingestion + safe analysis execution
+Phase 8  — Analysis blocks and document integration
+Phase 9  — Realtime collaboration with Yjs
+Phase 10 — Azure deployment and observability
+```
+
+This intentionally delays the hardest realtime/cloud pieces until the product core exists.
+
+---
+
+## 37. Decisions intentionally left open
+
+Do not lock these prematurely:
+
+- JWT vs cookie/session auth,
+- exact React state-management approach,
+- UI component library,
+- Tiptap vs alternative editor,
+- Hocuspocus vs other Yjs server approach,
+- Azure Web PubSub usage,
+- pgvector vs Azure AI Search for early/local RAG,
+- embedding model,
+- LLM model,
+- reranker,
+- document parsing strategy per file type,
+- Terraform vs Bicep,
+- sandbox implementation,
+- Redis usage,
+- notifications,
+- billing,
+- internet search integration.
+
+---
+
+## 38. Immediate next step
+
+Stop adding infrastructure for now.
+
+Next planning step: convert the MVP into epics and small GitHub Issues.
+
+Proposed epics:
+
+```text
+Epic 1  — Local development foundations
+Epic 2  — Authentication and users
+Epic 3  — Workspaces and permissions
+Epic 4  — Documents
+Epic 5  — Source library
+Epic 6  — RAG / source-grounded AI
+Epic 7  — AI writing tools
+Epic 8  — Spreadsheet analysis
+Epic 9  — Analysis artifacts
+Epic 10 — Realtime collaboration
+Epic 11 — Azure deployment
+```
+
+---
+
+## 39. One-sentence architecture summary
+
+> ResearchHub is a React + Spring Boot collaborative research workspace where Java owns the core domain and security, Python handles AI/data workloads, workspace sources are indexed for grounded RAG, spreadsheet analysis executes in a separate sandbox, and every generated claim or result should preserve provenance back to its source or computation.
