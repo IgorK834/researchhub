@@ -1,0 +1,4 @@
+# Local profile: non-secret defaults for a developer machine.
+# Do not put passwords, keys, or connection strings in this file.
+researchhub:
+  environment: local
