@@ -1,0 +1,14 @@
+package dev.researchhub.shared.error;
+
+public enum ApiErrorCode {
+    VALIDATION_FAILED,
+    MALFORMED_REQUEST,
+    UNAUTHENTICATED,
+    FORBIDDEN,
+    RESOURCE_NOT_FOUND,
+    CONFLICT,
+    PAYLOAD_TOO_LARGE,
+    UNSUPPORTED_FILE_TYPE,
+    UNSUPPORTED_MEDIA_TYPE,
+    INTERNAL_ERROR
+}
