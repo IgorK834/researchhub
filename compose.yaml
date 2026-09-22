@@ -1,0 +1,31 @@
+# Local PostgreSQL for backend development. Not used for anything else, and not a cloud
+# database: the cloud profile's DB_URL is unrelated and does not come from here.
+#
+# Start:   docker compose up -d postgres
+# Stop:    docker compose stop postgres
+# Reset:   docker compose down -v   (removes the named volume; deletes local data)
+#
+# DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD override the defaults below and are
+# read the same way by the backend's local profile. See .env.example and
+# docs/development/configuration.md.
+services:
+  postgres:
+    image: postgres:17
+    container_name: researchhub-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-researchhub}
+      POSTGRES_USER: ${DB_USER:-researchhub}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-researchhub}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-researchhub} -d ${DB_NAME:-researchhub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  postgres-data:
