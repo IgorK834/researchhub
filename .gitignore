@@ -1,0 +1,31 @@
+# IntelliJ
+.idea/
+**/.idea/
+*.iml
+out/
+
+# Java / Maven
+backend/target/
+*.class
+
+# React / Node
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# Python - na przyszłość
+ai-worker/.venv/
+ai-worker/__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
