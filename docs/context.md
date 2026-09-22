@@ -178,9 +178,12 @@ researchhub/
 │   └── package-lock.json
 │
 ├── docs/
-│   └── context.md
+│   ├── context.md
+│   └── development/
+│       └── configuration.md
 │
 ├── .editorconfig
+├── .env.example
 ├── .gitignore
 └── README.md
 ```
@@ -196,6 +199,7 @@ out/
 backend/target/
 frontend/node_modules/
 frontend/dist/
+.env and .env.*          # .env.example may be tracked
 ```
 
 The project is at the **scaffolding stage**. No product feature should be considered implemented yet.
@@ -1063,6 +1067,8 @@ During early development:
 - run PostgreSQL in Docker.
 
 Do not Dockerize everything immediately.
+
+Configuration profiles and secret handling: [development/configuration.md](development/configuration.md).
 
 ---
 

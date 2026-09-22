@@ -6,6 +6,8 @@ This repository is in active development and is not production-ready.
 
 Architecture and product context: [docs/context.md](docs/context.md).
 
+Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
+
 ## Stack
 
 - Backend: Java 25, Spring Boot 4.1.1, Maven
@@ -19,8 +21,10 @@ Python AI and data workloads are planned under `ai-worker/` and are not in the r
 researchhub/
 ├── backend/     Spring Boot application (dev.researchhub)
 ├── frontend/    React + TypeScript application
-├── docs/        Project context
+├── docs/        Project context and development docs
+├── .editorconfig
 ├── .gitignore
+├── .env.example
 └── README.md
 ```
 
@@ -43,9 +47,9 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication`. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
+`./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication` on the `local` profile. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
 
-Open this repository from the monorepo root in IntelliJ (not `backend/` alone) and import `backend/pom.xml` as a Maven project so the backend module is available.
+Open this repository from the monorepo root in IntelliJ (not `backend/` alone) and import `backend/pom.xml` as a Maven project so the backend module is available. The root `.editorconfig` sets UTF-8, LF, 4-space Java and Python indentation, and 2-space TypeScript, JSON, and YAML indentation. Recent IntelliJ versions apply that file with the bundled EditorConfig plugin.
 
 ## Frontend
 
