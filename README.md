@@ -67,7 +67,7 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw test` does not require Docker or PostgreSQL: the `test` profile excludes JDBC and Flyway auto-configuration entirely.
+`./mvnw test` needs Docker. The persistence test starts a PostgreSQL 17 container with Testcontainers and does not use the Compose database above. Other tests do not open a database. `./mvnw spring-boot:run` still uses Compose.
 
 `./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication` on the `local` profile, which does need the PostgreSQL container above running. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
 

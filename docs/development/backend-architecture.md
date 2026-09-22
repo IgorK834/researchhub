@@ -13,7 +13,9 @@ dev.researchhub
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors
-    └── validation  Shared Bean Validation length limits and DTO normalization helpers
+    ├── validation  Shared Bean Validation length limits and DTO normalization helpers
+    └── infrastructure
+        └── persistence   JPA scan for the local profile; not product repositories
 ```
 
 `dev.researchhub.config` holds cross-cutting startup configuration, including the cloud profile's required settings. It is not a dumping ground for product rules.
@@ -71,7 +73,9 @@ Allowed dependencies inside one module:
 
 ## What does not belong in shared
 
-`shared` is for cross-cutting mechanics: the REST error contract, and later things such as identifiers or time helpers used by several modules.
+`shared` is for cross-cutting mechanics: the REST error contract, shared validation limits, the JPA bootstrap under `shared.infrastructure.persistence`, and later things such as identifiers or time helpers used by several modules.
+
+Product `@Entity` types and Spring Data repositories belong in the owning module, under `dev.researchhub`, so the local scan finds them. They do not belong in `shared`. Schema changes are Flyway migrations, not Hibernate DDL. Details: [persistence.md](persistence.md).
 
 These do not belong in `shared`:
 

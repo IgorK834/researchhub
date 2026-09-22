@@ -83,7 +83,20 @@ These are local-only, throwaway defaults, not secrets, and they are unrelated to
 
 They are also deliberately not named `RESEARCHHUB_*`: see Frontend below for why that prefix is reserved for values that are safe to expose in the browser bundle.
 
-Flyway migrations live in `backend/src/main/resources/db/migration`. The local profile runs them on startup (`spring.flyway.enabled: true`); the test and cloud profiles exclude JDBC and Flyway auto-configuration entirely, so neither needs a reachable database.
+Flyway migrations live in `backend/src/main/resources/db/migration`. The local profile runs them on startup (`spring.flyway.enabled: true`) before JPA uses the schema. Hibernate does not create or update tables: `spring.jpa.hibernate.ddl-auto` is `none`. Open-session-in-view is off. SQL is not logged unless you opt in.
+
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--researchhub.debug.sql=true"
+```
+
+`RESEARCHHUB_DEBUG_SQL=true` is the same switch. It sets `org.hibernate.SQL` to DEBUG for the local profile only. The test and cloud profiles do not turn it on.
+
+If Postgres is stopped or the host, port, or credentials are wrong, startup fails. HikariCP reports that it could not obtain a connection, and the process exits non-zero. It does not start HTTP on a database it cannot reach.
+
+The test and cloud profiles exclude JDBC, Flyway, and JPA auto-configuration, so a test on the `test` profile does not open a database. `./mvnw test` still needs Docker: `FlywayMigrationIntegrationTest` starts its own PostgreSQL 17 container and runs the same `db/migration` files. It does not use the Compose database. Cloud still checks that `DB_URL` is present and does not open a JDBC connection yet. When that connection is added, `ddl-auto` stays `none` or `validate`. Schema changes stay in Flyway. New migration files use `V<version>__<description>.sql` with no leading zeros. `V1__baseline.sql` is immutable.
+
+Persistence rules: [persistence.md](persistence.md).
 
 Stop the container, keeping its data:
 

@@ -182,7 +182,8 @@ researchhub/
 │   └── development/
 │       ├── configuration.md
 │       ├── backend-architecture.md
-│       └── api-errors.md
+│       ├── api-errors.md
+│       └── persistence.md
 │
 ├── .editorconfig
 ├── .env.example
