@@ -4,7 +4,7 @@ REST failures use one JSON shape, [RFC 9457](https://www.rfc-editor.org/rfc/rfc9
 
 Responses use `Content-Type: application/problem+json`.
 
-Module placement and dependency rules: [backend-architecture.md](backend-architecture.md).
+Module placement and dependency rules: [backend-architecture.md](backend-architecture.md). DTO validation rules, shared length limits, and the trim policy: [validation.md](validation.md).
 
 ## Body
 

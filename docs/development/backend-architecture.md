@@ -1,6 +1,6 @@
 # Backend architecture
 
-Rules for the Spring Boot modular monolith. Product context stays in [docs/context.md](../context.md) (sections 18, 19, and 32). REST error JSON is specified in [api-errors.md](api-errors.md).
+Rules for the Spring Boot modular monolith. Product context stays in [docs/context.md](../context.md) (sections 18, 19, and 32). REST error JSON is specified in [api-errors.md](api-errors.md). Request DTO validation, shared length limits, and the trim policy are specified in [validation.md](validation.md).
 
 Java owns domain rules and, later, workspace authorization. Python under `ai-worker/` is outside this tree. Do not add a global `controllers`, `services`, or `repositories` package under `dev.researchhub`.
 
@@ -12,7 +12,8 @@ dev.researchhub
 ├── config          Spring bootstrap that is not a product module
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
-    └── api         HTTP translation of those errors
+    ├── api         HTTP translation of those errors
+    └── validation  Shared Bean Validation length limits and DTO normalization helpers
 ```
 
 `dev.researchhub.config` holds cross-cutting startup configuration, including the cloud profile's required settings. It is not a dumping ground for product rules.
