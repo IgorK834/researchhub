@@ -11,6 +11,9 @@ indent_size = 4
 [*.{java,xml}]
 indent_size = 4
 
+[*.py]
+indent_size = 4
+
 [*.{ts,tsx,js,jsx,json,yml,yaml}]
 indent_size = 2
 
