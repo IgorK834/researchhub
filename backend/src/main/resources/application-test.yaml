@@ -1,0 +1,3 @@
+# Test profile: automated tests. No external services and no developer secrets.
+researchhub:
+  environment: test
