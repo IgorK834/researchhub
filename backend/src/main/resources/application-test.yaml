@@ -1,6 +1,7 @@
 # Test profile: automated tests. No external services and no developer secrets.
-# JDBC and Flyway auto-configuration are excluded so ./mvnw test never needs Docker or a
-# reachable PostgreSQL instance.
+# JDBC, Flyway, and JPA auto-configuration are excluded so tests on this profile never open
+# a database. Persistence tests that need PostgreSQL use Testcontainers and the local
+# profile instead. See docs/development/persistence.md.
 researchhub:
   environment: test
 
@@ -9,3 +10,5 @@ spring:
     exclude:
       - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
       - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration

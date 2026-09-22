@@ -3,9 +3,13 @@
 #
 # DB_URL is not wired to spring.datasource yet: connecting to a managed cloud PostgreSQL
 # is later, out-of-scope work. For now this profile only proves DB_URL and BLOB_ENDPOINT
-# are present. JDBC and Flyway auto-configuration are excluded here for the same reason
-# they are excluded for the test profile, so this profile never attempts a real JDBC
-# connection.
+# are present. JDBC, Flyway, and JPA auto-configuration are excluded here for the same
+# reason they are excluded for the test profile, so this profile never attempts a real
+# JDBC connection.
+#
+# When a later task wires the cloud datasource, set spring.datasource.url from DB_URL and
+# spring.jpa.hibernate.ddl-auto to none or validate. Do not use create or update. Flyway
+# remains the only schema writer.
 researchhub:
   environment: cloud
   cloud:
@@ -17,3 +21,5 @@ spring:
     exclude:
       - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
       - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration
