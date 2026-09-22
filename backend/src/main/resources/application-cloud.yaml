@@ -1,0 +1,7 @@
+# Cloud profile. These values have no default.
+# Startup fails when DB_URL or BLOB_ENDPOINT is missing or blank.
+researchhub:
+  environment: cloud
+  cloud:
+    db-url: ${DB_URL:}
+    blob-endpoint: ${BLOB_ENDPOINT:}
