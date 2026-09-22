@@ -13,9 +13,9 @@ frontend/node_modules/
 frontend/dist/
 npm-debug.log*
 
-# Python - na przyszłość
+# Python (future ai-worker)
 ai-worker/.venv/
-ai-worker/__pycache__/
+__pycache__/
 *.py[cod]
 
 # Environment variables
@@ -27,5 +27,13 @@ ai-worker/__pycache__/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Temporary output and logs
+tmp/
+temp/
+*.tmp
+logs/
 *.log
+
+# Local sandbox execution artifacts
+sandbox/tmp/
+sandbox/output/
