@@ -5,8 +5,11 @@ import dev.researchhub.shared.error.ForbiddenException;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.shared.error.UnauthenticatedException;
 import dev.researchhub.shared.error.UnsupportedFileTypeException;
+import dev.researchhub.shared.validation.FieldLengths;
+import dev.researchhub.shared.validation.Normalize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +27,8 @@ import java.util.Map;
 public class ErrorHandlingTestController {
 
     @PostMapping("/validation")
-    void validation(@Valid @RequestBody NameBody body) {
+    NameBody validation(@Valid @RequestBody NameBody body) {
+        return body;
     }
 
     @PostMapping(value = "/body", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -70,7 +74,19 @@ public class ErrorHandlingTestController {
         throw new IllegalStateException("db password=super-secret");
     }
 
-    public record NameBody(@NotBlank String name) {
+    /**
+     * Demonstrates RH-012: shared length limits from {@link FieldLengths} and trimming of
+     * user-entered text at the API boundary via {@link Normalize#trim(String)}. {@code name}
+     * mirrors a required short identifier, {@code title} an optional longer one.
+     */
+    public record NameBody(
+            @NotBlank @Size(max = FieldLengths.NAME_MAX) String name,
+            @Size(max = FieldLengths.TITLE_MAX) String title
+    ) {
+        public NameBody {
+            name = Normalize.trim(name);
+            title = Normalize.trim(title);
+        }
     }
 
 }

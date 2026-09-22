@@ -40,6 +40,39 @@ class GlobalExceptionHandlerIntegrationTest {
     }
 
     @Test
+    void whitespaceOnlyNameIsTrimmedThenRejectedAsBlank() throws Exception {
+        mockMvc.perform(post("/api/_test/errors/validation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors[0].field").value("name"))
+                .andExpect(jsonPath("$.errors[0].message").value("must not be blank"));
+    }
+
+    @Test
+    void overMaxLengthNameIsRejected() throws Exception {
+        String tooLong = "a".repeat(256);
+        mockMvc.perform(post("/api/_test/errors/validation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"" + tooLong + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors[0].field").value("name"))
+                .andExpect(jsonPath("$.errors[0].message").value("size must be between 0 and 255"));
+    }
+
+    @Test
+    void validRequestIsTrimmedAtTheApiBoundary() throws Exception {
+        mockMvc.perform(post("/api/_test/errors/validation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"  Alice  \", \"title\": \"  Report Title  \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Alice"))
+                .andExpect(jsonPath("$.title").value("Report Title"));
+    }
+
+    @Test
     void malformedJsonDoesNotEchoParserInternals() throws Exception {
         mockMvc.perform(post("/api/_test/errors/body")
                         .contentType(MediaType.APPLICATION_JSON)
