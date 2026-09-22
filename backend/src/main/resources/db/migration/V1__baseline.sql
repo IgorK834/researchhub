@@ -1,0 +1,7 @@
+-- Baseline migration.
+--
+-- Intentionally empty. Proves that Flyway can connect to PostgreSQL and record a
+-- successful migration before any product module has a table. The first module that
+-- needs a table adds V2 and beyond; see docs/development/configuration.md for how the
+-- local profile connects and docs/development/backend-architecture.md for module
+-- boundaries.

@@ -1,4 +1,15 @@
 # Local profile: non-secret defaults for a developer machine.
-# Do not put passwords, keys, or connection strings in this file.
+# Do not put a real password or connection string in this file. The datasource values
+# below are throwaway defaults matching the root compose.yaml Postgres container, not
+# secrets; override any of them with the matching DB_* environment variable. See
+# docs/development/configuration.md.
 researchhub:
   environment: local
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:researchhub}
+    username: ${DB_USER:researchhub}
+    password: ${DB_PASSWORD:researchhub}
+  flyway:
+    enabled: true

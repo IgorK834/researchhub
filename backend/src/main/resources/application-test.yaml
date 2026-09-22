@@ -1,3 +1,11 @@
 # Test profile: automated tests. No external services and no developer secrets.
+# JDBC and Flyway auto-configuration are excluded so ./mvnw test never needs Docker or a
+# reachable PostgreSQL instance.
 researchhub:
   environment: test
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration

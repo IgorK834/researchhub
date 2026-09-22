@@ -1,7 +1,19 @@
 # Cloud profile. These values have no default.
 # Startup fails when DB_URL or BLOB_ENDPOINT is missing or blank.
+#
+# DB_URL is not wired to spring.datasource yet: connecting to a managed cloud PostgreSQL
+# is later, out-of-scope work. For now this profile only proves DB_URL and BLOB_ENDPOINT
+# are present. JDBC and Flyway auto-configuration are excluded here for the same reason
+# they are excluded for the test profile, so this profile never attempts a real JDBC
+# connection.
 researchhub:
   environment: cloud
   cloud:
     db-url: ${DB_URL:}
     blob-endpoint: ${BLOB_ENDPOINT:}
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
