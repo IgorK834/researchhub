@@ -11,6 +11,15 @@
 export const queryKeys = {
   health: () => ['health'] as const,
 
+  /**
+   * The signed-in user. Cached under one key so a login writes it and a reload re-fetches it.
+   *
+   * Holds only the public user metadata the backend returns. The session id lives in an HttpOnly
+   * cookie the page cannot read, and the password is never kept anywhere — see
+   * docs/adr/ADR-001-authentication.md.
+   */
+  currentUser: () => ['auth', 'me'] as const,
+
   workspaces: () => ['workspaces'] as const,
   workspace: (workspaceId: string) => ['workspaces', workspaceId] as const,
 

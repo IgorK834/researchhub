@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Outlet } from 'react-router-dom';
 
+import { CurrentUserBanner } from '../features/auth/components/CurrentUserBanner';
 import { ApiStatusBanner } from '../shared/components/ApiStatusBanner';
 
 /**
@@ -12,6 +13,7 @@ export function AppLayoutPage(): ReactElement {
     <div>
       <header>
         <p>ResearchHub</p>
+        <CurrentUserBanner />
         <ApiStatusBanner />
       </header>
       <Outlet />
