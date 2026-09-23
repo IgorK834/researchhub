@@ -175,7 +175,12 @@ researchhub/
 │   ├── public/
 │   ├── src/
 │   ├── package.json
-│   └── package-lock.json
+│   ├── package-lock.json
+│   ├── webpack.config.cjs
+│   ├── babel.config.cjs
+│   ├── tsconfig.json
+│   ├── eslint.config.mjs
+│   └── jest.config.cjs
 │
 ├── docs/
 │   ├── context.md
@@ -184,7 +189,11 @@ researchhub/
 │       ├── backend-architecture.md
 │       ├── api-errors.md
 │       ├── persistence.md
-│       └── health.md
+│       ├── health.md
+│       ├── validation.md
+│       ├── frontend-structure.md
+│       ├── frontend-api.md
+│       └── frontend-tooling.md
 │
 ├── .editorconfig
 ├── .env.example
@@ -192,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-`frontend/public/` and `frontend/src/` are empty. They are not tracked until they contain files. Webpack is not configured yet. `ai-worker/` is not in the repository yet.
+The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. No product feature is implemented behind those routes. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
 
 Local-only paths are ignored and must not be committed:
 
@@ -278,11 +287,18 @@ Expected frontend responsibilities:
 - presence indicators,
 - API integration.
 
+In use now:
+
+```text
+React Router      client-side routing
+TanStack Query    server state and caching
+Jest              unit tests
+ESLint + Prettier lint and formatting
+```
+
 Likely later libraries:
 
 ```text
-React Router
-TanStack Query
 Tiptap / ProseMirror
 Yjs
 ```

@@ -87,9 +87,26 @@ npm run build       # type-checks with tsc, then production build to frontend/di
 `npm install` is an alternative to `npm ci` when you are not installing from the lockfile.
 
 The dev server runs on port 3000 (the backend uses 8080, see above) and serves `index.html`
-for unknown paths (`historyApiFallback`), so client-side routes work on direct refresh.
+for unknown paths (`historyApiFallback`), so client-side routes work on direct refresh. It also
+proxies `/api` and `/actuator` to the backend on port 8080, so the browser stays same-origin and
+the backend needs no CORS configuration. Start the backend to see live data; the UI renders a
+typed error when it is down.
+
+Checks, all non-interactive and CI-ready:
+
+```bash
+npm run typecheck     # tsc --noEmit
+npm run lint          # eslint, zero warnings allowed
+npm run format:check  # prettier --check
+npm test              # jest
+npm run build         # typecheck + production build
+```
+
+`npm run format` fixes formatting. Tool choices and the division of labour between `tsc`, ESLint,
+and Prettier: [docs/development/frontend-tooling.md](docs/development/frontend-tooling.md).
 
 `src/` layout and where new feature code belongs: [docs/development/frontend-structure.md](docs/development/frontend-structure.md).
+HTTP client, typed API errors, and TanStack Query conventions: [docs/development/frontend-api.md](docs/development/frontend-api.md).
 
 Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Current routes, all placeholders:
 
