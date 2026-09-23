@@ -144,11 +144,20 @@ Cloud hosts are expected to inject the same variable names from a managed secret
 
 ## Frontend
 
-Public build-time values use the prefix `RESEARCHHUB_`. When the Webpack build is wired, pass them through `DefinePlugin` or an equivalent env plugin. Anything with that prefix can end up in the browser bundle.
+Public build-time values use the prefix `RESEARCHHUB_`. `frontend/webpack.config.cjs` injects them with Webpack's `DefinePlugin`, reading them from the environment of the `npm run build` or `npm start` process. Anything with that prefix can end up in the browser bundle.
 
 Never put backend or Azure secrets in frontend configuration. `DB_URL`, `BLOB_ENDPOINT`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, storage keys, and API credentials are not `RESEARCHHUB_*` variables.
 
-A later public value can look like `RESEARCHHUB_API_BASE_URL`. No frontend variable is read today. `frontend/src` is still empty, and there is no Webpack config.
+Variables the frontend build reads today:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `RESEARCHHUB_API_BASE_URL` | empty string | Origin the API client prefixes onto request paths. Empty means same-origin relative requests. Ends up in the bundle. |
+| `RESEARCHHUB_DEV_API_TARGET` | `http://localhost:8080` | Backend the dev server proxies `/api` and `/actuator` to. Build-time only, never in the bundle. |
+
+The default for `RESEARCHHUB_API_BASE_URL` is deliberately empty. The Webpack dev server proxies `/api` and `/actuator` to the backend, so in development the browser calls its own origin on port 3000, the request is forwarded to port 8080, and no CORS configuration is needed on the Spring side. Set the variable only when the API really is on another origin, which also means the backend has to allow that origin.
+
+`RESEARCHHUB_DEBUG_SQL` is a backend switch despite the prefix and is not read by the frontend build. Details: [frontend-api.md](frontend-api.md).
 
 ## Names for later
 
