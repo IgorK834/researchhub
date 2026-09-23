@@ -44,11 +44,16 @@ class FlywayMigrationIntegrationTest {
         assertEquals(1, workspaceMembersMigrationRows,
                 "Flyway should record V4__create_workspace_members.sql");
 
+        Integer archivalMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '5'",
+                Integer.class);
+        assertEquals(1, archivalMigrationRows, "Flyway should record V5__add_workspace_archival.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(4, appliedVersions,
-                "A fresh database should have exactly versions 1 through 4 applied");
+        assertEquals(5, appliedVersions,
+                "A fresh database should have exactly versions 1 through 5 applied");
     }
 
     @Test
@@ -101,6 +106,54 @@ class FlywayMigrationIntegrationTest {
                 """, Integer.class);
         assertEquals(3, foreignKeys,
                 "A workspace and a membership must point at rows that really exist");
+    }
+
+    /**
+     * V5 adds archival as two nullable columns and a check constraint, and nothing else.
+     *
+     * <p>Archiving is a soft state change: the migration must not have introduced a cascade or a trigger
+     * that could remove a row, because the sources, documents, and results that will reference a workspace
+     * have to stay traceable (docs/context.md sections 3.3 and 3.4).
+     */
+    @Test
+    @Order(1)
+    void addsArchivalColumnsThatCanOnlyBeSetTogether() {
+        Integer archivalColumns = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_name = 'workspaces'
+                  AND column_name IN ('archived_at', 'archived_by')
+                  AND is_nullable = 'YES'
+                """, Integer.class);
+        assertEquals(2, archivalColumns,
+                "V5 should add both archival columns, both nullable, because NULL means active");
+
+        Integer archivalCheck = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.check_constraints
+                WHERE constraint_name = 'ck_workspaces_archived_together'
+                """, Integer.class);
+        assertEquals(1, archivalCheck,
+                "A row recording half of the archival event must not be storable");
+
+        Integer archivedByForeignKey = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE constraint_type = 'FOREIGN KEY'
+                  AND constraint_name = 'fk_workspaces_archived_by'
+                """, Integer.class);
+        assertEquals(1, archivedByForeignKey, "archived_by must point at a real identity");
+
+        Integer cascades = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.referential_constraints
+                WHERE constraint_schema = current_schema()
+                  AND (delete_rule <> 'NO ACTION' OR update_rule <> 'NO ACTION')
+                """, Integer.class);
+        assertEquals(0, cascades,
+                "No workspace foreign key may cascade: archiving retires a workspace, it never deletes");
+
+        Integer triggers = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.triggers
+                WHERE event_object_table IN ('workspaces', 'workspace_members')
+                """, Integer.class);
+        assertEquals(0, triggers, "and nothing runs behind the application's back");
     }
 
     @Test
