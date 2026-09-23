@@ -27,6 +27,16 @@ public final class FieldLengths {
     /** Document and other titles. */
     public static final int TITLE_MAX = 500;
 
+    /**
+     * Optional free-text descriptions: a workspace description and similar explanatory metadata.
+     *
+     * <p>Deliberately far smaller than {@link #COMMENT_MAX}. A description is metadata rendered
+     * alongside the thing it describes, often in a list, so it has to stay readable at a glance; a
+     * comment is discussion and can reasonably run long. Reusing the comment limit here would invite
+     * descriptions no list can display.
+     */
+    public static final int DESCRIPTION_MAX = 2000;
+
     /** AI user prompts. */
     public static final int PROMPT_MAX = 8000;
 
