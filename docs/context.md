@@ -201,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, and the workspace list and create form are implemented; the workspace detail and document routes are still placeholders. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
+The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, and the workspace detail page with its owner-only settings and archive control are implemented; the document route is still a placeholder. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
 
 Local-only paths are ignored and must not be committed:
 
@@ -890,7 +890,9 @@ Registration, login, and logout are implemented: `POST /api/auth/register`, `POS
 
 Authorization is implemented for the workspace boundary. `workspace_members` grants a user access to one workspace with one role, `OWNER`, `EDITOR`, or `VIEWER`; `dev.researchhub.workspace.domain.WorkspaceRole` maps each role to the capabilities it carries, and `WorkspaceAuthorizationService` is the single place every workspace route asks. A non-member is answered `404`, not `403`, so a response never confirms that another team's workspace exists. Details, including the capability matrix: [development/backend-architecture.md](development/backend-architecture.md).
 
-What is not implemented yet: per-resource checks for entities that do not exist yet — documents, sources, analyses, AI conversations — and the member-management endpoints. Each of those hangs off a workspace and will reuse the same capability check rather than inventing its own. Until a resource exists, there is no rule to write for it.
+Those roles are enforced for workspace metadata today: editing a workspace's name or description, and archiving it, require `MANAGE_WORKSPACE` and so are owner-only. An editor or viewer is refused with `403`, and a non-member with the same `404` as a workspace that does not exist. Archiving is soft — it sets `archived_at` and `archived_by`, removes no row and no file, and leaves every membership intact — so an archived workspace drops out of `GET /api/workspaces` while staying readable by its members. Editing one is `409`.
+
+What is not implemented yet: per-resource checks for entities that do not exist yet — documents, sources, analyses, AI conversations — and the member-management endpoints. Each of those hangs off a workspace and will reuse the same capability check rather than inventing its own. Until a resource exists, there is no rule to write for it. There is also no hard delete, by design: see the archive rules in [development/persistence.md](development/persistence.md).
 
 Initial mechanism:
 
@@ -933,6 +935,8 @@ POST   /api/auth/login                         implemented
 GET    /api/workspaces                         implemented
 POST   /api/workspaces                         implemented
 GET    /api/workspaces/{workspaceId}           implemented
+PATCH  /api/workspaces/{workspaceId}           implemented, owner-only
+POST   /api/workspaces/{workspaceId}/archive   implemented, owner-only, soft
 
 GET    /api/workspaces/{workspaceId}/members
 POST   /api/workspaces/{workspaceId}/members

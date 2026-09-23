@@ -48,14 +48,22 @@ The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-auth
 
 `workspace` owns the workspace boundary and every authorization decision about it:
 
-| Endpoint | Auth | Who is served |
-| --- | --- | --- |
-| `POST /api/workspaces` | Required | Any authenticated user. The caller becomes the workspace's `OWNER`. |
-| `GET /api/workspaces` | Required | The caller's own workspaces, from their memberships. Never anyone else's. |
-| `GET /api/workspaces/{workspaceId}` | Required | Members only. A non-member gets `404`, not `403`. |
+| Endpoint | Auth | Capability | Who is served |
+| --- | --- | --- | --- |
+| `POST /api/workspaces` | Required | — | Any authenticated user. The caller becomes the workspace's `OWNER`. |
+| `GET /api/workspaces` | Required | Membership | The caller's own **active** workspaces, from their memberships. Never anyone else's. |
+| `GET /api/workspaces/{workspaceId}` | Required | Membership | Members only, including for an archived workspace. A non-member gets `404`, not `403`. |
+| `PATCH /api/workspaces/{workspaceId}` | Required | `MANAGE_WORKSPACE` | Owners. Replaces name and description. `409` if the workspace is archived. |
+| `POST /api/workspaces/{workspaceId}/archive` | Required | `MANAGE_WORKSPACE` | Owners. Soft archive, idempotent. |
+
+There is no `DELETE`. Archiving sets `archived_at` and `archived_by` and removes nothing, because the
+sources, documents, and results that will hang off a workspace have to stay traceable (docs/context.md
+sections 3.3 and 3.4). Details and the rules this imposes on future workspace-owned tables:
+[persistence.md](persistence.md).
 
 Member management (`GET`/`POST /api/workspaces/{workspaceId}/members`) is not implemented yet. The role
-rules it will need already exist and are enforced in `workspace.domain`.
+rules it will need already exist and are enforced in `workspace.domain`, including that a workspace always
+keeps at least one owner.
 
 ### Two rules the workspace module is built around
 
@@ -81,6 +89,13 @@ Roles map to capabilities in `workspace.domain.WorkspaceRole`, which is the whol
 
 Ask for a capability, not for a role. A call site that writes `role == OWNER || role == EDITOR` has quietly
 decided that every role added later is denied, and it spreads the table across the codebase.
+
+**State rules live in `workspace.domain`, not in the service.** Whether a change is *legal* — a name is not
+blank, an archived workspace cannot be renamed, a workspace keeps at least one owner — is enforced by
+`Workspace` and `WorkspaceMembers`, which throw `VALIDATION_FAILED` or `CONFLICT` from `shared.error`.
+Whether a caller is *allowed to ask* is `WorkspaceAuthorizationService`. Keeping them apart is what lets the
+role matrix be tested against a database and the state rules be tested as plain unit tests, and it means a
+future endpoint gets both for free rather than reimplementing either.
 
 `GET /api/me` lives in its own `CurrentUserController` because `AuthController` is mapped under `/api/auth` and identity sits at the top level. Both delegate to `auth.application.CurrentUserResolver`, so the canonical path and its alias cannot return different bodies or disagree about when a session is still valid.
 

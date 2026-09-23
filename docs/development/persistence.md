@@ -22,8 +22,9 @@ Applied migrations:
 | 2 | `V2__create_users.sql` | `users`, owned by the `user` module. |
 | 3 | `V3__create_workspaces.sql` | `workspaces`, owned by the `workspace` module. |
 | 4 | `V4__create_workspace_members.sql` | `workspace_members`, owned by the `workspace` module. |
+| 5 | `V5__add_workspace_archival.sql` | `workspaces.archived_at` and `archived_by`, plus `ck_workspaces_archived_together`. |
 
-The next migration is `V5__<description>.sql`.
+The next migration is `V6__<description>.sql`.
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each
@@ -58,7 +59,7 @@ Today that is:
 | Table | Entity and repository | Module invariants |
 | --- | --- | --- |
 | `users` | `user.infrastructure.UserEntity`, `UserRepository` | `user.domain`: `User`, `UserEmail`, `PasswordHash`, `UserStatus` |
-| `workspaces` | `workspace.infrastructure.WorkspaceEntity`, `WorkspaceRepository` | `workspace.domain`: `Workspace` |
+| `workspaces` | `workspace.infrastructure.WorkspaceEntity`, `WorkspaceRepository` | `workspace.domain`: `Workspace`, including the rename, describe, and archive rules |
 | `workspace_members` | `workspace.infrastructure.WorkspaceMemberEntity`, `WorkspaceMemberRepository` | `workspace.domain`: `WorkspaceMembership`, `WorkspaceMembers`, `WorkspaceRole`, `WorkspaceCapability` |
 
 In each case the entity is the persistence representation and converts in both directions; the rules live
@@ -79,6 +80,34 @@ workspace is a security boundary, so a method returning every workspace — or e
 database is not something that should exist to be called by mistake. Every read is by id, by an explicit
 set of ids, or scoped to one user or workspace. `JpaRepository` is still the right default for a table
 that is not a boundary, as `users` shows.
+
+### Archiving does not delete
+
+A workspace is retired by setting `archived_at` and `archived_by`, never by deleting the row. docs/context.md
+sections 3.3 and 3.4 require sources, documents, and analysis results to stay traceable, and an archive that
+removed the workspace they hang off would destroy that provenance — so archive is a state change, and there
+is deliberately no `DELETE /api/workspaces/{id}`.
+
+Two rules follow, and they bind every workspace-owned table added later:
+
+- **A workspace-owned table references `workspaces (workspace_id)` with no `ON DELETE CASCADE`**, and no
+  other `ON DELETE` or `ON UPDATE` action. Nothing in this schema may remove a row as a side effect of
+  another row going away. `FlywayMigrationIntegrationTest` asserts that no foreign key in the schema has a
+  referential action and that neither workspace table has a trigger.
+- **Archiving must not delete or schedule deletion of those rows, or of stored files.** No membership is
+  removed, so nobody loses access to the history; and when documents, sources, analyses, AI conversations,
+  and audit events exist, archiving their workspace must leave their rows and their blobs in place. If a
+  retention policy is ever needed, it is a separate, explicit feature — not a consequence of archiving.
+
+The two columns are set together, and `ck_workspaces_archived_together` enforces that: a row recording when
+it was archived but not by whom, or the reverse, is a state no reader could interpret. Archiving is
+idempotent, and the original `archived_at` wins, so a retried request cannot rewrite when a workspace
+actually left active use.
+
+Reads split accordingly. `GET /api/workspaces` filters `archived_at IS NULL` inside the membership-scoped
+query, so an archived workspace leaves the list without the database ever returning it.
+`GET /api/workspaces/{id}` still returns it to its members with `archivedAt` set. A non-member gets the same
+`404` either way.
 
 ### Timestamps
 
@@ -129,8 +158,14 @@ Off unless `researchhub.debug.sql` is `true` (`RESEARCHHUB_DEBUG_SQL=true` or `-
 for the same `(workspace_id, user_id)` is rejected by `uq_workspace_members_workspace_user`, a role outside
 `OWNER`/`EDITOR`/`VIEWER` is rejected by `ck_workspace_members_role`, a workspace or membership pointing at
 a user or workspace that does not exist is rejected by its foreign key, a blank name is rejected by
-`ck_workspaces_name_not_blank` even when the domain type is bypassed, and neither table has a column
-copied from `users`.
+`ck_workspaces_name_not_blank` even when the domain type is bypassed, half-recorded archival is rejected by
+`ck_workspaces_archived_together`, an archived workspace is left out of the membership-scoped list by the
+query itself, and neither table has a column copied from `users`.
+
+Authorization is proved over HTTP rather than here, because it is about what a particular signed-in user may
+do: `WorkspaceApiIntegrationTest` covers cross-user isolation and that a membership row is what grants
+visibility, and `WorkspaceMetadataApiIntegrationTest` covers the owner-only routes for every role. Both use
+two or more independent sessions with their own cookie jars.
 
 `WorkspaceCreationTransactionIntegrationTest` is deliberately **not** `@Transactional`, unlike everything
 else above. It proves that a workspace and its owner membership are committed together, and a

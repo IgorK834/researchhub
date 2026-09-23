@@ -53,7 +53,7 @@ Validation adds field details:
 | `UNAUTHENTICATED` | 401 | No authenticated caller. |
 | `FORBIDDEN` | 403 | The caller is known and is not allowed to perform the action. |
 | `RESOURCE_NOT_FOUND` | 404 | The resource does not exist, or the route does not. |
-| `CONFLICT` | 409 | The request collided with existing state: the write lost an optimistic concurrency check, or it would duplicate a unique value. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. |
+| `CONFLICT` | 409 | The request collided with existing state: the write lost an optimistic concurrency check, it would duplicate a unique value, or the resource's current state does not allow it. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. Editing an archived workspace is also this code, and so is demoting or removing a workspace's last owner. |
 | `PAYLOAD_TOO_LARGE` | 413 | The upload exceeds the configured limit. |
 | `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type. |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |
@@ -87,6 +87,21 @@ Spring Security is on the classpath. Most `401` and `403` responses are still ap
 Both go through `ProblemDetailErrorWriter`, so there is exactly one error contract on the wire. A client never has to parse a second shape depending on how far into the stack the request got.
 
 **CSRF is checked before authentication.** A mutating request with no CSRF token is `403 FORBIDDEN` whether or not the caller has a session, and only a request that passes CSRF can go on to be answered `401 UNAUTHENTICATED`. So `POST /api/auth/logout` with no token is `403`, while the same call with a token but no session is `401`. The order is deliberate: a request that may have been forged by another site should not be processed far enough to reveal whether it would have authenticated. A client that sends the `X-XSRF-TOKEN` header, as `shared/api` does, only ever sees the `401`.
+
+### 409 versus 403 versus 404
+
+These three answer different questions, and mixing them up either leaks information or misdescribes the
+failure. The workspace routes are the worked example:
+
+| Caller | Answer | Why |
+| --- | --- | --- |
+| Not a member | `404 RESOURCE_NOT_FOUND` | Whether the workspace exists is itself information only its members get. The detail is identical to a workspace id that does not exist, so an id cannot be probed. |
+| A member whose role is too low | `403 FORBIDDEN` | They already know the workspace exists, so hiding it would tell them nothing and would describe the wrong problem. Their role is the problem. |
+| An owner editing an archived workspace | `409 CONFLICT` | Not an authorization failure — the caller may hold every capability there is. The request collides with the workspace's state. |
+
+The order the server checks them in is part of the contract: authorization first, state second. A non-member
+must never receive the `409`, because that would confirm both that the workspace exists and that it is
+archived.
 
 Login failures are deliberately uniform: an unknown email, a wrong password, and a disabled or locked account all return `401` `UNAUTHENTICATED` with detail `Invalid email or password`. Distinguishing them would turn the login form into an account-enumeration oracle. An unknown email is never `404`.
 
