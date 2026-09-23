@@ -9,6 +9,7 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
+  setupFiles: ['<rootDir>/jest.setup.cjs'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   collectCoverageFrom: ['src/shared/api/**/*.ts', '!src/shared/api/index.ts'],
 };

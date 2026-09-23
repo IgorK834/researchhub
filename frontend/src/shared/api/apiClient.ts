@@ -1,6 +1,7 @@
 import { ApiError, ApiTransportError } from './apiError';
 import { resolveApiUrl } from './config';
 import { apiCredentials } from './credentialsPolicy';
+import { CSRF_HEADER_NAME, readCsrfToken, requiresCsrfToken } from './csrf';
 import { decodeProblemDetail, synthesizeProblemDetail } from './parseProblemDetail';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -78,6 +79,15 @@ export async function request<TResponse>(
   };
   if (body !== undefined) {
     requestHeaders['Content-Type'] = 'application/json';
+  }
+
+  // The session cookie is sent by the browser on its own, so a mutating request must also prove it
+  // originated from our page. Done here rather than at each call site so no endpoint can forget.
+  if (requiresCsrfToken(method)) {
+    const csrfToken = readCsrfToken();
+    if (csrfToken !== null) {
+      requestHeaders[CSRF_HEADER_NAME] = csrfToken;
+    }
   }
 
   let response: Response;

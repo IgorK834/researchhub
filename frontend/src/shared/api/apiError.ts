@@ -103,6 +103,27 @@ export function hasApiErrorCode(error: unknown, code: AnyApiErrorCode): boolean 
   return isApiError(error) && error.code === code;
 }
 
+/**
+ * Field errors from a `VALIDATION_FAILED` response, keyed by field name, for rendering next to the
+ * matching form input. Empty for any other error.
+ *
+ * When a field has more than one violation only the first is kept: a form shows one message per input,
+ * and fixing the first often resolves the rest.
+ */
+export function fieldErrorsByName(error: unknown): Readonly<Record<string, string>> {
+  if (!isApiError(error)) {
+    return {};
+  }
+
+  const byName: Record<string, string> = {};
+  for (const fieldError of error.fieldErrors) {
+    if (!(fieldError.field in byName)) {
+      byName[fieldError.field] = fieldError.message;
+    }
+  }
+  return byName;
+}
+
 /** Message safe to render in the UI for any error this layer can produce. */
 export function describeError(error: unknown): string {
   if (isApiError(error)) {
