@@ -2,6 +2,7 @@ package dev.researchhub.auth.infrastructure;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -52,6 +53,30 @@ public class BrowserSession {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+    }
+
+    /**
+     * Signs the browser out, returning the id of whoever was signed in.
+     *
+     * <p>Invalidating the session is the whole of it. The stored security context goes with the session,
+     * so the cookie the browser still holds no longer resolves to anything and the next request is
+     * anonymous. Nothing has to be revoked, denylisted, or waited out — the property that made a
+     * server-side session preferable to a self-contained token in ADR-001.
+     *
+     * <p>The context is cleared too, so the rest of this request does not still look signed in.
+     *
+     * @return the id of the user whose session ended, or empty when there was no session
+     */
+    public Optional<UUID> end(HttpServletRequest request) {
+        Optional<UUID> endingUserId = currentUserId();
+
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+
+        return endingUserId;
     }
 
     /**

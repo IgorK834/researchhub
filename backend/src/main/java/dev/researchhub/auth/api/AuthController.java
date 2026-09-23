@@ -1,5 +1,6 @@
 package dev.researchhub.auth.api;
 
+import dev.researchhub.auth.application.CurrentUserResolver;
 import dev.researchhub.auth.infrastructure.BrowserSession;
 import dev.researchhub.shared.error.UnauthenticatedException;
 import dev.researchhub.user.application.RegisterUserCommand;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Registration, login, and the current-user endpoint.
@@ -50,13 +50,16 @@ public class AuthController {
 
     private final UserRegistrationService registrationService;
     private final UserAuthenticationService authenticationService;
+    private final CurrentUserResolver currentUserResolver;
     private final BrowserSession browserSession;
 
     public AuthController(UserRegistrationService registrationService,
                           UserAuthenticationService authenticationService,
+                          CurrentUserResolver currentUserResolver,
                           BrowserSession browserSession) {
         this.registrationService = registrationService;
         this.authenticationService = authenticationService;
+        this.currentUserResolver = currentUserResolver;
         this.browserSession = browserSession;
     }
 
@@ -105,25 +108,30 @@ public class AuthController {
     }
 
     /**
-     * The signed-in user, or 401.
-     *
-     * <p>This is what makes a browser refresh work: the SPA keeps nothing across a reload, calls this
-     * with the session cookie the browser still holds, and gets the user back.
-     *
-     * <p>The account is re-read rather than taken from the session, so a user disabled or locked since
-     * signing in is rejected here instead of continuing on a stale copy.
+     * The signed-in user, or 401. Compatible alias for {@code GET /api/me}, which is the canonical path
+     * (docs/development/frontend-api.md). Both delegate to {@link CurrentUserResolver}.
      */
     @GetMapping("/me")
     UserResponse currentUser() {
-        UUID userId = browserSession.currentUserId()
-                .orElseThrow(() -> new UnauthenticatedException("Authentication is required"));
+        return UserResponse.from(currentUserResolver.requireCurrentUser());
+    }
 
-        return authenticationService.findActiveById(userId)
-                .map(UserResponse::from)
-                .orElseThrow(() -> {
-                    log.warn("event=auth.session.rejected reason=account_unavailable userId={}", userId);
-                    return new UnauthenticatedException("Authentication is required");
-                });
+    /**
+     * Ends the session.
+     *
+     * <p>Requires authentication and a CSRF token like any other mutating route. Invalidating the session
+     * server-side is what actually revokes access: the cookie the browser still holds stops matching
+     * anything, so a later request is anonymous even though the browser kept sending it. There is no
+     * client-side "forget the token" step to get wrong, which is the property ADR-001 was chosen for.
+     *
+     * <p>Returns 204. A logout response has nothing to say about the user who just left.
+     */
+    @PostMapping("/logout")
+    ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
+        browserSession.end(httpRequest)
+                .ifPresent(userId -> log.info("event=auth.logout.success userId={}", userId));
+
+        return ResponseEntity.noContent().build();
     }
 
     /**
