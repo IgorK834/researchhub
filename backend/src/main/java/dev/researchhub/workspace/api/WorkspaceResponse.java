@@ -12,7 +12,14 @@ import java.util.UUID;
  * no credential, and no other member's role. The caller's own role is included because the client needs
  * it to render, and because it is information that caller already has by definition.
  *
- * <p>{@code description} is {@code null} when the workspace has none.
+ * <p>{@code description} is {@code null} when the workspace has none. {@code archivedAt} is {@code null}
+ * while the workspace is active, and a timestamp once it has been archived — so a client can render an
+ * archived workspace as archived without asking a second question.
+ *
+ * <p>There is no {@code archivedBy} field. Who archived a workspace is recorded in the column for audit
+ * purposes, and turning it into an API field would mean either exposing a user id the client cannot
+ * resolve or resolving it into a profile, which would make this a response about people as well as
+ * workspaces. Neither is needed to render the state.
  */
 public record WorkspaceResponse(
         UUID id,
@@ -20,7 +27,8 @@ public record WorkspaceResponse(
         String description,
         String role,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant archivedAt
 ) {
 
     static WorkspaceResponse from(WorkspaceSummary summary) {
@@ -30,7 +38,8 @@ public record WorkspaceResponse(
                 summary.description(),
                 summary.role(),
                 summary.createdAt(),
-                summary.updatedAt());
+                summary.updatedAt(),
+                summary.archivedAt());
     }
 
 }

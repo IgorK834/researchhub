@@ -3,6 +3,7 @@ package dev.researchhub.workspace.api;
 import dev.researchhub.auth.application.CurrentUserResolver;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.workspace.application.CreateWorkspaceCommand;
+import dev.researchhub.workspace.application.UpdateWorkspaceCommand;
 import dev.researchhub.workspace.application.WorkspaceService;
 import dev.researchhub.workspace.application.WorkspaceSummary;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,11 +30,17 @@ import java.util.UUID;
  *   <caption>Routes</caption>
  *   <tr><th>Endpoint</th><th>Answers</th></tr>
  *   <tr><td>{@code POST /api/workspaces}</td><td>201 with the new workspace; the caller becomes its OWNER</td></tr>
- *   <tr><td>{@code GET /api/workspaces}</td><td>The caller's workspaces only</td></tr>
+ *   <tr><td>{@code GET /api/workspaces}</td><td>The caller's active workspaces only</td></tr>
  *   <tr><td>{@code GET /api/workspaces/{workspaceId}}</td><td>One workspace, 404 unless the caller is a member</td></tr>
+ *   <tr><td>{@code PATCH /api/workspaces/{workspaceId}}</td><td>Name and description. Needs {@code MANAGE_WORKSPACE}</td></tr>
+ *   <tr><td>{@code POST /api/workspaces/{workspaceId}/archive}</td><td>Soft archive. Needs {@code MANAGE_WORKSPACE}</td></tr>
  * </table>
  *
- * <p>All three require a session. Nothing here grants that: the filter chain in
+ * <p>There is no {@code DELETE}. Archiving is the only way to retire a workspace, because the sources,
+ * documents, and results that will hang off it have to stay traceable (docs/context.md sections 3.3 and
+ * 3.4).
+ *
+ * <p>All of them require a session. Nothing here grants that: the filter chain in
  * {@code SecurityConfiguration} authenticates every request that is not explicitly permitted, so an
  * anonymous call is answered {@code 401 UNAUTHENTICATED} by the entry point before this class runs. The
  * route was already closed before it existed, which is the property
@@ -105,6 +113,50 @@ public class WorkspaceController {
     @GetMapping("/{workspaceId}")
     WorkspaceResponse get(@PathVariable UUID workspaceId) {
         return WorkspaceResponse.from(workspaces.findForMember(workspaceId, currentUserId()));
+    }
+
+    /**
+     * Changes the workspace's name and description. Requires {@code MANAGE_WORKSPACE}, so in practice an
+     * owner.
+     *
+     * <p>Returns 200 with the updated workspace. An editor or viewer gets {@code 403 FORBIDDEN} — they
+     * are members, so hiding the workspace from them would tell them nothing they do not know — while a
+     * non-member gets the same {@code 404} as any other route. Editing an archived workspace is
+     * {@code 409 CONFLICT}.
+     *
+     * <p>The body replaces both metadata fields; see {@link UpdateWorkspaceRequest}.
+     */
+    @PatchMapping("/{workspaceId}")
+    WorkspaceResponse update(@PathVariable UUID workspaceId,
+                             @Valid @RequestBody UpdateWorkspaceRequest request) {
+        UUID callerId = currentUserId();
+
+        WorkspaceSummary updated = workspaces.updateMetadata(workspaceId, callerId,
+                new UpdateWorkspaceCommand(request.name(), request.description()));
+
+        log.info("event=workspace.updated workspaceId={} userId={}", workspaceId, callerId);
+        return WorkspaceResponse.from(updated);
+    }
+
+    /**
+     * Archives the workspace. Requires {@code MANAGE_WORKSPACE}.
+     *
+     * <p>Returns 200 with the archived workspace, including {@code archivedAt}. Nothing is deleted: the
+     * workspace and every membership row survive, and the workspace stays readable by id for its members
+     * while dropping out of {@code GET /api/workspaces}.
+     *
+     * <p>A {@code POST} to a sub-resource rather than a {@code DELETE} on the workspace, because that is
+     * what this is — a state change with a name, not a removal. It is idempotent: archiving twice returns
+     * the same state and keeps the first {@code archivedAt}.
+     */
+    @PostMapping("/{workspaceId}/archive")
+    WorkspaceResponse archive(@PathVariable UUID workspaceId) {
+        UUID callerId = currentUserId();
+
+        WorkspaceSummary archived = workspaces.archive(workspaceId, callerId);
+
+        log.info("event=workspace.archived workspaceId={} userId={}", workspaceId, callerId);
+        return WorkspaceResponse.from(archived);
     }
 
     /**

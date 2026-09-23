@@ -1,0 +1,132 @@
+package dev.researchhub.workspace.api;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+import java.net.CookieManager;
+import java.net.HttpCookie;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * One browser talking to a running server: a cookie jar that keeps whatever the server sets and returns
+ * it on later requests, plus the CSRF header the SPA is required to send on mutating calls.
+ *
+ * <p>Workspace authorization is about what a <em>particular signed-in user</em> may do, and MockMvc cannot
+ * express that — it builds a fresh request per call with no servlet container behind it, so a returned
+ * {@code Set-Cookie} is never resolved back to the same session. Two instances of this class are two
+ * people at two computers, which is the only way to test isolation honestly.
+ *
+ * <p>Shared by the workspace HTTP tests rather than copied into each. {@code AuthSessionIntegrationTest}
+ * keeps its own equivalent, because it is testing the cookie mechanics themselves and should not depend on
+ * a helper that assumes they work.
+ */
+final class ApiBrowser {
+
+    private static final String PASSWORD = "correct-horse-battery-staple";
+
+    private final int port;
+    private final ObjectMapper objectMapper;
+    private final CookieManager cookies = new CookieManager();
+    private final HttpClient http;
+
+    ApiBrowser(int port, ObjectMapper objectMapper) {
+        this.port = port;
+        this.objectMapper = objectMapper;
+        this.http = HttpClient.newBuilder().cookieHandler(cookies).build();
+    }
+
+    URI url(String path) {
+        return URI.create("http://localhost:" + port + path);
+    }
+
+    HttpResponse<String> get(String path) throws Exception {
+        return send(HttpRequest.newBuilder(url(path)).GET().build());
+    }
+
+    /** POSTs JSON, priming the CSRF cookie first exactly as the frontend client does. */
+    HttpResponse<String> postJson(String path, String body) throws Exception {
+        return sendWithCsrf("POST", path, body);
+    }
+
+    /** PATCHes JSON with the CSRF header. The JDK client has no {@code PATCH()} shortcut. */
+    HttpResponse<String> patchJson(String path, String body) throws Exception {
+        return sendWithCsrf("PATCH", path, body);
+    }
+
+    /**
+     * Sends a mutating request with the session cookie but deliberately no CSRF header, which is what a
+     * cross-site form post would look like.
+     */
+    HttpResponse<String> sendWithoutCsrf(String method, String path, String body) throws Exception {
+        return send(HttpRequest.newBuilder(url(path))
+                .header("Content-Type", "application/json")
+                .method(method, HttpRequest.BodyPublishers.ofString(body))
+                .build());
+    }
+
+    /** Registers an account, signs in, and returns the new user's id. */
+    String signUp(String email, String displayName) throws Exception {
+        HttpResponse<String> registered = postJson("/api/auth/register", """
+                {"email": "%s", "password": "%s", "displayName": "%s"}
+                """.formatted(email, PASSWORD, displayName));
+        assertEquals(201, registered.statusCode(), registered.body());
+
+        HttpResponse<String> loggedIn = postJson("/api/auth/login", """
+                {"email": "%s", "password": "%s"}
+                """.formatted(email, PASSWORD));
+        assertEquals(200, loggedIn.statusCode(), loggedIn.body());
+
+        return json(registered).get("id").asString();
+    }
+
+    /** Sends a DELETE with the CSRF header, so a refusal is about the route rather than the token. */
+    HttpResponse<String> delete(String path) throws Exception {
+        return sendWithCsrf("DELETE", path, "");
+    }
+
+    /** Creates a workspace and returns the response, so a test can assert on the status too. */
+    HttpResponse<String> createWorkspace(String name, String description) throws Exception {
+        return postJson("/api/workspaces", """
+                {"name": "%s", "description": "%s"}
+                """.formatted(name, description));
+    }
+
+    /** Creates a workspace, asserts 201, and returns its id. */
+    String createdWorkspaceId(String name, String description) throws Exception {
+        HttpResponse<String> created = createWorkspace(name, description);
+        assertEquals(201, created.statusCode(), created.body());
+        return json(created).get("id").asString();
+    }
+
+    JsonNode json(HttpResponse<String> response) {
+        return objectMapper.readTree(response.body());
+    }
+
+    Optional<String> cookieValue(String name) {
+        return cookies.getCookieStore().getCookies().stream()
+                .filter(cookie -> cookie.getName().equals(name))
+                .map(HttpCookie::getValue)
+                .findFirst();
+    }
+
+    private HttpResponse<String> sendWithCsrf(String method, String path, String body) throws Exception {
+        get("/api/auth/csrf");
+        return send(HttpRequest.newBuilder(url(path))
+                .header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", cookieValue("XSRF-TOKEN").orElseThrow(
+                        () -> new IllegalStateException("No XSRF-TOKEN cookie was issued")))
+                .method(method, HttpRequest.BodyPublishers.ofString(body))
+                .build());
+    }
+
+    private HttpResponse<String> send(HttpRequest request) throws Exception {
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+}
