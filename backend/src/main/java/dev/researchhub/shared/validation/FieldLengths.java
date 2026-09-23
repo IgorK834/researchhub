@@ -13,6 +13,17 @@ public final class FieldLengths {
     /** Short display names: workspace names, user display names, and similar identifiers. */
     public static final int NAME_MAX = 255;
 
+    /**
+     * Email addresses, whole address including the domain.
+     *
+     * <p>254 is the longest address that can actually be delivered: RFC 5321 limits a
+     * {@code MAIL FROM} path to 256 characters including the enclosing angle brackets. The
+     * 320-character figure sometimes quoted adds the theoretical 64-character local part to a
+     * 255-character domain and is not deliverable, so it would only widen the column without
+     * accepting a usable address.
+     */
+    public static final int EMAIL_MAX = 254;
+
     /** Document and other titles. */
     public static final int TITLE_MAX = 500;
 
