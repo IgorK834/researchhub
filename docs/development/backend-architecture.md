@@ -10,6 +10,13 @@ Java owns domain rules and, later, workspace authorization. Python under `ai-wor
 dev.researchhub
 ├── BackendApplication
 ├── config          Spring bootstrap that is not a product module
+├── auth            Authentication mechanics
+│   ├── api             AuthController, request/response records, @StrongPassword
+│   └── infrastructure  SecurityConfiguration, BrowserSession, ProblemDetail error writers
+├── user            User identity
+│   ├── domain          User, UserEmail, PasswordHash, UserStatus
+│   ├── application     UserAccount, registration and authentication services, PasswordPolicy
+│   └── infrastructure  UserEntity, UserRepository
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors
@@ -17,6 +24,20 @@ dev.researchhub
     └── infrastructure
         └── persistence   JPA scan for the local profile; not product repositories
 ```
+
+`user` owns the user record and its password hash. It has no `api` package: nothing exposes users over HTTP directly, and the endpoints that create and verify them belong to `auth`.
+
+`auth` owns the Spring Security filter chain, the password encoder bean, CSRF configuration, the session cookie, and the endpoints `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, and `GET /api/auth/csrf`. The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-authentication.md).
+
+`auth` has no `application` package either: the controller coordinates two calls into `user.application` and a session write, which does not yet need a layer of its own.
+
+### Profile scoping, and why some beans have it
+
+`JpaPersistenceConfiguration` is `@Profile("local")`, so `UserRepository` exists only there. Anything that needs it must carry the same guard, or the `test` and `cloud` contexts fail to start — `BackendApplicationTests` and `CloudProfileStartupTests` both load the full context on profiles that exclude JDBC and JPA.
+
+That is why `UserRegistrationService`, `UserAuthenticationService`, and `AuthController` are `@Profile("local")`.
+
+The security filter chain is deliberately **not** scoped that way, and authentication is performed by the controller calling `user.application` rather than by a `UserDetailsService` or `DaoAuthenticationProvider` wired into the chain. A chain that depended on the user repository could not start where the repository does not exist, which would leave the profiles used by those tests with no filter chain at all — and therefore no assurance that the public health routes and the deny-by-default rule behave the same everywhere. The chain instead depends on nothing but Spring Security itself, and only the `SecurityFilterChain` bean is conditional, on a servlet web application, because `HttpSecurity` is absent from a non-web context such as `@SpringBootTest(webEnvironment = NONE)`.
 
 `dev.researchhub.config` holds cross-cutting startup configuration, including the cloud profile's required settings. It is not a dumping ground for product rules.
 
@@ -64,7 +85,18 @@ Allowed dependencies inside one module:
 
 - A product module may depend on `dev.researchhub.shared.error`.
 - A product module must not depend on another product module's `domain` or `infrastructure`.
-- A dependency on another module's public application type is allowed only when this document lists it. None are listed yet.
+- A dependency on another module's public application type is allowed only when this document lists it.
+
+### Allowed cross-module dependencies
+
+| From | To | Why |
+| --- | --- | --- |
+| `auth` | `dev.researchhub.user.application` | `auth` owns login and registration endpoints; `user` owns the user record. The endpoints need to create and verify accounts. |
+
+`auth` uses only `UserRegistrationService`, `UserAuthenticationService`, `UserAccount`, `RegisterUserCommand`, and `PasswordPolicy`. It must not import `user.domain` or `user.infrastructure`, and `user` must not import `auth`. Two details keep that honest in both directions:
+
+- `UserAccount.status` is a `String`, not the `UserStatus` enum. Returning the enum would force every reader of `user.application` to import `user.domain`, quietly widening this dependency.
+- `user.application` hashes passwords through Spring Security's `PasswordEncoder` interface, not through anything in `auth`. The bean is defined in `auth`, but the type it satisfies is a library interface, so the arrow still points one way.
 - `shared` must not depend on `auth`, `user`, `workspace`, `document`, `source`, `ai`, `analysis`, `audit`, or the future modules above.
 - `config` may use Spring and `shared`. It must not depend on a product module.
 - `BackendApplication` stays in `dev.researchhub` so component scan covers `dev.researchhub` and its children. New modules belong under that root.

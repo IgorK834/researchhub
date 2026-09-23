@@ -884,14 +884,16 @@ audit_events
 
 ## 21. Authentication and authorization
 
-Not yet implemented.
+Registration and login are implemented: `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`, with the session in an HttpOnly cookie. OAuth providers, logout, and password reset are not implemented. Authorization — workspace roles and per-resource checks — is not implemented either.
 
-Initial possibility:
+Initial mechanism:
 
 ```text
 email + password
-JWT or session strategy — not yet selected
+server-side session in an HttpOnly cookie
 ```
+
+The browser authentication mechanism is decided in [adr/ADR-001-authentication.md](adr/ADR-001-authentication.md): a Spring Security server-side session, with the session id in an `HttpOnly`, `Secure`, `SameSite` cookie, and no token in `localStorage` or `sessionStorage`. Later auth tasks follow that ADR and do not add a second mechanism. Passwords are stored as BCrypt hashes; `auth` owns the filter chain and the endpoints, `user` owns the record and the hash. REST error codes for these flows: [development/api-errors.md](development/api-errors.md).
 
 Future possibilities:
 

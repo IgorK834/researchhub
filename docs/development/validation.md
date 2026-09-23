@@ -50,9 +50,12 @@ adds a table for one of these concepts, the column length must be at least this 
 | Constant | Max length | Used for |
 | --- | --- | --- |
 | `FieldLengths.NAME_MAX` | 255 | Short display names: workspace names, user display names, and similar identifiers |
+| `FieldLengths.EMAIL_MAX` | 254 | Email addresses, whole address including the domain |
 | `FieldLengths.TITLE_MAX` | 500 | Document and other titles |
 | `FieldLengths.PROMPT_MAX` | 8000 | AI user prompts |
 | `FieldLengths.COMMENT_MAX` | 4000 | Comment bodies |
+
+`EMAIL_MAX` is 254 because that is the longest address that can actually be delivered: RFC 5321 caps a `MAIL FROM` path at 256 characters including the angle brackets. The 320 sometimes quoted adds a 64-character local part to a 255-character domain and is not deliverable, so it would widen the column without accepting a usable address.
 
 Do not hardcode a new max length for one of these concepts in a module DTO. Import the
 constant from `shared.validation` instead, so a future change to a limit happens in one
@@ -80,9 +83,26 @@ rather than being silently accepted as invisible content. Apply this to name- an
 title-like fields; it is not needed for values where surrounding whitespace is meaningful
 (for example, a code block inside a longer body).
 
+## Invariants in the user module
+
+`dev.researchhub.user.domain` is the first place the "DTO validation is not the source of truth"
+rule above is applied to real code. There is no user DTO yet, and the domain already enforces its
+own rules:
+
+- `UserEmail.of(String)` trims, rejects a blank address, caps it at `EMAIL_MAX`, and derives the
+  lowercase normal form that uniqueness is decided on.
+- `PasswordHash.ofHash(String)` rejects a blank hash. There is no constructor that accepts a
+  plaintext password, so no caller can store one by mistake.
+- `User` trims the display name, rejects it when blank, and caps it at `NAME_MAX`, which is also
+  the `users.display_name` column length.
+
+When a registration DTO is added, it reuses `EMAIL_MAX`, `NAME_MAX`, and the trim pattern for fast
+400 responses, and the domain keeps enforcing the same rules for callers that never touch a
+controller.
+
 ## Where this is demonstrated today
 
-No product module DTO exists yet. The pattern above is demonstrated end-to-end by
+The pattern above is demonstrated end-to-end by
 `dev.researchhub.shared.api.ErrorHandlingTestController.NameBody`
 (`backend/src/test/java`) and exercised in
 `GlobalExceptionHandlerIntegrationTest`, covering:

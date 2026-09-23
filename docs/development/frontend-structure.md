@@ -32,9 +32,24 @@ frontend/src/
 ```
 
 Not every folder above exists yet. Create a folder when the first file for that area is
-added, not in advance. `features/`, `shared/utils/`, and `styles/` are documented here so the
-location is unambiguous once workspace, document, or source UI work starts, but they should stay
-absent from the tree until then.
+added, not in advance. `shared/utils/` and `styles/` are documented here so the location is
+unambiguous once the need arises, but they should stay absent from the tree until then.
+
+`features/auth/` is the first feature module and shows the intended shape:
+
+```text
+src/features/auth/
+├── api/
+│   ├── authApi.ts     transport: calls the shared client, owns the request and response types
+│   └── useAuth.ts     hooks: useCurrentUser, useLogin, useRegister
+└── components/
+    ├── CurrentUserBanner.tsx  used only by this feature
+    └── FormField.tsx
+```
+
+`pages/LoginPage.tsx` and `pages/RegisterPage.tsx` render those hooks and hold the form state. The split
+is the point: transport names the endpoint, the hook binds it to a query key, the page renders loading,
+error, and success.
 
 ## Where things go
 

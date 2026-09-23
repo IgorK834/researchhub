@@ -161,17 +161,78 @@ renders loading, error, and success. Feature folders are created when the first 
 success branches, and invalidates `['health']` on demand. It is wiring proof, not a product
 feature, and should be removed once real workspace data is fetched.
 
-## Authentication, later
+## Authentication
 
-`credentialsPolicy.ts` is `'same-origin'`. There is no authentication yet — the backend has no
-Spring Security on the classpath.
+Implemented per [ADR-001](../adr/ADR-001-authentication.md): a Spring Security server-side session, with
+the session id in an `HttpOnly`, `SameSite=Lax` cookie (`Secure` everywhere except `http://localhost`).
+**No token is stored in `localStorage` or `sessionStorage`**, and there is none to store.
 
-When the `auth` module lands:
+### Two cookies, one of them readable
 
-- A cookie session needs `'include'`, plus a backend CORS configuration that allows credentials —
-  unless the frontend is served from the API's origin or proxied to it, in which case
-  `'same-origin'` stays correct.
-- A bearer token needs no change there; it belongs in a request header, which the client's
-  `headers` option already supports.
+| Cookie | Readable by JavaScript | Role |
+| --- | --- | --- |
+| `JSESSIONID` | No | The credential. Identifies the server-side session. |
+| `XSRF-TOKEN` | Yes | Not a credential. Proof that a mutating request came from our own page. |
 
-Authorization stays a backend concern. The frontend hiding a button is not access control.
+Because the credential is an `HttpOnly` cookie, application code never holds or attaches it. There is
+nothing for a component to read and no `Authorization` header to set — the browser sends the cookie, and
+the client only has to send the right credentials mode, which `credentialsPolicy.ts` sets in one place.
+
+### CSRF
+
+`shared/api/csrf.ts` owns this. `request()` reads the `XSRF-TOKEN` cookie and sends it as the
+`X-XSRF-TOKEN` header on `POST`, `PUT`, `PATCH`, and `DELETE`. Safe methods are exempt, matching the
+backend. It is done inside the client rather than at each call site so no endpoint can forget.
+
+A freshly loaded page has no token cookie yet and its first request is usually a POST, which the backend
+would reject. `GET /api/auth/csrf` returns 204 and sets the cookie; `features/auth/api/authApi.ts` calls
+it before register and login.
+
+When the cookie is missing, the request still goes out without the header and the backend answers `403
+FORBIDDEN`. That is deliberate: failing early in the client would turn a server-side rule into a
+client-side one and produce an error that does not match the contract.
+
+### Endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/auth/register` | Creates an account. 201, no session — the client logs in afterwards. |
+| `POST /api/auth/login` | Verifies credentials, sets the session cookie, returns the user. |
+| `GET /api/auth/me` | The user the session belongs to, or 401. |
+| `GET /api/auth/csrf` | 204, sets the CSRF cookie. |
+
+All three user-returning endpoints answer with the same shape, so the object cached after login is the
+object re-fetched after a reload.
+
+### Restoring the session after a refresh
+
+The page keeps nothing across a reload; the browser keeps the cookie. `useCurrentUser()` queries
+`['auth', 'me']` on mount, and the server answers from the session.
+
+`401` is treated as **data, not an error**: the query maps it to `null`. That keeps `isError` meaningful
+for genuine problems such as an unreachable backend. Collapsing the two would leave the UI unable to
+tell "please log in" from "something is broken".
+
+```ts
+const { data: user, error, isPending } = useCurrentUser();
+// user === null        -> no session, show the login link
+// user !== null        -> signed in
+// error !== null       -> the request itself failed
+```
+
+A successful login seeds `['auth', 'me']` from the response, avoiding a second round trip for data the
+login call already returned. What is cached is public metadata only — id, email, display name, status.
+The password is never stored in state or cache, and the session id is not readable.
+
+### Local development
+
+The dev server proxies `/api` and `/actuator` to port 8080, so the browser calls its own origin and the
+cookies are first-party. `credentialsPolicy.ts` stays `'same-origin'`, which is already correct for a
+cookie session under that arrangement. A deployment that splits the origins would need `'include'`,
+backend CORS with `allowCredentials=true` and an explicit origin allowlist, and `SameSite=None; Secure`
+on the session cookie. Serving both from one origin avoids all of that and is preferred.
+
+### Still a backend concern
+
+Authorization is enforced on the server, per request. The frontend hiding a button is not access control,
+and the session cookie carries no roles or permissions for the client to inspect or tamper with.

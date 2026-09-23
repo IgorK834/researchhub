@@ -53,7 +53,7 @@ Validation adds field details:
 | `UNAUTHENTICATED` | 401 | No authenticated caller. |
 | `FORBIDDEN` | 403 | The caller is known and is not allowed to perform the action. |
 | `RESOURCE_NOT_FOUND` | 404 | The resource does not exist, or the route does not. |
-| `CONFLICT` | 409 | The write lost an optimistic concurrency check. |
+| `CONFLICT` | 409 | The request collided with existing state: the write lost an optimistic concurrency check, or it would duplicate a unique value. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. |
 | `PAYLOAD_TOO_LARGE` | 413 | The upload exceeds the configured limit. |
 | `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type. |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |
@@ -75,4 +75,17 @@ The message becomes `detail` and must be safe for a client. Do not put secrets, 
 
 `dev.researchhub.shared.api.GlobalExceptionHandler` maps those types, Bean Validation, unreadable bodies, upload size, and unsupported media types. Unexpected exceptions become `INTERNAL_ERROR`.
 
-Spring Security is not on the classpath. `401` and `403` are application exceptions. When the `auth` module adds security filters, those filters should translate framework authentication failures into `UnauthenticatedException` and `ForbiddenException` so this document stays the client contract.
+## Security filters use the same shape
+
+Spring Security is on the classpath. Most `401` and `403` responses are still application exceptions thrown by a handler and mapped by `GlobalExceptionHandler`, but a request can also be rejected inside the filter chain, before any controller runs. That path cannot reach `@RestControllerAdvice`, so the `auth` module writes the same body itself:
+
+| Component | Answers | With |
+| --- | --- | --- |
+| `ProblemDetailAuthenticationEntryPoint` | A request to a protected route with no usable session | `401` `UNAUTHENTICATED` |
+| `ProblemDetailAccessDeniedHandler` | A denied request, in practice a missing or stale CSRF token | `403` `FORBIDDEN` |
+
+Both go through `ProblemDetailErrorWriter`, so there is exactly one error contract on the wire. A client never has to parse a second shape depending on how far into the stack the request got.
+
+Login failures are deliberately uniform: an unknown email, a wrong password, and a disabled or locked account all return `401` `UNAUTHENTICATED` with detail `Invalid email or password`. Distinguishing them would turn the login form into an account-enumeration oracle. An unknown email is never `404`.
+
+Authentication mechanics: [../adr/ADR-001-authentication.md](../adr/ADR-001-authentication.md).
