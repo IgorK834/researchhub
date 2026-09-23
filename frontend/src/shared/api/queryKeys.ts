@@ -1,0 +1,26 @@
+/**
+ * Central TanStack Query key factory.
+ *
+ * Convention: the first element names the resource collection, the following elements narrow it
+ * from broadest to most specific. That ordering makes prefix invalidation work — invalidating
+ * `['workspaces']` also invalidates `['workspaces', id]`, because TanStack Query matches keys by
+ * prefix. Build keys only through this factory so invalidation targets stay predictable.
+ *
+ * See docs/development/frontend-api.md for the invalidation rules.
+ */
+export const queryKeys = {
+  health: () => ['health'] as const,
+
+  workspaces: () => ['workspaces'] as const,
+  workspace: (workspaceId: string) => ['workspaces', workspaceId] as const,
+
+  documents: (workspaceId: string) => ['documents', workspaceId] as const,
+  document: (workspaceId: string, documentId: string) =>
+    ['documents', workspaceId, documentId] as const,
+
+  sources: (workspaceId: string) => ['sources', workspaceId] as const,
+  source: (workspaceId: string, sourceId: string) =>
+    ['sources', workspaceId, sourceId] as const,
+
+  job: (jobId: string) => ['jobs', jobId] as const,
+} as const;
