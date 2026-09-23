@@ -28,10 +28,33 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, baselineRows, "Flyway should record the baseline migration from db/migration");
 
+        Integer usersMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '2'",
+                Integer.class);
+        assertEquals(1, usersMigrationRows, "Flyway should record V2__create_users.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(1, appliedVersions, "Only the immutable baseline migration should be applied");
+        assertEquals(2, appliedVersions,
+                "A fresh database should have exactly the baseline and the users migration applied");
+    }
+
+    @Test
+    @Order(1)
+    void createsTheUsersTableWithUniquenessOnTheNormalizedEmail() {
+        Integer usersTable = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name = 'users'",
+                Integer.class);
+        assertEquals(1, usersTable, "V2 should create the users table");
+
+        Integer uniqueConstraint = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name = 'users'
+                  AND constraint_type = 'UNIQUE'
+                  AND constraint_name = 'uq_users_normalized_email'
+                """, Integer.class);
+        assertEquals(1, uniqueConstraint, "Uniqueness must be enforced on normalized_email");
     }
 
     @Test
