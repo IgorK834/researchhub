@@ -155,7 +155,28 @@ Variables the frontend build reads today:
 | `RESEARCHHUB_API_BASE_URL` | empty string | Origin the API client prefixes onto request paths. Empty means same-origin relative requests. Ends up in the bundle. |
 | `RESEARCHHUB_DEV_API_TARGET` | `http://localhost:8080` | Backend the dev server proxies `/api` and `/actuator` to. Build-time only, never in the bundle. |
 
-The default for `RESEARCHHUB_API_BASE_URL` is deliberately empty. The Webpack dev server proxies `/api` and `/actuator` to the backend, so in development the browser calls its own origin on port 3000, the request is forwarded to port 8080, and no CORS configuration is needed on the Spring side. Set the variable only when the API really is on another origin, which also means the backend has to allow that origin.
+The default for `RESEARCHHUB_API_BASE_URL` is deliberately empty. The Webpack dev server proxies `/api` and `/actuator` to the backend, so in development the browser calls its own origin on port 3000, the request is forwarded to port 8080, and CORS never comes into play. This stays the default path. Set the variable only when the API really is on another origin, which also means the backend has to allow that origin — see below.
+
+### CORS
+
+The backend also carries an explicit cross-origin policy, for the case where the SPA calls the API origin directly instead of through the proxy. It is a stated rule rather than whatever default happens to apply.
+
+| Setting | Value |
+| --- | --- |
+| Allowed origins | `researchhub.auth.cors.allowed-origins`, default `http://localhost:3000` |
+| Allowed methods | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` |
+| Allowed headers | `Content-Type`, `Accept`, `X-XSRF-TOKEN` |
+| Credentials | Allowed |
+| Paths | `/api/**` and the public health probes |
+
+Defined in `dev.researchhub.auth.infrastructure.SecurityConfiguration`. Two rules are not negotiable:
+
+- **Origins are listed exactly. Never `*`.** A wildcard origin combined with credentialed requests would let any site make authenticated calls with the user's session cookie and read the replies. Browsers reject that pairing, and the configuration fails at startup if `*` appears, because a clear boot failure beats a confusing preflight error later.
+- **`X-XSRF-TOKEN` must stay in the allowed headers.** Without it the browser blocks the CSRF header before the request leaves, so every mutating cross-origin call fails.
+
+Add a deployed origin by setting the property, comma-separated. A frontend served from the API's own origin needs no entry at all, which remains the simpler arrangement.
+
+This is additional to the dev proxy, not a replacement for it, and the frontend's credentials mode stays `same-origin` (see [frontend-api.md](frontend-api.md)).
 
 `RESEARCHHUB_DEBUG_SQL` is a backend switch despite the prefix and is not read by the frontend build. Details: [frontend-api.md](frontend-api.md).
 

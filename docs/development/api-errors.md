@@ -86,6 +86,8 @@ Spring Security is on the classpath. Most `401` and `403` responses are still ap
 
 Both go through `ProblemDetailErrorWriter`, so there is exactly one error contract on the wire. A client never has to parse a second shape depending on how far into the stack the request got.
 
+**CSRF is checked before authentication.** A mutating request with no CSRF token is `403 FORBIDDEN` whether or not the caller has a session, and only a request that passes CSRF can go on to be answered `401 UNAUTHENTICATED`. So `POST /api/auth/logout` with no token is `403`, while the same call with a token but no session is `401`. The order is deliberate: a request that may have been forged by another site should not be processed far enough to reveal whether it would have authenticated. A client that sends the `X-XSRF-TOKEN` header, as `shared/api` does, only ever sees the `401`.
+
 Login failures are deliberately uniform: an unknown email, a wrong password, and a disabled or locked account all return `401` `UNAUTHENTICATED` with detail `Invalid email or password`. Distinguishing them would turn the login form into an account-enumeration oracle. An unknown email is never `404`.
 
 Authentication mechanics: [../adr/ADR-001-authentication.md](../adr/ADR-001-authentication.md).

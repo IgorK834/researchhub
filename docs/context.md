@@ -884,7 +884,7 @@ audit_events
 
 ## 21. Authentication and authorization
 
-Registration and login are implemented: `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`, with the session in an HttpOnly cookie. OAuth providers, logout, and password reset are not implemented. Authorization — workspace roles and per-resource checks — is not implemented either.
+Registration, login, and logout are implemented: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/me` (canonical identity read, with `GET /api/auth/me` as a compatible alias), with the session in an HttpOnly cookie. Every other route requires a session by default, and the SPA holds `/app` behind a guard that waits for that check before rendering. OAuth providers and password reset are not implemented. Authorization — workspace roles and per-resource checks — is not implemented either, so an authenticated caller may reach an endpoint that has no resource rule yet.
 
 Initial mechanism:
 

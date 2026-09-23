@@ -194,15 +194,24 @@ client-side one and produce an error that does not match the contract.
 
 ### Endpoints
 
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/auth/register` | Creates an account. 201, no session — the client logs in afterwards. |
-| `POST /api/auth/login` | Verifies credentials, sets the session cookie, returns the user. |
-| `GET /api/auth/me` | The user the session belongs to, or 401. |
-| `GET /api/auth/csrf` | 204, sets the CSRF cookie. |
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `POST /api/auth/register` | Public | Creates an account. 201, no session — the client logs in afterwards. |
+| `POST /api/auth/login` | Public | Verifies credentials, sets the session cookie, returns the user. |
+| `GET /api/auth/csrf` | Public | 204, sets the CSRF cookie. |
+| **`GET /api/me`** | Required | **Canonical identity read.** The user the session belongs to, or 401. |
+| `GET /api/auth/me` | Required | Compatible alias for the above. Same body, same backend method. |
+| `POST /api/auth/logout` | Required | Invalidates the session. 204. |
 
-All three user-returning endpoints answer with the same shape, so the object cached after login is the
+Every endpoint that returns a user answers with the same shape, so the object cached after login is the
 object re-fetched after a reload.
+
+`GET /api/me` is the canonical path and the one `authApi.ts` calls. `/api/auth/me` remains because it
+shipped first; both routes delegate to one `CurrentUserResolver`, so they cannot drift. Prefer `/api/me`
+in new code — identity is something the whole application asks about, not a detail of the sign-in flow.
+
+Everything not in the public rows above requires a session, including any product endpoint added later.
+A new route is private until someone opens it deliberately in `SecurityConfiguration`.
 
 ### Restoring the session after a refresh
 
@@ -223,6 +232,40 @@ const { data: user, error, isPending } = useCurrentUser();
 A successful login seeds `['auth', 'me']` from the response, avoiding a second round trip for data the
 login call already returned. What is cached is public metadata only — id, email, display name, status.
 The password is never stored in state or cache, and the session id is not readable.
+
+### Protected routes
+
+`RequireAuthenticatedUser` is the layout element for `/app`, so every nested route sits behind it. It has
+three outcomes, and the last two are deliberately different:
+
+| Query state | Renders |
+| --- | --- |
+| Pending | A status line only. `<Outlet />` is not mounted. |
+| `null` (no session) | `<Navigate to="/login" replace />` |
+| Error | The error. **No redirect.** |
+
+Nothing protected renders while the check is in flight. Because identity lives in a cookie the page
+cannot read, the answer takes a round trip, and rendering the shell first would flash workspace content
+at an anonymous visitor and then remove it. Keeping `<Outlet />` unmounted also stops child routes from
+firing their own requests before the user is known.
+
+A failed check is not a signed-out user. If the backend is unreachable, redirecting to a login form that
+also cannot reach the backend would hide the real problem, so the guard reports the error and stays put.
+
+### Logout
+
+`POST /api/auth/logout` invalidates the session on the server, which is what actually revokes access —
+the browser keeps a cookie that no longer resolves to anything. There is no client-side token to discard.
+
+`useLogout` then calls `queryClient.clear()`. Removing just `['auth', 'me']` would not be enough:
+anything fetched while signed in was fetched *as that user*, and leaving it cached would show one
+person's data to whoever signs in next in the same tab. The only other cached entry today is the public
+health status, so a refetch is the entire cost. Nothing is written to `localStorage` or
+`sessionStorage` on the way out, because nothing was ever kept there.
+
+The button navigates to `/login` only after the server has confirmed and the cache is clear, so the login
+page cannot read a stale user. If logout fails, the user stays signed in and sees the error — the session
+may well still be valid.
 
 ### Local development
 

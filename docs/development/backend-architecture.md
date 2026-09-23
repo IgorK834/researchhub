@@ -11,7 +11,8 @@ dev.researchhub
 ├── BackendApplication
 ├── config          Spring bootstrap that is not a product module
 ├── auth            Authentication mechanics
-│   ├── api             AuthController, request/response records, @StrongPassword
+│   ├── api             AuthController, CurrentUserController, request/response records, @StrongPassword
+│   ├── application     CurrentUserResolver
 │   └── infrastructure  SecurityConfiguration, BrowserSession, ProblemDetail error writers
 ├── user            User identity
 │   ├── domain          User, UserEmail, PasswordHash, UserStatus
@@ -27,17 +28,30 @@ dev.researchhub
 
 `user` owns the user record and its password hash. It has no `api` package: nothing exposes users over HTTP directly, and the endpoints that create and verify them belong to `auth`.
 
-`auth` owns the Spring Security filter chain, the password encoder bean, CSRF configuration, the session cookie, and the endpoints `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, and `GET /api/auth/csrf`. The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-authentication.md).
+`auth` owns the Spring Security filter chain, the password encoder bean, CSRF configuration, the CORS policy, the session cookie, and these endpoints:
 
-`auth` has no `application` package either: the controller coordinates two calls into `user.application` and a session write, which does not yet need a layer of its own.
+| Endpoint | Auth |
+| --- | --- |
+| `POST /api/auth/register` | Public |
+| `POST /api/auth/login` | Public |
+| `GET /api/auth/csrf` | Public |
+| `GET /api/me` | Required, canonical identity read |
+| `GET /api/auth/me` | Required, alias of the above |
+| `POST /api/auth/logout` | Required |
+
+The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-authentication.md).
+
+`GET /api/me` lives in its own `CurrentUserController` because `AuthController` is mapped under `/api/auth` and identity sits at the top level. Both delegate to `auth.application.CurrentUserResolver`, so the canonical path and its alias cannot return different bodies or disagree about when a session is still valid.
+
+Logout is authenticated, not public. It needs a session to invalidate, so an anonymous POST has nothing to do; answering 401 rather than a silent 204 also avoids confirming the route to an unauthenticated caller.
 
 ### Profile scoping, and why some beans have it
 
 `JpaPersistenceConfiguration` is `@Profile("local")`, so `UserRepository` exists only there. Anything that needs it must carry the same guard, or the `test` and `cloud` contexts fail to start — `BackendApplicationTests` and `CloudProfileStartupTests` both load the full context on profiles that exclude JDBC and JPA.
 
-That is why `UserRegistrationService`, `UserAuthenticationService`, and `AuthController` are `@Profile("local")`.
+That is why `UserRegistrationService`, `UserAuthenticationService`, `CurrentUserResolver`, `AuthController`, and `CurrentUserController` are `@Profile("local")`.
 
-The security filter chain is deliberately **not** scoped that way, and authentication is performed by the controller calling `user.application` rather than by a `UserDetailsService` or `DaoAuthenticationProvider` wired into the chain. A chain that depended on the user repository could not start where the repository does not exist, which would leave the profiles used by those tests with no filter chain at all — and therefore no assurance that the public health routes and the deny-by-default rule behave the same everywhere. The chain instead depends on nothing but Spring Security itself, and only the `SecurityFilterChain` bean is conditional, on a servlet web application, because `HttpSecurity` is absent from a non-web context such as `@SpringBootTest(webEnvironment = NONE)`.
+The security filter chain is deliberately **not** scoped that way, and authentication is performed by the controller calling `user.application` rather than by a `UserDetailsService` or `DaoAuthenticationProvider` wired into the chain. A chain that depended on the user repository could not start where the repository does not exist, which would leave the profiles used by those tests with no filter chain at all — and therefore no assurance that the public health routes and the deny-by-default rule behave the same everywhere. The chain instead depends on nothing but Spring Security itself, and only the `SecurityFilterChain` and `CorsConfigurationSource` beans are conditional, on a servlet web application, because `HttpSecurity` is absent from a non-web context such as `@SpringBootTest(webEnvironment = NONE)`.
 
 `dev.researchhub.config` holds cross-cutting startup configuration, including the cloud profile's required settings. It is not a dumping ground for product rules.
 
@@ -93,7 +107,7 @@ Allowed dependencies inside one module:
 | --- | --- | --- |
 | `auth` | `dev.researchhub.user.application` | `auth` owns login and registration endpoints; `user` owns the user record. The endpoints need to create and verify accounts. |
 
-`auth` uses only `UserRegistrationService`, `UserAuthenticationService`, `UserAccount`, `RegisterUserCommand`, and `PasswordPolicy`. It must not import `user.domain` or `user.infrastructure`, and `user` must not import `auth`. Two details keep that honest in both directions:
+`auth` uses only `UserRegistrationService`, `UserAuthenticationService`, `UserAccount`, `RegisterUserCommand`, and `PasswordPolicy`. `auth.application.CurrentUserResolver` is the one place in `auth` that reads a user, and it goes through `UserAuthenticationService`. It must not import `user.domain` or `user.infrastructure`, and `user` must not import `auth`. Two details keep that honest in both directions:
 
 - `UserAccount.status` is a `String`, not the `UserStatus` enum. Returning the enum would force every reader of `user.application` to import `user.domain`, quietly widening this dependency.
 - `user.application` hashes passwords through Spring Security's `PasswordEncoder` interface, not through anything in `auth`. The bean is defined in `auth`, but the type it satisfies is a library interface, so the arrow still points one way.
