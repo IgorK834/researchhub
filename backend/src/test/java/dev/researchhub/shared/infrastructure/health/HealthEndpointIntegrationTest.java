@@ -55,16 +55,31 @@ class HealthEndpointIntegrationTest {
                 .andExpect(content().string(not(containsString("password"))));
     }
 
+    /**
+     * Neither endpoint may be readable without credentials.
+     *
+     * <p>Two things now keep them out of reach, and either is sufficient: {@code management.endpoints}
+     * exposes only {@code health}, so there is no handler mapped (404), and the security filter chain
+     * permits only the three health probes, so anything else is rejected before routing (401). The
+     * assertion accepts both because which one answers first is an implementation detail; what matters
+     * is that the body never arrives.
+     */
     @Test
     void environmentEndpointIsNotPublic() throws Exception {
-        mockMvc.perform(get("/actuator/env")).andExpect(status().isNotFound());
-        mockMvc.perform(get("/actuator/configprops")).andExpect(status().isNotFound());
+        assertNotReadable("/actuator/env");
+        assertNotReadable("/actuator/configprops");
     }
 
     private void assertUp(String path) throws Exception {
         mockMvc.perform(get(path))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    private void assertNotReadable(String path) throws Exception {
+        int status = mockMvc.perform(get(path)).andReturn().getResponse().getStatus();
+        assertTrue(status == 404 || status == 401,
+                path + " must not be publicly readable, but responded " + status);
     }
 
 }

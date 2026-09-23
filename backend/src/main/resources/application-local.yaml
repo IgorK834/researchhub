@@ -8,6 +8,15 @@ researchhub:
   debug:
     sql: false
 
+server:
+  servlet:
+    session:
+      cookie:
+        # Local development is served over plain http://localhost, so a Secure cookie would never be
+        # sent and login would appear to succeed while no session ever arrived. ADR-001 allows this
+        # exception for localhost only; a deployed environment must set this to true.
+        secure: false
+
 spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:researchhub}
@@ -20,7 +29,10 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: none
+      # validate, not none: Flyway still owns the schema, and Hibernate only checks that the
+      # entities match the tables the migrations produced. Startup fails on a mismatch instead of
+      # failing later on a query. Never create, create-drop, or update.
+      ddl-auto: validate
     properties:
       hibernate.jdbc.time_zone: UTC
 

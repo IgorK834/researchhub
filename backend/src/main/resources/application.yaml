@@ -1,6 +1,32 @@
+researchhub:
+  auth:
+    password:
+      # Minimum password length, enforced in one place: dev.researchhub.user.application.PasswordPolicy,
+      # which both the registration service and the register DTO validator use.
+      #
+      # There is also a fixed maximum of 72 *bytes*, which is not configurable because it belongs to
+      # BCrypt rather than to us: BCrypt hashes only the first 72 bytes of its input and ignores the
+      # rest, so two passwords sharing that prefix would verify against the same hash. Longer input is
+      # rejected instead of silently truncated. Note bytes, not characters — non-ASCII costs more than
+      # one byte each in UTF-8.
+      min-length: 12
+
 spring:
   application:
     name: backend
+
+server:
+  servlet:
+    session:
+      cookie:
+        # The session id is the credential. JavaScript must never be able to read it: see
+        # docs/adr/ADR-001-authentication.md.
+        http-only: true
+        # Limits cross-site submission of the cookie. Defence in depth behind CSRF tokens, not a
+        # replacement for them.
+        same-site: lax
+        # `secure` is set per profile: false locally so http://localhost works, true wherever the app is
+        # served over HTTPS.
 
 management:
   endpoints:

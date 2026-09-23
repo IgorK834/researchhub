@@ -17,10 +17,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Security filters are switched off for this slice ({@code addFilters = false}).
+ *
+ * <p>These tests assert how {@link GlobalExceptionHandler} maps application exceptions to the
+ * {@code ProblemDetail} contract, on a test-only controller that exists solely to throw them. With
+ * Spring Security on the classpath, {@code @WebMvcTest} installs its filter chain, and the real rule
+ * (deny by default) would answer every request here with 401 before any handler ran — testing the
+ * filter chain instead of the exception handler.
+ *
+ * <p>The production rules are unchanged and are covered elsewhere: the public and protected routes in
+ * {@code AuthApiIntegrationTest} and {@code AuthSessionIntegrationTest}, and the public health probes in
+ * {@code HealthEndpointIntegrationTest}, all run with the real chain.
+ */
 @WebMvcTest(controllers = ErrorHandlingTestController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("error-handling-test")
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class GlobalExceptionHandlerIntegrationTest {
 
     @Autowired
