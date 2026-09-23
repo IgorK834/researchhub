@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "webpack serve --mode development",
+    "build": "npm run typecheck && webpack --mode production",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"lint: not configured yet\" && exit 0",
+    "test": "echo \"test: not configured yet\" && exit 0"
   },
   "keywords": [],
   "author": "",
@@ -12,7 +16,8 @@
   "type": "commonjs",
   "dependencies": {
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-router-dom": "7.18.4"
   },
   "devDependencies": {
     "@babel/core": "^8.0.6",
