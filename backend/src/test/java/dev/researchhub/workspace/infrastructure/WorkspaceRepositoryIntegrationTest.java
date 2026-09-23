@@ -199,7 +199,8 @@ class WorkspaceRepositoryIntegrationTest {
         UUID newer = workspaces.saveAndFlush(WorkspaceEntity.fromDomain(
                 Workspace.create("Newer", null, user, NOW.plusSeconds(60)))).getId();
 
-        List<UUID> found = workspaces.findByIdInOrderByCreatedAtDesc(List.of(older, newer)).stream()
+        List<UUID> found = workspaces
+                .findByIdInAndArchivedAtIsNullOrderByCreatedAtDesc(List.of(older, newer)).stream()
                 .map(WorkspaceEntity::getId)
                 .toList();
 
@@ -208,8 +209,80 @@ class WorkspaceRepositoryIntegrationTest {
 
     @Test
     void findsNothingForAnEmptySetOfIds() {
-        assertEquals(List.of(), workspaces.findByIdInOrderByCreatedAtDesc(List.of()),
+        assertEquals(List.of(), workspaces.findByIdInAndArchivedAtIsNullOrderByCreatedAtDesc(List.of()),
                 "A user with no memberships asks for no ids and must not receive every workspace");
+    }
+
+    @Test
+    void leavesArchivedWorkspacesOutOfTheScopedList() {
+        UUID user = insertUser("ada@example.com");
+        UUID active = insertWorkspace("Active", null, user).getId();
+        Workspace toArchive = insertWorkspace("Retired", null, user).toDomain();
+        UUID archived = workspaces.saveAndFlush(
+                WorkspaceEntity.fromDomain(toArchive.archive(user, NOW.plusSeconds(60)))).getId();
+
+        List<UUID> found = workspaces
+                .findByIdInAndArchivedAtIsNullOrderByCreatedAtDesc(List.of(active, archived)).stream()
+                .map(WorkspaceEntity::getId)
+                .toList();
+
+        assertEquals(List.of(active), found,
+                "The database does the filtering, so an archived workspace never reaches the list");
+        assertNotNull(workspaces.findById(archived).orElseThrow().getArchivedAt(),
+                "and it is still there to be read by id");
+    }
+
+    @Test
+    void storesWhenAndByWhomAWorkspaceWasArchived() {
+        UUID user = insertUser("ada@example.com");
+        Workspace workspace = insertWorkspace("Retired", null, user).toDomain();
+
+        WorkspaceEntity archived = workspaces.saveAndFlush(
+                WorkspaceEntity.fromDomain(workspace.archive(user, NOW.plusSeconds(60))));
+
+        assertEquals(NOW.plusSeconds(60), archived.getArchivedAt());
+        assertEquals(user, archived.getArchivedBy());
+        assertEquals(workspace.id(), archived.getId(), "Archiving updates the row, it does not insert one");
+        assertTrue(archived.toDomain().isArchived());
+    }
+
+    @Test
+    void rejectsAnArchivedAtWithoutAnArchivedBy() {
+        UUID creator = insertUser("ada@example.com");
+        UUID workspaceId = insertWorkspace("Lab", null, creator).getId();
+
+        DataIntegrityViolationException failure = assertThrows(DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update("""
+                        UPDATE workspaces SET archived_at = ? WHERE id = ?
+                        """, UserRowFixture.timestamp(NOW), workspaceId),
+                "The two archival columns describe one event, so half of it must not be storable");
+
+        assertTrue(failure.getMessage().contains("ck_workspaces_archived_together"),
+                "Expected the archival check constraint to fail, but was: " + failure.getMessage());
+    }
+
+    @Test
+    void rejectsAnArchivedByWithoutAnArchivedAt() {
+        UUID creator = insertUser("ada@example.com");
+        UUID workspaceId = insertWorkspace("Lab", null, creator).getId();
+
+        assertThrows(DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update("""
+                        UPDATE workspaces SET archived_by = ? WHERE id = ?
+                        """, creator, workspaceId));
+    }
+
+    @Test
+    void rejectsArchivalByAUserThatDoesNotExist() {
+        UUID creator = insertUser("ada@example.com");
+        Workspace workspace = insertWorkspace("Lab", null, creator).toDomain();
+
+        DataIntegrityViolationException failure = assertThrows(DataIntegrityViolationException.class,
+                () -> workspaces.saveAndFlush(WorkspaceEntity.fromDomain(
+                        workspace.archive(UUID.randomUUID(), NOW))));
+
+        assertTrue(failure.getMessage().contains("fk_workspaces_archived_by"),
+                "Expected the archived_by foreign key to fail, but was: " + failure.getMessage());
     }
 
     @Test

@@ -25,11 +25,16 @@ public interface WorkspaceRepository extends Repository<WorkspaceEntity, UUID> {
     Optional<WorkspaceEntity> findById(UUID id);
 
     /**
-     * The workspaces with these ids, newest first.
+     * The active workspaces with these ids, newest first. Archived ones are left out.
      *
      * <p>The ids come from the caller's own memberships, which is what scopes
      * {@code GET /api/workspaces} to the current user. An empty collection returns an empty list.
+     *
+     * <p>{@code archived_at IS NULL} is part of the query rather than a filter applied in Java
+     * afterwards. Both would produce the same list today, but only this one keeps the database from
+     * returning rows the caller will not be shown — and it cannot be defeated by a later change that
+     * forgets the filter, because there is no unfiltered variant of this method to call.
      */
-    List<WorkspaceEntity> findByIdInOrderByCreatedAtDesc(Collection<UUID> ids);
+    List<WorkspaceEntity> findByIdInAndArchivedAtIsNullOrderByCreatedAtDesc(Collection<UUID> ids);
 
 }

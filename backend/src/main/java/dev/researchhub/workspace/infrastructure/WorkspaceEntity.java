@@ -53,18 +53,33 @@ public class WorkspaceEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /**
+     * When the workspace was archived, or null while it is active.
+     *
+     * <p>Archiving is a soft state change: it sets this column and never deletes a row. See
+     * {@code V5__add_workspace_archival.sql}.
+     */
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    /** Who archived it. Set together with {@link #archivedAt}, enforced by a check constraint. */
+    @Column(name = "archived_by")
+    private UUID archivedBy;
+
     /** Required by JPA. Application code uses {@link #fromDomain(Workspace)}. */
     protected WorkspaceEntity() {
     }
 
     private WorkspaceEntity(UUID id, String name, String description, UUID createdBy,
-                            Instant createdAt, Instant updatedAt) {
+                            Instant createdAt, Instant updatedAt, Instant archivedAt, UUID archivedBy) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.archivedAt = archivedAt;
+        this.archivedBy = archivedBy;
     }
 
     /**
@@ -78,11 +93,14 @@ public class WorkspaceEntity {
                 workspace.description(),
                 workspace.createdBy(),
                 workspace.createdAt(),
-                workspace.updatedAt());
+                workspace.updatedAt(),
+                workspace.archivedAt(),
+                workspace.archivedBy());
     }
 
     public Workspace toDomain() {
-        return new Workspace(id, name, description, createdBy, createdAt, updatedAt);
+        return new Workspace(id, name, description, createdBy, createdAt, updatedAt,
+                archivedAt, archivedBy);
     }
 
     public UUID getId() {
@@ -107,6 +125,14 @@ public class WorkspaceEntity {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
+    }
+
+    public UUID getArchivedBy() {
+        return archivedBy;
     }
 
 }

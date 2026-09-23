@@ -25,7 +25,8 @@ public record WorkspaceSummary(
         String description,
         String role,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant archivedAt
 ) {
 
     static WorkspaceSummary from(Workspace workspace, WorkspaceRole role) {
@@ -35,7 +36,13 @@ public record WorkspaceSummary(
                 workspace.description(),
                 role.name(),
                 workspace.createdAt(),
-                workspace.updatedAt());
+                workspace.updatedAt(),
+                workspace.archivedAt());
+    }
+
+    /** True when this workspace has been archived. */
+    public boolean isArchived() {
+        return archivedAt != null;
     }
 
 }
