@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,6 +13,12 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * Spring Security setup, implementing docs/adr/ADR-001-authentication.md.
@@ -78,22 +85,73 @@ public class SecurityConfiguration {
                 "/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness"
         };
 
+        /**
+         * Cross-origin rules for the browser client.
+         *
+         * <p>The webpack dev server proxies {@code /api} and {@code /actuator} to this application, so
+         * the normal development path is same-origin and never reaches CORS at all. This policy covers
+         * the case where the SPA on {@code http://localhost:3000} calls the API origin directly, and it
+         * exists as an explicit statement rather than an accident of whichever default applies.
+         *
+         * <p>Origins are listed exactly. {@code *} is rejected outright below: combined with
+         * {@code allowCredentials} it would let any site on the internet make authenticated requests with
+         * the user's session cookie and read the replies. Browsers refuse that pairing, and failing at
+         * startup is clearer than failing on the first preflight.
+         *
+         * <p>{@code X-XSRF-TOKEN} has to be allowed or CSRF-protected requests could not be sent
+         * cross-origin at all: the browser would block the header before the request left.
+         */
+        @Bean
+        CorsConfigurationSource corsConfigurationSource(
+                @Value("${researchhub.auth.cors.allowed-origins:http://localhost:3000}")
+                List<String> allowedOrigins) {
+            if (allowedOrigins.contains("*")) {
+                throw new IllegalStateException(
+                        "researchhub.auth.cors.allowed-origins must not be '*': a wildcard origin cannot "
+                                + "be combined with credentialed requests. List each allowed origin.");
+            }
+
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(allowedOrigins);
+            configuration.setAllowedMethods(
+                    List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+            configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN"));
+            // Without this the browser would strip the session and CSRF cookies from a cross-origin call.
+            configuration.setAllowCredentials(true);
+            configuration.setMaxAge(Duration.ofMinutes(30));
+
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/api/**", configuration);
+            // The status banner reads health, so it needs the same treatment.
+            source.registerCorsConfiguration("/actuator/health/**", configuration);
+            source.registerCorsConfiguration("/actuator/health", configuration);
+            return source;
+        }
+
         @Bean
         SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                 ProblemDetailAuthenticationEntryPoint entryPoint,
                                                 ProblemDetailAccessDeniedHandler accessDeniedHandler,
-                                                SecurityContextRepository securityContextRepository)
+                                                SecurityContextRepository securityContextRepository,
+                                                CorsConfigurationSource corsConfigurationSource)
                 throws Exception {
             http
+                    .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
                     .authorizeHttpRequests(requests -> requests
                             .requestMatchers(PUBLIC_HEALTH_PATHS).permitAll()
                             // Reaching these is how a caller becomes authenticated, so they cannot
                             // themselves require authentication.
-                            .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/csrf")
+                            .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login")
                             .permitAll()
-                            // Everything else, including /api/auth/me and every future product route, is
-                            // closed by default. A new endpoint is private until someone opens it here
-                            // on purpose.
+                            .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
+                            // Everything else is closed by default: the identity reads, logout, and
+                            // every future product route. A new endpoint is private until someone opens
+                            // it here on purpose.
+                            //
+                            // Logout is deliberately authenticated. It needs a session to invalidate, so
+                            // an anonymous POST has nothing to do and gets 401 rather than a silent 204
+                            // that would confirm the route exists.
                             .anyRequest().authenticated())
 
                     // Cookies ride along automatically, so a mutating request must prove it came from
