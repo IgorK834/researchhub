@@ -33,11 +33,22 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, usersMigrationRows, "Flyway should record V2__create_users.sql");
 
+        Integer workspacesMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '3'",
+                Integer.class);
+        assertEquals(1, workspacesMigrationRows, "Flyway should record V3__create_workspaces.sql");
+
+        Integer workspaceMembersMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '4'",
+                Integer.class);
+        assertEquals(1, workspaceMembersMigrationRows,
+                "Flyway should record V4__create_workspace_members.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(2, appliedVersions,
-                "A fresh database should have exactly the baseline and the users migration applied");
+        assertEquals(4, appliedVersions,
+                "A fresh database should have exactly versions 1 through 4 applied");
     }
 
     @Test
@@ -55,6 +66,41 @@ class FlywayMigrationIntegrationTest {
                   AND constraint_name = 'uq_users_normalized_email'
                 """, Integer.class);
         assertEquals(1, uniqueConstraint, "Uniqueness must be enforced on normalized_email");
+    }
+
+    @Test
+    @Order(1)
+    void createsTheWorkspaceTablesWithOneMembershipPerUserPerWorkspace() {
+        Integer workspaceTables = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.tables
+                WHERE table_name IN ('workspaces', 'workspace_members')
+                """, Integer.class);
+        assertEquals(2, workspaceTables, "V3 and V4 should create both workspace tables");
+
+        Integer uniqueMembership = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name = 'workspace_members'
+                  AND constraint_type = 'UNIQUE'
+                  AND constraint_name = 'uq_workspace_members_workspace_user'
+                """, Integer.class);
+        assertEquals(1, uniqueMembership,
+                "A user must not be able to hold two memberships of one workspace");
+
+        Integer roleCheck = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.check_constraints
+                WHERE constraint_name = 'ck_workspace_members_role'
+                """, Integer.class);
+        assertEquals(1, roleCheck, "Only the three known roles may reach the column");
+
+        Integer foreignKeys = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE constraint_type = 'FOREIGN KEY'
+                  AND constraint_name IN ('fk_workspaces_created_by',
+                                          'fk_workspace_members_workspace',
+                                          'fk_workspace_members_user')
+                """, Integer.class);
+        assertEquals(3, foreignKeys,
+                "A workspace and a membership must point at rows that really exist");
     }
 
     @Test
