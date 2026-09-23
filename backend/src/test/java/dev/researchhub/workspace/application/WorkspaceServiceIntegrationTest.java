@@ -2,6 +2,7 @@ package dev.researchhub.workspace.application;
 
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
+import dev.researchhub.shared.error.ConflictException;
 import dev.researchhub.shared.error.ForbiddenException;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.shared.infrastructure.persistence.PostgresIntegrationTest;
@@ -232,6 +233,179 @@ class WorkspaceServiceIntegrationTest {
                 "A viewer must not run a mutating operation on workspace content");
         assertThrows(ForbiddenException.class, () -> authorization.requireCapability(
                 lab.id(), michal, WorkspaceCapability.MANAGE_MEMBERS));
+    }
+
+    // --- metadata updates ---
+
+    @Test
+    void anOwnerCanReplaceTheNameAndDescription() {
+        UUID ada = insertUser("ada@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+
+        WorkspaceSummary updated = workspaces.updateMetadata(lab.id(), ada,
+                new UpdateWorkspaceCommand("  Electronics Lab  ", "  Team 4  "));
+
+        assertEquals("Electronics Lab", updated.name(), "The new name is trimmed");
+        assertEquals("Team 4", updated.description());
+        assertEquals("OWNER", updated.role());
+        assertEquals(lab.createdAt(), updated.createdAt(), "createdAt does not move");
+        assertNull(updated.archivedAt(), "Editing does not archive");
+
+        assertEquals("Electronics Lab", workspaces.findForMember(lab.id(), ada).name(),
+                "The change was persisted");
+    }
+
+    @Test
+    void anOwnerCanClearTheDescription() {
+        UUID ada = insertUser("ada@example.com");
+        WorkspaceSummary lab = workspaces.create(new CreateWorkspaceCommand("Lab", "Team 4", ada));
+
+        WorkspaceSummary updated = workspaces.updateMetadata(lab.id(), ada,
+                new UpdateWorkspaceCommand("Lab", "   "));
+
+        assertNull(updated.description(), "Blank clears the description, as it does on create");
+    }
+
+    @Test
+    void refusesAnUnusableNameOnUpdate() {
+        UUID ada = insertUser("ada@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+
+        ApiException blank = assertThrows(ApiException.class, () -> workspaces.updateMetadata(
+                lab.id(), ada, new UpdateWorkspaceCommand("   ", null)));
+        ApiException tooLong = assertThrows(ApiException.class, () -> workspaces.updateMetadata(
+                lab.id(), ada, new UpdateWorkspaceCommand("n".repeat(FieldLengths.NAME_MAX + 1), null)));
+
+        assertEquals(ApiErrorCode.VALIDATION_FAILED, blank.code());
+        assertEquals(ApiErrorCode.VALIDATION_FAILED, tooLong.code());
+        assertEquals("Lab", workspaces.findForMember(lab.id(), ada).name(), "Nothing was changed");
+    }
+
+    @Test
+    void anEditorOrViewerCannotChangeTheMetadata() {
+        UUID ada = insertUser("ada@example.com");
+        UUID kasia = insertUser("kasia@example.com");
+        UUID michal = insertUser("michal@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+        grant(lab.id(), kasia, WorkspaceRole.EDITOR);
+        grant(lab.id(), michal, WorkspaceRole.VIEWER);
+
+        UpdateWorkspaceCommand rename = new UpdateWorkspaceCommand("Renamed", null);
+
+        assertThrows(ForbiddenException.class,
+                () -> workspaces.updateMetadata(lab.id(), kasia, rename),
+                "Editing content is an editor's job; editing the workspace itself is not");
+        assertThrows(ForbiddenException.class,
+                () -> workspaces.updateMetadata(lab.id(), michal, rename));
+        assertEquals("Lab", workspaces.findForMember(lab.id(), ada).name());
+    }
+
+    @Test
+    void aNonMemberCannotChangeTheMetadataAndIsNotToldTheWorkspaceExists() {
+        UUID ada = insertUser("ada@example.com");
+        UUID outsider = insertUser("outsider@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+
+        ResourceNotFoundException hidden = assertThrows(ResourceNotFoundException.class,
+                () -> workspaces.updateMetadata(lab.id(), outsider,
+                        new UpdateWorkspaceCommand("Renamed", null)));
+        ResourceNotFoundException missing = assertThrows(ResourceNotFoundException.class,
+                () -> workspaces.updateMetadata(UUID.randomUUID(), outsider,
+                        new UpdateWorkspaceCommand("Renamed", null)));
+
+        assertEquals(missing.getMessage(), hidden.getMessage(),
+                "The write path must not become the one place that confirms a workspace exists");
+    }
+
+    // --- archiving ---
+
+    @Test
+    void anOwnerCanArchiveAndTheWorkspaceLeavesTheList() {
+        UUID ada = insertUser("ada@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+
+        WorkspaceSummary archived = workspaces.archive(lab.id(), ada);
+
+        assertNotNull(archived.archivedAt());
+        assertTrue(archived.isArchived());
+        assertEquals(List.of(), workspaces.listForMember(ada), "An archived workspace leaves the list");
+
+        WorkspaceSummary stillReadable = workspaces.findForMember(lab.id(), ada);
+        assertEquals(archived.archivedAt(), stillReadable.archivedAt(),
+                "and is still readable by id, reporting that it is archived");
+    }
+
+    @Test
+    void archivingKeepsEveryRowIncludingMemberships() {
+        UUID ada = insertUser("ada@example.com");
+        UUID kasia = insertUser("kasia@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+        grant(lab.id(), kasia, WorkspaceRole.VIEWER);
+
+        workspaces.archive(lab.id(), ada);
+
+        assertEquals(1, (int) jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM workspaces WHERE id = ?", Integer.class, lab.id()));
+        assertEquals(2, members.findByWorkspaceIdOrderByCreatedAtAsc(lab.id()).size(),
+                "Archiving throws nobody out of the workspace");
+        assertEquals(ada, jdbcTemplate.queryForObject(
+                        "SELECT archived_by FROM workspaces WHERE id = ?", UUID.class, lab.id()),
+                "and it records who did it");
+        assertEquals(List.of(), workspaces.listForMember(kasia),
+                "though it no longer appears in any member's list");
+        assertEquals(WorkspaceRole.VIEWER,
+                members.findByWorkspaceIdAndUserId(lab.id(), kasia).orElseThrow().getRole(),
+                "and the role that membership carries is untouched");
+    }
+
+    @Test
+    void archivingTwiceKeepsTheOriginalTimestamp() {
+        UUID ada = insertUser("ada@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+
+        WorkspaceSummary first = workspaces.archive(lab.id(), ada);
+        WorkspaceSummary again = workspaces.archive(lab.id(), ada);
+
+        assertEquals(first.archivedAt(), again.archivedAt(),
+                "A retried archive reports the current state rather than rewriting history");
+    }
+
+    @Test
+    void anEditorOrViewerCannotArchive() {
+        UUID ada = insertUser("ada@example.com");
+        UUID kasia = insertUser("kasia@example.com");
+        UUID michal = insertUser("michal@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+        grant(lab.id(), kasia, WorkspaceRole.EDITOR);
+        grant(lab.id(), michal, WorkspaceRole.VIEWER);
+
+        assertThrows(ForbiddenException.class, () -> workspaces.archive(lab.id(), kasia));
+        assertThrows(ForbiddenException.class, () -> workspaces.archive(lab.id(), michal));
+        assertNull(workspaces.findForMember(lab.id(), ada).archivedAt(), "Still active");
+    }
+
+    @Test
+    void aNonMemberCannotArchive() {
+        UUID ada = insertUser("ada@example.com");
+        UUID outsider = insertUser("outsider@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+
+        assertThrows(ResourceNotFoundException.class, () -> workspaces.archive(lab.id(), outsider));
+        assertNull(workspaces.findForMember(lab.id(), ada).archivedAt());
+    }
+
+    @Test
+    void anArchivedWorkspaceCannotBeEdited() {
+        UUID ada = insertUser("ada@example.com");
+        WorkspaceSummary lab = createWorkspace("Lab", ada);
+        workspaces.archive(lab.id(), ada);
+
+        ConflictException rejected = assertThrows(ConflictException.class,
+                () -> workspaces.updateMetadata(lab.id(), ada,
+                        new UpdateWorkspaceCommand("Renamed", null)));
+
+        assertEquals(ApiErrorCode.CONFLICT, rejected.code());
+        assertEquals("Lab", workspaces.findForMember(lab.id(), ada).name());
     }
 
     @Test
