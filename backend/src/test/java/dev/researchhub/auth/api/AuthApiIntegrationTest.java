@@ -268,10 +268,15 @@ class AuthApiIntegrationTest {
      *
      * <p>Guards the deny-by-default rule itself: the chain permits specific paths and authenticates
      * everything else, so a product endpoint added later is private until someone says otherwise.
+     *
+     * <p>{@code /api/documents} is not mapped by any controller yet, which is the point — the answer is
+     * 401 rather than 404, so an anonymous caller cannot probe which routes exist. This used to name
+     * {@code /api/workspaces}; that one is a real endpoint now, and its own anonymous-access assertions
+     * live in {@code WorkspaceApiIntegrationTest}.
      */
     @Test
     void anUnlistedApiRouteIsAuthenticatedRatherThanPublic() throws Exception {
-        mockMvc.perform(get("/api/workspaces"))
+        mockMvc.perform(get("/api/documents"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
