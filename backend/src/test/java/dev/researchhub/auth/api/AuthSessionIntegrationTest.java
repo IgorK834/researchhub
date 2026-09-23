@@ -113,6 +113,10 @@ class AuthSessionIntegrationTest {
                     {"email": "%s", "password": "%s"}
                     """.formatted(email, password));
         }
+
+        HttpResponse<String> logout() throws Exception {
+            return postJson("/api/auth/logout", "");
+        }
     }
 
     private JsonNode json(HttpResponse<String> response) {
@@ -208,6 +212,75 @@ class AuthSessionIntegrationTest {
 
         HttpResponse<String> failed = new Browser().login(EMAIL, "another-wrong-password");
         assertFalse(failed.body().contains("another-wrong-password"), "failed login response");
+    }
+
+    @Test
+    void theCanonicalIdentityPathAndItsAliasReturnTheSameUser() throws Exception {
+        Browser browser = new Browser();
+        browser.register();
+        browser.login(EMAIL, PASSWORD);
+
+        HttpResponse<String> canonical = browser.get("/api/me");
+        HttpResponse<String> alias = browser.get("/api/auth/me");
+
+        assertEquals(200, canonical.statusCode(), canonical.body());
+        assertEquals(200, alias.statusCode(), alias.body());
+        assertEquals(canonical.body(), alias.body(),
+                "/api/me and /api/auth/me must not drift apart");
+    }
+
+    @Test
+    void logoutEndsTheSessionSoTheSameCookieNoLongerAuthorizes() throws Exception {
+        Browser browser = new Browser();
+        browser.register();
+        browser.login(EMAIL, PASSWORD);
+
+        assertEquals(200, browser.get("/api/me").statusCode(), "signed in before logout");
+
+        HttpResponse<String> loggedOut = browser.logout();
+        assertEquals(204, loggedOut.statusCode(), loggedOut.body());
+        assertTrue(loggedOut.body().isEmpty(), "A logout response says nothing about the user");
+
+        // The browser still holds the cookie. It simply no longer resolves to a session, which is the
+        // point of keeping session state on the server.
+        assertTrue(browser.hasCookie("JSESSIONID"), "The browser still has the cookie it was given");
+
+        HttpResponse<String> afterLogout = browser.get("/api/me");
+        assertEquals(401, afterLogout.statusCode(),
+                "The invalidated session must not authorize a later request");
+        assertEquals("UNAUTHENTICATED", json(afterLogout).get("code").asString());
+    }
+
+    @Test
+    void logoutAndTheFollowingRejectionNeverEchoThePassword() throws Exception {
+        Browser browser = new Browser();
+        browser.register();
+        browser.login(EMAIL, PASSWORD);
+
+        assertFalse(browser.logout().body().contains(PASSWORD), "logout response");
+        assertFalse(browser.get("/api/me").body().contains(PASSWORD), "post-logout 401 response");
+    }
+
+    @Test
+    void loggingInAgainAfterLogoutWorks() throws Exception {
+        Browser browser = new Browser();
+        browser.register();
+        browser.login(EMAIL, PASSWORD);
+        browser.logout();
+
+        HttpResponse<String> secondLogin = browser.login(EMAIL, PASSWORD);
+
+        assertEquals(200, secondLogin.statusCode(), secondLogin.body());
+        assertEquals(200, browser.get("/api/me").statusCode(),
+                "A new session should work after the previous one was invalidated");
+    }
+
+    @Test
+    void logoutWithoutASessionIsRejected() throws Exception {
+        HttpResponse<String> response = new Browser().logout();
+
+        assertEquals(401, response.statusCode());
+        assertEquals("UNAUTHENTICATED", json(response).get("code").asString());
     }
 
     @Test

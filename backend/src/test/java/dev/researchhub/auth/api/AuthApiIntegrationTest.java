@@ -24,8 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -225,6 +227,83 @@ class AuthApiIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"))
                 .andExpect(jsonPath("$.detail").value("Authentication is required"));
+    }
+
+    /** Both identity paths are protected by the default deny rule, not by a per-route matcher. */
+    @Test
+    void bothIdentityPathsRejectAnAnonymousCaller() throws Exception {
+        for (String path : new String[]{"/api/me", "/api/auth/me"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+        }
+    }
+
+    @Test
+    void logoutRequiresASessionRatherThanSilentlySucceeding() throws Exception {
+        mockMvc.perform(csrfProtectedPost("/api/auth/logout", ""))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    /**
+     * CSRF is checked before authentication, so a mutating request that cannot prove its origin is
+     * refused as {@code FORBIDDEN} without the chain ever considering who is calling.
+     *
+     * <p>Pinned down because it explains an otherwise surprising pairing: logout without a token is 403,
+     * while logout with a token but no session is 401 (above). The order is deliberate — a request that
+     * may have been forged by another site should not be processed far enough to reveal whether it would
+     * have been authenticated.
+     */
+    @Test
+    void logoutWithoutACsrfTokenIsRefusedBeforeAuthenticationIsConsidered() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    /**
+     * A route nobody has opened stays closed.
+     *
+     * <p>Guards the deny-by-default rule itself: the chain permits specific paths and authenticates
+     * everything else, so a product endpoint added later is private until someone says otherwise.
+     */
+    @Test
+    void anUnlistedApiRouteIsAuthenticatedRatherThanPublic() throws Exception {
+        mockMvc.perform(get("/api/workspaces"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void allowsCredentialedCrossOriginRequestsFromTheLocalFrontend() throws Exception {
+        mockMvc.perform(options("/api/auth/login")
+                        .header("Origin", "http://localhost:3000")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "Content-Type, X-XSRF-TOKEN"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
+                // Without this the browser would drop the session and CSRF cookies from the real request.
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+    }
+
+    @Test
+    void doesNotAllowCrossOriginRequestsFromAnotherOrigin() throws Exception {
+        mockMvc.perform(options("/api/auth/login")
+                        .header("Origin", "http://evil.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+    }
+
+    @Test
+    void neverAnswersWithAWildcardOrigin() throws Exception {
+        mockMvc.perform(options("/api/auth/login")
+                        .header("Origin", "http://localhost:3000")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(header().string("Access-Control-Allow-Origin",
+                        org.hamcrest.Matchers.not("*")));
     }
 
 }
