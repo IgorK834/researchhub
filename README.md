@@ -80,8 +80,25 @@ From `frontend/`:
 ```bash
 cd frontend
 npm ci
+npm start          # webpack-dev-server on http://localhost:3000
+npm run build       # type-checks with tsc, then production build to frontend/dist/
 ```
 
-`npm install` is an alternative when you are not installing from the lockfile.
+`npm install` is an alternative to `npm ci` when you are not installing from the lockfile.
 
-The UI scaffold is not wired yet. `frontend/public/` and `frontend/src/` are empty, there is no Webpack configuration, and `package.json` has no `start` or `dev` script. Webpack, `webpack-cli`, and `webpack-dev-server` are already devDependencies. After a config and an application entry exist, the intended local command is a webpack-dev-server script, for example `npm run dev`.
+The dev server runs on port 3000 (the backend uses 8080, see above) and serves `index.html`
+for unknown paths (`historyApiFallback`), so client-side routes work on direct refresh.
+
+`src/` layout and where new feature code belongs: [docs/development/frontend-structure.md](docs/development/frontend-structure.md).
+
+Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Current routes, all placeholders:
+
+```text
+/login
+/register
+/app                                                     (layout route, redirects to workspaces)
+/app/workspaces
+/app/workspaces/:workspaceId
+/app/workspaces/:workspaceId/documents/:documentId
+*                                                        (Not Found page)
+```
