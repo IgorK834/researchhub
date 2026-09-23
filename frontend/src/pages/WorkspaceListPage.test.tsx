@@ -15,8 +15,13 @@ interface WorkspaceRow {
   readonly role: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly archivedAt: string | null;
 }
 
+/**
+ * `archivedAt` is always null here, and that is the contract rather than a simplification: the list
+ * endpoint filters archived workspaces out server-side, so one can never appear in this response.
+ */
 function workspace(name: string, role: string, description: string | null): WorkspaceRow {
   return {
     id: `w-${name}`,
@@ -25,6 +30,7 @@ function workspace(name: string, role: string, description: string | null): Work
     role,
     createdAt: '2026-09-23T10:15:30Z',
     updatedAt: '2026-09-23T10:15:30Z',
+    archivedAt: null,
   };
 }
 

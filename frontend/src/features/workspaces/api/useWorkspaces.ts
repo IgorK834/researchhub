@@ -8,9 +8,13 @@ import {
 
 import { queryKeys, type ApiError } from '../../../shared/api';
 import {
+  archiveWorkspace,
   createWorkspace,
+  fetchWorkspace,
   fetchWorkspaces,
+  updateWorkspace,
   type CreateWorkspaceInput,
+  type UpdateWorkspaceInput,
   type Workspace,
 } from './workspaceApi';
 
@@ -48,6 +52,66 @@ export function useCreateWorkspace(): UseMutationResult<
   return useMutation<Workspace, ApiError, CreateWorkspaceInput>({
     mutationFn: (input) => createWorkspace(input),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
+    },
+  });
+}
+
+/**
+ * One workspace, cached under `queryKeys.workspace(id)`.
+ *
+ * A sibling of the list key rather than a slice of it: `['workspaces', id]` sits under `['workspaces']`,
+ * so invalidating the collection also refreshes any open workspace, while invalidating one workspace
+ * leaves the others cached.
+ *
+ * A 404 is left as an error for the page to recognise. It is not mapped to `null` the way an
+ * unauthenticated current user is, because "not found" here is a dead end the page has to render
+ * differently, not an ordinary value.
+ */
+export function useWorkspaceQuery(workspaceId: string): UseQueryResult<Workspace, Error> {
+  return useQuery({
+    queryKey: queryKeys.workspace(workspaceId),
+    queryFn: ({ signal }) => fetchWorkspace(workspaceId, signal),
+  });
+}
+
+/**
+ * Updates a workspace's metadata.
+ *
+ * Writes the response into `queryKeys.workspace(id)` so the page it came from renders the saved values
+ * without a second request, and invalidates `queryKeys.workspaces()` because the name shown in the list
+ * has changed. Two keys, both of which the write really did affect.
+ */
+export function useUpdateWorkspace(
+  workspaceId: string,
+): UseMutationResult<Workspace, ApiError, UpdateWorkspaceInput> {
+  const queryClient = useQueryClient();
+
+  return useMutation<Workspace, ApiError, UpdateWorkspaceInput>({
+    mutationFn: (input) => updateWorkspace(workspaceId, input),
+    onSuccess: (workspace) => {
+      queryClient.setQueryData(queryKeys.workspace(workspaceId), workspace);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
+    },
+  });
+}
+
+/**
+ * Archives a workspace.
+ *
+ * Invalidates the list, which is where the effect is visible: an archived workspace drops out of it. The
+ * detail cache is updated too, so if the user navigates back to the workspace it already reads as
+ * archived rather than briefly showing an editable, active one.
+ */
+export function useArchiveWorkspace(
+  workspaceId: string,
+): UseMutationResult<Workspace, ApiError, void> {
+  const queryClient = useQueryClient();
+
+  return useMutation<Workspace, ApiError, void>({
+    mutationFn: () => archiveWorkspace(workspaceId),
+    onSuccess: (workspace) => {
+      queryClient.setQueryData(queryKeys.workspace(workspaceId), workspace);
       void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
     },
   });
