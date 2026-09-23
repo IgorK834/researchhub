@@ -28,7 +28,7 @@ Flyway runs before JPA uses the database. Spring Boot orders that startup. Do no
 | `test` | JDBC, Flyway, and JPA auto-configuration are excluded. Tests on this profile do not open a database. |
 | `cloud` | `DB_URL` is required and is not a JDBC connection yet. The same auto-configuration is excluded. When a later task connects, map `spring.datasource.url` from `DB_URL` and keep `ddl-auto` at `none` or `validate`. |
 
-A wrong host, port, or password on the local profile fails startup. The process exits before it serves HTTP. The log is HikariCP failing to obtain a connection.
+A wrong host, port, or password on the local profile fails startup. The process exits before it serves HTTP. The log is HikariCP failing to obtain a connection. After the process is up, a later database outage is a readiness failure, not a dead process: [health.md](health.md).
 
 ## Where types live
 

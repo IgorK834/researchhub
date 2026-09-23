@@ -96,7 +96,7 @@ If Postgres is stopped or the host, port, or credentials are wrong, startup fail
 
 The test and cloud profiles exclude JDBC, Flyway, and JPA auto-configuration, so a test on the `test` profile does not open a database. `./mvnw test` still needs Docker: `FlywayMigrationIntegrationTest` starts its own PostgreSQL 17 container and runs the same `db/migration` files. It does not use the Compose database. Cloud still checks that `DB_URL` is present and does not open a JDBC connection yet. When that connection is added, `ddl-auto` stays `none` or `validate`. Schema changes stay in Flyway. New migration files use `V<version>__<description>.sql` with no leading zeros. `V1__baseline.sql` is immutable.
 
-Persistence rules: [persistence.md](persistence.md).
+Persistence rules: [persistence.md](persistence.md). Health probes: [health.md](health.md).
 
 Stop the container, keeping its data:
 
