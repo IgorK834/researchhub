@@ -20,8 +20,14 @@ Applied migrations:
 | --- | --- | --- |
 | 1 | `V1__baseline.sql` | Nothing. Empty immutable baseline. |
 | 2 | `V2__create_users.sql` | `users`, owned by the `user` module. |
+| 3 | `V3__create_workspaces.sql` | `workspaces`, owned by the `workspace` module. |
+| 4 | `V4__create_workspace_members.sql` | `workspace_members`, owned by the `workspace` module. |
 
-The next migration is `V3__<description>.sql`.
+The next migration is `V5__<description>.sql`.
+
+`workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
+two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each
+file readable. They are applied together and neither is useful alone.
 
 Applied files are immutable. A checksum change fails startup (`spring.flyway.validate-on-migrate: true`). Ship a new migration instead of rewriting an old one.
 
@@ -47,7 +53,44 @@ A product entity and its repository live in the module that owns the concept, fo
 
 `shared` does not hold product entities or repositories.
 
-Today that is `dev.researchhub.user.infrastructure.UserEntity` and `UserRepository`, mapped to the `users` table. The module keeps its invariants in `dev.researchhub.user.domain` (`User`, `UserEmail`, `PasswordHash`, `UserStatus`); the entity is the persistence representation and converts in both directions.
+Today that is:
+
+| Table | Entity and repository | Module invariants |
+| --- | --- | --- |
+| `users` | `user.infrastructure.UserEntity`, `UserRepository` | `user.domain`: `User`, `UserEmail`, `PasswordHash`, `UserStatus` |
+| `workspaces` | `workspace.infrastructure.WorkspaceEntity`, `WorkspaceRepository` | `workspace.domain`: `Workspace` |
+| `workspace_members` | `workspace.infrastructure.WorkspaceMemberEntity`, `WorkspaceMemberRepository` | `workspace.domain`: `WorkspaceMembership`, `WorkspaceMembers`, `WorkspaceRole`, `WorkspaceCapability` |
+
+In each case the entity is the persistence representation and converts in both directions; the rules live
+in the module's `domain`.
+
+### Two things the workspace tables do differently
+
+**No mapped association across a module boundary.** `workspaces.created_by` and
+`workspace_members.user_id` are plain `uuid` columns, not `@ManyToOne` references to `UserEntity`. The
+`workspace` module must not import `user.infrastructure` (see
+[backend-architecture.md](backend-architecture.md)), so the reference is declared as a foreign key in the
+migration and enforced by the database. No user column is copied onto either table; a caller that needs an
+email reads it through the `user` module.
+
+**Repositories that cannot list everything.** `WorkspaceRepository` and `WorkspaceMemberRepository` extend
+Spring Data's bare `Repository` marker rather than `JpaRepository`, which would inherit `findAll()`. A
+workspace is a security boundary, so a method returning every workspace — or every membership — in the
+database is not something that should exist to be called by mistake. Every read is by id, by an explicit
+set of ids, or scoped to one user or workspace. `JpaRepository` is still the right default for a table
+that is not a boundary, as `users` shows.
+
+### Timestamps
+
+Every timestamp column is `timestamptz` and is mapped to `java.time.Instant`. The value comes from the
+`Clock` bean in `dev.researchhub.config.TimeConfiguration` (`Clock.systemUTC()`), injected into the
+application service that performs the write, and is passed into the domain factory as a parameter so the
+timestamps are deterministic in tests. Do not call `Instant.now()` in a service or an entity.
+
+`timestamptz` rather than `timestamp` so a value carries its offset and no reader has to guess a zone; the
+local profile additionally sets `hibernate.jdbc.time_zone: UTC`. Hand-written SQL in a test has to convert
+— the PostgreSQL driver rejects an `Instant` parameter because it cannot infer the SQL type — which is
+what `UserRowFixture.timestamp(Instant)` does. Hibernate does that conversion for the entities.
 
 ## Identifiers
 
@@ -81,6 +124,20 @@ Off unless `researchhub.debug.sql` is `true` (`RESEARCHHUB_DEBUG_SQL=true` or `-
 `./mvnw test` runs `FlywayMigrationIntegrationTest` against PostgreSQL 17 in Testcontainers (`postgres:17`, the same image major as `compose.yaml`). That container is ephemeral. It is not the Compose database on port 5432. Docker must be running. A locally installed Postgres server is not required, and `docker compose up` is not required.
 
 `UserRepositoryIntegrationTest` runs on the same container and is the proof for the `users` table: a second account whose email differs only by case, or only by surrounding whitespace, is rejected by `uq_users_normalized_email`, and the stored `password_hash` is the supplied hash and never a plaintext password.
+
+`WorkspaceRepositoryIntegrationTest` is the equivalent proof for the workspace tables: a second membership
+for the same `(workspace_id, user_id)` is rejected by `uq_workspace_members_workspace_user`, a role outside
+`OWNER`/`EDITOR`/`VIEWER` is rejected by `ck_workspace_members_role`, a workspace or membership pointing at
+a user or workspace that does not exist is rejected by its foreign key, a blank name is rejected by
+`ck_workspaces_name_not_blank` even when the domain type is bypassed, and neither table has a column
+copied from `users`.
+
+`WorkspaceCreationTransactionIntegrationTest` is deliberately **not** `@Transactional`, unlike everything
+else above. It proves that a workspace and its owner membership are committed together, and a
+test-managed transaction would hide exactly that: the service would join the test's transaction, so the
+rollback under test would be indistinguishable from the rollback the test performs anyway. It cleans rows
+in `@BeforeEach` instead. Copy that shape for any other test about what a service's own transaction
+commits.
 
 Annotate a new persistence test with `@PostgresIntegrationTest`. That annotation starts one PostgreSQL container for the Spring test context, points the datasource at it, uses the `local` profile so Flyway and JPA are enabled, and marks the class `@Transactional`. Classes that use the same annotation share that context and container. Each test method runs in a transaction that rolls back, so inserted rows and DDL from a test do not leak into the next method. Flyway has already committed `db/migration` during context startup, and those migrations stay. Do not reset the schema with Hibernate `create-drop`.
 

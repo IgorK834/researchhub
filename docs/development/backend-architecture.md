@@ -2,7 +2,7 @@
 
 Rules for the Spring Boot modular monolith. Product context stays in [docs/context.md](../context.md) (sections 18, 19, and 32). REST error JSON is specified in [api-errors.md](api-errors.md). Request DTO validation, shared length limits, and the trim policy are specified in [validation.md](validation.md).
 
-Java owns domain rules and, later, workspace authorization. Python under `ai-worker/` is outside this tree. Do not add a global `controllers`, `services`, or `repositories` package under `dev.researchhub`.
+Java owns domain rules and workspace authorization. Python under `ai-worker/` is outside this tree. Do not add a global `controllers`, `services`, or `repositories` package under `dev.researchhub`.
 
 ## Packages in the repository today
 
@@ -18,6 +18,11 @@ dev.researchhub
 │   ├── domain          User, UserEmail, PasswordHash, UserStatus
 │   ├── application     UserAccount, registration and authentication services, PasswordPolicy
 │   └── infrastructure  UserEntity, UserRepository
+├── workspace       Workspace boundary, membership, and authorization
+│   ├── api             WorkspaceController, CreateWorkspaceRequest, WorkspaceResponse
+│   ├── application     WorkspaceService, WorkspaceAuthorizationService, CreateWorkspaceCommand, WorkspaceSummary
+│   ├── domain          Workspace, WorkspaceMembership, WorkspaceMembers, WorkspaceRole, WorkspaceCapability
+│   └── infrastructure  WorkspaceEntity, WorkspaceMemberEntity, WorkspaceRepository, WorkspaceMemberRepository
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors
@@ -41,6 +46,42 @@ dev.researchhub
 
 The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-authentication.md).
 
+`workspace` owns the workspace boundary and every authorization decision about it:
+
+| Endpoint | Auth | Who is served |
+| --- | --- | --- |
+| `POST /api/workspaces` | Required | Any authenticated user. The caller becomes the workspace's `OWNER`. |
+| `GET /api/workspaces` | Required | The caller's own workspaces, from their memberships. Never anyone else's. |
+| `GET /api/workspaces/{workspaceId}` | Required | Members only. A non-member gets `404`, not `403`. |
+
+Member management (`GET`/`POST /api/workspaces/{workspaceId}/members`) is not implemented yet. The role
+rules it will need already exist and are enforced in `workspace.domain`.
+
+### Two rules the workspace module is built around
+
+**A workspace is the security boundary, and the boundary is a membership row.** Access is decided by
+`workspace_members`, never by `workspaces.created_by` and never by the client. `WorkspaceAuthorizationService`
+is the single place that decides, so a new endpoint cannot invent its own answer:
+`requireMember(workspaceId, userId)` returns the role held, and `requireCapability(..., capability)` also
+checks what that role may do.
+
+**A non-member is answered `404 RESOURCE_NOT_FOUND`, with the identical detail a genuinely missing
+workspace produces.** A `403` there would confirm that another team's workspace exists to anyone who can
+guess or has seen an id, so whether it exists is itself information only its members get. A member whose
+role is merely too low *does* get `403 FORBIDDEN`: they already know the workspace exists, so hiding it
+would tell them nothing and would misdescribe the failure.
+
+Roles map to capabilities in `workspace.domain.WorkspaceRole`, which is the whole authorization table:
+
+| | `VIEW_CONTENT` | `EDIT_CONTENT` | `MANAGE_MEMBERS` | `MANAGE_WORKSPACE` |
+| --- | --- | --- | --- | --- |
+| `OWNER` | yes | yes | yes | yes |
+| `EDITOR` | yes | yes | no | no |
+| `VIEWER` | yes | no | no | no |
+
+Ask for a capability, not for a role. A call site that writes `role == OWNER || role == EDITOR` has quietly
+decided that every role added later is denied, and it spreads the table across the codebase.
+
 `GET /api/me` lives in its own `CurrentUserController` because `AuthController` is mapped under `/api/auth` and identity sits at the top level. Both delegate to `auth.application.CurrentUserResolver`, so the canonical path and its alias cannot return different bodies or disagree about when a session is still valid.
 
 Logout is authenticated, not public. It needs a session to invalidate, so an anonymous POST has nothing to do; answering 401 rather than a silent 204 also avoids confirming the route to an unauthenticated caller.
@@ -49,7 +90,9 @@ Logout is authenticated, not public. It needs a session to invalidate, so an ano
 
 `JpaPersistenceConfiguration` is `@Profile("local")`, so `UserRepository` exists only there. Anything that needs it must carry the same guard, or the `test` and `cloud` contexts fail to start — `BackendApplicationTests` and `CloudProfileStartupTests` both load the full context on profiles that exclude JDBC and JPA.
 
-That is why `UserRegistrationService`, `UserAuthenticationService`, `CurrentUserResolver`, `AuthController`, and `CurrentUserController` are `@Profile("local")`.
+That is why `UserRegistrationService`, `UserAuthenticationService`, `CurrentUserResolver`, `AuthController`, `CurrentUserController`, `WorkspaceService`, `WorkspaceAuthorizationService`, and `WorkspaceController` are `@Profile("local")`.
+
+Repository interfaces themselves carry no annotation: the guard is on `JpaPersistenceConfiguration`'s scan, so they are simply never instantiated elsewhere. Anything that *injects* one needs the guard, and so does anything that injects that.
 
 The security filter chain is deliberately **not** scoped that way, and authentication is performed by the controller calling `user.application` rather than by a `UserDetailsService` or `DaoAuthenticationProvider` wired into the chain. A chain that depended on the user repository could not start where the repository does not exist, which would leave the profiles used by those tests with no filter chain at all — and therefore no assurance that the public health routes and the deny-by-default rule behave the same everywhere. The chain instead depends on nothing but Spring Security itself, and only the `SecurityFilterChain` and `CorsConfigurationSource` beans are conditional, on a servlet web application, because `HttpSecurity` is absent from a non-web context such as `@SpringBootTest(webEnvironment = NONE)`.
 
@@ -106,6 +149,13 @@ Allowed dependencies inside one module:
 | From | To | Why |
 | --- | --- | --- |
 | `auth` | `dev.researchhub.user.application` | `auth` owns login and registration endpoints; `user` owns the user record. The endpoints need to create and verify accounts. |
+| `workspace.api` | `dev.researchhub.auth.application` | Every workspace route acts on behalf of the signed-in user, and `auth` owns the session. `WorkspaceController` calls `CurrentUserResolver.requireCurrentUser()` rather than trusting a request field, which is what stops a client from creating a workspace owned by somebody else. |
+| `workspace.api` | `dev.researchhub.user.application` | Only as the return type of the call above: `requireCurrentUser()` hands back a `UserAccount`, of which `workspace` reads `id()` and nothing else. The call is chained, so the type is never even imported — but it is still a dependency, and this row is what makes it allowed. |
+
+The workspace edges are confined to `workspace.api`. `workspace.application` and `workspace.domain` take a
+`UUID` and have no idea a session exists, so the authorization rules can be tested — and reused by a
+background job or a future endpoint — without an HTTP request. `workspace` must not import `user.domain`,
+`user.infrastructure`, or `auth.infrastructure`, and neither `auth` nor `user` may import `workspace`.
 
 `auth` uses only `UserRegistrationService`, `UserAuthenticationService`, `UserAccount`, `RegisterUserCommand`, and `PasswordPolicy`. `auth.application.CurrentUserResolver` is the one place in `auth` that reads a user, and it goes through `UserAuthenticationService`. It must not import `user.domain` or `user.infrastructure`, and `user` must not import `auth`. Two details keep that honest in both directions:
 
@@ -125,7 +175,8 @@ Product `@Entity` types and Spring Data repositories belong in the owning module
 
 These do not belong in `shared`:
 
-- workspace roles, membership rules, or permission checks
+- workspace roles, membership rules, or permission checks — they live in `workspace.domain` and
+  `workspace.application`
 - document structure
 - source parsing
 - prompts, retrieval, or citation rules

@@ -108,14 +108,14 @@ and Prettier: [docs/development/frontend-tooling.md](docs/development/frontend-t
 `src/` layout and where new feature code belongs: [docs/development/frontend-structure.md](docs/development/frontend-structure.md).
 HTTP client, typed API errors, and TanStack Query conventions: [docs/development/frontend-api.md](docs/development/frontend-api.md).
 
-Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Current routes, all placeholders:
+Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Everything under `/app` is behind a session guard:
 
 ```text
-/login
-/register
-/app                                                     (layout route, redirects to workspaces)
-/app/workspaces
-/app/workspaces/:workspaceId
-/app/workspaces/:workspaceId/documents/:documentId
+/login                                                   implemented
+/register                                                implemented
+/app                                                     (layout route, shows the workspace list)
+/app/workspaces                                          implemented: list and create
+/app/workspaces/:workspaceId                             placeholder
+/app/workspaces/:workspaceId/documents/:documentId       placeholder
 *                                                        (Not Found page)
 ```

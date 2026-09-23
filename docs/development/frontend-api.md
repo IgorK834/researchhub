@@ -146,20 +146,31 @@ rather than `queryKeys.documents(workspaceId)`.
 ## Where feature code goes
 
 ```text
-features/workspace/api/useWorkspacesQuery.ts   hook: useQuery + queryKeys.workspaces()
-features/workspace/api/workspaceApi.ts          transport: apiClient.get('/api/workspaces')
-pages/WorkspaceListPage.tsx                     renders the hook's states
+features/workspaces/api/workspaceApi.ts                transport: apiClient.get('/api/workspaces')
+features/workspaces/api/useWorkspaces.ts               hooks: useWorkspacesQuery, useCreateWorkspace
+features/workspaces/components/WorkspaceList.tsx       renders the data
+features/workspaces/components/CreateWorkspaceForm.tsx owns the form state and the mutation
+pages/WorkspaceListPage.tsx                            renders the hook's states
 ```
 
 The transport function names the endpoint and its types; the hook binds it to a query key; the page
 renders loading, error, and success. Feature folders are created when the first file needs them.
+
+`CreateWorkspaceForm` writes out its own label, input, and textarea rather than importing `FormField`
+from `features/auth`. One feature must not import from another
+([frontend-structure.md](frontend-structure.md)); promote a component to `shared/components/` when a
+second feature genuinely needs it, rather than reaching across.
 
 ## Current scaffolding
 
 `shared/components/ApiStatusBanner.tsx` is the smoke test for all of the above: it calls
 `getHealth()` through the shared client via `useHealthQuery`, renders the loading, error, and
 success branches, and invalidates `['health']` on demand. It is wiring proof, not a product
-feature, and should be removed once real workspace data is fetched.
+feature.
+
+Real workspace data is now fetched by `features/workspaces`, so the banner has served its purpose and is
+due for removal from `AppLayoutPage`. It is still mounted, deliberately — dropping it belongs in its own
+change, not bundled into a feature.
 
 ## Authentication
 

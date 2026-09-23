@@ -201,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. No product feature is implemented behind those routes. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
+The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, and the workspace list and create form are implemented; the workspace detail and document routes are still placeholders. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
 
 Local-only paths are ignored and must not be committed:
 
@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project is at the **scaffolding stage**. No product feature should be considered implemented yet.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, and workspaces with membership roles enforced on the backend. Everything else in this document — documents, sources, RAG, AI writing, analysis — is still a plan, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
 
 ---
 
@@ -429,6 +429,8 @@ OWNER
 EDITOR
 VIEWER
 ```
+
+These three are implemented and enforced on the backend. `OWNER` manages workspace metadata and members and edits content; `EDITOR` creates and edits content but cannot manage members or the workspace; `VIEWER` reads only. The capability matrix and where it lives: [development/backend-architecture.md](development/backend-architecture.md).
 
 Every workspace-owned entity should carry a workspace relationship, e.g. `workspace_id`.
 
@@ -853,7 +855,7 @@ Do not rely on Hibernate auto-creating production schema.
 
 ## 20. Preliminary entities
 
-Not final schema:
+Not final schema. `users`, `workspaces`, and `workspace_members` now exist as Flyway migrations; the columns and constraints they actually have are documented in [development/persistence.md](development/persistence.md), which is the source of truth for anything already built. The rest of this list is still a sketch.
 
 ```text
 users
@@ -884,7 +886,11 @@ audit_events
 
 ## 21. Authentication and authorization
 
-Registration, login, and logout are implemented: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/me` (canonical identity read, with `GET /api/auth/me` as a compatible alias), with the session in an HttpOnly cookie. Every other route requires a session by default, and the SPA holds `/app` behind a guard that waits for that check before rendering. OAuth providers and password reset are not implemented. Authorization — workspace roles and per-resource checks — is not implemented either, so an authenticated caller may reach an endpoint that has no resource rule yet.
+Registration, login, and logout are implemented: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, and `GET /api/me` (canonical identity read, with `GET /api/auth/me` as a compatible alias), with the session in an HttpOnly cookie. Every other route requires a session by default, and the SPA holds `/app` behind a guard that waits for that check before rendering. OAuth providers and password reset are not implemented.
+
+Authorization is implemented for the workspace boundary. `workspace_members` grants a user access to one workspace with one role, `OWNER`, `EDITOR`, or `VIEWER`; `dev.researchhub.workspace.domain.WorkspaceRole` maps each role to the capabilities it carries, and `WorkspaceAuthorizationService` is the single place every workspace route asks. A non-member is answered `404`, not `403`, so a response never confirms that another team's workspace exists. Details, including the capability matrix: [development/backend-architecture.md](development/backend-architecture.md).
+
+What is not implemented yet: per-resource checks for entities that do not exist yet — documents, sources, analyses, AI conversations — and the member-management endpoints. Each of those hangs off a workspace and will reuse the same capability check rather than inventing its own. Until a resource exists, there is no rule to write for it.
 
 Initial mechanism:
 
@@ -918,15 +924,15 @@ Primary API style:
 REST
 ```
 
-Conceptual routes:
+Conceptual routes, with the implemented ones marked. Implemented routes are specified in [development/backend-architecture.md](development/backend-architecture.md); the rest are still a sketch.
 
 ```text
-POST   /api/auth/register
-POST   /api/auth/login
+POST   /api/auth/register                      implemented
+POST   /api/auth/login                         implemented
 
-GET    /api/workspaces
-POST   /api/workspaces
-GET    /api/workspaces/{workspaceId}
+GET    /api/workspaces                         implemented
+POST   /api/workspaces                         implemented
+GET    /api/workspaces/{workspaceId}           implemented
 
 GET    /api/workspaces/{workspaceId}/members
 POST   /api/workspaces/{workspaceId}/members

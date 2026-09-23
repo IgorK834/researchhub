@@ -33,13 +33,13 @@ must enforce its own critical rules independently of the controller, because:
 - A constraint annotation can be loosened or dropped from a DTO by accident. If the only
   place a rule is checked is the controller, that mistake ships silently.
 
-Concretely: a future `CreateWorkspaceRequest` DTO enforces `@NotBlank @Size(max =
-FieldLengths.NAME_MAX)` on `name` for a fast 400 response. The `Workspace` domain type (or
-the `workspace` module's application service) still validates its own name invariant when
-constructing or renaming a workspace, so the rule holds regardless of caller. Today, before
-any product module exists, this pattern is demonstrated only at the API boundary; apply the
-same shared limits and the same expectation to domain code as soon as a module's domain
-layer exists.
+Concretely: `dev.researchhub.workspace.api.CreateWorkspaceRequest` enforces `@NotBlank @Size(max =
+FieldLengths.NAME_MAX)` on `name` for a fast 400 response, and `@Size(max =
+FieldLengths.DESCRIPTION_MAX)` on the optional `description`. The `Workspace` domain type
+checks the same two rules again when a workspace is constructed, so they hold regardless of
+caller, and `WorkspaceService` translates a domain rejection into `VALIDATION_FAILED` for
+callers that never touched a DTO. `WorkspaceTest` and `WorkspaceServiceIntegrationTest`
+assert both layers, which is what stops the DTO from becoming the only place a limit lives.
 
 ## Shared length limits
 
@@ -52,8 +52,15 @@ adds a table for one of these concepts, the column length must be at least this 
 | `FieldLengths.NAME_MAX` | 255 | Short display names: workspace names, user display names, and similar identifiers |
 | `FieldLengths.EMAIL_MAX` | 254 | Email addresses, whole address including the domain |
 | `FieldLengths.TITLE_MAX` | 500 | Document and other titles |
+| `FieldLengths.DESCRIPTION_MAX` | 2000 | Optional free-text descriptions: a workspace description and similar explanatory metadata |
 | `FieldLengths.PROMPT_MAX` | 8000 | AI user prompts |
 | `FieldLengths.COMMENT_MAX` | 4000 | Comment bodies |
+
+`DESCRIPTION_MAX` is 2000, deliberately far below `COMMENT_MAX`, even though both hold free text. A
+description is metadata rendered next to the thing it describes, usually in a list, so it has to stay
+readable at a glance; a comment is discussion and can reasonably run long. Reusing `COMMENT_MAX` for a
+description would invite text no list can display, so do not silently borrow it — a new concept that
+needs a different limit gets its own named constant and its own row here.
 
 `EMAIL_MAX` is 254 because that is the longest address that can actually be delivered: RFC 5321 caps a `MAIL FROM` path at 256 characters including the angle brackets. The 320 sometimes quoted adds a 64-character local part to a 255-character domain and is not deliverable, so it would widen the column without accepting a usable address.
 
@@ -96,9 +103,26 @@ own rules:
 - `User` trims the display name, rejects it when blank, and caps it at `NAME_MAX`, which is also
   the `users.display_name` column length.
 
-When a registration DTO is added, it reuses `EMAIL_MAX`, `NAME_MAX`, and the trim pattern for fast
-400 responses, and the domain keeps enforcing the same rules for callers that never touch a
-controller.
+`RegisterRequest` reuses `EMAIL_MAX`, `NAME_MAX`, and the trim pattern for fast 400 responses, and the
+domain keeps enforcing the same rules for callers that never touch a controller. One exception is
+documented on that record: `password` is **not** trimmed, because a leading or trailing space is a
+legitimate character in a credential and removing it would change what the user chose.
+
+## Invariants in the workspace module
+
+`dev.researchhub.workspace.domain` applies the same rule to the workspace tables:
+
+- `Workspace` trims the name, rejects it when blank, and caps it at `NAME_MAX`, which is also the
+  `workspaces.name` column length. It trims the description, caps it at `DESCRIPTION_MAX`, and
+  normalizes a blank description to `null` so "no description" has one representation in the column
+  and in the API response.
+- `WorkspaceMembers` enforces a rule no DTO could express: a workspace always keeps at least one
+  `OWNER`, so demoting or removing the last one fails with `CONFLICT`. It is enforced now even though
+  no endpoint changes membership yet, which is the point — the endpoint cannot be written without it.
+
+Both are checked by the database as well: `ck_workspaces_name_not_blank`, the column lengths, and
+`ck_workspace_members_role`. A DTO constraint is the fast answer, the domain is the rule, and the
+schema is the backstop.
 
 ## Where this is demonstrated today
 
@@ -112,5 +136,8 @@ The pattern above is demonstrated end-to-end by
 - a field over its configured max length (`size must be between 0 and 255`),
 - a field with surrounding whitespace that is trimmed before it reaches the handler.
 
-When the first real module DTO is added, reuse `FieldLengths` and the trim pattern above
-instead of copying literals or writing a new normalization helper.
+`RegisterRequest` and `CreateWorkspaceRequest` are the real module DTOs following that pattern.
+`WorkspaceApiIntegrationTest` covers it over HTTP: a whitespace-only workspace name is trimmed before
+Bean Validation runs and comes back as `400 VALIDATION_FAILED` with `errors[0].field` of `name`, and no
+row is written. Reuse `FieldLengths` and the trim pattern in a new DTO instead of copying literals or
+writing a new normalization helper.
