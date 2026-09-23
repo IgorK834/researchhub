@@ -10,6 +10,7 @@ import { hasApiErrorCode, queryKeys, type ApiError } from '../../../shared/api';
 import {
   fetchCurrentUser,
   login,
+  logout,
   register,
   type AuthenticatedUser,
   type LoginInput,
@@ -75,5 +76,27 @@ export function useRegister(): UseMutationResult<
 > {
   return useMutation<AuthenticatedUser, ApiError, RegisterInput>({
     mutationFn: (input) => register(input),
+  });
+}
+
+/**
+ * Logs out and drops every cached response.
+ *
+ * The server invalidating the session is what revokes access; this clears what that session put in
+ * memory. `clear()` rather than removing one key, because anything fetched while signed in was fetched
+ * as that user, and leaving it behind would show one person's data to whoever signs in next in the same
+ * tab. The only other cached entry today is the public health status, so re-fetching it is the whole cost.
+ *
+ * Nothing is written to `localStorage` or `sessionStorage` on the way out, because nothing was ever kept
+ * there.
+ */
+export function useLogout(): UseMutationResult<void, ApiError, void> {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, ApiError, void>({
+    mutationFn: () => logout(),
+    onSuccess: () => {
+      queryClient.clear();
+    },
   });
 }

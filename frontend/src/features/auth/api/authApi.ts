@@ -52,6 +52,12 @@ export async function login(input: LoginInput): Promise<AuthenticatedUser> {
 }
 
 /**
+ * Canonical identity endpoint. `GET /api/auth/me` is a compatible alias returning the same body; both
+ * are served by one backend method. See docs/development/frontend-api.md.
+ */
+const CURRENT_USER_PATH = '/api/me';
+
+/**
  * The user the session cookie belongs to. Throws `ApiError` with code `UNAUTHENTICATED` when there is
  * no usable session.
  *
@@ -59,7 +65,19 @@ export async function login(input: LoginInput): Promise<AuthenticatedUser> {
  * holds the cookie, and the answer comes from the server.
  */
 export function fetchCurrentUser(signal?: AbortSignal): Promise<AuthenticatedUser> {
-  return apiClient.get<AuthenticatedUser>('/api/auth/me', {
+  return apiClient.get<AuthenticatedUser>(CURRENT_USER_PATH, {
     ...(signal === undefined ? {} : { signal }),
   });
+}
+
+/**
+ * Ends the session.
+ *
+ * The server invalidates it, so there is no token for this function to discard — the browser keeps a
+ * cookie that no longer resolves to anything. Clearing the cached user is the caller's job; see
+ * `useLogout`.
+ */
+export async function logout(): Promise<void> {
+  await primeCsrfToken();
+  await apiClient.post<void>('/api/auth/logout');
 }
