@@ -1,33 +1,23 @@
 import type { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
 
-import { describeError } from '../../../shared/api';
 import { useCurrentUser } from '../api/useAuth';
 
 /**
- * Shows who is signed in, from `GET /api/auth/me`.
+ * Shows who is signed in.
  *
- * This is the visible end of the session model: the page holds nothing across a reload, so whatever
- * appears here came from the server recognising the session cookie the browser still had.
+ * This is the visible end of the session model: the page keeps nothing across a reload, so the name here
+ * came from the server recognising the session cookie the browser still had.
+ *
+ * Rendered inside `RequireAuthenticatedUser`, which has already resolved the loading, error, and
+ * signed-out cases, and reads the same cached query rather than issuing a second request. The empty
+ * fallback exists only so this component is honest on its own terms if it is ever placed outside the
+ * guard.
  */
-export function CurrentUserBanner(): ReactElement {
-  const { data: user, error, isPending } = useCurrentUser();
-
-  if (isPending) {
-    return <p role="status">Checking your session…</p>;
-  }
-
-  // A 401 arrives as `user === null`, so a real error here means the request itself failed.
-  if (error !== null) {
-    return <p role="status">Could not check your session: {describeError(error)}</p>;
-  }
+export function CurrentUserBanner(): ReactElement | null {
+  const { data: user } = useCurrentUser();
 
   if (user === null || user === undefined) {
-    return (
-      <p role="status">
-        You are not signed in. <Link to="/login">Log in</Link>
-      </p>
-    );
+    return null;
   }
 
   return (
