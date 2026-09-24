@@ -49,11 +49,56 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, archivalMigrationRows, "Flyway should record V5__add_workspace_archival.sql");
 
+        Integer documentsMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '6'",
+                Integer.class);
+        assertEquals(1, documentsMigrationRows, "Flyway should record V6__create_documents.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(5, appliedVersions,
-                "A fresh database should have exactly versions 1 through 5 applied");
+        assertEquals(6, appliedVersions,
+                "A fresh database should have exactly versions 1 through 6 applied");
+    }
+
+    /**
+     * V6 gives documents a workspace, a bounded JSON body, and one content format.
+     *
+     * <p>The constraints are the schema's own opinion about what a document is, so they are asserted here rather
+     * than left to the application: a writer that bypasses the domain still cannot store an array, a megabyte
+     * of prose, or an HTML blob.
+     */
+    @Test
+    @Order(1)
+    void createsTheDocumentsTableWithABoundedJsonBody() {
+        Integer documentsTable = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name = 'documents'",
+                Integer.class);
+        assertEquals(1, documentsTable, "V6 should create the documents table");
+
+        assertEquals("jsonb", jdbcTemplate.queryForObject("""
+                        SELECT data_type FROM information_schema.columns
+                        WHERE table_name = 'documents' AND column_name = 'content'
+                        """, String.class),
+                "The content column is jsonb, which is what lets the database reject a non-object");
+
+        Integer checks = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.check_constraints
+                WHERE constraint_name IN ('ck_documents_content_is_object',
+                                          'ck_documents_content_size',
+                                          'ck_documents_content_format',
+                                          'ck_documents_title_not_blank',
+                                          'ck_documents_revision_positive')
+                """, Integer.class);
+        assertEquals(5, checks, "Every document rule with a schema-level answer should have one");
+
+        Integer documentForeignKeys = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE constraint_type = 'FOREIGN KEY'
+                  AND constraint_name IN ('fk_documents_workspace', 'fk_documents_created_by')
+                """, Integer.class);
+        assertEquals(2, documentForeignKeys,
+                "A document points at a real workspace and a real author");
     }
 
     @Test
