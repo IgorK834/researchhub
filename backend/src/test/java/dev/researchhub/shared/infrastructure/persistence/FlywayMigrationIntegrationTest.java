@@ -54,11 +54,21 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, documentsMigrationRows, "Flyway should record V6__create_documents.sql");
 
+        Integer versionsMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '7'",
+                Integer.class);
+        assertEquals(1, versionsMigrationRows, "Flyway should record V7__create_document_versions.sql");
+
+        Integer sourcesMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '8'",
+                Integer.class);
+        assertEquals(1, sourcesMigrationRows, "Flyway should record V8__create_sources.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(6, appliedVersions,
-                "A fresh database should have exactly versions 1 through 6 applied");
+        assertEquals(8, appliedVersions,
+                "A fresh database should have exactly versions 1 through 8 applied");
     }
 
     /**
@@ -99,6 +109,64 @@ class FlywayMigrationIntegrationTest {
                 """, Integer.class);
         assertEquals(2, documentForeignKeys,
                 "A document points at a real workspace and a real author");
+    }
+
+    /** V8 gives sources a closed type mapping, an opaque key, and an immutable original. */
+    @Test
+    @Order(1)
+    void createsTheSourcesTableWithItsMappingAndImmutability() {
+        Integer constraints = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name = 'sources'
+                  AND constraint_name IN ('pk_sources',
+                                          'fk_sources_workspace',
+                                          'fk_sources_uploaded_by',
+                                          'uq_sources_storage_key',
+                                          'ck_sources_source_type',
+                                          'ck_sources_media_type_matches_type',
+                                          'ck_sources_status',
+                                          'ck_sources_size_bytes',
+                                          'ck_sources_storage_key_format',
+                                          'ck_sources_content_sha256_format',
+                                          'ck_sources_original_filename_not_blank',
+                                          'ck_sources_display_name_not_blank')
+                """, Integer.class);
+        assertEquals(12, constraints, "V8 should create the source metadata table's keys and checks");
+
+        Integer trigger = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.triggers
+                WHERE event_object_table = 'sources'
+                  AND trigger_name = 'tg_sources_original_is_immutable'
+                  AND event_manipulation = 'UPDATE'
+                """, Integer.class);
+        assertEquals(1, trigger, "The original input refuses updates");
+    }
+
+    /** V7 gives documents an immutable history. */
+    @Test
+    @Order(1)
+    void createsTheDocumentVersionsTableWithAnImmutabilityTrigger() {
+        Integer constraints = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name = 'document_versions'
+                  AND constraint_name IN ('uq_document_versions_document_revision',
+                                          'fk_document_versions_document',
+                                          'fk_document_versions_created_by',
+                                          'fk_document_versions_restored_from',
+                                          'ck_document_versions_reason',
+                                          'ck_document_versions_restore_source',
+                                          'ck_document_versions_content_is_object',
+                                          'ck_document_versions_content_size')
+                """, Integer.class);
+        assertEquals(8, constraints, "V7 should create the history table's keys and checks");
+
+        Integer triggerEvents = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.triggers
+                WHERE event_object_table = 'document_versions'
+                  AND trigger_name = 'tg_document_versions_immutable'
+                  AND event_manipulation IN ('UPDATE', 'DELETE')
+                """, Integer.class);
+        assertEquals(2, triggerEvents, "Snapshots refuse both UPDATE and DELETE");
     }
 
     @Test
