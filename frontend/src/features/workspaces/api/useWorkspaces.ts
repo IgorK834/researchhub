@@ -8,14 +8,20 @@ import {
 
 import { queryKeys, type ApiError } from '../../../shared/api';
 import {
+  addWorkspaceMember,
   archiveWorkspace,
+  changeWorkspaceMemberRole,
   createWorkspace,
   fetchWorkspace,
+  fetchWorkspaceMembers,
   fetchWorkspaces,
+  removeWorkspaceMember,
   updateWorkspace,
+  type AddWorkspaceMemberInput,
   type CreateWorkspaceInput,
   type UpdateWorkspaceInput,
   type Workspace,
+  type WorkspaceMember,
 } from './workspaceApi';
 
 /**
@@ -114,5 +120,85 @@ export function useArchiveWorkspace(
       queryClient.setQueryData(queryKeys.workspace(workspaceId), workspace);
       void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
     },
+  });
+}
+
+/**
+ * Everyone in the workspace, for any member to see.
+ *
+ * Keyed under the workspace, so `queryKeys.workspaces()` invalidation reaches it by prefix.
+ */
+export function useWorkspaceMembersQuery(
+  workspaceId: string,
+): UseQueryResult<readonly WorkspaceMember[], Error> {
+  return useQuery({
+    queryKey: queryKeys.workspaceMembers(workspaceId),
+    queryFn: ({ signal }) => fetchWorkspaceMembers(workspaceId, signal),
+  });
+}
+
+/**
+ * Invalidates everything a membership change can affect.
+ *
+ * One call, because `['workspaces']` is a prefix of both `['workspaces', id]` and
+ * `['workspaces', id, 'members']`, so it covers the roster and the workspace as well as the collection.
+ * The collection really is in scope: an owner who removes their own membership should stop seeing the
+ * workspace in their list.
+ *
+ * What this cannot do is update anyone else's browser. The person who was just added, promoted, or
+ * removed sees the change on their next fetch, not because this ran.
+ */
+function useMembershipInvalidation(): () => void {
+  const queryClient = useQueryClient();
+
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
+  };
+}
+
+/** Adds a registered user as an editor or viewer, then refreshes the roster. */
+export function useAddWorkspaceMember(
+  workspaceId: string,
+): UseMutationResult<WorkspaceMember, ApiError, AddWorkspaceMemberInput> {
+  const invalidate = useMembershipInvalidation();
+
+  return useMutation<WorkspaceMember, ApiError, AddWorkspaceMemberInput>({
+    mutationFn: (input) => addWorkspaceMember(workspaceId, input),
+    onSuccess: invalidate,
+  });
+}
+
+export interface ChangeMemberRoleInput {
+  readonly userId: string;
+  readonly role: string;
+}
+
+/**
+ * Changes one member's role.
+ *
+ * The role is sent as the server's own vocabulary rather than a client-side union, so an unfamiliar role
+ * returned by a newer backend can still be echoed back unchanged instead of being silently narrowed.
+ */
+export function useChangeWorkspaceMemberRole(
+  workspaceId: string,
+): UseMutationResult<WorkspaceMember, ApiError, ChangeMemberRoleInput> {
+  const invalidate = useMembershipInvalidation();
+
+  return useMutation<WorkspaceMember, ApiError, ChangeMemberRoleInput>({
+    mutationFn: ({ userId, role }) =>
+      changeWorkspaceMemberRole(workspaceId, userId, role),
+    onSuccess: invalidate,
+  });
+}
+
+/** Removes one member's access. */
+export function useRemoveWorkspaceMember(
+  workspaceId: string,
+): UseMutationResult<void, ApiError, string> {
+  const invalidate = useMembershipInvalidation();
+
+  return useMutation<void, ApiError, string>({
+    mutationFn: (userId) => removeWorkspaceMember(workspaceId, userId),
+    onSuccess: invalidate,
   });
 }

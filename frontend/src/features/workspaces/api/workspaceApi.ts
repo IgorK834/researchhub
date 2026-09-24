@@ -63,6 +63,99 @@ export function fetchWorkspaces(signal?: AbortSignal): Promise<readonly Workspac
 }
 
 /**
+ * One member of a workspace. Mirrors `WorkspaceMemberResponse`.
+ *
+ * Four fields, and no others exist on the server side either: no password, no hash, no
+ * `normalizedEmail`, and no account status. `userId` is the key the role and removal calls take.
+ */
+export interface WorkspaceMember {
+  readonly userId: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly role: string;
+}
+
+/**
+ * A new member joins as an editor or a viewer.
+ *
+ * `OWNER` is absent on purpose, and the server refuses it too: ownership is granted to somebody who is
+ * already a member, through `changeWorkspaceMemberRole`.
+ */
+export interface AddWorkspaceMemberInput {
+  readonly email: string;
+  readonly role: 'EDITOR' | 'VIEWER';
+}
+
+/**
+ * Everyone in the workspace.
+ *
+ * Readable by any member, including a viewer and including on an archived workspace — knowing who you
+ * work with is not a privilege. A non-member gets `RESOURCE_NOT_FOUND`, the same answer the workspace
+ * itself gives them.
+ */
+export function fetchWorkspaceMembers(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<readonly WorkspaceMember[]> {
+  return apiClient.get<readonly WorkspaceMember[]>(
+    `${WORKSPACES_PATH}/${workspaceId}/members`,
+    {
+      ...(signal === undefined ? {} : { signal }),
+    },
+  );
+}
+
+/**
+ * Adds a registered user by their exact email address.
+ *
+ * Nothing is sent to the address. An address with no active account is `RESOURCE_NOT_FOUND` with one
+ * stable detail, which the UI shows as-is — there is no invitation to offer, and no way to find out
+ * whether the address is registered from anywhere else either. Somebody who is already a member is
+ * `CONFLICT`.
+ */
+export async function addWorkspaceMember(
+  workspaceId: string,
+  input: AddWorkspaceMemberInput,
+): Promise<WorkspaceMember> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<WorkspaceMember>(`${WORKSPACES_PATH}/${workspaceId}/members`, {
+    body: input,
+  });
+}
+
+/**
+ * Changes one member's role. Owners only, decided by the server.
+ *
+ * Demoting the last owner is `CONFLICT`: promote somebody else first. Promoting a member to `OWNER`
+ * leaves the existing owner in place, so a transfer is a promotion followed by a demotion.
+ */
+export async function changeWorkspaceMemberRole(
+  workspaceId: string,
+  userId: string,
+  role: string,
+): Promise<WorkspaceMember> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.patch<WorkspaceMember>(
+    `${WORKSPACES_PATH}/${workspaceId}/members/${userId}`,
+    { body: { role } },
+  );
+}
+
+/**
+ * Removes one member's access. Owners only, decided by the server.
+ *
+ * Deletes one membership and nothing else: the account survives, and so does everything recording what
+ * that person did. Removing the last owner is `CONFLICT`.
+ */
+export async function removeWorkspaceMember(
+  workspaceId: string,
+  userId: string,
+): Promise<void> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  await apiClient.delete<void>(`${WORKSPACES_PATH}/${workspaceId}/members/${userId}`);
+}
+
+/**
  * Creates a workspace. The caller becomes its owner.
  *
  * There is no creator field in the body: the backend takes the owner from the session. Sending one

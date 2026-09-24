@@ -23,6 +23,17 @@ export const queryKeys = {
   workspaces: () => ['workspaces'] as const,
   workspace: (workspaceId: string) => ['workspaces', workspaceId] as const,
 
+  /**
+   * One workspace's members.
+   *
+   * Nested under the workspace rather than given its own top-level collection, because a roster only
+   * exists inside a workspace. The nesting is load-bearing: invalidating `['workspaces']` after a
+   * membership change also refreshes this key by prefix, so a role change cannot leave a stale roster
+   * cached behind an up-to-date workspace.
+   */
+  workspaceMembers: (workspaceId: string) =>
+    ['workspaces', workspaceId, 'members'] as const,
+
   documents: (workspaceId: string) => ['documents', workspaceId] as const,
   document: (workspaceId: string, documentId: string) =>
     ['documents', workspaceId, documentId] as const,
