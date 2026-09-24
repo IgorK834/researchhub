@@ -1,4 +1,4 @@
-package dev.researchhub.workspace.api;
+package dev.researchhub.support;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -22,11 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * {@code Set-Cookie} is never resolved back to the same session. Two instances of this class are two
  * people at two computers, which is the only way to test isolation honestly.
  *
- * <p>Shared by the workspace HTTP tests rather than copied into each. {@code AuthSessionIntegrationTest}
- * keeps its own equivalent, because it is testing the cookie mechanics themselves and should not depend on
- * a helper that assumes they work.
+ * <p>Shared by the HTTP tests of every module rather than copied into each, which is why it lives in a neutral
+ * test package instead of next to one of them. {@code AuthSessionIntegrationTest} keeps its own equivalent,
+ * because it is testing the cookie mechanics themselves and should not depend on a helper that assumes they
+ * work.
  */
-final class ApiBrowser {
+public final class ApiBrowser {
 
     private static final String PASSWORD = "correct-horse-battery-staple";
 
@@ -35,27 +36,27 @@ final class ApiBrowser {
     private final CookieManager cookies = new CookieManager();
     private final HttpClient http;
 
-    ApiBrowser(int port, ObjectMapper objectMapper) {
+    public ApiBrowser(int port, ObjectMapper objectMapper) {
         this.port = port;
         this.objectMapper = objectMapper;
         this.http = HttpClient.newBuilder().cookieHandler(cookies).build();
     }
 
-    URI url(String path) {
+    public URI url(String path) {
         return URI.create("http://localhost:" + port + path);
     }
 
-    HttpResponse<String> get(String path) throws Exception {
+    public HttpResponse<String> get(String path) throws Exception {
         return send(HttpRequest.newBuilder(url(path)).GET().build());
     }
 
     /** POSTs JSON, priming the CSRF cookie first exactly as the frontend client does. */
-    HttpResponse<String> postJson(String path, String body) throws Exception {
+    public HttpResponse<String> postJson(String path, String body) throws Exception {
         return sendWithCsrf("POST", path, body);
     }
 
     /** PATCHes JSON with the CSRF header. The JDK client has no {@code PATCH()} shortcut. */
-    HttpResponse<String> patchJson(String path, String body) throws Exception {
+    public HttpResponse<String> patchJson(String path, String body) throws Exception {
         return sendWithCsrf("PATCH", path, body);
     }
 
@@ -63,7 +64,7 @@ final class ApiBrowser {
      * Sends a mutating request with the session cookie but deliberately no CSRF header, which is what a
      * cross-site form post would look like.
      */
-    HttpResponse<String> sendWithoutCsrf(String method, String path, String body) throws Exception {
+    public HttpResponse<String> sendWithoutCsrf(String method, String path, String body) throws Exception {
         return send(HttpRequest.newBuilder(url(path))
                 .header("Content-Type", "application/json")
                 .method(method, HttpRequest.BodyPublishers.ofString(body))
@@ -71,7 +72,7 @@ final class ApiBrowser {
     }
 
     /** Registers an account, signs in, and returns the new user's id. */
-    String signUp(String email, String displayName) throws Exception {
+    public String signUp(String email, String displayName) throws Exception {
         HttpResponse<String> registered = postJson("/api/auth/register", """
                 {"email": "%s", "password": "%s", "displayName": "%s"}
                 """.formatted(email, PASSWORD, displayName));
@@ -86,29 +87,29 @@ final class ApiBrowser {
     }
 
     /** Sends a DELETE with the CSRF header, so a refusal is about the route rather than the token. */
-    HttpResponse<String> delete(String path) throws Exception {
+    public HttpResponse<String> delete(String path) throws Exception {
         return sendWithCsrf("DELETE", path, "");
     }
 
     /** Creates a workspace and returns the response, so a test can assert on the status too. */
-    HttpResponse<String> createWorkspace(String name, String description) throws Exception {
+    public HttpResponse<String> createWorkspace(String name, String description) throws Exception {
         return postJson("/api/workspaces", """
                 {"name": "%s", "description": "%s"}
                 """.formatted(name, description));
     }
 
     /** Creates a workspace, asserts 201, and returns its id. */
-    String createdWorkspaceId(String name, String description) throws Exception {
+    public String createdWorkspaceId(String name, String description) throws Exception {
         HttpResponse<String> created = createWorkspace(name, description);
         assertEquals(201, created.statusCode(), created.body());
         return json(created).get("id").asString();
     }
 
-    JsonNode json(HttpResponse<String> response) {
+    public JsonNode json(HttpResponse<String> response) {
         return objectMapper.readTree(response.body());
     }
 
-    Optional<String> cookieValue(String name) {
+    public Optional<String> cookieValue(String name) {
         return cookies.getCookieStore().getCookies().stream()
                 .filter(cookie -> cookie.getName().equals(name))
                 .map(HttpCookie::getValue)

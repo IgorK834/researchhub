@@ -1,6 +1,7 @@
 package dev.researchhub.workspace.api;
 
 import dev.researchhub.shared.infrastructure.persistence.PostgresTestcontainersConfiguration;
+import dev.researchhub.support.ApiBrowser;
 import dev.researchhub.workspace.MembershipRowFixture;
 import dev.researchhub.workspace.UserRowFixture;
 import org.junit.jupiter.api.BeforeEach;
