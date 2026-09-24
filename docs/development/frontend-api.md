@@ -80,6 +80,10 @@ if (hasApiErrorCode(error, 'VALIDATION_FAILED')) {
 }
 ```
 
+`error.problem.currentRevision` is set only on the `CONFLICT` for a stale document revision, and is
+decoded only when it is a positive integer. Treat it as optional: the document editor shows it when
+present and otherwise explains the conflict from `detail`.
+
 A code the frontend does not recognise decodes to `'UNKNOWN'`, with the server's original string
 kept on `rawCode`. A backend that adds a code does not crash an older frontend.
 
