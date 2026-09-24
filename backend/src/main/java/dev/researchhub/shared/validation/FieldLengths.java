@@ -37,6 +37,21 @@ public final class FieldLengths {
      */
     public static final int DESCRIPTION_MAX = 2000;
 
+    /**
+     * Maximum serialized size of one document's JSON content, in <strong>bytes</strong> rather than
+     * characters.
+     *
+     * <p>The odd unit out in this class, and deliberately so: the value stored is a JSON document, and what
+     * a row and a response can afford is its encoded size. A character count would be the wrong bound for
+     * text that may be mostly non-ASCII.
+     *
+     * <p>One megabyte is far more prose than a report section, and small enough that a document stays a row
+     * rather than a blob. The limit exists because nothing else bounds it yet: there is no chunking, no
+     * incremental update, and no CRDT, so every save sends and stores the whole document. When that changes,
+     * this number should be revisited rather than quietly raised.
+     */
+    public static final int DOCUMENT_CONTENT_MAX_BYTES = 1_000_000;
+
     /** AI user prompts. */
     public static final int PROMPT_MAX = 8000;
 
