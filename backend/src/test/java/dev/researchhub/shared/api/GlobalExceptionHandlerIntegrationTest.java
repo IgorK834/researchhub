@@ -142,6 +142,14 @@ class GlobalExceptionHandlerIntegrationTest {
     }
 
     @Test
+    void aProductSizeLimitUsesPayloadTooLargeWithItsDetail() throws Exception {
+        mockMvc.perform(get("/api/_test/errors/too-large-for-the-product"))
+                .andExpect(status().isContentTooLarge())
+                .andExpect(jsonPath("$.code").value("PAYLOAD_TOO_LARGE"))
+                .andExpect(jsonPath("$.detail").value("The file is larger than the 50 MB allowed for one source"));
+    }
+
+    @Test
     void rejectedFileTypeUsesUnsupportedFileTypeCode() throws Exception {
         mockMvc.perform(get("/api/_test/errors/unsupported-file"))
                 .andExpect(status().isUnsupportedMediaType())

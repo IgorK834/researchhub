@@ -2,6 +2,7 @@ package dev.researchhub.shared.api;
 
 import dev.researchhub.shared.error.ConflictException;
 import dev.researchhub.shared.error.ForbiddenException;
+import dev.researchhub.shared.error.PayloadTooLargeException;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.shared.error.UnauthenticatedException;
 import dev.researchhub.shared.error.UnsupportedFileTypeException;
@@ -67,6 +68,11 @@ public class ErrorHandlingTestController {
     @GetMapping("/unsupported-file")
     void unsupportedFile() {
         throw new UnsupportedFileTypeException("File type is not supported");
+    }
+
+    @GetMapping("/too-large-for-the-product")
+    void tooLargeForTheProduct() {
+        throw new PayloadTooLargeException("The file is larger than the 50 MB allowed for one source");
     }
 
     @GetMapping("/too-large")
