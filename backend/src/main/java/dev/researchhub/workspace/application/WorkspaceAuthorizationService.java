@@ -1,11 +1,13 @@
 package dev.researchhub.workspace.application;
 
+import dev.researchhub.shared.error.ConflictException;
 import dev.researchhub.shared.error.ForbiddenException;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.workspace.domain.WorkspaceCapability;
 import dev.researchhub.workspace.domain.WorkspaceRole;
 import dev.researchhub.workspace.infrastructure.WorkspaceMemberEntity;
 import dev.researchhub.workspace.infrastructure.WorkspaceMemberRepository;
+import dev.researchhub.workspace.infrastructure.WorkspaceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -53,9 +55,12 @@ public class WorkspaceAuthorizationService {
     private static final Logger log = LoggerFactory.getLogger(WorkspaceAuthorizationService.class);
 
     private final WorkspaceMemberRepository members;
+    private final WorkspaceRepository workspaces;
 
-    public WorkspaceAuthorizationService(WorkspaceMemberRepository members) {
+    public WorkspaceAuthorizationService(WorkspaceMemberRepository members,
+                                         WorkspaceRepository workspaces) {
         this.members = members;
+        this.workspaces = workspaces;
     }
 
     /**
@@ -94,6 +99,49 @@ public class WorkspaceAuthorizationService {
                     "Your role in this workspace does not allow this action");
         }
         return role;
+    }
+
+    /**
+     * Asserts that {@code userId} may read the content of {@code workspaceId}.
+     *
+     * <p>Returns nothing on purpose. This is the guard a module that owns workspace-scoped content calls, and
+     * a {@code void} signature is what lets it do so without importing {@link WorkspaceRole} or
+     * {@link WorkspaceCapability} — the capability table stays inside the module that owns it, rather than
+     * spreading into every module that has content to protect.
+     *
+     * <p>Works on an archived workspace. Archiving stops changes, not reading.
+     *
+     * @throws ResourceNotFoundException when the caller is not a member
+     */
+    @Transactional(readOnly = true)
+    public void requireContentReader(UUID workspaceId, UUID userId) {
+        requireCapability(workspaceId, userId, WorkspaceCapability.VIEW_CONTENT);
+    }
+
+    /**
+     * Asserts that {@code userId} may change the content of {@code workspaceId}, and that the workspace still
+     * accepts changes.
+     *
+     * <p>The archived check is bundled in rather than left to the caller. Every write to workspace-owned
+     * content has to be refused on an archived workspace, so making it part of the guard means a new content
+     * module cannot forget it — and there is no second definition of "archived" to drift from the one on
+     * {@code Workspace}.
+     *
+     * <p>Ordered so a non-member learns nothing: the membership check runs first, so the {@code 409} is only
+     * ever seen by somebody who already has access.
+     *
+     * @throws ResourceNotFoundException when the caller is not a member, or the workspace does not exist
+     * @throws ForbiddenException        when the caller is a member without {@code EDIT_CONTENT}, so a viewer
+     * @throws ConflictException         when the workspace is archived
+     */
+    @Transactional(readOnly = true)
+    public void requireContentEditor(UUID workspaceId, UUID userId) {
+        requireCapability(workspaceId, userId, WorkspaceCapability.EDIT_CONTENT);
+
+        workspaces.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException(WORKSPACE_NOT_FOUND))
+                .toDomain()
+                .requireActive("changed");
     }
 
 }
