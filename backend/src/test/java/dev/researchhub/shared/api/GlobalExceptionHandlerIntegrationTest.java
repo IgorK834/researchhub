@@ -126,7 +126,19 @@ class GlobalExceptionHandlerIntegrationTest {
     void lostUpdateUsesConflictCode() throws Exception {
         mockMvc.perform(get("/api/_test/errors/conflict"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("CONFLICT"));
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.currentRevision").doesNotExist());
+    }
+
+    @Test
+    void aConflictWithStructuredPropertiesWritesThemNextToTheCode() throws Exception {
+        mockMvc.perform(get("/api/_test/errors/conflict-with-revision"))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.title").value("Conflict"))
+                .andExpect(jsonPath("$.detail").value("The resource was updated by someone else"))
+                .andExpect(jsonPath("$.currentRevision").value(7));
     }
 
     @Test

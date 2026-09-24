@@ -36,7 +36,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     ResponseEntity<Object> handleApiException(ApiException exception) {
         String detail = exception.getMessage() == null ? title(exception.code()) : exception.getMessage();
-        return body(problem(exception.code(), detail));
+        ProblemDetail problem = problem(exception.code(), detail);
+        // Structured members a module declared on the exception, such as a stale revision's currentRevision.
+        exception.properties().forEach(problem::setProperty);
+        return body(problem);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

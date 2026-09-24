@@ -59,6 +59,11 @@ public class ErrorHandlingTestController {
         throw new ConflictException("The resource was updated by someone else");
     }
 
+    @GetMapping("/conflict-with-revision")
+    void conflictWithRevision() {
+        throw new RevisionConflict(7L);
+    }
+
     @GetMapping("/unsupported-file")
     void unsupportedFile() {
         throw new UnsupportedFileTypeException("File type is not supported");
@@ -72,6 +77,13 @@ public class ErrorHandlingTestController {
     @GetMapping("/boom")
     void boom() {
         throw new IllegalStateException("db password=super-secret");
+    }
+
+    /** A conflict that carries a structured member, the way a module's own subclass would. */
+    static final class RevisionConflict extends ConflictException {
+        RevisionConflict(long currentRevision) {
+            super("The resource was updated by someone else", Map.of("currentRevision", currentRevision));
+        }
     }
 
     /**
