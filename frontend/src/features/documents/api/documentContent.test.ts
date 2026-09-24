@@ -1,101 +1,200 @@
-import { toPlainText, toProseMirrorDocument } from './documentContent';
+/**
+ * @jest-environment jsdom
+ */
+import { Editor } from '@tiptap/core';
+
+import {
+  documentExtensions,
+  EMPTY_DOCUMENT,
+  readStoredDocument,
+  savedDocumentOf,
+  type ProseMirrorDocument,
+} from './documentContent';
 
 /**
- * The adapter between a textarea and the stored ProseMirror JSON.
+ * The stored format and the value a save sends.
  *
- * Tested on its own because it is the one piece of the document feature with rules of its own, and because both
- * directions have a failure mode that is invisible in the UI: an empty paragraph written as an empty text node
- * is invalid ProseMirror, and content the reader does not recognise must not throw and lock somebody out of
- * their own document.
+ * These run a real, headless Tiptap editor with the same extensions the page uses, because the property worth
+ * proving is about Tiptap's output: that what would be PATCHed is the ProseMirror tree, with its structure and
+ * marks, and not a string of HTML.
  */
-describe('toProseMirrorDocument', () => {
-  it('makes a paragraph out of a line of text', () => {
-    expect(toProseMirrorDocument('Measurements')).toEqual({
-      type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Measurements' }] }],
-    });
-  });
 
-  it('makes one paragraph per line', () => {
-    const document = toProseMirrorDocument('First\nSecond');
+let editor: Editor | undefined;
 
-    expect(document.content).toHaveLength(2);
-    expect(document.content[0]?.content?.[0]?.text).toBe('First');
-    expect(document.content[1]?.content?.[0]?.text).toBe('Second');
-  });
+function editorWith(content: ProseMirrorDocument): Editor {
+  editor = new Editor({ extensions: documentExtensions, content });
+  return editor;
+}
 
-  it('writes an empty line as a paragraph with no content at all', () => {
-    const document = toProseMirrorDocument('Above\n\nBelow');
-
-    // Not `{ type: 'text', text: '' }`: an empty text node is invalid ProseMirror, and the editor that
-    // eventually loads this would reject the document.
-    expect(document.content[1]).toEqual({ type: 'paragraph' });
-    expect(document.content).toHaveLength(3);
-  });
-
-  it('produces one empty paragraph for empty text', () => {
-    expect(toProseMirrorDocument('')).toEqual({
-      type: 'doc',
-      content: [{ type: 'paragraph' }],
-    });
-  });
-
-  it('keeps the text as text rather than as markup', () => {
-    const document = toProseMirrorDocument('<b>not bold</b> & <script>');
-
-    expect(document.content[0]?.content?.[0]?.text).toBe('<b>not bold</b> & <script>');
-  });
+afterEach(() => {
+  editor?.destroy();
+  editor = undefined;
 });
 
-describe('toPlainText', () => {
-  it('reads the paragraph text back out', () => {
-    expect(toPlainText(toProseMirrorDocument('Measurements'))).toBe('Measurements');
+/** What the textarea editor wrote for "First", "", "Second". Rows like this are already in the database. */
+const PARAGRAPHS_FROM_THE_TEXTAREA = {
+  type: 'doc',
+  content: [
+    { type: 'paragraph', content: [{ type: 'text', text: 'First' }] },
+    { type: 'paragraph' },
+    { type: 'paragraph', content: [{ type: 'text', text: 'Second' }] },
+  ],
+};
+
+describe('the save payload', () => {
+  it('is a document object, not a string of HTML', () => {
+    const payload = savedDocumentOf(editorWith(EMPTY_DOCUMENT));
+
+    expect(typeof payload).toBe('object');
+    expect(payload.type).toBe('doc');
+    expect(Array.isArray(payload.content)).toBe(true);
   });
 
-  it('round-trips multiple paragraphs, including empty ones', () => {
-    const text = 'First\n\nSecond\nThird';
-
-    expect(toPlainText(toProseMirrorDocument(text))).toBe(text);
-  });
-
-  it('joins the text nodes inside one paragraph', () => {
-    const split = {
-      type: 'doc',
+  it('keeps a heading, a bold mark, and a list item', () => {
+    const tiptap = editorWith(EMPTY_DOCUMENT);
+    tiptap
+      .chain()
+      .setContent('')
+      .insertContent({
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Method' }],
+      })
+      .run();
+    tiptap.commands.insertContentAt(tiptap.state.doc.content.size, {
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Measured with ' },
+        { type: 'text', text: 'care', marks: [{ type: 'bold' }] },
+      ],
+    });
+    tiptap.commands.insertContentAt(tiptap.state.doc.content.size, {
+      type: 'bulletList',
       content: [
         {
-          type: 'paragraph',
+          type: 'listItem',
           content: [
-            { type: 'text', text: 'Two ' },
-            { type: 'text', text: 'nodes' },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Ten samples' }] },
           ],
         },
       ],
-    };
+    });
 
-    expect(toPlainText(split)).toBe('Two nodes');
-  });
+    const payload = savedDocumentOf(tiptap);
+    const serialised = JSON.stringify(payload);
 
-  it('returns an empty string rather than throwing for content it does not recognise', () => {
-    // The content is `unknown` because it is arbitrary JSON. An editor that threw here would lock a user out
-    // of a document they can still see in the list.
-    expect(toPlainText(undefined)).toBe('');
-    expect(toPlainText(null)).toBe('');
-    expect(toPlainText('a string')).toBe('');
-    expect(toPlainText([1, 2, 3])).toBe('');
-    expect(toPlainText({})).toBe('');
-    expect(toPlainText({ type: 'doc' })).toBe('');
-  });
-
-  it('skips nodes it cannot read instead of losing the rest of the document', () => {
-    const mixed = {
-      type: 'doc',
+    expect(payload.content?.[0]).toEqual({
+      type: 'heading',
+      attrs: { level: 2 },
+      content: [{ type: 'text', text: 'Method' }],
+    });
+    expect(payload.content).toContainEqual({
+      type: 'paragraph',
       content: [
-        { type: 'paragraph', content: [{ type: 'text', text: 'Kept' }] },
-        { type: 'image', attrs: { src: 'diagram.png' } },
-        { type: 'paragraph', content: [{ type: 'text', text: 'Also kept' }] },
+        { type: 'text', text: 'Measured with ' },
+        { type: 'text', text: 'care', marks: [{ type: 'bold' }] },
       ],
-    };
+    });
+    expect(payload.content).toContainEqual({
+      type: 'bulletList',
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            { type: 'paragraph', content: [{ type: 'text', text: 'Ten samples' }] },
+          ],
+        },
+      ],
+    });
+    // No markup anywhere in what would be sent.
+    expect(serialised).not.toMatch(/<\/?(h2|strong|ul|li|p)>/);
+  });
 
-    expect(toPlainText(mixed)).toBe('Kept\n\nAlso kept');
+  it('survives a reopen: the saved value opens to the same document', () => {
+    const tiptap = editorWith(EMPTY_DOCUMENT);
+    tiptap.commands.insertContent('Bold words');
+    tiptap.commands.selectAll();
+    tiptap.commands.toggleBold();
+    tiptap.commands.setHeading({ level: 1 });
+    const saved = savedDocumentOf(tiptap);
+    tiptap.destroy();
+
+    const reopened = readStoredDocument(JSON.parse(JSON.stringify(saved)));
+
+    expect(reopened).toEqual(saved);
+    expect(savedDocumentOf(editorWith(reopened ?? EMPTY_DOCUMENT))).toEqual(saved);
+  });
+
+  it('keeps a table the toolbar inserts', () => {
+    const tiptap = editorWith(EMPTY_DOCUMENT);
+    tiptap.commands.insertTable({ rows: 2, cols: 2, withHeaderRow: true });
+
+    const table = savedDocumentOf(tiptap).content?.find((node) => node.type === 'table');
+
+    expect(table?.content).toHaveLength(2);
+    expect(table?.content?.[0]?.content?.[0]?.type).toBe('tableHeader');
+    expect(table?.content?.[1]?.content?.[0]?.type).toBe('tableCell');
+  });
+
+  it('keeps text that looks like markup as text', () => {
+    const tiptap = editorWith(EMPTY_DOCUMENT);
+    tiptap.commands.insertContent({ type: 'text', text: '<b>not bold</b> & <script>' });
+
+    expect(savedDocumentOf(tiptap).content?.[0]).toEqual({
+      type: 'paragraph',
+      content: [{ type: 'text', text: '<b>not bold</b> & <script>' }],
+    });
+  });
+});
+
+describe('readStoredDocument', () => {
+  it('opens a paragraph-only document from the textarea editor unchanged', () => {
+    expect(readStoredDocument(PARAGRAPHS_FROM_THE_TEXTAREA)).toEqual(
+      PARAGRAPHS_FROM_THE_TEXTAREA,
+    );
+  });
+
+  it('opens it in the editor without losing a paragraph, including the empty one', () => {
+    const opened = readStoredDocument(PARAGRAPHS_FROM_THE_TEXTAREA);
+
+    expect(opened).not.toBeNull();
+    expect(savedDocumentOf(editorWith(opened ?? EMPTY_DOCUMENT))).toEqual(
+      PARAGRAPHS_FROM_THE_TEXTAREA,
+    );
+  });
+
+  it('opens the empty document a new one is created with', () => {
+    expect(readStoredDocument(EMPTY_DOCUMENT)).toEqual(EMPTY_DOCUMENT);
+  });
+
+  it('refuses content that is not a document rather than throwing', () => {
+    expect(readStoredDocument(undefined)).toBeNull();
+    expect(readStoredDocument(null)).toBeNull();
+    expect(readStoredDocument('<p>html</p>')).toBeNull();
+    expect(readStoredDocument([1, 2, 3])).toBeNull();
+    expect(readStoredDocument({})).toBeNull();
+    expect(readStoredDocument({ type: 'paragraph' })).toBeNull();
+  });
+
+  it('refuses a node the schema does not know, instead of letting the editor open it empty', () => {
+    // Tiptap would log a warning and show an empty document. Saving that would erase the stored text.
+    expect(
+      readStoredDocument({
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'Kept' }] },
+          { type: 'image', attrs: { src: 'diagram.png' } },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it('refuses an empty text node, which is invalid ProseMirror', () => {
+    expect(
+      readStoredDocument({
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: '' }] }],
+      }),
+    ).toBeNull();
   });
 });

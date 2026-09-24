@@ -16,10 +16,13 @@ public enum DocumentContentFormat {
      * A ProseMirror document node, as JSON: an object with a {@code type} of {@code doc} and a
      * {@code content} array.
      *
-     * <p>Chosen now because docs/context.md section 9 names Tiptap and ProseMirror as the eventual editor, so
-     * storing their document shape from the start means the editor can be introduced without migrating the
-     * content. Nothing validates the full ProseMirror schema, and nothing renders it with an editor
-     * framework yet — the current UI reads and writes the paragraph text inside it.
+     * <p>The frontend editor is Tiptap, and a save stores its {@code getJSON()} as it is. Documents written by
+     * the earlier textarea editor are a {@code doc} of paragraphs, which Tiptap opens without a migration. The
+     * backend does not validate the full ProseMirror schema, so a new Tiptap node or mark needs no change here.
+     *
+     * <p>This value is the version tag. There is deliberately no {@code schemaVersion} inside the JSON. A future
+     * shape that existing rows would not fit is a new value of this enum plus a Flyway migration, never an
+     * in-place rewrite of the column and never a conversion to HTML (docs/development/persistence.md).
      */
     PROSEMIRROR_JSON
 
