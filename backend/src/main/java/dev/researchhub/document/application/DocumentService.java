@@ -2,6 +2,7 @@ package dev.researchhub.document.application;
 
 import dev.researchhub.document.domain.Document;
 import dev.researchhub.document.domain.DocumentContent;
+import dev.researchhub.document.domain.StaleRevisionException;
 import dev.researchhub.document.infrastructure.DocumentEntity;
 import dev.researchhub.document.infrastructure.DocumentRepository;
 import dev.researchhub.shared.error.ApiErrorCode;
@@ -123,8 +124,9 @@ public class DocumentService {
      * @throws ResourceNotFoundException when the caller is not a member, or the document is not in this
      *                                   workspace
      * @throws ForbiddenException        when the caller is a viewer
-     * @throws ConflictException         when the workspace is archived, the document is archived, or the
-     *                                   caller's revision is stale
+     * @throws StaleRevisionException    when the caller's revision is stale; the 409 carries
+     *                                   {@code currentRevision}
+     * @throws ConflictException         when the workspace is archived or the document is archived
      * @throws ApiException              {@code VALIDATION_FAILED} for an unusable title or content
      */
     @Transactional

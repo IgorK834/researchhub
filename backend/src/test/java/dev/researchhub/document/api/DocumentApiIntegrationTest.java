@@ -389,6 +389,10 @@ class DocumentApiIntegrationTest {
         assertEquals("CONFLICT", editor.json(stale).get("code").asString());
         String detail = editor.json(stale).get("detail").asString();
         assertTrue(detail.contains("revision 2"), "The detail names the current revision: " + detail);
+        assertEquals(2L, editor.json(stale).get("currentRevision").asLong(),
+                "and so does a structured member, so the client need not parse the sentence");
+        assertFalse(editor.json(stale).has("content"), "The error does not ship the stored text");
+        assertTrue(stale.headers().firstValue("Content-Type").orElse("").startsWith("application/problem+json"));
 
         HttpResponse<String> current = editor.get(path);
         assertEquals("Ada's paragraph", editor.json(current).get("content")
@@ -552,6 +556,8 @@ class DocumentApiIntegrationTest {
 
         assertEquals(409, response.statusCode(), response.body());
         assertEquals("CONFLICT", ada.browser().json(response).get("code").asString());
+        assertFalse(ada.browser().json(response).has("currentRevision"),
+                "Archived is not a newer revision of the same edit, so there is nothing to reload into");
         assertEquals(1L, jdbcTemplate.queryForObject(
                 "SELECT revision FROM documents WHERE id = CAST(? AS uuid)", Long.class, documentId));
     }
@@ -574,6 +580,7 @@ class DocumentApiIntegrationTest {
         for (HttpResponse<String> response : List.of(create, update, archive)) {
             assertEquals(409, response.statusCode(), response.body());
             assertEquals("CONFLICT", ada.browser().json(response).get("code").asString());
+            assertFalse(ada.browser().json(response).has("currentRevision"), response.body());
         }
         assertEquals(1, countDocuments(), "Nothing was created");
         assertEquals(1L, jdbcTemplate.queryForObject(

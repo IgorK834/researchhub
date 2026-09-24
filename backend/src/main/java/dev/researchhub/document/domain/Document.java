@@ -110,7 +110,8 @@ public record Document(
      * allowed to make it. It collides with the document's current state, which is what 409 means
      * (docs/development/api-errors.md).
      *
-     * @throws ConflictException        when {@code expectedRevision} is stale, or the document is archived
+     * @throws StaleRevisionException  when {@code expectedRevision} is stale; its body carries the stored revision
+     * @throws ConflictException        when the document is archived
      * @throws IllegalArgumentException when the new title or content breaks a rule
      */
     public Document revise(String newTitle, DocumentContent newContent, long expectedRevision,
@@ -119,9 +120,7 @@ public record Document(
             throw new ConflictException("This document is archived and cannot be changed");
         }
         if (expectedRevision != revision) {
-            throw new ConflictException("This document was changed by somebody else. It is now at revision "
-                    + revision + ", and your copy is at revision " + expectedRevision
-                    + ". Reload it and apply your changes again.");
+            throw new StaleRevisionException(revision, expectedRevision);
         }
 
         return new Document(id, workspaceId, newTitle, newContent, contentFormat, revision + 1,

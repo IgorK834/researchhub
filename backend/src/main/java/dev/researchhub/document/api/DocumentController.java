@@ -108,8 +108,10 @@ public class DocumentController {
      * Saves the next revision. Returns 200 with {@code revision} incremented.
      *
      * <p>The body's {@code revision} is what the editor last saw. If the stored document has moved on, the
-     * answer is {@code 409} and nothing is written — the response carries the current revision in its detail so
-     * the client can explain the situation rather than just failing.
+     * answer is {@code 409} and nothing is written. The response carries the stored revision as
+     * {@code currentRevision}, next to a detail that says the same in words, so the client can explain the
+     * situation rather than just failing. It does not carry the stored content; the client reloads that with
+     * {@code GET} when the user chooses to.
      */
     @PatchMapping("/{documentId}")
     DocumentResponse update(@PathVariable UUID workspaceId, @PathVariable UUID documentId,

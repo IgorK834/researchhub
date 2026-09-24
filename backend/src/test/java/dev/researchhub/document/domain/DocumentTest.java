@@ -6,6 +6,7 @@ import dev.researchhub.shared.validation.FieldLengths;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -126,11 +127,14 @@ class DocumentTest {
     void revisingWithAStaleRevisionIsRefused() {
         Document document = persisted();
 
-        ConflictException stale = assertThrows(ConflictException.class,
+        StaleRevisionException stale = assertThrows(StaleRevisionException.class,
                 () -> document.revise("Mine", NEW_CONTENT, 2L, LATER),
                 "Somebody saved in between, and overwriting them is the one unrecoverable outcome");
 
         assertEquals(ApiErrorCode.CONFLICT, stale.code());
+        assertEquals(3L, stale.currentRevision());
+        assertEquals(Map.of("currentRevision", 3L), stale.properties(),
+                "The stored revision travels as a structured member, and nothing else does — no content");
         assertTrue(stale.getMessage().contains("revision 3"),
                 "The message should name the current revision, but was: " + stale.getMessage());
         assertTrue(stale.getMessage().contains("revision 2"), "and the caller's");
@@ -197,6 +201,9 @@ class DocumentTest {
         assertEquals(ApiErrorCode.CONFLICT, refused.code());
         assertTrue(refused.getMessage().contains("archived"),
                 "The message should say why, but was: " + refused.getMessage());
+        assertFalse(refused instanceof StaleRevisionException,
+                "An archived document is not a newer revision to reload");
+        assertTrue(refused.properties().isEmpty(), "so it carries no currentRevision");
     }
 
     /**
