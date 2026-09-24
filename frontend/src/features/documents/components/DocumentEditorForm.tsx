@@ -1,9 +1,19 @@
 import { useState, type ReactElement } from 'react';
 
-import { describeError, fieldErrorsByName, hasApiErrorCode } from '../../../shared/api';
-import { toPlainText, toProseMirrorDocument } from '../api/documentContent';
+import {
+  describeError,
+  fieldErrorsByName,
+  hasApiErrorCode,
+  isApiError,
+} from '../../../shared/api';
+import {
+  EMPTY_DOCUMENT,
+  readStoredDocument,
+  type ProseMirrorDocument,
+} from '../api/documentContent';
 import type { WorkspaceDocument } from '../api/documentApi';
 import { useArchiveDocument, useUpdateDocument } from '../api/useDocuments';
+import { DocumentBodyEditor } from './DocumentBodyEditor';
 
 interface DocumentEditorFormProps {
   readonly workspaceId: string;
@@ -21,17 +31,19 @@ interface DocumentEditorFormProps {
 }
 
 /**
- * The document itself: a title, a textarea, and the revision they belong to.
+ * The document itself: a title, the body in a Tiptap editor, and the revision they belong to.
  *
- * A plain textarea, not an editor framework. docs/context.md section 9 describes a Tiptap and Yjs editor as a
- * later stage; what this pass proves is that a document survives a reload, which needs storage and a revision
- * rather than a rich-text surface. The text is the paragraph text inside the stored JSON — never HTML, in either
- * direction.
+ * The body is saved as the editor's `getJSON()` — the ProseMirror tree the backend stores, never HTML. The title
+ * stays a plain input outside the editor, because it is its own column.
  *
  * <strong>Local state is initialised once per mounted document</strong>, from the props, and is not resynced when
  * the query refetches. That is deliberate: silently replacing what somebody is typing with a newer server copy is
- * the failure this whole revision mechanism exists to avoid. The caller remounts this component, by changing its
- * key, when the user explicitly asks for the latest version.
+ * the failure this whole revision mechanism exists to avoid. A refused save — a conflict included — leaves the
+ * title, the editor's document, and the revision exactly as they were. The caller remounts this component, by
+ * changing its key, when the user explicitly asks for the latest version.
+ *
+ * There is still one writer at a time. Two people editing the same document are told about each other by a
+ * `409` on save, not merged; docs/context.md section 9 describes Yjs as the later replacement for that.
  */
 export function DocumentEditorForm({
   workspaceId,
@@ -43,19 +55,30 @@ export function DocumentEditorForm({
   const archive = useArchiveDocument(workspaceId, document.id);
 
   const [title, setTitle] = useState(document.title);
-  const [text, setText] = useState(() => toPlainText(document.content));
+  // Checked once, against the editor's schema. Null means the stored body is something this editor cannot open
+  // faithfully, and editing it would risk saving an emptied or altered copy over it.
+  const [storedBody] = useState(() => readStoredDocument(document.content));
+  // What a save sends: the editor's latest getJSON(). Starts as the stored body, which is the same value.
+  const [body, setBody] = useState<ProseMirrorDocument>(
+    () => storedBody ?? EMPTY_DOCUMENT,
+  );
   // The revision the text on screen is based on. It advances only on a successful save, so a refused one leaves
   // the editor holding the same stale value and the next attempt fails the same way — until the user reloads.
   const [revision, setRevision] = useState(document.revision);
   const [saved, setSaved] = useState(false);
 
   const isArchived = document.archivedAt !== null;
+  const editable = canEdit && !isArchived && storedBody !== null;
 
   const fieldErrors = fieldErrorsByName(save.error);
   const titleError = fieldErrors['title'];
   const contentError = fieldErrors['content'];
 
   const conflict = hasApiErrorCode(save.error, 'CONFLICT');
+  // Present only when the conflict is a newer revision. An archived document or workspace is also a CONFLICT,
+  // and a server that does not send it is handled by the detail alone.
+  const currentRevision =
+    conflict && isApiError(save.error) ? save.error.problem.currentRevision : undefined;
   const failure =
     save.error !== null && Object.keys(fieldErrors).length === 0
       ? describeError(save.error)
@@ -65,7 +88,7 @@ export function DocumentEditorForm({
   const submit = (): void => {
     setSaved(false);
     save.mutate(
-      { title, content: toProseMirrorDocument(text), revision },
+      { title, content: body, revision },
       {
         onSuccess: (stored) => {
           setRevision(stored.revision);
@@ -88,6 +111,20 @@ export function DocumentEditorForm({
         {archiveFailure !== null ? <p role="alert">{archiveFailure}</p> : null}
         {saved && save.error === null ? <p>Saved as revision {revision}.</p> : null}
 
+        {storedBody === null ? (
+          <p role="alert">
+            This document contains content this editor cannot open, so it is not shown and
+            cannot be edited here. Nothing has been changed.
+          </p>
+        ) : null}
+
+        {currentRevision === undefined ? null : (
+          <p>
+            The saved document is now at revision {currentRevision}. Your copy is based on
+            revision {revision}. Your changes are still here and have not been saved.
+          </p>
+        )}
+
         {conflict ? (
           <p>
             <button type="button" onClick={onDiscardLocalChanges}>
@@ -104,7 +141,7 @@ export function DocumentEditorForm({
             type="text"
             value={title}
             autoComplete="off"
-            readOnly={!canEdit}
+            readOnly={!editable}
             aria-invalid={titleError !== undefined}
             {...(titleError === undefined
               ? {}
@@ -116,28 +153,27 @@ export function DocumentEditorForm({
           )}
         </p>
 
-        <p>
-          <label htmlFor="document-editor-text">Text</label>
-          <textarea
-            id="document-editor-text"
-            name="document-editor-text"
-            value={text}
-            rows={20}
-            readOnly={!canEdit}
-            aria-invalid={contentError !== undefined}
-            {...(contentError === undefined
-              ? {}
-              : { 'aria-describedby': 'document-editor-text-error' })}
-            onChange={(event) => setText(event.target.value)}
-          />
+        <div>
+          <span id="document-editor-text-label">Text</span>
+          {storedBody === null ? null : (
+            <DocumentBodyEditor
+              initialContent={storedBody}
+              editable={editable}
+              onChange={setBody}
+              labelId="document-editor-text-label"
+              {...(contentError === undefined
+                ? {}
+                : { errorId: 'document-editor-text-error' })}
+            />
+          )}
           {contentError === undefined ? null : (
             <span id="document-editor-text-error">{contentError}</span>
           )}
-        </p>
+        </div>
 
         <p>Revision {revision}</p>
 
-        {canEdit && !isArchived ? (
+        {editable ? (
           <button type="submit" disabled={save.isPending}>
             {save.isPending ? 'Saving…' : 'Save'}
           </button>

@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
-import { toProseMirrorDocument } from '../api/documentContent';
+import { EMPTY_DOCUMENT } from '../api/documentContent';
 import { useCreateDocument } from '../api/useDocuments';
 
 interface CreateDocumentFormProps {
@@ -32,7 +32,7 @@ export function CreateDocumentForm({
 
   const submit = (): void => {
     mutate(
-      { title, content: toProseMirrorDocument('') },
+      { title, content: EMPTY_DOCUMENT },
       {
         onSuccess: () => {
           setTitle('');
