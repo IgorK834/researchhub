@@ -201,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, and the workspace detail page with its member list and owner-only member management, settings, and archive control are implemented; the document route is still a placeholder. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
+The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring (a title and a textarea over the stored JSON, with revision-checked save) are implemented. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
 
 Local-only paths are ignored and must not be committed:
 
@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, and workspaces with membership roles enforced on the backend. Everything else in this document — documents, sources, RAG, AI writing, analysis — is still a plan, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, and workspace documents with revision-checked saves. Everything else in this document — sources, RAG, AI writing, analysis, and realtime collaborative editing — is still a plan, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
 
 ---
 
@@ -469,6 +469,10 @@ WebSocket / realtime service
 Potential realtime backend: Hocuspocus.
 
 Do not implement CRDT from scratch.
+
+**Implemented so far: persistence, not collaboration.** A document is stored per workspace with a title, a JSON body, and a revision; it is created, read, saved, and soft-archived through `/api/workspaces/{workspaceId}/documents`. The stored format is already a ProseMirror document node, so introducing Tiptap later needs no data migration. The editor today is a textarea over the paragraph text inside that JSON.
+
+None of Tiptap, Yjs, Hocuspocus, a websocket, presence, or `document_versions` exists yet. Concurrent edits are handled by the revision: a save carrying a stale revision is refused with `409` and the second writer is told, rather than merged or silently dropped. That is the honest single-writer answer, and it is what a CRDT would eventually replace. Routes and error codes: [development/backend-architecture.md](development/backend-architecture.md).
 
 ---
 
@@ -855,7 +859,7 @@ Do not rely on Hibernate auto-creating production schema.
 
 ## 20. Preliminary entities
 
-Not final schema. `users`, `workspaces`, and `workspace_members` now exist as Flyway migrations; the columns and constraints they actually have are documented in [development/persistence.md](development/persistence.md), which is the source of truth for anything already built. The rest of this list is still a sketch.
+Not final schema. `users`, `workspaces`, `workspace_members`, and `documents` now exist as Flyway migrations; the columns and constraints they actually have are documented in [development/persistence.md](development/persistence.md), which is the source of truth for anything already built. The rest of this list is still a sketch. `document_versions` is not a table.
 
 ```text
 users
@@ -892,11 +896,13 @@ Authorization is implemented for the workspace boundary. `workspace_members` gra
 
 Those roles are enforced for workspace metadata today: editing a workspace's name or description, and archiving it, require `MANAGE_WORKSPACE` and so are owner-only. An editor or viewer is refused with `403`, and a non-member with the same `404` as a workspace that does not exist. Archiving is soft — it sets `archived_at` and `archived_by`, removes no row and no file, and leaves every membership intact — so an archived workspace drops out of `GET /api/workspaces` while staying readable by its members. Editing one is `409`.
 
+Document access follows the same boundary. Reading a workspace's documents needs `VIEW_CONTENT`, so any member including a viewer; creating, saving, and archiving need `EDIT_CONTENT`, so an editor or owner, and a viewer is refused with `403`. A document belongs to exactly one workspace, and reaching it through a different workspace id is `404` even for somebody who belongs to both — the same answer as a document that does not exist.
+
 Membership management is implemented on the same footing. An owner adds an existing, registered user by their exact email address as `EDITOR` or `VIEWER`, changes a member's role, or removes a member; all three require `MANAGE_MEMBERS`. Reading the roster requires only membership, so an editor or viewer can see who else is in the workspace. A workspace always keeps at least one owner, so demoting or removing the last one is `409` — a transfer is a promotion followed by a demotion. Removing a member deletes one membership row and nothing else: their account, their session, and every record of what they did survive. Roles are read from the database per request, so a change takes effect on the affected user's next request without them signing in again.
 
 There is no email delivery, no pending-invite table, and no endpoint that lists or searches users. An address with no active account is `404` with one stable detail, identical for an unknown address and a disabled account, so adding a member cannot be used to find out who has an account here.
 
-What is not implemented yet: per-resource checks for entities that do not exist yet — documents, sources, analyses, AI conversations. Each of those hangs off a workspace and will reuse the same capability check rather than inventing its own. Until a resource exists, there is no rule to write for it. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
+Documents use that same capability check: `VIEW_CONTENT` to read, `EDIT_CONTENT` to create, save, and archive. What is not implemented yet: per-resource checks for entities that do not exist yet — sources, analyses, AI conversations. Each of those hangs off a workspace and will reuse the same capability check rather than inventing its own. Until a resource exists, there is no rule to write for it. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
 
 Initial mechanism:
 
@@ -947,8 +953,11 @@ POST   /api/workspaces/{workspaceId}/members            implemented, owner-only
 PATCH  /api/workspaces/{workspaceId}/members/{userId}   implemented, owner-only
 DELETE /api/workspaces/{workspaceId}/members/{userId}   implemented, owner-only
 
-GET    /api/workspaces/{workspaceId}/documents
-POST   /api/workspaces/{workspaceId}/documents
+GET    /api/workspaces/{workspaceId}/documents              implemented, any member
+POST   /api/workspaces/{workspaceId}/documents              implemented, editors and owners
+GET    /api/workspaces/{workspaceId}/documents/{documentId} implemented, any member
+PATCH  /api/workspaces/{workspaceId}/documents/{documentId} implemented, revision-checked
+DELETE /api/workspaces/{workspaceId}/documents/{documentId} implemented, soft archive
 
 GET    /api/workspaces/{workspaceId}/sources
 POST   /api/workspaces/{workspaceId}/sources

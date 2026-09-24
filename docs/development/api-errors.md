@@ -101,6 +101,12 @@ failure. The workspace routes are the worked example:
 | An owner adding an email with no active account | `404 RESOURCE_NOT_FOUND` | One detail, `No registered user has that email`, for an unknown address, a malformed one, and a disabled account alike. Distinguishing them would turn adding a member into a way to discover which addresses are registered. |
 | An owner adding somebody who is already a member | `409 CONFLICT` | Collides with existing state, and is caught both by a pre-check and by `uq_workspace_members_workspace_user`, so a race ends the same way. |
 | An owner demoting or removing the last owner | `409 CONFLICT` | The workspace would become unmanageable. The detail says to promote somebody else first. |
+| An editor saving a document whose stored revision has moved on | `409 CONFLICT` | Somebody else saved first. The write is refused rather than applied, because overwriting them silently is the one outcome nobody can recover from. The detail names both revisions so the client can explain it. |
+| An editor saving an archived document, or any write in an archived workspace | `409 CONFLICT` | Collides with the state of the thing being written, not with the caller's permissions. |
+
+A request that reaches a document through the wrong workspace is `404`, not `403` — see the first row. That
+holds for the read, the save, and the archive, and it holds even when the caller is a member of both
+workspaces.
 
 The order the server checks them in is part of the contract: authorization first, state second. A non-member
 must never receive the `409`, because that would confirm both that the workspace exists and that it is

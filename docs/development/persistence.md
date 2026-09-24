@@ -23,8 +23,9 @@ Applied migrations:
 | 3 | `V3__create_workspaces.sql` | `workspaces`, owned by the `workspace` module. |
 | 4 | `V4__create_workspace_members.sql` | `workspace_members`, owned by the `workspace` module. |
 | 5 | `V5__add_workspace_archival.sql` | `workspaces.archived_at` and `archived_by`, plus `ck_workspaces_archived_together`. |
+| 6 | `V6__create_documents.sql` | `documents`, owned by the `document` module. |
 
-The next migration is `V6__<description>.sql`.
+The next migration is `V7__<description>.sql`.
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each
@@ -61,6 +62,7 @@ Today that is:
 | `users` | `user.infrastructure.UserEntity`, `UserRepository` | `user.domain`: `User`, `UserEmail`, `PasswordHash`, `UserStatus` |
 | `workspaces` | `workspace.infrastructure.WorkspaceEntity`, `WorkspaceRepository` | `workspace.domain`: `Workspace`, including the rename, describe, and archive rules |
 | `workspace_members` | `workspace.infrastructure.WorkspaceMemberEntity`, `WorkspaceMemberRepository` | `workspace.domain`: `WorkspaceMembership`, `WorkspaceMembers`, `WorkspaceRole`, `WorkspaceCapability` |
+| `documents` | `document.infrastructure.DocumentEntity`, `DocumentRepository` | `document.domain`: `Document`, `DocumentContent`, `DocumentContentFormat` |
 
 In each case the entity is the persistence representation and converts in both directions; the rules live
 in the module's `domain`.
@@ -74,12 +76,38 @@ in the module's `domain`.
 migration and enforced by the database. No user column is copied onto either table; a caller that needs an
 email reads it through the `user` module.
 
-**Repositories that cannot list everything.** `WorkspaceRepository` and `WorkspaceMemberRepository` extend
-Spring Data's bare `Repository` marker rather than `JpaRepository`, which would inherit `findAll()`. A
-workspace is a security boundary, so a method returning every workspace — or every membership — in the
-database is not something that should exist to be called by mistake. Every read is by id, by an explicit
-set of ids, or scoped to one user or workspace. `JpaRepository` is still the right default for a table
-that is not a boundary, as `users` shows.
+**Repositories that cannot list everything.** `WorkspaceRepository`, `WorkspaceMemberRepository`, and
+`DocumentRepository` extend Spring Data's bare `Repository` marker rather than `JpaRepository`, which would
+inherit `findAll()`. A workspace is a security boundary, so a method returning every workspace — or every
+membership, or every document — in the database is not something that should exist to be called by mistake.
+Every read is by id, by an explicit set of ids, or scoped to one user or workspace. `JpaRepository` is still
+the right default for a table that is not a boundary, as `users` shows.
+
+`DocumentRepository` goes one step further: it has no `findById` at all. **Every read takes the workspace id
+as well**, so `findByWorkspaceIdAndId` is the only way to reach a document. A document id is exactly the kind
+of value that ends up in a URL and gets tried against another workspace, and this is what makes that a query
+matching no row rather than a forgotten `if`. A new workspace-owned table should follow the same shape.
+
+### Documents
+
+`documents` is the first workspace-owned content table, so it sets the pattern the rest will follow:
+
+- `workspace_id` is a plain `uuid` with a foreign key and **no referential action**, like every other
+  reference in this schema. The owning module does not import `workspace.infrastructure`, so the relationship
+  is enforced by the database rather than by a mapped association.
+- `created_by` references `users (id)`, never `workspace_members`, because authorship survives somebody
+  leaving the team.
+- `content` is `jsonb`, not `text`. That is what lets `ck_documents_content_is_object` reject an array, a
+  string, or a number — all valid JSON, none of them a document — regardless of which code wrote the row.
+- `content_format` is pinned to `PROSEMIRROR_JSON` by a check constraint. HTML and plain text are not stored
+  formats: a format that can carry markup would make every renderer a sanitizer.
+- `ck_documents_content_size` bounds the row at `FieldLengths.DOCUMENT_CONTENT_MAX_BYTES`, measured on
+  PostgreSQL's canonical serialization. It exists because nothing else bounds it yet — without chunking or a
+  CRDT, every save stores the whole document.
+- `revision` is a plain `bigint` starting at 1, not a Hibernate `@Version`. The client reads it and sends it
+  back, and a stale value is refused with `409`. Hiding the token would leave the API unable to say that
+  somebody else saved first.
+- `archived_at` is a soft archive, exactly as on `workspaces`. Nothing deletes a document row.
 
 ### Archiving does not delete
 
@@ -179,10 +207,18 @@ a user or workspace that does not exist is rejected by its foreign key, a blank 
 `ck_workspaces_archived_together`, an archived workspace is left out of the membership-scoped list by the
 query itself, and neither table has a column copied from `users`.
 
+`DocumentRepositoryIntegrationTest` is the proof for `documents`: a document cannot be inserted without a real
+workspace or a real author, a query for one workspace never returns another's document, and the column rejects
+content that is not a JSON object, content over the size limit, an unknown format, a blank title, and a
+revision below 1.
+
 Authorization is proved over HTTP rather than here, because it is about what a particular signed-in user may
 do: `WorkspaceApiIntegrationTest` covers cross-user isolation and that a membership row is what grants
-visibility, and `WorkspaceMetadataApiIntegrationTest` covers the owner-only routes for every role. Both use
-two or more independent sessions with their own cookie jars.
+visibility, `WorkspaceMetadataApiIntegrationTest` covers the owner-only workspace routes for every role,
+`WorkspaceMemberApiIntegrationTest` covers the roster, and `DocumentApiIntegrationTest` covers the document
+routes — including the case that a document reached through the wrong workspace is a `404` even for a caller
+who belongs to both. They share the cookie-jar client in `dev.researchhub.support.ApiBrowser`, and each
+instance of it is one person with their own session.
 
 `WorkspaceCreationTransactionIntegrationTest` is deliberately **not** `@Transactional`, unlike everything
 else above. It proves that a workspace and its owner membership are committed together, and a

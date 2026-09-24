@@ -140,8 +140,11 @@ const { mutate } = useMutation({
 });
 ```
 
-For a write scoped to one document, invalidate `queryKeys.document(workspaceId, documentId)`
-rather than `queryKeys.documents(workspaceId)`.
+Creating a document invalidates `queryKeys.documents(workspaceId)`, so the new title appears in the
+list. Saving one writes the response into `queryKeys.document(workspaceId, documentId)` and
+invalidates the list with `exact: true`, so the title updates without refetching the document just
+saved. Prefix invalidation of `queryKeys.documents(workspaceId)` also refreshes an open document,
+which is what archiving uses.
 
 ## Where feature code goes
 

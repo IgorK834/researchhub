@@ -52,9 +52,19 @@ adds a table for one of these concepts, the column length must be at least this 
 | `FieldLengths.NAME_MAX` | 255 | Short display names: workspace names, user display names, and similar identifiers |
 | `FieldLengths.EMAIL_MAX` | 254 | Email addresses, whole address including the domain |
 | `FieldLengths.TITLE_MAX` | 500 | Document and other titles |
+| `FieldLengths.DOCUMENT_CONTENT_MAX_BYTES` | 1000000 | Serialized size of one document's JSON content, in **bytes** |
 | `FieldLengths.DESCRIPTION_MAX` | 2000 | Optional free-text descriptions: a workspace description and similar explanatory metadata |
 | `FieldLengths.PROMPT_MAX` | 8000 | AI user prompts |
 | `FieldLengths.COMMENT_MAX` | 4000 | Comment bodies |
+
+`DOCUMENT_CONTENT_MAX_BYTES` is the odd one out in this table: it is a byte count, not a character count,
+because what a row and a response have to carry is the encoded size, and a character limit would be the wrong
+bound for prose that is mostly non-ASCII. One megabyte is far more than a report section and small enough that
+a document stays a row rather than a blob. The limit exists at all because nothing else bounds it yet — there
+is no chunking, no incremental update, and no CRDT, so every save sends and stores the whole document. It is
+enforced in three places, each for a different reason: `JsonDocumentContent` at the HTTP boundary for a field
+error naming `content`, `DocumentContent` in the domain for every other caller, and
+`ck_documents_content_size` in the column for anything that reaches the database another way.
 
 `DESCRIPTION_MAX` is 2000, deliberately far below `COMMENT_MAX`, even though both hold free text. A
 description is metadata rendered next to the thing it describes, usually in a list, so it has to stay

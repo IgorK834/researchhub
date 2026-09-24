@@ -23,6 +23,11 @@ dev.researchhub
 │   ├── application     WorkspaceService, WorkspaceMembershipService, WorkspaceAuthorizationService, commands and summaries
 │   ├── domain          Workspace, WorkspaceMembership, WorkspaceMembers, WorkspaceRole, WorkspaceCapability
 │   └── infrastructure  WorkspaceEntity, WorkspaceMemberEntity, WorkspaceRepository, WorkspaceMemberRepository
+├── document        Authored workspace content
+│   ├── api             DocumentController, request/response records, @JsonDocumentContent
+│   ├── application     DocumentService, commands, DocumentSummary, DocumentDetail
+│   ├── domain          Document, DocumentContent, DocumentContentFormat
+│   └── infrastructure  DocumentEntity, DocumentRepository
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors
@@ -56,6 +61,11 @@ The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-auth
 | `PATCH /api/workspaces/{workspaceId}` | Required | `MANAGE_WORKSPACE` | Owners. Replaces name and description. `409` if the workspace is archived. |
 | `POST /api/workspaces/{workspaceId}/archive` | Required | `MANAGE_WORKSPACE` | Owners. Soft archive, idempotent. |
 | `GET /api/workspaces/{workspaceId}/members` | Required | Membership | Any member, including a viewer and including on an archived workspace. |
+| `POST /api/workspaces/{workspaceId}/documents` | Required | `EDIT_CONTENT` | Editors and owners. 201, revision 1. |
+| `GET /api/workspaces/{workspaceId}/documents` | Required | `VIEW_CONTENT` | Any member. Summaries of active documents, without content. |
+| `GET /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `VIEW_CONTENT` | Any member. The document with its content, archived or not. |
+| `PATCH /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `EDIT_CONTENT` | Editors and owners. 200 with the next revision, or 409. |
+| `DELETE /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `EDIT_CONTENT` | Editors and owners. 204, soft archive. |
 | `POST /api/workspaces/{workspaceId}/members` | Required | `MANAGE_MEMBERS` | Owners. Adds a registered user as `EDITOR` or `VIEWER`. 201. |
 | `PATCH /api/workspaces/{workspaceId}/members/{userId}` | Required | `MANAGE_MEMBERS` | Owners. Changes one member's role. 200. |
 | `DELETE /api/workspaces/{workspaceId}/members/{userId}` | Required | `MANAGE_MEMBERS` | Owners. Removes one membership row. 204. |
@@ -124,7 +134,7 @@ Logout is authenticated, not public. It needs a session to invalidate, so an ano
 
 `JpaPersistenceConfiguration` is `@Profile("local")`, so `UserRepository` exists only there. Anything that needs it must carry the same guard, or the `test` and `cloud` contexts fail to start — `BackendApplicationTests` and `CloudProfileStartupTests` both load the full context on profiles that exclude JDBC and JPA.
 
-That is why `UserRegistrationService`, `UserAuthenticationService`, `UserLookupService`, `CurrentUserResolver`, `AuthController`, `CurrentUserController`, `WorkspaceService`, `WorkspaceMembershipService`, `WorkspaceAuthorizationService`, `WorkspaceController`, and `WorkspaceMemberController` are `@Profile("local")`.
+That is why `UserRegistrationService`, `UserAuthenticationService`, `UserLookupService`, `CurrentUserResolver`, `AuthController`, `CurrentUserController`, `WorkspaceService`, `WorkspaceMembershipService`, `WorkspaceAuthorizationService`, `WorkspaceController`, `WorkspaceMemberController`, `DocumentService`, and `DocumentController` are `@Profile("local")`.
 
 Repository interfaces themselves carry no annotation: the guard is on `JpaPersistenceConfiguration`'s scan, so they are simply never instantiated elsewhere. Anything that *injects* one needs the guard, and so does anything that injects that.
 
@@ -168,9 +178,13 @@ When a module needs layers, use this shape and this direction only:
 Allowed dependencies inside one module:
 
 - `api` may depend on `application`
-- `application` may depend on `domain`
+- `application` may depend on `domain`, and on its own module's `infrastructure` repositories
 - `infrastructure` may depend on `domain` and `application`
 - `domain` depends on none of `api`, `application`, or `infrastructure`
+
+The second line is what every service in the codebase already does: a Spring Data repository is an
+`infrastructure` type, and an application service injects one. Stated explicitly because its absence read as a
+prohibition of the normal case.
 
 ## Dependencies between packages
 
@@ -186,6 +200,18 @@ Allowed dependencies inside one module:
 | `workspace.api` | `dev.researchhub.auth.application` | Every workspace route acts on behalf of the signed-in user, and `auth` owns the session. `WorkspaceController` calls `CurrentUserResolver.requireCurrentUser()` rather than trusting a request field, which is what stops a client from creating a workspace owned by somebody else. |
 | `workspace.api` | `dev.researchhub.user.application` | Only as the return type of the call above: `requireCurrentUser()` hands back a `UserAccount`, of which `workspace` reads `id()` and nothing else. The call is chained, so the type is never even imported — but it is still a dependency, and this row is what makes it allowed. |
 | `workspace.application` | `dev.researchhub.user.application.UserLookupService` and `UserAccount` | A workspace's roster is membership rows plus the names and addresses they point at, and `user` owns those. `WorkspaceMembershipService` resolves one exact email to add a member, and a set of ids to render the roster. It reads `id()`, `email()`, and `displayName()`, and never `status()`. |
+| `document.api` | `dev.researchhub.auth.application` | Every document route acts on behalf of the signed-in user, and `auth` owns the session. As in `workspace.api`, the caller comes from `CurrentUserResolver` rather than the body, and only `id()` is read. |
+| `document.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | A document's access rule *is* its workspace's. `DocumentService` calls `requireContentReader` and `requireContentEditor`, which return `void` precisely so this edge stays this narrow. |
+
+**The document module never learns what a role is.** It does not import `WorkspaceRole` or
+`WorkspaceCapability`, and the two guards it calls return nothing, so the capability table stays inside the
+module that owns it instead of spreading into every module that has content to protect. The archived-workspace
+`409` is bundled into `requireContentEditor` for the same reason: a content module that had to remember the
+check separately would eventually forget it.
+
+`document` must not import `workspace.domain`, `workspace.infrastructure`, `user.domain`, or
+`user.infrastructure`. `workspace_id` and `created_by` are bare `UUID`s on both the entity and the domain type,
+and the references are enforced by foreign keys.
 
 The session edge is confined to `workspace.api`. `workspace.application` and `workspace.domain` take a
 `UUID` and have no idea a session exists, so the authorization rules can be tested — and reused by a
