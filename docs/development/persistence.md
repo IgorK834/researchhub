@@ -99,6 +99,23 @@ Two rules follow, and they bind every workspace-owned table added later:
   and audit events exist, archiving their workspace must leave their rows and their blobs in place. If a
   retention policy is ever needed, it is a separate, explicit feature — not a consequence of archiving.
 
+### Removing a member removes access, not authorship
+
+`DELETE /api/workspaces/{id}/members/{userId}` deletes exactly one `workspace_members` row. It is the only
+delete in the module, and the same preservation rule applies to it:
+
+- **An authorship column stores a user id and references `users (id)`, never `workspace_members`.**
+  `workspaces.created_by` and `archived_by` already do this, and the document, source, analysis, comment,
+  and audit tables must follow: who wrote something is a fact about a person, not about their current
+  access. A foreign key to a membership row would make authorship disappear the moment somebody left the
+  team, which is exactly the provenance docs/context.md sections 3.3 and 3.4 require to survive.
+- **No `ON DELETE CASCADE` from `workspace_members`, and no trigger.** Removing a membership must not
+  delete, null, or reassign a single row that records what that person did. `WorkspaceMemberApiIntegrationTest`
+  asserts that after a removal the user row, the workspace row, and `workspaces.created_by` are all intact.
+
+A removed member keeps their account and their login session. They are simply no longer a member, which
+their next request discovers as the usual `404`.
+
 The two columns are set together, and `ck_workspaces_archived_together` enforces that: a row recording when
 it was archived but not by whom, or the reverse, is a state no reader could interpret. Archiving is
 idempotent, and the original `archived_at` wins, so a retried request cannot rewrite when a workspace

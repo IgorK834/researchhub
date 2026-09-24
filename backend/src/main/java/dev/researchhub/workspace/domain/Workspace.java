@@ -152,15 +152,22 @@ public record Workspace(
     }
 
     /**
-     * Refuses a metadata change on an archived workspace.
+     * Refuses a change on an archived workspace.
      *
      * <p>{@code CONFLICT} rather than {@code FORBIDDEN}: the caller may well hold every capability there
      * is, so the request is not an authorization failure. It collides with the workspace's current state,
      * which is what 409 means (docs/development/api-errors.md). The detail names no membership or
      * identity, so it is safe for any caller who got this far — and a non-member never does, because the
      * 404 check runs first.
+     *
+     * <p>Public because archiving freezes more than this record's own fields. Changing who belongs to the
+     * workspace is refused by the same rule, and the membership code asks this type rather than repeating
+     * the check — there is one definition of "archived means no more changes", and it lives with the state
+     * it is about.
+     *
+     * @param change completes the sentence "This workspace is archived and cannot be …"
      */
-    private void requireActive(String change) {
+    public void requireActive(String change) {
         if (isArchived()) {
             throw new ConflictException(
                     "This workspace is archived and cannot be " + change);

@@ -33,4 +33,17 @@ public interface WorkspaceMemberRepository extends Repository<WorkspaceMemberEnt
     /** Every membership held by one user. The only way the workspace list for a caller is built. */
     List<WorkspaceMemberEntity> findByUserId(UUID userId);
 
+    /**
+     * Deletes one membership by its own id.
+     *
+     * <p>By id rather than by {@code (workspaceId, userId)} so the row deleted is exactly the one the
+     * domain decided on: {@code WorkspaceMembers.remove} returns that membership after checking the
+     * last-owner rule, and passing its id through means no second query can resolve to a different row.
+     *
+     * <p>This is the only delete in the module, and it removes a grant of access — nothing else. The user
+     * row, the workspace row, and anything recording who authored what all survive; see
+     * docs/development/persistence.md.
+     */
+    void deleteById(UUID id);
+
 }
