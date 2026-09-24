@@ -190,6 +190,16 @@ describe('WorkspaceListPage', () => {
       name: 'Electronics Lab',
       description: 'Team 4',
     });
+
+    // The new row came from the query being refetched after the mutation invalidated ['workspaces'] —
+    // not from the page reloading, and not from the response being spliced into local state. Two GETs:
+    // the first render, then the refetch.
+    const listReads = fetchMock.mock.calls.filter(
+      (call) =>
+        String(call[0]) === '/api/workspaces' &&
+        ((call[1] as RequestInit | undefined)?.method ?? 'GET') === 'GET',
+    );
+    expect(listReads.length).toBeGreaterThanOrEqual(2);
   });
 
   it('never sends a creator in the request body', async () => {

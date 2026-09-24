@@ -41,6 +41,27 @@ function workspaceRow(overrides: Partial<WorkspaceRow> = {}): WorkspaceRow {
   };
 }
 
+interface MemberRow {
+  readonly userId: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly role: string;
+}
+
+const OWNER_MEMBER: MemberRow = {
+  userId: 'u-ada',
+  email: 'ada@example.com',
+  displayName: 'Ada Lovelace',
+  role: 'OWNER',
+};
+
+const EDITOR_MEMBER: MemberRow = {
+  userId: 'u-kasia',
+  email: 'kasia@example.com',
+  displayName: 'Kasia Nowak',
+  role: 'EDITOR',
+};
+
 /** Minimal `Response` double: jsdom does not implement the Fetch API response classes. */
 function jsonResponse(body: unknown, status: number, contentType: string): Response {
   const payload = JSON.stringify(body);
@@ -82,8 +103,14 @@ function stubWorkspaceApi(options: {
   readonly detailResponse?: Response;
   readonly patchResponse?: Response;
   readonly archiveResponse?: Response;
+  readonly members?: readonly MemberRow[];
+  readonly membersResponse?: Response;
+  readonly addMemberResponse?: Response;
+  readonly changeRoleResponse?: Response;
 }): jest.Mock {
   let current = options.workspace ?? workspaceRow();
+  const members: MemberRow[] = [...(options.members ?? [OWNER_MEMBER])];
+  const membersPath = `/api/workspaces/${WORKSPACE_ID}/members`;
 
   const fetchMock = jest.fn((url: unknown, init?: RequestInit) => {
     const path = String(url);
@@ -91,6 +118,50 @@ function stubWorkspaceApi(options: {
 
     if (path === '/api/auth/csrf') {
       return Promise.resolve(emptyNoContent());
+    }
+    if (path === membersPath && method === 'POST') {
+      if (options.addMemberResponse !== undefined) {
+        return Promise.resolve(options.addMemberResponse);
+      }
+      const body = JSON.parse(String(init?.body)) as { email: string; role: string };
+      const added: MemberRow = {
+        userId: `u-${body.email}`,
+        email: body.email,
+        displayName: 'Kasia Nowak',
+        role: body.role,
+      };
+      members.push(added);
+      return Promise.resolve(jsonResponse(added, 201, 'application/json'));
+    }
+    if (path.startsWith(`${membersPath}/`) && method === 'PATCH') {
+      if (options.changeRoleResponse !== undefined) {
+        return Promise.resolve(options.changeRoleResponse);
+      }
+      const userId = path.slice(`${membersPath}/`.length);
+      const body = JSON.parse(String(init?.body)) as { role: string };
+      const index = members.findIndex((member) => member.userId === userId);
+      const existing = members[index];
+      if (existing === undefined) {
+        return Promise.resolve(
+          problem(404, 'RESOURCE_NOT_FOUND', 'Workspace member was not found'),
+        );
+      }
+      const updated = { ...existing, role: body.role };
+      members[index] = updated;
+      return Promise.resolve(jsonResponse(updated, 200, 'application/json'));
+    }
+    if (path.startsWith(`${membersPath}/`) && method === 'DELETE') {
+      const userId = path.slice(`${membersPath}/`.length);
+      const index = members.findIndex((member) => member.userId === userId);
+      if (index >= 0) {
+        members.splice(index, 1);
+      }
+      return Promise.resolve(emptyNoContent());
+    }
+    if (path === membersPath && method === 'GET') {
+      return Promise.resolve(
+        options.membersResponse ?? jsonResponse(members, 200, 'application/json'),
+      );
     }
     if (path === `/api/workspaces/${WORKSPACE_ID}` && method === 'PATCH') {
       if (options.patchResponse !== undefined) {
@@ -222,10 +293,8 @@ describe('WorkspaceDetailPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByRole('status')).toHaveProperty(
-      'textContent',
-      'Changes saved.',
-    );
+    // By text, not by role: the member section contributes its own `status` while it loads.
+    expect(await screen.findByText('Changes saved.')).not.toBeNull();
     await waitFor(() => {
       expect(
         screen.getByRole('heading', { name: 'Electronics Lab — Team 4' }),
@@ -338,6 +407,150 @@ describe('WorkspaceDetailPage', () => {
     ).not.toBeNull();
   });
 
+  // --- members ---
+
+  it('shows the member list to a viewer, without any control to change it', async () => {
+    stubWorkspaceApi({
+      workspace: workspaceRow({ role: 'VIEWER' }),
+      members: [OWNER_MEMBER, EDITOR_MEMBER],
+    });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByText('Ada Lovelace')).not.toBeNull();
+    expect(screen.getByText('kasia@example.com')).not.toBeNull();
+    // Roles are visible as text rather than as editable selects.
+    expect(screen.queryByLabelText('Role for Ada Lovelace')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove Kasia Nowak' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Add a member' })).toBeNull();
+  });
+
+  it('offers an owner a role control and a remove control for each member', async () => {
+    stubWorkspaceApi({ members: [OWNER_MEMBER, EDITOR_MEMBER] });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByLabelText('Role for Kasia Nowak')).toHaveProperty(
+      'value',
+      'EDITOR',
+    );
+    expect(screen.getByLabelText('Role for Ada Lovelace')).toHaveProperty(
+      'value',
+      'OWNER',
+    );
+    expect(screen.getByRole('button', { name: 'Remove Kasia Nowak' })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Add a member' })).not.toBeNull();
+  });
+
+  it('adds a member and shows them in the refreshed list', async () => {
+    const fetchMock = stubWorkspaceApi({ members: [OWNER_MEMBER] });
+
+    renderWorkspaceDetailPage();
+    fireEvent.change(await screen.findByLabelText('Email'), {
+      target: { value: 'kasia@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
+
+    // Rendered from the refetched roster, not from local state the form kept.
+    expect(await screen.findByText('kasia@example.com')).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Email')).toHaveProperty('value', '');
+    });
+
+    const post = fetchMock.mock.calls.find(
+      (call) =>
+        (call[1] as RequestInit | undefined)?.method === 'POST' &&
+        String(call[0]).endsWith('/members'),
+    );
+    expect(JSON.parse(String((post?.[1] as RequestInit | undefined)?.body))).toEqual({
+      email: 'kasia@example.com',
+      role: 'EDITOR',
+    });
+  });
+
+  it('shows an address with no account as one message and offers no invitation', async () => {
+    stubWorkspaceApi({
+      addMemberResponse: problem(
+        404,
+        'RESOURCE_NOT_FOUND',
+        'No registered user has that email',
+      ),
+    });
+
+    renderWorkspaceDetailPage();
+    fireEvent.change(await screen.findByLabelText('Email'), {
+      target: { value: 'nobody@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe('No registered user has that email');
+    expect(screen.queryByText(/invite/i)).toBeNull();
+  });
+
+  it('shows an already-a-member response as a conflict message', async () => {
+    stubWorkspaceApi({
+      addMemberResponse: problem(
+        409,
+        'CONFLICT',
+        'That user is already a member of this workspace',
+      ),
+    });
+
+    renderWorkspaceDetailPage();
+    fireEvent.change(await screen.findByLabelText('Email'), {
+      target: { value: 'kasia@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('already a member');
+  });
+
+  it('changes a role and shows the refused last-owner demotion as a message', async () => {
+    stubWorkspaceApi({
+      members: [OWNER_MEMBER, EDITOR_MEMBER],
+      changeRoleResponse: problem(
+        409,
+        'CONFLICT',
+        'A workspace must always have at least one owner. Promote another member first.',
+      ),
+    });
+
+    renderWorkspaceDetailPage();
+    fireEvent.change(await screen.findByLabelText('Role for Ada Lovelace'), {
+      target: { value: 'EDITOR' },
+    });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('at least one owner');
+  });
+
+  it('removes a member from the displayed list', async () => {
+    stubWorkspaceApi({ members: [OWNER_MEMBER, EDITOR_MEMBER] });
+
+    renderWorkspaceDetailPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove Kasia Nowak' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('kasia@example.com')).toBeNull();
+    });
+    expect(screen.getByText('ada@example.com')).not.toBeNull();
+  });
+
+  it('lists members on an archived workspace but offers no way to change them', async () => {
+    stubWorkspaceApi({
+      workspace: workspaceRow({ archivedAt: '2026-09-24T09:00:00Z' }),
+      members: [OWNER_MEMBER, EDITOR_MEMBER],
+    });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByText('kasia@example.com')).not.toBeNull();
+    expect(screen.queryByLabelText('Role for Kasia Nowak')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove Kasia Nowak' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Add a member' })).toBeNull();
+  });
+
   it('shows an archived workspace as archived and withdraws the owner controls', async () => {
     stubWorkspaceApi({
       workspace: workspaceRow({ archivedAt: '2026-09-24T09:00:00Z' }),
@@ -345,12 +558,10 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage();
 
-    // Wait for the heading first: the loading paragraph is also a `status`, so querying for the role
-    // straight away would match "Loading this workspace…" and pass for the wrong reason.
-    await screen.findByRole('heading', { name: 'Electronics Lab' });
-
-    const notice = screen.getByRole('status');
-    expect(notice.textContent).toContain('archived');
+    // Matched by its text rather than by role: several things on this page announce themselves as a
+    // `status`, including the page and the member list while they load.
+    const notice = await screen.findByText(/This workspace is archived/);
+    expect(notice.getAttribute('role')).toBe('status');
     expect(notice.textContent).toContain('Nothing has been deleted');
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Archive workspace' })).toBeNull();
