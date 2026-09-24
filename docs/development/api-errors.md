@@ -77,8 +77,8 @@ succeed. A client must treat the member as optional and fall back to `detail` wh
 | `FORBIDDEN` | 403 | The caller is known and is not allowed to perform the action. |
 | `RESOURCE_NOT_FOUND` | 404 | The resource does not exist, or the route does not. |
 | `CONFLICT` | 409 | The request collided with existing state: the write lost an optimistic concurrency check, it would duplicate a unique value, or the resource's current state does not allow it. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. Editing an archived workspace is also this code, and so is demoting or removing a workspace's last owner. |
-| `PAYLOAD_TOO_LARGE` | 413 | The upload exceeds the configured limit. |
-| `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type. |
+| `PAYLOAD_TOO_LARGE` | 413 | The upload exceeds the configured limit: the multipart limit, the per-source limit (`researchhub.sources.max-size-bytes`), or a workspace quota. The detail names the limit. |
+| `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type: the extension is not supported, the declared media type contradicts it, or the content does not match it. The detail lists the supported types; see [sources.md](sources.md#types). |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |
 | `INTERNAL_ERROR` | 500 | Unexpected failure. |
 
@@ -93,6 +93,7 @@ Throw a type from `dev.researchhub.shared.error`:
 - `ForbiddenException`
 - `ConflictException`
 - `UnsupportedFileTypeException`
+- `PayloadTooLargeException`
 
 The message becomes `detail` and must be safe for a client. Do not put secrets, SQL, or class names in that message.
 
@@ -130,7 +131,7 @@ failure. The workspace routes are the worked example:
 | An owner adding an email with no active account | `404 RESOURCE_NOT_FOUND` | One detail, `No registered user has that email`, for an unknown address, a malformed one, and a disabled account alike. Distinguishing them would turn adding a member into a way to discover which addresses are registered. |
 | An owner adding somebody who is already a member | `409 CONFLICT` | Collides with existing state, and is caught both by a pre-check and by `uq_workspace_members_workspace_user`, so a race ends the same way. |
 | An owner demoting or removing the last owner | `409 CONFLICT` | The workspace would become unmanageable. The detail says to promote somebody else first. |
-| An editor saving a document whose stored revision has moved on | `409 CONFLICT` | Somebody else saved first. The write is refused rather than applied, because overwriting them silently is the one outcome nobody can recover from. The detail names both revisions, and `currentRevision` carries the stored one, so the client can explain it. |
+| An editor saving — or restoring a version of — a document whose stored revision has moved on | `409 CONFLICT` | Somebody else saved first. The write is refused rather than applied, because overwriting them silently is the one outcome nobody can recover from. The detail names both revisions, and `currentRevision` carries the stored one, so the client can explain it. |
 | An editor saving an archived document, or any write in an archived workspace | `409 CONFLICT` | Collides with the state of the thing being written, not with the caller's permissions. |
 
 A request that reaches a document through the wrong workspace is `404`, not `403` — see the first row. That

@@ -120,6 +120,10 @@ queryKeys.workspaces()                      ['workspaces']
 queryKeys.workspace(id)                     ['workspaces', id]
 queryKeys.documents(workspaceId)            ['documents', workspaceId]
 queryKeys.document(workspaceId, documentId)  ['documents', workspaceId, documentId]
+queryKeys.documentVersions(workspaceId, documentId)
+                                             ['documents', workspaceId, documentId, 'versions']
+queryKeys.documentVersion(workspaceId, documentId, versionId)
+                                             ['documents', workspaceId, documentId, 'versions', versionId]
 queryKeys.sources(workspaceId)              ['sources', workspaceId]
 queryKeys.job(jobId)                        ['jobs', jobId]
 ```
@@ -145,10 +149,16 @@ const { mutate } = useMutation({
 ```
 
 Creating a document invalidates `queryKeys.documents(workspaceId)`, so the new title appears in the
-list. Saving one writes the response into `queryKeys.document(workspaceId, documentId)` and
+list. Saving one writes the response into `queryKeys.document(workspaceId, documentId)`,
 invalidates the list with `exact: true`, so the title updates without refetching the document just
-saved. Prefix invalidation of `queryKeys.documents(workspaceId)` also refreshes an open document,
-which is what archiving uses.
+saved, and invalidates its `documentVersions` key, because a save may have recorded a version. A
+restore does the same. Prefix invalidation of `queryKeys.documents(workspaceId)` also refreshes an
+open document, which is what archiving uses.
+
+Saving is not a `useMutation`. `useSaveDocument` returns a plain function whose promise includes
+the cache update, because autosave calls it from timers and from an unmount cleanup, where a
+mutation's per-call callbacks would never run. The editor never copies a save response's content
+back into itself — only its revision — so a response cannot overwrite newer typing.
 
 ## Where feature code goes
 

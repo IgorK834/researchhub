@@ -24,8 +24,10 @@ Applied migrations:
 | 4 | `V4__create_workspace_members.sql` | `workspace_members`, owned by the `workspace` module. |
 | 5 | `V5__add_workspace_archival.sql` | `workspaces.archived_at` and `archived_by`, plus `ck_workspaces_archived_together`. |
 | 6 | `V6__create_documents.sql` | `documents`, owned by the `document` module. |
+| 7 | `V7__create_document_versions.sql` | `document_versions` and its immutability trigger, owned by the `document` module. |
+| 8 | `V8__create_sources.sql` | `sources` and the trigger that keeps each original input immutable, owned by the `source` module. |
 
-The next migration is `V7__<description>.sql`.
+The next migration is `V9__<description>.sql`.
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each
@@ -63,6 +65,8 @@ Today that is:
 | `workspaces` | `workspace.infrastructure.WorkspaceEntity`, `WorkspaceRepository` | `workspace.domain`: `Workspace`, including the rename, describe, and archive rules |
 | `workspace_members` | `workspace.infrastructure.WorkspaceMemberEntity`, `WorkspaceMemberRepository` | `workspace.domain`: `WorkspaceMembership`, `WorkspaceMembers`, `WorkspaceRole`, `WorkspaceCapability` |
 | `documents` | `document.infrastructure.DocumentEntity`, `DocumentRepository` | `document.domain`: `Document`, `DocumentContent`, `DocumentContentFormat` |
+| `sources` | `source.infrastructure.SourceEntity`, `SourceRepository` | `source.domain`: `Source`, `SourceType`, `SourceStatus`, `SourceFilename`, `StorageKey` |
+| `document_versions` | `document.infrastructure.DocumentVersionEntity`, `DocumentVersionRepository` | `document.domain`: `DocumentVersion`, `DocumentVersionReason`; when to snapshot is `document.application.CheckpointPolicy` |
 
 In each case the entity is the persistence representation and converts in both directions; the rules live
 in the module's `domain`.
@@ -114,6 +118,58 @@ matching no row rather than a forgotten `if`. A new workspace-owned table should
   back, and a stale value is refused with `409`. Hiding the token would leave the API unable to say that
   somebody else saved first.
 - `archived_at` is a soft archive, exactly as on `workspaces`. Nothing deletes a document row.
+
+- A revision-checked write (save or restore) reads the row with `SELECT ... FOR UPDATE`
+  (`DocumentRepository.findForUpdateByWorkspaceIdAndId`). Without the lock, two saves carrying the same
+  revision could both pass the comparison and the second would overwrite the first. With it, the second waits
+  and is refused. Autosave makes that timing ordinary, not rare.
+
+### Document versions
+
+`document_versions` holds restore points, not every revision. `documents` keeps the current text; a version is
+an immutable copy of one revision's content, taken at a milestone:
+
+| `reason` | When |
+| --- | --- |
+| `CREATED` | The document is created (revision 1). |
+| `MANUAL_SAVE` | A save with `saveKind` `MANUAL`, which is also the default when a client sends none. |
+| `AUTOSAVE_CHECKPOINT` | A save with `saveKind` `AUTOSAVE`, when the newest version is at least `researchhub.documents.history.autosave-checkpoint-interval` old (default ten minutes), or there is none. |
+| `RESTORE` | A restore. `restored_from_version_id` names the version whose text was restored, and `ck_document_versions_restore_source` makes that column set for exactly this reason. |
+
+- **Immutable.** `DocumentVersionEntity` is `@Immutable` with every column `updatable = false`, and
+  `tg_document_versions_immutable` refuses `UPDATE` and `DELETE` from any writer. Tests that clear the table use
+  `TRUNCATE`, which the row trigger does not cover and no application path issues.
+- **Restoring never rewinds.** The restored text becomes the document's next revision, under the same revision
+  check as a save, and is recorded as a `RESTORE` version. Every version in between stays.
+- **One version per revision**, by `uq_document_versions_document_revision`, which is also the index for "this
+  document's history, newest first".
+- **Scoped like documents.** There is no `workspace_id`. Every read takes the document id, and the caller finds
+  the document through its workspace first, so a version id tried against another document matches no row.
+- **Content only.** A version stores `content` and `content_format`, not the title; restoring keeps the current
+  title. `content_format` is stored per version so a future format migration has to say what happens to history
+  too.
+- **No backfill.** V7 created no versions for existing documents. Their history starts at their next milestone.
+
+### Sources
+
+`sources` holds metadata about uploaded files. The bytes live in object storage under `storage_key`. The table follows
+the `documents` pattern (workspace-owned, `workspace_id` with no referential action, a user id for authorship) and
+adds three rules of its own. The full reference is [sources.md](sources.md).
+
+- **Closed type mapping.** `ck_sources_source_type` allows only `PDF`, `DOCX`, `XLSX`, `CSV`, and `TXT`, and
+  `ck_sources_media_type_matches_type` pairs each type with exactly one canonical media type.
+- **Opaque keys.** `ck_sources_storage_key_format` accepts only `sources/<uuid v4>`, and `uq_sources_storage_key`
+  keeps two rows from sharing bytes. A key is never derived from the file name and never used to find a row.
+  `SourceRepository` has no lookup by key.
+- **Immutable original.** `tg_sources_original_is_immutable` refuses changing `id`, `workspace_id`,
+  `original_filename`, `media_type`, `source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by`, or
+  `created_at`. `display_name`, `status`, and `updated_at` may change. A replacement file will be a new version, never
+  an update of this row.
+- `size_bytes` is between 1 and 1 GiB (`ck_sources_size_bytes`). The configured per-source limit is at most that.
+  `content_sha256` is lowercase hex (`ck_sources_content_sha256_format`).
+
+`SourceRepositoryIntegrationTest` proves each of these against PostgreSQL, including hand-written `UPDATE`s that the
+trigger refuses.
 
 ### Archiving does not delete
 
@@ -216,14 +272,16 @@ query itself, and neither table has a column copied from `users`.
 `DocumentRepositoryIntegrationTest` is the proof for `documents`: a document cannot be inserted without a real
 workspace or a real author, a query for one workspace never returns another's document, and the column rejects
 content that is not a JSON object, content over the size limit, an unknown format, a blank title, and a
-revision below 1.
+revision below 1. `DocumentVersionRepositoryIntegrationTest` does the same for `document_versions`, including
+that a hand-written `UPDATE` or `DELETE` is refused by the trigger.
 
 Authorization is proved over HTTP rather than here, because it is about what a particular signed-in user may
 do: `WorkspaceApiIntegrationTest` covers cross-user isolation and that a membership row is what grants
 visibility, `WorkspaceMetadataApiIntegrationTest` covers the owner-only workspace routes for every role,
 `WorkspaceMemberApiIntegrationTest` covers the roster, and `DocumentApiIntegrationTest` covers the document
 routes — including the case that a document reached through the wrong workspace is a `404` even for a caller
-who belongs to both. They share the cookie-jar client in `dev.researchhub.support.ApiBrowser`, and each
+who belongs to both. `DocumentHistoryApiIntegrationTest` covers autosave, the history routes, restore, and two
+saves racing on the same revision. They share the cookie-jar client in `dev.researchhub.support.ApiBrowser`, and each
 instance of it is one person with their own session.
 
 `WorkspaceCreationTransactionIntegrationTest` is deliberately **not** `@Transactional`, unlike everything

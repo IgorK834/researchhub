@@ -60,12 +60,16 @@ error, and success.
   components and shared UI; it should hold little logic of its own. Example: `pages/LoginPage.tsx`
   renders the login form from `features/auth/` (once that feature exists).
 - **`features/<name>/`** — a vertical slice for one product area. The folders that exist are
-  `features/auth/`, `features/workspaces/`, and `features/documents/`; name a new one after the
+  `features/auth/`, `features/workspaces/`, `features/documents/`, and `features/sources/` (so far only the
+  source type mapping, for checking a file before upload); name a new one after the
   collection it serves, matching its query key (`queryKeys.documents`, not `queryKey.document`).
   Feature code should not import from another feature; shared needs go through `shared/`. When a
   screen genuinely needs two features — the document page needs the workspace role to decide what to
   render — the **page** composes them and passes what it learned down as props. That is what pages are
   for, and it keeps either feature usable without the other.
+- **`features/documents/autosave/`** — the autosave controller (`documentAutosave.ts`, no React, tested with
+  fake timers), its timing (`autosaveTiming.ts`), and the hook that binds it to the editor. A folder of its own
+  because it is neither transport nor a component: it is the rule for when a save is sent.
 - **`shared/api/`** — the HTTP client, typed errors, and the query-key factory. It contains no
   React, so it can be unit tested without a renderer. Errors branch on the `code` field of the
   `ProblemDetail` body described in [api-errors.md](api-errors.md). Details:

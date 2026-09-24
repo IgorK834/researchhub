@@ -201,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring (a title input and a Tiptap editor over the stored ProseMirror JSON, with revision-checked save) are implemented. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
+The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring are implemented: the document page is a writing shell with the workspace's documents down the side, create-and-open, a title input and a Tiptap editor over the stored ProseMirror JSON, autosave with a visible save state, and a version history with restore. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` is not in the repository yet.
 
 Local-only paths are ignored and must not be committed:
 
@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, and workspace documents with revision-checked saves. Everything else in this document — sources, RAG, AI writing, analysis, and realtime collaborative editing — is still a plan, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave, and a version history with restore, and the source metadata model with its storage port (no upload endpoint or storage adapter yet). Everything else in this document — source uploads and ingestion, RAG, AI writing, analysis, and realtime collaborative editing — is still a plan, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
 
 ---
 
@@ -472,7 +472,11 @@ Do not implement CRDT from scratch.
 
 **Implemented so far: a structured editor, not collaboration.** A document is stored per workspace with a title, a JSON body, and a revision; it is created, read, saved, and soft-archived through `/api/workspaces/{workspaceId}/documents`. The stored format is a ProseMirror document node (`content_format` `PROSEMIRROR_JSON`), and the editor is Tiptap on ProseMirror: StarterKit (paragraphs, headings, bold, italic, bullet and numbered lists, undo and redo, plus quotes, code, and rules) and Tiptap's official table extensions, which the toolbar uses to insert a small table. Link is turned off. The title is a separate input outside the editor. A save sends `editor.getJSON()`, never HTML, so the column holds exactly what Tiptap produced. Documents written by the earlier textarea editor are a `doc` of paragraphs and open unchanged; no row was rewritten. A body that does not fit the editor's schema is not opened for editing, because Tiptap would otherwise show it empty and a save would overwrite it.
 
-None of Yjs, Hocuspocus, a websocket, presence, or `document_versions` exists yet, and `@tiptap/extension-collaboration` is not installed. Concurrent edits are still handled by the revision: a save carrying a stale revision is refused with `409 CONFLICT` and a `currentRevision` member, and the second writer's editor keeps their text until they choose to load the latest version, rather than being merged or silently replaced. That is the honest single-writer answer. When Yjs arrives it replaces the revision as the authority for concurrent edits and replaces the save transport; the persistence boundary today is only "`getJSON()` plus a revision-checked PATCH", so that swap does not need a second stored format beside this one. Routes and error codes: [development/backend-architecture.md](development/backend-architecture.md), [development/api-errors.md](development/api-errors.md).
+**Saving is automatic.** The editor saves after typing pauses (1.5 seconds, and at least every ten seconds while typing continues), with at most one request in flight, and shows `Saving`, `Saved`, `Save failed`, or `Conflict`. A failed save keeps the text and retries on the next edit, on "Retry saving", or when the browser comes back online; leaving the document flushes pending edits, and closing the tab with unsaved edits asks first. A save response only advances the revision, so it can never overwrite newer local typing.
+
+**Coarse history exists; collaborative history does not.** `document_versions` keeps immutable restore points: the created revision, every manual "Save version", an autosave checkpoint at most every ten minutes, and every restore. Restoring makes the old text the next revision and records where it came from; nothing is deleted. See [development/persistence.md](development/persistence.md#document-versions).
+
+None of Yjs, Hocuspocus, a websocket, or presence exists yet, and `@tiptap/extension-collaboration` is not installed. Concurrent edits are still handled by the revision: a save carrying a stale revision is refused with `409 CONFLICT` and a `currentRevision` member, and the second writer's editor keeps their text until they choose to load the latest version, rather than being merged or silently replaced. That is the honest single-writer answer. When Yjs arrives it replaces the revision as the authority for concurrent edits and replaces the save transport; the persistence boundary today is only "`getJSON()` plus a revision-checked PATCH", so that swap does not need a second stored format beside this one. Routes and error codes: [development/backend-architecture.md](development/backend-architecture.md), [development/api-errors.md](development/api-errors.md).
 
 ---
 
@@ -517,6 +521,14 @@ FAILED
 ```
 
 Binary files go to object storage; metadata goes to PostgreSQL; processed chunks are indexed for retrieval.
+
+**Implemented so far: the model and the storage seam, not uploads.** The `source` module has the domain types, the
+`sources` table (V8), the `SourceStorage` port, and `SourceService`, which streams an upload into storage while
+enforcing the size limit and hashing it, then records it as `UPLOADED`. The MVP types are PDF, DOCX, XLSX, CSV, and
+TXT, with a closed mapping to one canonical media type each. Unsupported files are refused with
+`415 UNSUPPORTED_FILE_TYPE`. File names are metadata only, storage keys are opaque and never authorize, and the
+original input is immutable, so a replacement will be a version. There is no storage adapter yet (RH-072), no upload
+endpoint, and no ingestion. Reference: [development/sources.md](development/sources.md).
 
 ---
 
@@ -859,7 +871,7 @@ Do not rely on Hibernate auto-creating production schema.
 
 ## 20. Preliminary entities
 
-Not final schema. `users`, `workspaces`, `workspace_members`, and `documents` now exist as Flyway migrations; the columns and constraints they actually have are documented in [development/persistence.md](development/persistence.md), which is the source of truth for anything already built. The rest of this list is still a sketch. `document_versions` is not a table.
+Not final schema. `users`, `workspaces`, `workspace_members`, `documents`, `document_versions`, and `sources` now exist as Flyway migrations; the columns and constraints they actually have are documented in [development/persistence.md](development/persistence.md), which is the source of truth for anything already built. The rest of this list is still a sketch.
 
 ```text
 users
@@ -958,6 +970,9 @@ POST   /api/workspaces/{workspaceId}/documents              implemented, editors
 GET    /api/workspaces/{workspaceId}/documents/{documentId} implemented, any member
 PATCH  /api/workspaces/{workspaceId}/documents/{documentId} implemented, revision-checked
 DELETE /api/workspaces/{workspaceId}/documents/{documentId} implemented, soft archive
+GET    /api/workspaces/{workspaceId}/documents/{documentId}/versions                      implemented, any member
+GET    /api/workspaces/{workspaceId}/documents/{documentId}/versions/{versionId}          implemented, any member
+POST   /api/workspaces/{workspaceId}/documents/{documentId}/versions/{versionId}/restore  implemented, revision-checked
 
 GET    /api/workspaces/{workspaceId}/sources
 POST   /api/workspaces/{workspaceId}/sources

@@ -183,3 +183,23 @@ This is additional to the dev proxy, not a replacement for it, and the frontend'
 ## Names for later
 
 Environment variables use uppercase snake case. Concrete variables are added here when a task starts reading them. Examples already reserved for the cloud profile: `DB_URL`, `BLOB_ENDPOINT`. Examples already reserved for local PostgreSQL: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+
+### Document history
+
+| Setting | Value |
+| --- | --- |
+| Autosave checkpoint interval | `researchhub.documents.history.autosave-checkpoint-interval`, ISO-8601 duration, default `PT10M` |
+
+How old a document's newest restore point must be before an autosave records another one. A manual save always
+records one. Read by `dev.researchhub.document.application.CheckpointPolicy`; `PT0S` records a version on every
+autosave, and a negative value fails startup. See [persistence.md](persistence.md#document-versions).
+
+### Sources
+
+| Setting | Value |
+| --- | --- |
+| Largest source | `researchhub.sources.max-size-bytes`, bytes, default `52428800` (50 MiB). Must be between 1 and 1 GiB, or startup fails. |
+| Storage adapter | `researchhub.sources.storage.adapter`, unset. While unset, the source service is not created. RH-072 adds `local`. |
+
+Container names, paths, and credentials belong to the chosen adapter's own settings, never to the source module. See
+[sources.md](sources.md#storage).

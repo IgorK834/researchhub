@@ -25,9 +25,13 @@ dev.researchhub
 │   └── infrastructure  WorkspaceEntity, WorkspaceMemberEntity, WorkspaceRepository, WorkspaceMemberRepository
 ├── document        Authored workspace content
 │   ├── api             DocumentController, request/response records, @JsonDocumentContent
-│   ├── application     DocumentService, commands, DocumentSummary, DocumentDetail
-│   ├── domain          Document, DocumentContent, DocumentContentFormat
-│   └── infrastructure  DocumentEntity, DocumentRepository
+│   ├── application     DocumentService, CheckpointPolicy, SaveKind, commands, summaries and details
+│   ├── domain          Document, DocumentContent, DocumentContentFormat, DocumentVersion, DocumentVersionReason, StaleRevisionException
+│   └── infrastructure  DocumentEntity, DocumentRepository, DocumentVersionEntity, DocumentVersionRepository
+├── source          Uploaded research material
+│   ├── application     SourceService, the SourceStorage port, MeteredInputStream, SourceLimits, WorkspaceSourceQuota
+│   ├── domain          Source, SourceType, SourceStatus, SourceFilename, StorageKey
+│   └── infrastructure  SourceEntity, SourceRepository; storage adapters from RH-072
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors
@@ -64,7 +68,10 @@ The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-auth
 | `POST /api/workspaces/{workspaceId}/documents` | Required | `EDIT_CONTENT` | Editors and owners. 201, revision 1. |
 | `GET /api/workspaces/{workspaceId}/documents` | Required | `VIEW_CONTENT` | Any member. Summaries of active documents, without content. |
 | `GET /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `VIEW_CONTENT` | Any member. The document with its content, archived or not. |
-| `PATCH /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `EDIT_CONTENT` | Editors and owners. 200 with the next revision, or 409. |
+| `PATCH /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `EDIT_CONTENT` | Editors and owners. 200 with the next revision, or 409. Optional `saveKind`: `MANUAL` (default) or `AUTOSAVE`, which decides only whether the save becomes a version. |
+| `GET /api/workspaces/{workspaceId}/documents/{documentId}/versions` | Required | `VIEW_CONTENT` | Any member. The document's versions, newest first, without content. Archived documents too. |
+| `GET /api/workspaces/{workspaceId}/documents/{documentId}/versions/{versionId}` | Required | `VIEW_CONTENT` | Any member. One version with its content. A version of another document is 404. |
+| `POST /api/workspaces/{workspaceId}/documents/{documentId}/versions/{versionId}/restore` | Required | `EDIT_CONTENT` | Editors and owners. Body `{"revision": n}`. 200 with a new revision holding the old text, or 409 exactly as a save. Deletes nothing. |
 | `DELETE /api/workspaces/{workspaceId}/documents/{documentId}` | Required | `EDIT_CONTENT` | Editors and owners. 204, soft archive. |
 | `POST /api/workspaces/{workspaceId}/members` | Required | `MANAGE_MEMBERS` | Owners. Adds a registered user as `EDITOR` or `VIEWER`. 201. |
 | `PATCH /api/workspaces/{workspaceId}/members/{userId}` | Required | `MANAGE_MEMBERS` | Owners. Changes one member's role. 200. |
@@ -201,6 +208,7 @@ prohibition of the normal case.
 | `workspace.api` | `dev.researchhub.user.application` | Only as the return type of the call above: `requireCurrentUser()` hands back a `UserAccount`, of which `workspace` reads `id()` and nothing else. The call is chained, so the type is never even imported — but it is still a dependency, and this row is what makes it allowed. |
 | `workspace.application` | `dev.researchhub.user.application.UserLookupService` and `UserAccount` | A workspace's roster is membership rows plus the names and addresses they point at, and `user` owns those. `WorkspaceMembershipService` resolves one exact email to add a member, and a set of ids to render the roster. It reads `id()`, `email()`, and `displayName()`, and never `status()`. |
 | `document.api` | `dev.researchhub.auth.application` | Every document route acts on behalf of the signed-in user, and `auth` owns the session. As in `workspace.api`, the caller comes from `CurrentUserResolver` rather than the body, and only `id()` is read. |
+| `source.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Exactly as for documents: a source's access rule is its workspace's. `SourceService` calls the two `void` guards and never learns what a role is. `source` must not import `workspace.domain`, `workspace.infrastructure`, `user.domain`, or `user.infrastructure`, and nothing in `source.domain` or `source.application` may import a cloud SDK. |
 | `document.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | A document's access rule *is* its workspace's. `DocumentService` calls `requireContentReader` and `requireContentEditor`, which return `void` precisely so this edge stays this narrow. |
 
 **The document module never learns what a role is.** It does not import `WorkspaceRole` or
