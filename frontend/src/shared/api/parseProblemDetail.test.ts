@@ -56,6 +56,59 @@ describe('decodeProblemDetail', () => {
     expect(problem?.errors).toEqual([{ field: 'email', message: 'must be an email' }]);
   });
 
+  it('decodes currentRevision on a stale-revision conflict', () => {
+    // Body shape from docs/development/api-errors.md.
+    const problem = decodeProblemDetail(
+      {
+        type: 'about:blank',
+        title: 'Conflict',
+        status: 409,
+        detail:
+          'This document was changed by somebody else. It is now at revision 2, and your copy is at ' +
+          'revision 1. Reload it and apply your changes again.',
+        code: 'CONFLICT',
+        currentRevision: 2,
+      },
+      409,
+    );
+
+    expect(problem?.code).toBe('CONFLICT');
+    expect(problem?.currentRevision).toBe(2);
+  });
+
+  it('accepts a conflict without currentRevision', () => {
+    const problem = decodeProblemDetail(
+      {
+        type: 'about:blank',
+        title: 'Conflict',
+        status: 409,
+        detail: 'This document is archived and cannot be changed',
+        code: 'CONFLICT',
+      },
+      409,
+    );
+
+    expect(problem?.code).toBe('CONFLICT');
+    expect(problem?.detail).toBe('This document is archived and cannot be changed');
+    expect(problem).not.toHaveProperty('currentRevision');
+  });
+
+  it('ignores a currentRevision that is not a positive integer', () => {
+    for (const currentRevision of ['2', 0, -1, 1.5, null, {}]) {
+      const problem = decodeProblemDetail(
+        {
+          title: 'Conflict',
+          status: 409,
+          detail: 'Conflict',
+          code: 'CONFLICT',
+          currentRevision,
+        },
+        409,
+      );
+      expect(problem).not.toHaveProperty('currentRevision');
+    }
+  });
+
   it('maps an unrecognised code to UNKNOWN while preserving the raw value', () => {
     const problem = decodeProblemDetail(
       { code: 'SOME_FUTURE_CODE', status: 418, title: 'Teapot', detail: 'Nope' },

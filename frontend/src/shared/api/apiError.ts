@@ -48,6 +48,12 @@ export interface ApiProblemDetail {
   /** Raw `code` as sent by the server, useful when `code` decoded to `UNKNOWN`. */
   readonly rawCode: string;
   readonly errors?: readonly ApiFieldError[];
+  /**
+   * The stored revision, on a `CONFLICT` caused by saving a stale revision of a document. Absent on every other
+   * error, including the other conflicts — an archived document is not a newer revision to reload. Optional
+   * even there: a caller must still handle a `CONFLICT` without it, and fall back to `detail`.
+   */
+  readonly currentRevision?: number;
 }
 
 /**

@@ -44,6 +44,13 @@ function decodeFieldErrors(raw: unknown): readonly ApiFieldError[] | undefined {
   return errors.length > 0 ? errors : undefined;
 }
 
+/** A revision is a positive integer. Anything else is ignored rather than trusted. */
+function decodeRevision(raw: unknown): number | undefined {
+  return typeof raw === 'number' && Number.isSafeInteger(raw) && raw >= 1
+    ? raw
+    : undefined;
+}
+
 /**
  * Decodes a parsed JSON value into an {@link ApiProblemDetail}.
  *
@@ -73,6 +80,7 @@ export function decodeProblemDetail(
   const { code, rawCode } = decodeCode(value['code']);
   const status = typeof value['status'] === 'number' ? value['status'] : httpStatus;
   const errors = decodeFieldErrors(value['errors']);
+  const currentRevision = decodeRevision(value['currentRevision']);
 
   return {
     type: asString(value['type']) ?? 'about:blank',
@@ -82,6 +90,7 @@ export function decodeProblemDetail(
     code,
     rawCode,
     ...(errors === undefined ? {} : { errors }),
+    ...(currentRevision === undefined ? {} : { currentRevision }),
   };
 }
 
