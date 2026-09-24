@@ -2,8 +2,10 @@ import type { ReactElement } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { useWorkspaceQuery } from '../features/workspaces/api/useWorkspaces';
+import { AddMemberForm } from '../features/workspaces/components/AddMemberForm';
 import { ArchiveWorkspaceButton } from '../features/workspaces/components/ArchiveWorkspaceButton';
 import { EditWorkspaceForm } from '../features/workspaces/components/EditWorkspaceForm';
+import { MemberList } from '../features/workspaces/components/MemberList';
 import { describeError, hasApiErrorCode } from '../shared/api';
 
 /**
@@ -74,8 +76,11 @@ function WorkspaceDetail({
     );
   }
 
-  const isOwner = workspace.role === 'OWNER';
   const isArchived = workspace.archivedAt !== null;
+
+  // One flag for every owner-only control, so a new one cannot accidentally be shown on an archived
+  // workspace. It decides what to render and nothing else: the server authorizes each request itself.
+  const canManage = workspace.role === 'OWNER' && !isArchived;
 
   return (
     <section>
@@ -98,10 +103,15 @@ function WorkspaceDetail({
         <p>{workspace.description}</p>
       )}
 
+      {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
+          the server re-checks that on every request. */}
+      <MemberList workspaceId={workspace.id} canManage={canManage} />
+
       {/* Owner-only, and only while the workspace is active. Both conditions are re-checked by the
           server, which answers 403 to a non-owner and 409 on an archived workspace. */}
-      {isOwner && !isArchived ? (
+      {canManage ? (
         <>
+          <AddMemberForm workspaceId={workspace.id} />
           <EditWorkspaceForm workspace={workspace} />
           <ArchiveWorkspaceButton workspaceId={workspace.id} />
         </>
