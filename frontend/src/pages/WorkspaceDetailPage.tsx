@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { CreateDocumentForm } from '../features/documents/components/CreateDocumentForm';
+import { DocumentList } from '../features/documents/components/DocumentList';
 import { useWorkspaceQuery } from '../features/workspaces/api/useWorkspaces';
 import { AddMemberForm } from '../features/workspaces/components/AddMemberForm';
 import { ArchiveWorkspaceButton } from '../features/workspaces/components/ArchiveWorkspaceButton';
@@ -82,6 +84,11 @@ function WorkspaceDetail({
   // workspace. It decides what to render and nothing else: the server authorizes each request itself.
   const canManage = workspace.role === 'OWNER' && !isArchived;
 
+  // Content is a wider permission than management: an editor writes documents but cannot touch members or
+  // workspace settings. A viewer reads. The server checks EDIT_CONTENT on every write regardless.
+  const canEditContent =
+    (workspace.role === 'OWNER' || workspace.role === 'EDITOR') && !isArchived;
+
   return (
     <section>
       <h1>{workspace.name}</h1>
@@ -102,6 +109,10 @@ function WorkspaceDetail({
       ) : (
         <p>{workspace.description}</p>
       )}
+
+      {/* Every member can read the documents; only an editor or owner can start one. */}
+      <DocumentList workspaceId={workspace.id} />
+      {canEditContent ? <CreateDocumentForm workspaceId={workspace.id} /> : null}
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}

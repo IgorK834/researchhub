@@ -48,6 +48,27 @@ interface MemberRow {
   readonly role: string;
 }
 
+/** A document summary. No `content` field, matching what the list endpoint returns. */
+interface DocumentRow {
+  readonly id: string;
+  readonly title: string;
+  readonly contentFormat: string;
+  readonly revision: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly archivedAt: string | null;
+}
+
+const REPORT_DOCUMENT: DocumentRow = {
+  id: 'd-1',
+  title: 'Final report',
+  contentFormat: 'PROSEMIRROR_JSON',
+  revision: 3,
+  createdAt: '2026-09-23T10:15:30Z',
+  updatedAt: '2026-09-23T10:15:30Z',
+  archivedAt: null,
+};
+
 const OWNER_MEMBER: MemberRow = {
   userId: 'u-ada',
   email: 'ada@example.com',
@@ -107,10 +128,16 @@ function stubWorkspaceApi(options: {
   readonly membersResponse?: Response;
   readonly addMemberResponse?: Response;
   readonly changeRoleResponse?: Response;
+  readonly documents?: readonly DocumentRow[];
+  readonly documentsResponse?: Response;
+  /** When true, the list request never resolves, so the loading state stays on screen. */
+  readonly documentsPending?: boolean;
 }): jest.Mock {
   let current = options.workspace ?? workspaceRow();
   const members: MemberRow[] = [...(options.members ?? [OWNER_MEMBER])];
+  const documents: DocumentRow[] = [...(options.documents ?? [])];
   const membersPath = `/api/workspaces/${WORKSPACE_ID}/members`;
+  const documentsPath = `/api/workspaces/${WORKSPACE_ID}/documents`;
 
   const fetchMock = jest.fn((url: unknown, init?: RequestInit) => {
     const path = String(url);
@@ -118,6 +145,28 @@ function stubWorkspaceApi(options: {
 
     if (path === '/api/auth/csrf') {
       return Promise.resolve(emptyNoContent());
+    }
+    if (path === documentsPath && method === 'POST') {
+      const body = JSON.parse(String(init?.body)) as { title: string };
+      const created: DocumentRow = {
+        id: `d-${body.title}`,
+        title: body.title,
+        contentFormat: 'PROSEMIRROR_JSON',
+        revision: 1,
+        createdAt: '2026-09-23T10:15:30Z',
+        updatedAt: '2026-09-23T10:15:30Z',
+        archivedAt: null,
+      };
+      documents.push(created);
+      return Promise.resolve(jsonResponse(created, 201, 'application/json'));
+    }
+    if (path === documentsPath && method === 'GET') {
+      if (options.documentsPending === true) {
+        return new Promise<Response>(() => undefined);
+      }
+      return Promise.resolve(
+        options.documentsResponse ?? jsonResponse(documents, 200, 'application/json'),
+      );
     }
     if (path === membersPath && method === 'POST') {
       if (options.addMemberResponse !== undefined) {
@@ -405,6 +454,117 @@ describe('WorkspaceDetailPage', () => {
         WORKSPACE_ID,
       ])?.archivedAt,
     ).not.toBeNull();
+  });
+
+  // --- documents ---
+
+  it('shows a loading state while the document list is still in flight', async () => {
+    stubWorkspaceApi({ documentsPending: true });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByText('Loading documents…')).not.toBeNull();
+    expect(screen.queryByText('No documents yet.')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Final report' })).toBeNull();
+  });
+
+  it('links each document to its own route', async () => {
+    stubWorkspaceApi({ documents: [REPORT_DOCUMENT] });
+
+    renderWorkspaceDetailPage();
+
+    const link = await screen.findByRole('link', { name: 'Final report' });
+    expect(link.getAttribute('href')).toBe(
+      `/app/workspaces/${WORKSPACE_ID}/documents/d-1`,
+    );
+  });
+
+  it('treats a workspace with no documents as an empty list rather than an error', async () => {
+    stubWorkspaceApi({ documents: [] });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByText('No documents yet.')).not.toBeNull();
+    expect(screen.queryByText(/Could not load the documents/)).toBeNull();
+  });
+
+  it('reports documents that could not be loaded without pretending there are none', async () => {
+    stubWorkspaceApi({
+      documentsResponse: problem(500, 'INTERNAL_ERROR', 'An unexpected error occurred'),
+    });
+
+    renderWorkspaceDetailPage();
+
+    await waitFor(() => {
+      const alerts = screen.getAllByRole('alert');
+      expect(
+        alerts.some((alert) =>
+          alert.textContent?.includes('Could not load the documents'),
+        ),
+      ).toBe(true);
+    });
+    expect(screen.queryByText('No documents yet.')).toBeNull();
+  });
+
+  it('creates a document and shows it in the refreshed list', async () => {
+    const fetchMock = stubWorkspaceApi({ documents: [] });
+
+    renderWorkspaceDetailPage();
+    fireEvent.change(await screen.findByLabelText('Document title'), {
+      target: { value: 'Final report' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create document' }));
+
+    // Rendered from the refetched list, not from the mutation response being spliced into local state.
+    expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Document title')).toHaveProperty('value', '');
+    });
+
+    const listReads = fetchMock.mock.calls.filter(
+      (call) =>
+        String(call[0]) === `/api/workspaces/${WORKSPACE_ID}/documents` &&
+        ((call[1] as RequestInit | undefined)?.method ?? 'GET') === 'GET',
+    );
+    expect(listReads.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('lets an editor create a document but not manage the workspace', async () => {
+    stubWorkspaceApi({
+      workspace: workspaceRow({ role: 'EDITOR' }),
+      documents: [REPORT_DOCUMENT],
+    });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByRole('button', { name: 'Create document' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Add a member' })).toBeNull();
+  });
+
+  it('shows a viewer the documents without a way to start one', async () => {
+    stubWorkspaceApi({
+      workspace: workspaceRow({ role: 'VIEWER' }),
+      documents: [REPORT_DOCUMENT],
+    });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Create document' })).toBeNull();
+    expect(screen.queryByLabelText('Document title')).toBeNull();
+  });
+
+  it('offers no way to create a document in an archived workspace', async () => {
+    stubWorkspaceApi({
+      workspace: workspaceRow({ archivedAt: '2026-09-24T09:00:00Z' }),
+      documents: [REPORT_DOCUMENT],
+    });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Create document' })).toBeNull();
   });
 
   // --- members ---
