@@ -1,11 +1,14 @@
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
+import type { WorkspaceDocument } from '../api/documentApi';
 import { EMPTY_DOCUMENT } from '../api/documentContent';
 import { useCreateDocument } from '../api/useDocuments';
 
 interface CreateDocumentFormProps {
   readonly workspaceId: string;
+  /** Called with the new document, so the page can open it. */
+  readonly onCreated?: (document: WorkspaceDocument) => void;
 }
 
 /**
@@ -20,6 +23,7 @@ interface CreateDocumentFormProps {
  */
 export function CreateDocumentForm({
   workspaceId,
+  onCreated,
 }: CreateDocumentFormProps): ReactElement {
   const { mutate, isPending, error } = useCreateDocument(workspaceId);
 
@@ -34,8 +38,9 @@ export function CreateDocumentForm({
     mutate(
       { title, content: EMPTY_DOCUMENT },
       {
-        onSuccess: () => {
+        onSuccess: (created) => {
           setTitle('');
+          onCreated?.(created);
         },
       },
     );

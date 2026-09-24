@@ -50,6 +50,13 @@ export interface CreateDocumentInput {
 }
 
 /**
+ * Who decided to save. Both are ordinary, revision-checked saves; the difference is only whether the server
+ * records the save as a restore point. `MANUAL` always is. `AUTOSAVE` is only when the newest restore point is
+ * older than the server's checkpoint interval, so autosaving while typing does not flood the history.
+ */
+export type SaveKind = 'MANUAL' | 'AUTOSAVE';
+
+/**
  * A save carries the revision the editor last saw.
  *
  * Required, not optional. A save that does not say what it is replacing is the write that silently destroys
@@ -59,6 +66,33 @@ export interface UpdateDocumentInput {
   readonly title: string;
   readonly content: ProseMirrorDocument;
   readonly revision: number;
+  readonly saveKind: SaveKind;
+}
+
+/** Why a version was recorded. Mirrors `DocumentVersionReason` on the server. */
+export type DocumentVersionReason =
+  'CREATED' | 'MANUAL_SAVE' | 'AUTOSAVE_CHECKPOINT' | 'RESTORE';
+
+/**
+ * One restore point in a document's history. Mirrors `DocumentVersionSummaryResponse`: no content, like the
+ * document list.
+ *
+ * `revision` is the document revision this captured. `restoredFromVersionId` is set only for `RESTORE`.
+ * Versions are immutable on the server: nothing edits or deletes one.
+ */
+export interface DocumentVersionSummary {
+  readonly id: string;
+  readonly revision: number;
+  readonly reason: DocumentVersionReason;
+  readonly restoredFromVersionId: string | null;
+  readonly createdBy: string;
+  readonly createdAt: string;
+}
+
+/** One version with its content. `content` is `unknown` for the same reason a document's is. */
+export interface DocumentVersion extends DocumentVersionSummary {
+  readonly contentFormat: string;
+  readonly content: unknown;
 }
 
 /**
@@ -133,4 +167,52 @@ export async function archiveDocument(
 ): Promise<void> {
   await apiClient.get<void>(CSRF_PRIMING_PATH);
   await apiClient.delete<void>(`${documentsPath(workspaceId)}/${documentId}`);
+}
+
+function versionsPath(workspaceId: string, documentId: string): string {
+  return `${documentsPath(workspaceId)}/${documentId}/versions`;
+}
+
+/** The document's history, newest first. Requires `VIEW_CONTENT`, so any member. */
+export function fetchDocumentVersions(
+  workspaceId: string,
+  documentId: string,
+  signal?: AbortSignal,
+): Promise<readonly DocumentVersionSummary[]> {
+  return apiClient.get<readonly DocumentVersionSummary[]>(
+    versionsPath(workspaceId, documentId),
+    { ...(signal === undefined ? {} : { signal }) },
+  );
+}
+
+/** One version with its content. A version of another document is `RESOURCE_NOT_FOUND`. */
+export function fetchDocumentVersion(
+  workspaceId: string,
+  documentId: string,
+  versionId: string,
+  signal?: AbortSignal,
+): Promise<DocumentVersion> {
+  return apiClient.get<DocumentVersion>(
+    `${versionsPath(workspaceId, documentId)}/${versionId}`,
+    { ...(signal === undefined ? {} : { signal }) },
+  );
+}
+
+/**
+ * Restores a version: its text becomes the document's next revision, and the document is returned.
+ *
+ * Nothing is deleted. `revision` is the revision the caller is looking at, checked exactly like a save's, so a
+ * restore cannot replace text the caller has not seen. Requires `EDIT_CONTENT`.
+ */
+export async function restoreDocumentVersion(
+  workspaceId: string,
+  documentId: string,
+  versionId: string,
+  revision: number,
+): Promise<WorkspaceDocument> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<WorkspaceDocument>(
+    `${versionsPath(workspaceId, documentId)}/${versionId}/restore`,
+    { body: { revision } },
+  );
 }

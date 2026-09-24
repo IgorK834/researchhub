@@ -1,25 +1,23 @@
 import { useState, type ReactElement } from 'react';
 
-import {
-  describeError,
-  fieldErrorsByName,
-  hasApiErrorCode,
-  isApiError,
-} from '../../../shared/api';
+import { describeError, fieldErrorsByName } from '../../../shared/api';
+import type { WorkspaceDocument } from '../api/documentApi';
 import {
   EMPTY_DOCUMENT,
   readStoredDocument,
   type ProseMirrorDocument,
 } from '../api/documentContent';
-import type { WorkspaceDocument } from '../api/documentApi';
-import { useArchiveDocument, useUpdateDocument } from '../api/useDocuments';
+import { useArchiveDocument } from '../api/useDocuments';
+import { useDocumentAutosave } from '../autosave/useDocumentAutosave';
 import { DocumentBodyEditor } from './DocumentBodyEditor';
+import { DocumentHistory } from './DocumentHistory';
+import { SaveStatus } from './SaveStatus';
 
 interface DocumentEditorFormProps {
   readonly workspaceId: string;
   readonly document: WorkspaceDocument;
   /**
-   * Whether to render the save and archive controls.
+   * Whether to offer editing, saving, restoring, and archiving.
    *
    * Presentation only. The caller passes `true` for a member who may edit content in an active workspace, and
    * the server checks `EDIT_CONTENT` on every request anyway — a forged save still gets `403`, and one to an
@@ -28,19 +26,22 @@ interface DocumentEditorFormProps {
   readonly canEdit: boolean;
   /** Reloads the document and discards local edits. Offered only after a conflict. */
   readonly onDiscardLocalChanges: () => void;
+  /** The stored document was replaced by a restore; the caller shows the new one in a fresh editor. */
+  readonly onReplaced: (document: WorkspaceDocument) => void;
 }
 
 /**
- * The document itself: a title, the body in a Tiptap editor, and the revision they belong to.
+ * The document itself: its title, its body, whether they are saved, and its history.
  *
- * The body is saved as the editor's `getJSON()` — the ProseMirror tree the backend stores, never HTML. The title
- * stays a plain input outside the editor, because it is its own column.
+ * **Saving is automatic.** Every edit to the title or the body is handed to autosave, which saves after typing
+ * pauses and reports `Saving`, `Saved`, `Save failed`, or `Conflict`. "Save version" is still there for a save
+ * the user wants to be a restore point. The body is sent as the editor's `getJSON()` — the ProseMirror tree the
+ * backend stores, never HTML.
  *
- * <strong>Local state is initialised once per mounted document</strong>, from the props, and is not resynced when
- * the query refetches. That is deliberate: silently replacing what somebody is typing with a newer server copy is
- * the failure this whole revision mechanism exists to avoid. A refused save — a conflict included — leaves the
- * title, the editor's document, and the revision exactly as they were. The caller remounts this component, by
- * changing its key, when the user explicitly asks for the latest version.
+ * **Local state is initialised once per mounted document** and is never replaced by the server's copy. A save's
+ * response only advances the revision; a refetch is ignored; a failed save or a conflict leaves the title and
+ * the editor exactly as they were. The caller remounts this component, by changing its key, when the user
+ * explicitly loads the latest version or restores an old one.
  *
  * There is still one writer at a time. Two people editing the same document are told about each other by a
  * `409` on save, not merged; docs/context.md section 9 describes Yjs as the later replacement for that.
@@ -50,89 +51,62 @@ export function DocumentEditorForm({
   document,
   canEdit,
   onDiscardLocalChanges,
+  onReplaced,
 }: DocumentEditorFormProps): ReactElement {
-  const save = useUpdateDocument(workspaceId, document.id);
   const archive = useArchiveDocument(workspaceId, document.id);
 
-  const [title, setTitle] = useState(document.title);
   // Checked once, against the editor's schema. Null means the stored body is something this editor cannot open
   // faithfully, and editing it would risk saving an emptied or altered copy over it.
   const [storedBody] = useState(() => readStoredDocument(document.content));
-  // What a save sends: the editor's latest getJSON(). Starts as the stored body, which is the same value.
+  const [title, setTitle] = useState(document.title);
   const [body, setBody] = useState<ProseMirrorDocument>(
     () => storedBody ?? EMPTY_DOCUMENT,
   );
-  // The revision the text on screen is based on. It advances only on a successful save, so a refused one leaves
-  // the editor holding the same stale value and the next attempt fails the same way — until the user reloads.
-  const [revision, setRevision] = useState(document.revision);
-  const [saved, setSaved] = useState(false);
+
+  const autosave = useDocumentAutosave(
+    workspaceId,
+    document.id,
+    { title: document.title, content: storedBody ?? EMPTY_DOCUMENT },
+    document.revision,
+  );
 
   const isArchived = document.archivedAt !== null;
   const editable = canEdit && !isArchived && storedBody !== null;
 
-  const fieldErrors = fieldErrorsByName(save.error);
-  const titleError = fieldErrors['title'];
+  const fieldErrors =
+    autosave.status === 'failed' ? fieldErrorsByName(autosave.error) : {};
+  const titleError =
+    fieldErrors['title'] ??
+    (autosave.blocked && editable ? 'A title is required.' : undefined);
   const contentError = fieldErrors['content'];
-
-  const conflict = hasApiErrorCode(save.error, 'CONFLICT');
-  // Present only when the conflict is a newer revision. An archived document or workspace is also a CONFLICT,
-  // and a server that does not send it is handled by the detail alone.
-  const currentRevision =
-    conflict && isApiError(save.error) ? save.error.problem.currentRevision : undefined;
-  const failure =
-    save.error !== null && Object.keys(fieldErrors).length === 0
-      ? describeError(save.error)
-      : null;
   const archiveFailure = archive.error !== null ? describeError(archive.error) : null;
 
-  const submit = (): void => {
-    setSaved(false);
-    save.mutate(
-      { title, content: body, revision },
-      {
-        onSuccess: (stored) => {
-          setRevision(stored.revision);
-          setSaved(true);
-        },
-      },
-    );
-  };
+  const settled = autosave.status === 'saved';
 
   return (
     <>
+      <SaveStatus
+        state={autosave}
+        onRetry={autosave.retry}
+        onDiscardLocalChanges={onDiscardLocalChanges}
+      />
+
+      {archiveFailure !== null ? <p role="alert">{archiveFailure}</p> : null}
+
+      {storedBody === null ? (
+        <p role="alert">
+          This document contains content this editor cannot open, so it is not shown and
+          cannot be edited here. Nothing has been changed.
+        </p>
+      ) : null}
+
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          submit();
+          autosave.saveNow();
         }}
         noValidate
       >
-        {failure !== null ? <p role="alert">{failure}</p> : null}
-        {archiveFailure !== null ? <p role="alert">{archiveFailure}</p> : null}
-        {saved && save.error === null ? <p>Saved as revision {revision}.</p> : null}
-
-        {storedBody === null ? (
-          <p role="alert">
-            This document contains content this editor cannot open, so it is not shown and
-            cannot be edited here. Nothing has been changed.
-          </p>
-        ) : null}
-
-        {currentRevision === undefined ? null : (
-          <p>
-            The saved document is now at revision {currentRevision}. Your copy is based on
-            revision {revision}. Your changes are still here and have not been saved.
-          </p>
-        )}
-
-        {conflict ? (
-          <p>
-            <button type="button" onClick={onDiscardLocalChanges}>
-              Discard my changes and load the latest version
-            </button>
-          </p>
-        ) : null}
-
         <p>
           <label htmlFor="document-editor-title">Title</label>
           <input
@@ -146,7 +120,10 @@ export function DocumentEditorForm({
             {...(titleError === undefined
               ? {}
               : { 'aria-describedby': 'document-editor-title-error' })}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value);
+              autosave.edit({ title: event.target.value, content: body });
+            }}
           />
           {titleError === undefined ? null : (
             <span id="document-editor-title-error">{titleError}</span>
@@ -159,7 +136,10 @@ export function DocumentEditorForm({
             <DocumentBodyEditor
               initialContent={storedBody}
               editable={editable}
-              onChange={setBody}
+              onChange={(content) => {
+                setBody(content);
+                autosave.edit({ title, content });
+              }}
               labelId="document-editor-text-label"
               {...(contentError === undefined
                 ? {}
@@ -171,25 +151,44 @@ export function DocumentEditorForm({
           )}
         </div>
 
-        <p>Revision {revision}</p>
-
         {editable ? (
-          <button type="submit" disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : 'Save'}
-          </button>
+          <p>
+            <button
+              type="submit"
+              disabled={autosave.blocked || autosave.status === 'conflict'}
+            >
+              Save version
+            </button>{' '}
+            Changes save automatically. Save a version to keep a restore point you can
+            return to.
+          </p>
         ) : null}
       </form>
 
+      <DocumentHistory
+        workspaceId={workspaceId}
+        documentId={document.id}
+        revision={autosave.revision}
+        canRestore={editable}
+        restoreBlockedReason={
+          settled ? null : 'Restoring is available once your changes are saved.'
+        }
+        onRestored={onReplaced}
+      />
+
       {canEdit && !isArchived ? (
-        <button
-          type="button"
-          disabled={archive.isPending}
-          onClick={() => {
-            archive.mutate();
-          }}
-        >
-          {archive.isPending ? 'Archiving…' : 'Archive document'}
-        </button>
+        <p>
+          <button
+            type="button"
+            disabled={archive.isPending || !settled}
+            onClick={() => {
+              archive.mutate();
+            }}
+          >
+            {archive.isPending ? 'Archiving…' : 'Archive document'}
+          </button>
+          {settled ? null : ' Archiving is available once your changes are saved.'}
+        </p>
       ) : null}
     </>
   );

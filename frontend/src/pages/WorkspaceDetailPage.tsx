@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { CreateDocumentForm } from '../features/documents/components/CreateDocumentForm';
 import { DocumentList } from '../features/documents/components/DocumentList';
@@ -55,6 +55,7 @@ function WorkspaceDetail({
   readonly workspaceId: string;
 }): ReactElement {
   const { data: workspace, error, isPending } = useWorkspaceQuery(workspaceId);
+  const navigate = useNavigate();
 
   if (isPending) {
     return (
@@ -112,7 +113,15 @@ function WorkspaceDetail({
 
       {/* Every member can read the documents; only an editor or owner can start one. */}
       <DocumentList workspaceId={workspace.id} />
-      {canEditContent ? <CreateDocumentForm workspaceId={workspace.id} /> : null}
+      {canEditContent ? (
+        <CreateDocumentForm
+          workspaceId={workspace.id}
+          onCreated={(created) => {
+            // A new document is opened straight away: it was created to be written in.
+            void navigate(`/app/workspaces/${workspace.id}/documents/${created.id}`);
+          }}
+        />
+      ) : null}
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}

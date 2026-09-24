@@ -6,6 +6,8 @@ import { useDocumentsQuery } from '../api/useDocuments';
 
 interface DocumentListProps {
   readonly workspaceId: string;
+  /** The document open next to this list, marked as the current page rather than linked to itself. */
+  readonly currentDocumentId?: string;
 }
 
 /**
@@ -17,7 +19,10 @@ interface DocumentListProps {
  * Titles only. The list endpoint returns no content, so there is nothing here to preview and nothing to
  * accidentally render.
  */
-export function DocumentList({ workspaceId }: DocumentListProps): ReactElement {
+export function DocumentList({
+  workspaceId,
+  currentDocumentId,
+}: DocumentListProps): ReactElement {
   const { data: documents, error, isPending } = useDocumentsQuery(workspaceId);
 
   return (
@@ -41,7 +46,12 @@ export function DocumentList({ workspaceId }: DocumentListProps): ReactElement {
           <ul>
             {documents.map((document) => (
               <li key={document.id}>
-                <Link to={`/app/workspaces/${workspaceId}/documents/${document.id}`}>
+                <Link
+                  to={`/app/workspaces/${workspaceId}/documents/${document.id}`}
+                  {...(document.id === currentDocumentId
+                    ? { 'aria-current': 'page' as const }
+                    : {})}
+                >
                   {document.title}
                 </Link>
               </li>

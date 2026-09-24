@@ -20,8 +20,10 @@ interface DocumentBodyEditorProps {
   readonly editable: boolean;
   /** Receives `getJSON()` after every change. This is the value a save sends. */
   readonly onChange: (content: ProseMirrorDocument) => void;
-  /** Id of the visible element that names the editor. */
-  readonly labelId: string;
+  /** Id of the visible element that names the editor. Either this or `label`. */
+  readonly labelId?: string;
+  /** The editor's accessible name, when no visible element names it. */
+  readonly label?: string;
   /** Id of the element describing a validation error on the body, when there is one. */
   readonly errorId?: string;
 }
@@ -40,6 +42,7 @@ export function DocumentBodyEditor({
   editable,
   onChange,
   labelId,
+  label,
   errorId,
 }: DocumentBodyEditorProps): ReactElement {
   // Read through a ref, so a new callback from the parent does not need a new editor.
@@ -55,13 +58,14 @@ export function DocumentBodyEditor({
       attributes: {
         role: 'textbox',
         'aria-multiline': 'true',
-        'aria-labelledby': labelId,
+        ...(labelId === undefined ? {} : { 'aria-labelledby': labelId }),
+        ...(label === undefined ? {} : { 'aria-label': label }),
         'aria-readonly': String(!editable),
         'aria-invalid': String(errorId !== undefined),
         ...(errorId === undefined ? {} : { 'aria-describedby': errorId }),
       },
     }),
-    [labelId, editable, errorId],
+    [labelId, label, editable, errorId],
   );
 
   const editor = useEditor({

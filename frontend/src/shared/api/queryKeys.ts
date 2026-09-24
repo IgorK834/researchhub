@@ -37,6 +37,14 @@ export const queryKeys = {
   documents: (workspaceId: string) => ['documents', workspaceId] as const,
   document: (workspaceId: string, documentId: string) =>
     ['documents', workspaceId, documentId] as const,
+  /**
+   * One document's version history. Nested under the document, so invalidating the document by prefix also
+   * refreshes its history — and invalidating only the history leaves the document itself alone.
+   */
+  documentVersions: (workspaceId: string, documentId: string) =>
+    ['documents', workspaceId, documentId, 'versions'] as const,
+  documentVersion: (workspaceId: string, documentId: string, versionId: string) =>
+    ['documents', workspaceId, documentId, 'versions', versionId] as const,
 
   sources: (workspaceId: string) => ['sources', workspaceId] as const,
   source: (workspaceId: string, sourceId: string) =>

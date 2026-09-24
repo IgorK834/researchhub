@@ -527,6 +527,12 @@ describe('WorkspaceDetailPage', () => {
         ((call[1] as RequestInit | undefined)?.method ?? 'GET') === 'GET',
     );
     expect(listReads.length).toBeGreaterThanOrEqual(2);
+    // And the new document is opened, because it was created to be written in.
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringMatching(
+        new RegExp(`^/app/workspaces/${WORKSPACE_ID}/documents/[^/]+$`),
+      ),
+    );
   });
 
   it('lets an editor create a document but not manage the workspace', async () => {
