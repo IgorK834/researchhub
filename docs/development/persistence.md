@@ -101,6 +101,12 @@ matching no row rather than a forgotten `if`. A new workspace-owned table should
   string, or a number — all valid JSON, none of them a document — regardless of which code wrote the row.
 - `content_format` is pinned to `PROSEMIRROR_JSON` by a check constraint. HTML and plain text are not stored
   formats: a format that can carry markup would make every renderer a sanitizer.
+- `PROSEMIRROR_JSON` is the version tag for the body, and there is no `schemaVersion` inside the JSON. The
+  frontend editor is Tiptap, and it saves `editor.getJSON()` unchanged. Adding a Tiptap node or mark does not
+  change the format, because every body that was valid before is still valid, so it needs no migration. The
+  backend does not validate the ProseMirror schema, so it needs no change either. A shape that existing rows
+  would not fit is a new `DocumentContentFormat` value, widened into the check constraint by a Flyway
+  migration that also says what happens to the old rows. It is never an in-place conversion, and never HTML.
 - `ck_documents_content_size` bounds the row at `FieldLengths.DOCUMENT_CONTENT_MAX_BYTES`, measured on
   PostgreSQL's canonical serialization. It exists because nothing else bounds it yet — without chunking or a
   CRDT, every save stores the whole document.
