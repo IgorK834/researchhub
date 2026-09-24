@@ -95,9 +95,12 @@ failure. The workspace routes are the worked example:
 
 | Caller | Answer | Why |
 | --- | --- | --- |
-| Not a member | `404 RESOURCE_NOT_FOUND` | Whether the workspace exists is itself information only its members get. The detail is identical to a workspace id that does not exist, so an id cannot be probed. |
+| Not a member | `404 RESOURCE_NOT_FOUND` | Whether the workspace exists is itself information only its members get. The detail is identical to a workspace id that does not exist, so an id cannot be probed. This applies to the member routes too: the roster is inside the boundary. |
 | A member whose role is too low | `403 FORBIDDEN` | They already know the workspace exists, so hiding it would tell them nothing and would describe the wrong problem. Their role is the problem. |
 | An owner editing an archived workspace | `409 CONFLICT` | Not an authorization failure — the caller may hold every capability there is. The request collides with the workspace's state. |
+| An owner adding an email with no active account | `404 RESOURCE_NOT_FOUND` | One detail, `No registered user has that email`, for an unknown address, a malformed one, and a disabled account alike. Distinguishing them would turn adding a member into a way to discover which addresses are registered. |
+| An owner adding somebody who is already a member | `409 CONFLICT` | Collides with existing state, and is caught both by a pre-check and by `uq_workspace_members_workspace_user`, so a race ends the same way. |
+| An owner demoting or removing the last owner | `409 CONFLICT` | The workspace would become unmanageable. The detail says to promote somebody else first. |
 
 The order the server checks them in is part of the contract: authorization first, state second. A non-member
 must never receive the `409`, because that would confirm both that the workspace exists and that it is

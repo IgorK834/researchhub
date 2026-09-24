@@ -16,11 +16,11 @@ dev.researchhub
 │   └── infrastructure  SecurityConfiguration, BrowserSession, ProblemDetail error writers
 ├── user            User identity
 │   ├── domain          User, UserEmail, PasswordHash, UserStatus
-│   ├── application     UserAccount, registration and authentication services, PasswordPolicy
+│   ├── application     UserAccount, registration and authentication services, UserLookupService, PasswordPolicy
 │   └── infrastructure  UserEntity, UserRepository
 ├── workspace       Workspace boundary, membership, and authorization
-│   ├── api             WorkspaceController, CreateWorkspaceRequest, WorkspaceResponse
-│   ├── application     WorkspaceService, WorkspaceAuthorizationService, CreateWorkspaceCommand, WorkspaceSummary
+│   ├── api             WorkspaceController, WorkspaceMemberController, request/response records
+│   ├── application     WorkspaceService, WorkspaceMembershipService, WorkspaceAuthorizationService, commands and summaries
 │   ├── domain          Workspace, WorkspaceMembership, WorkspaceMembers, WorkspaceRole, WorkspaceCapability
 │   └── infrastructure  WorkspaceEntity, WorkspaceMemberEntity, WorkspaceRepository, WorkspaceMemberRepository
 └── shared
@@ -55,15 +55,34 @@ The mechanism is fixed by [../adr/ADR-001-authentication.md](../adr/ADR-001-auth
 | `GET /api/workspaces/{workspaceId}` | Required | Membership | Members only, including for an archived workspace. A non-member gets `404`, not `403`. |
 | `PATCH /api/workspaces/{workspaceId}` | Required | `MANAGE_WORKSPACE` | Owners. Replaces name and description. `409` if the workspace is archived. |
 | `POST /api/workspaces/{workspaceId}/archive` | Required | `MANAGE_WORKSPACE` | Owners. Soft archive, idempotent. |
+| `GET /api/workspaces/{workspaceId}/members` | Required | Membership | Any member, including a viewer and including on an archived workspace. |
+| `POST /api/workspaces/{workspaceId}/members` | Required | `MANAGE_MEMBERS` | Owners. Adds a registered user as `EDITOR` or `VIEWER`. 201. |
+| `PATCH /api/workspaces/{workspaceId}/members/{userId}` | Required | `MANAGE_MEMBERS` | Owners. Changes one member's role. 200. |
+| `DELETE /api/workspaces/{workspaceId}/members/{userId}` | Required | `MANAGE_MEMBERS` | Owners. Removes one membership row. 204. |
+
+Reading the roster needs only membership, while changing it needs `MANAGE_MEMBERS`. Seeing who you work
+with is part of being in a workspace; deciding who is in it is not.
+
+The three mutating member routes answer `409 CONFLICT` on an archived workspace, by asking
+`Workspace.requireActive` rather than repeating the check — one definition of "archived means no more
+changes". `GET` still works, because archiving stops changes, not reading.
+
+**There is no endpoint that lists or searches users.** A member is added by their exact, full email
+address, normalized through `UserEmail` inside `user.application`. An address that is unknown, malformed,
+or attached to a disabled account all answer `404` with the same detail, so the route cannot be used to
+discover which addresses have accounts. `user.application.UserLookupService` documents that boundary and
+is the only way into user data from `workspace`.
 
 There is no `DELETE`. Archiving sets `archived_at` and `archived_by` and removes nothing, because the
 sources, documents, and results that will hang off a workspace have to stay traceable (docs/context.md
 sections 3.3 and 3.4). Details and the rules this imposes on future workspace-owned tables:
 [persistence.md](persistence.md).
 
-Member management (`GET`/`POST /api/workspaces/{workspaceId}/members`) is not implemented yet. The role
-rules it will need already exist and are enforced in `workspace.domain`, including that a workspace always
-keeps at least one owner.
+The last-owner rule lives in `workspace.domain.WorkspaceMembers`, which is pure: `changeRole` and `remove`
+check the rule and return the membership to persist or delete without touching a repository.
+`WorkspaceMembershipService` loads the roster, hands it to that type, and writes back the decision. That is
+why a new endpoint cannot bypass the rule — there is no path that changes a membership without going through
+the domain.
 
 ### Two rules the workspace module is built around
 
@@ -105,7 +124,7 @@ Logout is authenticated, not public. It needs a session to invalidate, so an ano
 
 `JpaPersistenceConfiguration` is `@Profile("local")`, so `UserRepository` exists only there. Anything that needs it must carry the same guard, or the `test` and `cloud` contexts fail to start — `BackendApplicationTests` and `CloudProfileStartupTests` both load the full context on profiles that exclude JDBC and JPA.
 
-That is why `UserRegistrationService`, `UserAuthenticationService`, `CurrentUserResolver`, `AuthController`, `CurrentUserController`, `WorkspaceService`, `WorkspaceAuthorizationService`, and `WorkspaceController` are `@Profile("local")`.
+That is why `UserRegistrationService`, `UserAuthenticationService`, `UserLookupService`, `CurrentUserResolver`, `AuthController`, `CurrentUserController`, `WorkspaceService`, `WorkspaceMembershipService`, `WorkspaceAuthorizationService`, `WorkspaceController`, and `WorkspaceMemberController` are `@Profile("local")`.
 
 Repository interfaces themselves carry no annotation: the guard is on `JpaPersistenceConfiguration`'s scan, so they are simply never instantiated elsewhere. Anything that *injects* one needs the guard, and so does anything that injects that.
 
@@ -166,11 +185,17 @@ Allowed dependencies inside one module:
 | `auth` | `dev.researchhub.user.application` | `auth` owns login and registration endpoints; `user` owns the user record. The endpoints need to create and verify accounts. |
 | `workspace.api` | `dev.researchhub.auth.application` | Every workspace route acts on behalf of the signed-in user, and `auth` owns the session. `WorkspaceController` calls `CurrentUserResolver.requireCurrentUser()` rather than trusting a request field, which is what stops a client from creating a workspace owned by somebody else. |
 | `workspace.api` | `dev.researchhub.user.application` | Only as the return type of the call above: `requireCurrentUser()` hands back a `UserAccount`, of which `workspace` reads `id()` and nothing else. The call is chained, so the type is never even imported — but it is still a dependency, and this row is what makes it allowed. |
+| `workspace.application` | `dev.researchhub.user.application.UserLookupService` and `UserAccount` | A workspace's roster is membership rows plus the names and addresses they point at, and `user` owns those. `WorkspaceMembershipService` resolves one exact email to add a member, and a set of ids to render the roster. It reads `id()`, `email()`, and `displayName()`, and never `status()`. |
 
-The workspace edges are confined to `workspace.api`. `workspace.application` and `workspace.domain` take a
+The session edge is confined to `workspace.api`. `workspace.application` and `workspace.domain` take a
 `UUID` and have no idea a session exists, so the authorization rules can be tested — and reused by a
 background job or a future endpoint — without an HTTP request. `workspace` must not import `user.domain`,
 `user.infrastructure`, or `auth.infrastructure`, and neither `auth` nor `user` may import `workspace`.
+
+Normalization stays behind that boundary too. `workspace` passes the raw address a person typed and
+`user.application` trims and lowercases it through `UserEmail`, so the rule that decides account
+uniqueness has exactly one implementation. A `workspace` that lowercased the string itself would be
+reimplementing it, and would drift the first time the rule changed.
 
 `auth` uses only `UserRegistrationService`, `UserAuthenticationService`, `UserAccount`, `RegisterUserCommand`, and `PasswordPolicy`. `auth.application.CurrentUserResolver` is the one place in `auth` that reads a user, and it goes through `UserAuthenticationService`. It must not import `user.domain` or `user.infrastructure`, and `user` must not import `auth`. Two details keep that honest in both directions:
 

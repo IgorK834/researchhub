@@ -115,7 +115,7 @@ Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Everything under `/ap
 /register                                                implemented
 /app                                                     (layout route, shows the workspace list)
 /app/workspaces                                          implemented: list and create
-/app/workspaces/:workspaceId                             implemented: detail, owner settings, archive
+/app/workspaces/:workspaceId                             implemented: detail, members, owner settings, archive
 /app/workspaces/:workspaceId/documents/:documentId       placeholder
 *                                                        (Not Found page)
 ```
