@@ -1,5 +1,7 @@
 package dev.researchhub.document.infrastructure;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.Repository;
 
 import java.util.List;
@@ -31,6 +33,17 @@ public interface DocumentRepository extends Repository<DocumentEntity, UUID> {
      * exist at all or belongs to somebody else's workspace — the caller cannot tell, which is the intent.
      */
     Optional<DocumentEntity> findByWorkspaceIdAndId(UUID workspaceId, UUID id);
+
+    /**
+     * As {@link #findByWorkspaceIdAndId}, holding a row lock until the transaction ends.
+     *
+     * <p>For writes that compare the caller's revision with the stored one. Without the lock, two saves carrying
+     * the same revision could both read it, both pass the comparison, and the second would overwrite the first —
+     * the lost update the revision exists to prevent. With it, the second waits, then reads the revision the
+     * first wrote, and is refused. Autosave makes that timing ordinary rather than rare.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<DocumentEntity> findForUpdateByWorkspaceIdAndId(UUID workspaceId, UUID id);
 
     /**
      * The active documents in one workspace, most recently updated first.

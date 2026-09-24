@@ -2,9 +2,13 @@ package dev.researchhub.document.application;
 
 import dev.researchhub.document.domain.Document;
 import dev.researchhub.document.domain.DocumentContent;
+import dev.researchhub.document.domain.DocumentVersion;
+import dev.researchhub.document.domain.DocumentVersionReason;
 import dev.researchhub.document.domain.StaleRevisionException;
 import dev.researchhub.document.infrastructure.DocumentEntity;
 import dev.researchhub.document.infrastructure.DocumentRepository;
+import dev.researchhub.document.infrastructure.DocumentVersionEntity;
+import dev.researchhub.document.infrastructure.DocumentVersionRepository;
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
 import dev.researchhub.shared.error.ConflictException;
@@ -47,29 +51,38 @@ public class DocumentService {
      */
     static final String DOCUMENT_NOT_FOUND = "Document was not found";
 
+    /** One detail for a version that does not exist, or belongs to another document. */
+    static final String VERSION_NOT_FOUND = "Document version was not found";
+
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
 
     private final DocumentRepository documents;
+    private final DocumentVersionRepository versions;
+    private final CheckpointPolicy checkpoints;
     private final WorkspaceAuthorizationService authorization;
     private final Clock clock;
 
-    public DocumentService(DocumentRepository documents, WorkspaceAuthorizationService authorization,
+    public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
+                           CheckpointPolicy checkpoints, WorkspaceAuthorizationService authorization,
                            Clock clock) {
         this.documents = documents;
+        this.versions = versions;
+        this.checkpoints = checkpoints;
         this.authorization = authorization;
         this.clock = clock;
     }
 
     /**
-     * Creates a document at revision 1.
+     * Creates a document at revision 1, and records that revision as its first version.
      *
-     * <p>Not {@code @Transactional}: one insert, already atomic.
+     * <p>{@code @Transactional} so the document and its {@code CREATED} snapshot are written together.
      *
      * @throws ResourceNotFoundException when the caller is not a member of the workspace
      * @throws ForbiddenException        when the caller is a viewer
      * @throws ConflictException         when the workspace is archived
      * @throws ApiException              {@code VALIDATION_FAILED} for an unusable title or content
      */
+    @Transactional
     public DocumentDetail create(UUID workspaceId, UUID callerId, CreateDocumentCommand command) {
         requireEditor(workspaceId, callerId);
 
@@ -78,6 +91,7 @@ public class DocumentService {
                 workspaceId, command.title(), DocumentContent.of(command.content()), callerId, now));
 
         DocumentEntity saved = documents.saveAndFlush(DocumentEntity.fromDomain(document));
+        snapshot(DocumentVersion.snapshotOf(saved.toDomain(), DocumentVersionReason.CREATED, callerId, now));
 
         log.info("event=document.created workspaceId={} documentId={} userId={}",
                 workspaceId, saved.getId(), callerId);
@@ -117,9 +131,13 @@ public class DocumentService {
     /**
      * Saves the next revision, if the caller's copy is current.
      *
-     * <p>{@code @Transactional} so the revision is compared and the new one written without another save
-     * landing in between. This is the narrow version of the problem docs/context.md section 9 eventually
-     * answers with a CRDT: until then, the second writer is told rather than merged or ignored.
+     * <p>{@code @Transactional}, and the row is read with a lock, so the revision is compared and the new one
+     * written without another save landing in between. This is the narrow version of the problem
+     * docs/context.md section 9 eventually answers with a CRDT: until then, the second writer is told rather
+     * than merged or ignored.
+     *
+     * <p>The save becomes a version when {@link CheckpointPolicy} says it is a milestone: always for a manual
+     * save, and for an autosave once the newest snapshot is old enough. A refused save records nothing.
      *
      * @throws ResourceNotFoundException when the caller is not a member, or the document is not in this
      *                                   workspace
@@ -134,16 +152,87 @@ public class DocumentService {
                                  ReviseDocumentCommand command) {
         requireEditor(workspaceId, callerId);
 
-        Document stored = requireDocument(workspaceId, documentId).toDomain();
+        Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
         Instant now = clock.instant();
 
         Document revised = validated(() -> stored.revise(
                 command.title(), DocumentContent.of(command.content()), command.expectedRevision(), now));
 
         DocumentEntity saved = documents.saveAndFlush(DocumentEntity.fromDomain(revised));
+        checkpoints.reasonFor(command.saveKind(), versions.findNewestCreatedAt(documentId), now)
+                .ifPresent(reason -> snapshot(DocumentVersion.snapshotOf(saved.toDomain(), reason, callerId, now)));
 
-        log.info("event=document.revised workspaceId={} documentId={} revision={} userId={}",
-                workspaceId, documentId, saved.getRevision(), callerId);
+        log.info("event=document.revised workspaceId={} documentId={} revision={} saveKind={} userId={}",
+                workspaceId, documentId, saved.getRevision(), command.saveKind(), callerId);
+        return detailOf(saved);
+    }
+
+    /**
+     * The document's versions, newest first, without content. Works on an archived document too: history is
+     * part of what members keep reading.
+     *
+     * @throws ResourceNotFoundException when the caller is not a member, or the document is not in this
+     *                                   workspace
+     */
+    @Transactional(readOnly = true)
+    public List<DocumentVersionSummary> listVersions(UUID workspaceId, UUID callerId, UUID documentId) {
+        requireReader(workspaceId, callerId);
+        requireDocument(workspaceId, documentId);
+
+        return versions.findByDocumentIdOrderByRevisionDesc(documentId).stream()
+                .map(row -> new DocumentVersionSummary(row.getId(), row.getRevision(), row.getReason().name(),
+                        row.getRestoredFromVersionId(), row.getCreatedBy(), row.getCreatedAt()))
+                .toList();
+    }
+
+    /**
+     * One version with its content.
+     *
+     * @throws ResourceNotFoundException when the caller is not a member, the document is not in this workspace,
+     *                                   or the version does not belong to this document
+     */
+    @Transactional(readOnly = true)
+    public DocumentVersionDetail findVersion(UUID workspaceId, UUID callerId, UUID documentId, UUID versionId) {
+        requireReader(workspaceId, callerId);
+        requireDocument(workspaceId, documentId);
+
+        DocumentVersionEntity version = requireVersion(documentId, versionId);
+        return new DocumentVersionDetail(versionSummaryOf(version), version.getContentFormat().name(),
+                version.getContent());
+    }
+
+    /**
+     * Makes an old version's content the document's next revision.
+     *
+     * <p>Nothing is deleted or rewound: the document moves forward to a new revision whose text is the old one,
+     * with its current title, and that revision is recorded as a {@code RESTORE} version naming the one it came
+     * from. Every version in between stays in the history, so a restore can itself be undone by restoring.
+     *
+     * <p>Same rules as a save, because it is one: {@code EDIT_CONTENT}, the caller's revision must be current,
+     * and an archived document or workspace refuses it.
+     *
+     * @throws ResourceNotFoundException when the caller is not a member, the document is not in this workspace,
+     *                                   or the version does not belong to this document
+     * @throws ForbiddenException        when the caller is a viewer
+     * @throws StaleRevisionException    when {@code expectedRevision} is stale
+     * @throws ConflictException         when the workspace or the document is archived
+     */
+    @Transactional
+    public DocumentDetail restore(UUID workspaceId, UUID callerId, UUID documentId, UUID versionId,
+                                  long expectedRevision) {
+        requireEditor(workspaceId, callerId);
+
+        Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
+        DocumentVersion source = requireVersion(documentId, versionId).toDomain();
+        Instant now = clock.instant();
+
+        Document restored = validated(() -> stored.restore(source, expectedRevision, now));
+
+        DocumentEntity saved = documents.saveAndFlush(DocumentEntity.fromDomain(restored));
+        snapshot(DocumentVersion.restoreOf(saved.toDomain(), source, callerId, now));
+
+        log.info("event=document.restored workspaceId={} documentId={} revision={} fromVersionId={} userId={}",
+                workspaceId, documentId, saved.getRevision(), versionId, callerId);
         return detailOf(saved);
     }
 
@@ -187,6 +276,24 @@ public class DocumentService {
                             workspaceId, documentId);
                     return new ResourceNotFoundException(DOCUMENT_NOT_FOUND);
                 });
+    }
+
+    /** As {@link #requireDocument}, locking the row until the transaction ends. For revision-checked writes. */
+    private DocumentEntity requireDocumentForUpdate(UUID workspaceId, UUID documentId) {
+        return documents.findForUpdateByWorkspaceIdAndId(workspaceId, documentId)
+                .orElseThrow(() -> new ResourceNotFoundException(DOCUMENT_NOT_FOUND));
+    }
+
+    /** The version, but only if it belongs to this document. The document was already scoped by workspace. */
+    private DocumentVersionEntity requireVersion(UUID documentId, UUID versionId) {
+        return versions.findByDocumentIdAndId(documentId, versionId)
+                .orElseThrow(() -> new ResourceNotFoundException(VERSION_NOT_FOUND));
+    }
+
+    private void snapshot(DocumentVersion version) {
+        DocumentVersionEntity saved = versions.saveAndFlush(DocumentVersionEntity.fromDomain(version));
+        log.info("event=document.version.recorded documentId={} revision={} reason={} versionId={}",
+                version.documentId(), version.revision(), version.reason(), saved.getId());
     }
 
     /**
@@ -237,6 +344,11 @@ public class DocumentService {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getArchivedAt());
+    }
+
+    private static DocumentVersionSummary versionSummaryOf(DocumentVersionEntity entity) {
+        return new DocumentVersionSummary(entity.getId(), entity.getRevision(), entity.getReason().name(),
+                entity.getRestoredFromVersionId(), entity.getCreatedBy(), entity.getCreatedAt());
     }
 
     private static DocumentDetail detailOf(DocumentEntity entity) {

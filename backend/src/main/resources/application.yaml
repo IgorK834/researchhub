@@ -10,6 +10,21 @@ researchhub:
       # rejected instead of silently truncated. Note bytes, not characters — non-ASCII costs more than
       # one byte each in UTF-8.
       min-length: 12
+  sources:
+    # The largest file accepted as one source, in bytes. 50 MiB. Must be at most 1 GiB, the ceiling
+    # ck_sources_size_bytes enforces; a larger value fails startup. See docs/development/sources.md.
+    max-size-bytes: 52428800
+    storage:
+      # Which SourceStorage adapter holds the bytes. Deliberately unset: no adapter exists yet (RH-072 adds the
+      # local one), and while it is unset the source service is not created at all. Blob container names and
+      # credentials belong to the adapter's own settings, never here.
+      # adapter: local
+  documents:
+    history:
+      # How old the newest restore point must be before an autosave takes another one. A manual save is always
+      # a restore point; an autosave is one only when this much time has passed since the last. ISO-8601
+      # duration. See dev.researchhub.document.application.CheckpointPolicy and V7__create_document_versions.sql.
+      autosave-checkpoint-interval: PT10M
 
 spring:
   application:

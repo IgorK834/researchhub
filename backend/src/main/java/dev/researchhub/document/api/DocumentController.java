@@ -32,6 +32,9 @@ import java.util.UUID;
  *   <tr><td>{@code GET    .../documents/{documentId}}</td><td>{@code VIEW_CONTENT}</td><td>The document with its content</td></tr>
  *   <tr><td>{@code PATCH  .../documents/{documentId}}</td><td>{@code EDIT_CONTENT}</td><td>200 with the next revision, or 409</td></tr>
  *   <tr><td>{@code DELETE .../documents/{documentId}}</td><td>{@code EDIT_CONTENT}</td><td>204, soft archive</td></tr>
+ *   <tr><td>{@code GET    .../documents/{documentId}/versions}</td><td>{@code VIEW_CONTENT}</td><td>The history, newest first, no content</td></tr>
+ *   <tr><td>{@code GET    .../documents/{documentId}/versions/{versionId}}</td><td>{@code VIEW_CONTENT}</td><td>One version with its content</td></tr>
+ *   <tr><td>{@code POST   .../documents/{documentId}/versions/{versionId}/restore}</td><td>{@code EDIT_CONTENT}</td><td>200 with a new revision holding the old text, or 409</td></tr>
  * </table>
  *
  * <p>The URL says what the authorization is: a document lives under a workspace, so the caller's membership of
@@ -119,7 +122,7 @@ public class DocumentController {
         return DocumentResponse.from(
                 documents.revise(workspaceId, currentUserId(), documentId,
                         new ReviseDocumentCommand(request.title(), request.content().toString(),
-                                request.revision())),
+                                request.revision(), request.saveKind())),
                 objectMapper);
     }
 
@@ -132,6 +135,42 @@ public class DocumentController {
         documents.archive(workspaceId, currentUserId(), documentId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * The document's history, newest first. Summaries only; one version's text is a separate request.
+     *
+     * <p>Readable by any member, on an archived document too.
+     */
+    @GetMapping("/{documentId}/versions")
+    List<DocumentVersionSummaryResponse> versions(@PathVariable UUID workspaceId, @PathVariable UUID documentId) {
+        return documents.listVersions(workspaceId, currentUserId(), documentId).stream()
+                .map(DocumentVersionSummaryResponse::from)
+                .toList();
+    }
+
+    /** One version with its content. A version of another document is {@code 404}, like a missing one. */
+    @GetMapping("/{documentId}/versions/{versionId}")
+    DocumentVersionResponse version(@PathVariable UUID workspaceId, @PathVariable UUID documentId,
+                                    @PathVariable UUID versionId) {
+        return DocumentVersionResponse.from(
+                documents.findVersion(workspaceId, currentUserId(), documentId, versionId), objectMapper);
+    }
+
+    /**
+     * Restores a version: its text becomes the document's next revision. Returns 200 with the document.
+     *
+     * <p>Nothing is deleted. The new revision is recorded as a {@code RESTORE} version naming the one it came from,
+     * and every version in between stays in the history. A stale {@code revision} is {@code 409} with
+     * {@code currentRevision}, like a save.
+     */
+    @PostMapping("/{documentId}/versions/{versionId}/restore")
+    DocumentResponse restore(@PathVariable UUID workspaceId, @PathVariable UUID documentId,
+                             @PathVariable UUID versionId,
+                             @Valid @RequestBody RestoreDocumentVersionRequest request) {
+        return DocumentResponse.from(
+                documents.restore(workspaceId, currentUserId(), documentId, versionId, request.revision()),
+                objectMapper);
     }
 
     private UUID currentUserId() {

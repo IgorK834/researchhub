@@ -128,6 +128,23 @@ public record Document(
     }
 
     /**
+     * Returns the next revision with {@code restored} as its content and the current title.
+     *
+     * <p>A restore is a save of old text, so it obeys exactly the same rules as {@link #revise}: the caller's
+     * revision must be current, and an archived document accepts nothing. Nothing is rewound — the restored text
+     * becomes a new revision on top of whatever came after it, so the history in between stays reachable.
+     *
+     * @throws StaleRevisionException when {@code expectedRevision} is stale
+     * @throws ConflictException      when the document is archived
+     */
+    public Document restore(DocumentVersion restored, long expectedRevision, Instant now) {
+        if (!Objects.equals(restored.documentId(), id)) {
+            throw new IllegalArgumentException("a version can only be restored into its own document");
+        }
+        return revise(title, restored.content(), expectedRevision, now);
+    }
+
+    /**
      * Returns an archived copy, or {@code this} when it is archived already.
      *
      * <p>Idempotent, and the original {@code archivedAt} wins, for the same reason a workspace's does: the
