@@ -1,9 +1,9 @@
-# Local PostgreSQL for backend development. Not used for anything else, and not a cloud
-# database: the cloud profile's DB_URL is unrelated and does not come from here.
+# Local PostgreSQL and Azure Blob emulator for backend development. Neither consumes cloud
+# resources: the cloud profile's DB_URL and BLOB_ENDPOINT are unrelated and do not come from here.
 #
-# Start:   docker compose up -d postgres
-# Stop:    docker compose stop postgres
-# Reset:   docker compose down -v   (removes the named volume; deletes local data)
+# Start:   docker compose up -d postgres azurite
+# Stop:    docker compose stop postgres azurite
+# Reset:   docker compose down -v   (removes both named volumes; deletes local data and blobs)
 #
 # DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD override the defaults below and are
 # read the same way by the backend's local profile. See .env.example and
@@ -27,5 +27,25 @@ services:
       retries: 10
       start_period: 5s
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    container_name: researchhub-azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:10000/devstoreaccount1?comp=list',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
 volumes:
   postgres-data:
+  azurite-data:
