@@ -59,6 +59,21 @@ interface DocumentRow {
   readonly archivedAt: string | null;
 }
 
+interface SourceRow {
+  readonly id: string;
+  readonly workspaceId: string;
+  readonly originalFilename: string;
+  readonly displayName: string;
+  readonly mediaType: string;
+  readonly sourceType: 'PDF' | 'DOCX' | 'XLSX' | 'CSV' | 'TXT';
+  readonly sizeBytes: number;
+  readonly contentSha256: string;
+  readonly status: 'UPLOADED' | 'PROCESSING' | 'READY' | 'FAILED';
+  readonly uploadedBy: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 const REPORT_DOCUMENT: DocumentRow = {
   id: 'd-1',
   title: 'Final report',
@@ -130,14 +145,18 @@ function stubWorkspaceApi(options: {
   readonly changeRoleResponse?: Response;
   readonly documents?: readonly DocumentRow[];
   readonly documentsResponse?: Response;
+  readonly sources?: readonly SourceRow[];
+  readonly sourcesResponse?: Response;
   /** When true, the list request never resolves, so the loading state stays on screen. */
   readonly documentsPending?: boolean;
 }): jest.Mock {
   let current = options.workspace ?? workspaceRow();
   const members: MemberRow[] = [...(options.members ?? [OWNER_MEMBER])];
   const documents: DocumentRow[] = [...(options.documents ?? [])];
+  const sources: SourceRow[] = [...(options.sources ?? [])];
   const membersPath = `/api/workspaces/${WORKSPACE_ID}/members`;
   const documentsPath = `/api/workspaces/${WORKSPACE_ID}/documents`;
+  const sourcesPath = `/api/workspaces/${WORKSPACE_ID}/sources`;
 
   const fetchMock = jest.fn((url: unknown, init?: RequestInit) => {
     const path = String(url);
@@ -166,6 +185,32 @@ function stubWorkspaceApi(options: {
       }
       return Promise.resolve(
         options.documentsResponse ?? jsonResponse(documents, 200, 'application/json'),
+      );
+    }
+    if (path === sourcesPath && method === 'POST') {
+      const body = init?.body as FormData;
+      const file = body.get('file') as File;
+      const extension = file.name.split('.').pop()?.toUpperCase() ?? 'TXT';
+      const created: SourceRow = {
+        id: `s-${String(sources.length + 1)}`,
+        workspaceId: WORKSPACE_ID,
+        originalFilename: file.name,
+        displayName: file.name,
+        mediaType: file.type,
+        sourceType: extension as SourceRow['sourceType'],
+        sizeBytes: file.size,
+        contentSha256: '0'.repeat(64),
+        status: 'UPLOADED',
+        uploadedBy: 'u-ada',
+        createdAt: '2026-09-23T10:15:30Z',
+        updatedAt: '2026-09-23T10:15:30Z',
+      };
+      sources.push(created);
+      return Promise.resolve(jsonResponse(created, 201, 'application/json'));
+    }
+    if (path === sourcesPath && method === 'GET') {
+      return Promise.resolve(
+        options.sourcesResponse ?? jsonResponse(sources, 200, 'application/json'),
       );
     }
     if (path === membersPath && method === 'POST') {
@@ -571,6 +616,97 @@ describe('WorkspaceDetailPage', () => {
 
     expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Create document' })).toBeNull();
+  });
+
+  // --- sources ---
+
+  it('lists source metadata and links to authenticated content', async () => {
+    stubWorkspaceApi({
+      sources: [
+        {
+          id: 's-1',
+          workspaceId: WORKSPACE_ID,
+          originalFilename: 'measurements.csv',
+          displayName: 'measurements.csv',
+          mediaType: 'text/csv',
+          sourceType: 'CSV',
+          sizeBytes: 2048,
+          contentSha256: '0'.repeat(64),
+          status: 'UPLOADED',
+          uploadedBy: 'u-ada',
+          createdAt: '2026-09-23T10:15:30Z',
+          updatedAt: '2026-09-23T10:15:30Z',
+        },
+      ],
+    });
+
+    renderWorkspaceDetailPage();
+
+    const link = await screen.findByRole('link', { name: 'measurements.csv' });
+    expect(link.getAttribute('href')).toBe(
+      `/api/workspaces/${WORKSPACE_ID}/sources/s-1/content`,
+    );
+    expect(screen.getByText(/CSV, 2.0 KB, Uploaded/)).not.toBeNull();
+  });
+
+  it('uploads a valid source as multipart data and refreshes the list', async () => {
+    const fetchMock = stubWorkspaceApi({ sources: [] });
+    renderWorkspaceDetailPage();
+    const picker = await screen.findByLabelText('Source file');
+    const file = new File(['name,value\na,1\n'], 'measurements.csv', {
+      type: 'text/csv',
+    });
+
+    fireEvent.change(picker, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
+
+    expect(await screen.findByText('Uploaded measurements.csv.')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'measurements.csv' })).not.toBeNull();
+    const upload = fetchMock.mock.calls.find(
+      (call) =>
+        String(call[0]) === `/api/workspaces/${WORKSPACE_ID}/sources` &&
+        (call[1] as RequestInit | undefined)?.method === 'POST',
+    );
+    expect((upload?.[1] as RequestInit).body).toBeInstanceOf(FormData);
+    expect((upload?.[1] as RequestInit).headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('refuses an unsupported source before making an upload request', async () => {
+    const fetchMock = stubWorkspaceApi({ sources: [] });
+    renderWorkspaceDetailPage();
+    const file = new File(['MZ'], 'program.exe', {
+      type: 'application/octet-stream',
+    });
+
+    fireEvent.change(await screen.findByLabelText('Source file'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Files of type .exe are not supported',
+    );
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          String(call[0]).endsWith('/sources') &&
+          (call[1] as RequestInit | undefined)?.method === 'POST',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not show the upload form to a viewer or in an archived workspace', async () => {
+    for (const workspace of [
+      workspaceRow({ role: 'VIEWER' }),
+      workspaceRow({ archivedAt: '2026-09-24T09:00:00Z' }),
+    ]) {
+      stubWorkspaceApi({ workspace });
+      renderWorkspaceDetailPage();
+      expect(await screen.findByRole('heading', { name: 'Sources' })).not.toBeNull();
+      expect(screen.queryByLabelText('Source file')).toBeNull();
+      cleanup();
+      globalThis.fetch = originalFetch;
+    }
   });
 
   // --- members ---
