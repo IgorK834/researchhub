@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { CreateDocumentForm } from '../features/documents/components/CreateDocumentForm';
 import { DocumentList } from '../features/documents/components/DocumentList';
+import { SourceList } from '../features/sources/components/SourceList';
+import { SourceUploadForm } from '../features/sources/components/SourceUploadForm';
 import { useWorkspaceQuery } from '../features/workspaces/api/useWorkspaces';
 import { AddMemberForm } from '../features/workspaces/components/AddMemberForm';
 import { ArchiveWorkspaceButton } from '../features/workspaces/components/ArchiveWorkspaceButton';
@@ -122,6 +124,9 @@ function WorkspaceDetail({
           }}
         />
       ) : null}
+
+      <SourceList workspaceId={workspace.id} />
+      {canEditContent ? <SourceUploadForm workspaceId={workspace.id} /> : null}
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}
