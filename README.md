@@ -24,7 +24,7 @@ researchhub/
 ├── backend/       Spring Boot application (dev.researchhub)
 ├── frontend/      React + TypeScript application
 ├── docs/          Project context and development docs
-├── compose.yaml   Local PostgreSQL for backend development
+├── compose.yaml   Local PostgreSQL and Azurite for backend development
 ├── .editorconfig
 ├── .gitignore
 ├── .env.example
@@ -37,22 +37,24 @@ researchhub/
 
 - JDK 25 (`JAVA_HOME` or `java` on `PATH`)
 - Node.js and npm
-- Docker and Docker Compose, for local PostgreSQL
+- Docker and Docker Compose, for local PostgreSQL and Azure Blob emulation
 - Python, when `ai-worker/` exists
 
-## Local PostgreSQL
+## Local PostgreSQL and Blob Storage
 
 The backend's `local` profile connects to PostgreSQL, started from the root `compose.yaml`:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres azurite
 ```
 
-That starts service `postgres` (container `researchhub-postgres`, image `postgres:17`) on `localhost:5432`, database `researchhub`, with a named volume (`postgres-data`) so data survives container restarts. `docker compose ps` shows `healthy` once `pg_isready` succeeds.
+That starts PostgreSQL on `localhost:5432` and Azurite Blob on `localhost:10000`. Named volumes
+`postgres-data` and `azurite-data` preserve database rows and uploaded source files across restarts. The backend creates
+the `researchhub-sources` blob container automatically on first use.
 
 ```bash
-docker compose stop postgres     # stop, keep data
-docker compose down -v           # stop and delete the named volume: this removes local data
+docker compose stop postgres azurite  # stop, keep rows and blobs
+docker compose down -v                # intentional reset: remove both named volumes
 ```
 
 Override the host, port, database name, user, or password with the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` environment variables; `docker compose` and the backend's `local` profile read the same names. Details, defaults, and how this differs from the cloud profile's `DB_URL`: [docs/development/configuration.md](docs/development/configuration.md).
@@ -67,7 +69,9 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw test` needs Docker. The persistence test starts a PostgreSQL 17 container with Testcontainers and does not use the Compose database above. Other tests do not open a database. `./mvnw spring-boot:run` still uses Compose.
+`./mvnw test` needs Docker. Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do
+not use the Compose services above. `./mvnw verify` also enforces at least 80% line coverage across the source module.
+`./mvnw spring-boot:run` still uses Compose.
 
 `./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication` on the `local` profile, which does need the PostgreSQL container above running. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
 

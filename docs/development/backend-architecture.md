@@ -29,9 +29,10 @@ dev.researchhub
 │   ├── domain          Document, DocumentContent, DocumentContentFormat, DocumentVersion, DocumentVersionReason, StaleRevisionException
 │   └── infrastructure  DocumentEntity, DocumentRepository, DocumentVersionEntity, DocumentVersionRepository
 ├── source          Uploaded research material
+│   ├── api             SourceController and SourceResponse
 │   ├── application     SourceService, the SourceStorage port, MeteredInputStream, SourceLimits, WorkspaceSourceQuota
 │   ├── domain          Source, SourceType, SourceStatus, SourceFilename, StorageKey
-│   └── infrastructure  SourceEntity, SourceRepository; storage adapters from RH-072
+│   └── infrastructure  SourceEntity, SourceRepository, AzureBlobSourceStorage and its configuration
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors

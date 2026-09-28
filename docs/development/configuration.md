@@ -55,19 +55,23 @@ From `backend/`:
 ./mvnw spring-boot:run
 ```
 
-That command uses the `local` profile. `application-local.yaml` contains no passwords, keys, or connection strings.
+That command uses the `local` profile. `application-local.yaml` contains no cloud secrets. It includes Azurite's
+public emulator account and key; those values grant access only to the local emulator and are never reused in cloud.
 
 When a later task needs something like a database URL on your machine, export it in the shell or set it on the IntelliJ run configuration. Copy names from `.env.example` if you keep a private `.env` for your own tools. Do not commit that private file.
 
-## Local PostgreSQL
+## Local PostgreSQL and Azurite
 
-The root `compose.yaml` runs PostgreSQL for local development: service `postgres`, image `postgres:17`, named volume `postgres-data`, container name `researchhub-postgres`, healthcheck via `pg_isready`.
+The root `compose.yaml` runs PostgreSQL and the Azure Blob emulator for local development. Both use named volumes, so
+ordinary stop/start cycles preserve database rows and uploaded blobs.
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres azurite
 ```
 
-`application-local.yaml` connects to it with these variables. Each already has a default matching `compose.yaml`, so the local profile and `docker compose up -d postgres` work together with no environment variables set:
+`application-local.yaml` connects to PostgreSQL with these variables. Each already has a default matching
+`compose.yaml`, so the local profile and `docker compose up -d postgres azurite` work together with no environment
+variables set:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -83,7 +87,7 @@ These are local-only, throwaway defaults, not secrets, and they are unrelated to
 
 They are also deliberately not named `RESEARCHHUB_*`: see Frontend below for why that prefix is reserved for values that are safe to expose in the browser bundle.
 
-Flyway migrations live in `backend/src/main/resources/db/migration`. The local profile runs them on startup (`spring.flyway.enabled: true`) before JPA uses the schema. Hibernate does not create or update tables: `spring.jpa.hibernate.ddl-auto` is `none`. Open-session-in-view is off. SQL is not logged unless you opt in.
+Flyway migrations live in `backend/src/main/resources/db/migration`. The local profile runs them on startup (`spring.flyway.enabled: true`) before JPA uses the schema. Hibernate does not create or update tables: `spring.jpa.hibernate.ddl-auto` is `validate`. Open-session-in-view is off. SQL is not logged unless you opt in.
 
 ```bash
 cd backend
@@ -109,6 +113,21 @@ Reset it, deleting the named volume and all local data:
 ```bash
 docker compose down -v
 ```
+
+Azurite runs only the Blob service on host port `10000`, uses image
+`mcr.microsoft.com/azure-storage/azurite:3.37.0`, and persists under the named `azurite-data` volume. The backend uses
+container `researchhub-sources` and creates it automatically on the first blob operation.
+
+```bash
+docker compose stop azurite       # stop, keep uploaded blobs
+docker compose start azurite      # the same blobs are available again
+docker compose down -v            # intentional reset: removes database and blob volumes
+```
+
+The defaults need no environment variables. If port 10000 is occupied, set `AZURITE_BLOB_PORT` for Compose and set
+`AZURITE_BLOB_ENDPOINT` to the matching host URL, including `/devstoreaccount1`. The account name, public emulator
+key, and container can also be overridden with `AZURITE_ACCOUNT_NAME`, `AZURITE_ACCOUNT_KEY`, and
+`AZURITE_CONTAINER_NAME`. None of these local values is read by the cloud profile.
 
 ## Test profile
 
@@ -199,7 +218,11 @@ autosave, and a negative value fails startup. See [persistence.md](persistence.m
 | Setting | Value |
 | --- | --- |
 | Largest source | `researchhub.sources.max-size-bytes`, bytes, default `52428800` (50 MiB). Must be between 1 and 1 GiB, or startup fails. |
-| Storage adapter | `researchhub.sources.storage.adapter`, unset. While unset, the source service is not created. RH-072 adds `local`. |
+| Storage adapter | `researchhub.sources.storage.adapter`; local default `azure-blob`. |
+| Blob endpoint | `researchhub.sources.storage.azure-blob.endpoint`; local default `http://127.0.0.1:10000/devstoreaccount1`. |
+| Blob account | `researchhub.sources.storage.azure-blob.account-name`; local Azurite default `devstoreaccount1`. |
+| Blob container | `researchhub.sources.storage.azure-blob.container-name`; local default `researchhub-sources`, created automatically. |
 
+The adapter also has `account-key`; the committed default is Azurite's public development key, never a cloud key.
 Container names, paths, and credentials belong to the chosen adapter's own settings, never to the source module. See
 [sources.md](sources.md#storage).

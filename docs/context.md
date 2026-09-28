@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave, and a version history with restore, and the source metadata model with its storage port (no upload endpoint or storage adapter yet). Everything else in this document — source uploads and ingestion, RAG, AI writing, analysis, and realtime collaborative editing — is still a plan, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, plus workspace source upload/read backed by Azure Blob Storage (Azurite locally). Source ingestion, RAG, AI writing, analysis, and realtime collaborative editing are still plans, not code. Check [development/backend-architecture.md](development/backend-architecture.md) and [development/persistence.md](development/persistence.md) for what actually exists before assuming a feature is available.
 
 ---
 
@@ -522,13 +522,14 @@ FAILED
 
 Binary files go to object storage; metadata goes to PostgreSQL; processed chunks are indexed for retrieval.
 
-**Implemented so far: the model and the storage seam, not uploads.** The `source` module has the domain types, the
-`sources` table (V8), the `SourceStorage` port, and `SourceService`, which streams an upload into storage while
+**Implemented:** the `source` module has the domain types, the `sources` table (V8), the `SourceStorage` port,
+`SourceService`, workspace-scoped HTTP routes, and the React source list/upload flow. The service streams an upload
+into Azure Blob Storage (Azurite locally) while
 enforcing the size limit and hashing it, then records it as `UPLOADED`. The MVP types are PDF, DOCX, XLSX, CSV, and
 TXT, with a closed mapping to one canonical media type each. Unsupported files are refused with
 `415 UNSUPPORTED_FILE_TYPE`. File names are metadata only, storage keys are opaque and never authorize, and the
-original input is immutable, so a replacement will be a version. There is no storage adapter yet (RH-072), no upload
-endpoint, and no ingestion. Reference: [development/sources.md](development/sources.md).
+original input is immutable, so a replacement will be a version. Ingestion remains future work. Reference:
+[development/sources.md](development/sources.md).
 
 ---
 
@@ -914,7 +915,7 @@ Membership management is implemented on the same footing. An owner adds an exist
 
 There is no email delivery, no pending-invite table, and no endpoint that lists or searches users. An address with no active account is `404` with one stable detail, identical for an unknown address and a disabled account, so adding a member cannot be used to find out who has an account here.
 
-Documents use that same capability check: `VIEW_CONTENT` to read, `EDIT_CONTENT` to create, save, and archive. What is not implemented yet: per-resource checks for entities that do not exist yet — sources, analyses, AI conversations. Each of those hangs off a workspace and will reuse the same capability check rather than inventing its own. Until a resource exists, there is no rule to write for it. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
+Documents and sources use that same capability check: `VIEW_CONTENT` to read, and `EDIT_CONTENT` to create or upload. Source downloads resolve both the workspace and source id, so a cross-workspace lookup returns the same `404` as a missing resource. What is not implemented yet: per-resource checks for analyses and AI conversations. Each will hang off a workspace and reuse the same capability check rather than inventing its own. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
 
 Initial mechanism:
 

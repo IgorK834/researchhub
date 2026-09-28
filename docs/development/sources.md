@@ -4,9 +4,9 @@ Uploaded research material: the files a workspace's documents, retrieval, and an
 reference for how a file becomes a source. Product context: [../context.md](../context.md) section 10. Schema:
 [persistence.md](persistence.md#sources).
 
-What exists today is the domain model, the `sources` table (V8), the storage port, and the application service
-that stores and records uploads. There is no HTTP endpoint yet, and no storage adapter: the local adapter is RH-072,
-and the service is only created once one is configured (see [Storage](#storage)).
+The domain model, `sources` table (V8), application service, HTTP API, React upload UI, and Azure Blob adapter are
+implemented. Locally the adapter talks to Azurite through the same Azure SDK client used for Azure Blob Storage.
+The source service is only created once an adapter is configured (see [Storage](#storage)).
 
 ## Types
 
@@ -134,11 +134,16 @@ names, or credentials:
 Size limits and hashing are not the adapter's job. `SourceService` meters the stream it passes to `store`, so every
 adapter enforces the same limit and produces the same digest.
 
-The adapter is selected by `researchhub.sources.storage.adapter`. It is unset today, and while it is unset
-`SourceService` is not created, so the application starts without storage. RH-072 adds the local adapter under
-`source.infrastructure`. An Azure Blob adapter would be another implementation, with its container name and
-credentials in its own configuration. `SourceStorageContract` (test sources) is the set of checks every adapter's test
-class extends.
+The adapter is selected by `researchhub.sources.storage.adapter`. The local profile selects `azure-blob`, implemented
+under `source.infrastructure`; its endpoint, emulator account, key, and container name live under
+`researchhub.sources.storage.azure-blob`. It uses Azure's `BlobServiceClient` against Azurite, not a filesystem-only
+substitute, so cloud wiring later changes credentials and endpoint rather than the source rules or adapter API.
+
+The configured private container is created idempotently on the first storage operation. This is intentionally lazy:
+the backend can start and unrelated local tests can run while Azurite is stopped, but an upload fails instead of
+silently falling back to local disk. `SourceStorageContract` is the common adapter contract, and
+`AzureBlobSourceStorageIntegrationTest` runs it against a real Azurite container as well as exercising the complete
+`SourceService` -> PostgreSQL + Azurite -> read-back path.
 
 **Upload order.** The bytes are stored first and the row is inserted second. Storage is not transactional, so this
 order fails safe:
@@ -147,6 +152,25 @@ order fails safe:
 - a refused or failed insert deletes the stored object
 - a crash between the two leaves an unreferenced object, which nothing can reach and a future reconciliation job would
   sweep
+
+No failed upload is ever marked `READY`: a successfully stored and recorded input starts at `UPLOADED`; processing is
+a separate lifecycle step. A future reconciliation job may remove crash-only orphan blobs, but no scheduler was added
+as part of RH-072/RH-073.
+
+## HTTP API
+
+All routes require a session. Mutating requests also require the normal CSRF header.
+
+| Route | Result |
+| --- | --- |
+| `POST /api/workspaces/{workspaceId}/sources` | Multipart part `file`; editors/owners get `201` with source metadata. |
+| `GET /api/workspaces/{workspaceId}/sources` | Metadata list, newest first. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}` | One source's metadata. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/content` | Streams the original bytes with canonical content type and an encoded attachment filename. |
+
+Responses never contain `storageKey`, container credentials, or document contents. The frontend performs an early
+extension/MIME/size check to avoid a pointless upload, but the backend repeats every validation and authorization
+decision and is authoritative.
 
 ## Access
 

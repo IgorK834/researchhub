@@ -8,9 +8,13 @@ this builds on: [frontend-structure.md](frontend-structure.md). The error contra
 
 Components, pages, and hooks do not call `fetch`. Every request goes through `shared/api`.
 
-That keeps four decisions in one place: the base URL, the credentials mode, JSON encoding, and
+That keeps four decisions in one place: the base URL, the credentials mode, JSON or multipart encoding, and
 how a failure becomes a typed error. A stray `fetch` in a component silently opts out of all of
 them.
+
+For file uploads, pass `formData` rather than `body`. The client deliberately does not set `Content-Type` for
+`FormData`; the browser must add the multipart boundary. CSRF and session credentials are applied exactly as for a
+JSON mutation.
 
 ## Modules
 
