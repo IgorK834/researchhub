@@ -12,7 +12,7 @@ import java.util.Optional;
  * {@code source.infrastructure} and are chosen by {@code researchhub.sources.storage.adapter}.
  *
  * <p>The contract is written in {@link StorageKey}s, never URLs, container names, or credentials. Those are the
- * adapter's configuration: a local-filesystem adapter (RH-072) and an Azure Blob adapter can both implement this
+ * adapter's configuration. The Azure Blob implementation talks to Azurite locally and can be pointed at Azure
  * without the source rules — what is accepted, who may read it, what is immutable — changing at all.
  *
  * <p>Size limits and the content hash are <em>not</em> the adapter's job. {@link SourceService} meters the stream

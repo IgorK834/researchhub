@@ -15,10 +15,9 @@ researchhub:
     # ck_sources_size_bytes enforces; a larger value fails startup. See docs/development/sources.md.
     max-size-bytes: 52428800
     storage:
-      # Which SourceStorage adapter holds the bytes. Deliberately unset: no adapter exists yet (RH-072 adds the
-      # local one), and while it is unset the source service is not created at all. Blob container names and
-      # credentials belong to the adapter's own settings, never here.
-      # adapter: local
+      # Which SourceStorage adapter holds the bytes. The local profile selects azure-blob and supplies its
+      # Azurite settings. Blob container names and credentials belong to the adapter's own settings, never here.
+      # With this unset in another profile, the source service and its HTTP controller are not created.
   documents:
     history:
       # How old the newest restore point must be before an autosave takes another one. A manual save is always

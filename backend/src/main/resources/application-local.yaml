@@ -7,6 +7,16 @@ researchhub:
   environment: local
   debug:
     sql: false
+  sources:
+    storage:
+      adapter: azure-blob
+      azure-blob:
+        # Azurite's documented development account. These public emulator credentials are not a
+        # cloud secret. Override the endpoint when AZURITE_BLOB_PORT is changed in Compose.
+        endpoint: ${AZURITE_BLOB_ENDPOINT:http://127.0.0.1:10000/devstoreaccount1}
+        account-name: ${AZURITE_ACCOUNT_NAME:devstoreaccount1}
+        account-key: ${AZURITE_ACCOUNT_KEY:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}
+        container-name: ${AZURITE_CONTAINER_NAME:researchhub-sources}
 
 server:
   servlet:
@@ -18,6 +28,12 @@ server:
         secure: false
 
 spring:
+  servlet:
+    multipart:
+      # The application stream meter is still authoritative. These servlet bounds reject a large
+      # multipart part before it can be materialised by the web stack.
+      max-file-size: 52428800B
+      max-request-size: 53477376B
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:researchhub}
     username: ${DB_USER:researchhub}
