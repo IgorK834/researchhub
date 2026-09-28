@@ -9,7 +9,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -53,6 +56,24 @@ public final class ApiBrowser {
     /** POSTs JSON, priming the CSRF cookie first exactly as the frontend client does. */
     public HttpResponse<String> postJson(String path, String body) throws Exception {
         return sendWithCsrf("POST", path, body);
+    }
+
+    /** POSTs one binary multipart part using the same session and CSRF rules as the browser client. */
+    public HttpResponse<String> postFile(String path, String filename, String contentType, byte[] content)
+            throws Exception {
+        get("/api/auth/csrf");
+        String boundary = "researchhub-" + UUID.randomUUID();
+        byte[] prefix = ("--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n"
+                + "Content-Type: " + contentType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+        byte[] suffix = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
+
+        return send(HttpRequest.newBuilder(url(path))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .header("X-XSRF-TOKEN", cookieValue("XSRF-TOKEN").orElseThrow(
+                        () -> new IllegalStateException("No XSRF-TOKEN cookie was issued")))
+                .POST(HttpRequest.BodyPublishers.ofByteArrays(List.of(prefix, content, suffix)))
+                .build());
     }
 
     /** PATCHes JSON with the CSRF header. The JDK client has no {@code PATCH()} shortcut. */
