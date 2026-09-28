@@ -9,6 +9,8 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export interface ApiRequestOptions {
   /** Serialised as JSON. Omit for requests without a body. */
   readonly body?: unknown;
+  /** Sent as multipart data. The browser supplies the Content-Type boundary. */
+  readonly formData?: FormData;
   /** Propagated to `fetch`, so TanStack Query can cancel in-flight requests. */
   readonly signal?: AbortSignal;
   readonly headers?: Readonly<Record<string, string>>;
@@ -71,7 +73,11 @@ export async function request<TResponse>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<TResponse> {
-  const { body, signal, headers } = options;
+  const { body, formData, signal, headers } = options;
+
+  if (body !== undefined && formData !== undefined) {
+    throw new TypeError('An API request cannot have both a JSON body and form data');
+  }
 
   const requestHeaders: Record<string, string> = {
     Accept: 'application/json',
@@ -96,7 +102,9 @@ export async function request<TResponse>(
       method,
       credentials: apiCredentials,
       headers: requestHeaders,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body === undefined && formData === undefined
+        ? {}
+        : { body: formData ?? JSON.stringify(body) }),
       ...(signal === undefined ? {} : { signal }),
     });
   } catch (cause) {
