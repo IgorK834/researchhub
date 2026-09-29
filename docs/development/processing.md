@@ -80,9 +80,14 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-The worker image is pinned to Python 3.13.3 and mounts `ai-worker/` read-only. Its health endpoint is
-`GET http://localhost:8090/healthz`. PostgreSQL's named volume preserves jobs across ordinary Compose restarts.
+The worker image is built from `ai-worker/Dockerfile`, is pinned to Python 3.13.3, and installs the production subset
+from the committed `uv.lock`. Its health endpoint is `GET http://localhost:8090/health`. PostgreSQL's named volume
+preserves jobs across ordinary Compose restarts.
 `docker compose down -v` is the intentional reset that deletes them.
+
+The worker does not receive `DB_URL`, has no PostgreSQL driver, and must not read product tables directly. Spring owns
+authorization, source metadata, and durable job state. FastAPI is used only for the health probe and internal job
+delivery; it is not a second product/domain API.
 
 | Spring property | Environment variable | Default |
 | --- | --- | --- |
@@ -104,4 +109,4 @@ Durations use ISO-8601 syntax. Bounds are validated at startup: batch size is 1â
 `PostgresProcessingJobQueueIntegrationTest` proves restart persistence, idempotent enqueue, stale recovery, bounded
 retry, worker-down behavior, and a real two-thread double-claim race against PostgreSQL. The HTTP client test asserts
 that no user credential header crosses the boundary. `./mvnw verify` enforces at least 80% line coverage for the Java
-processing module separately from source; `python -m pytest` enforces at least 80% branch-aware worker coverage.
+processing module separately from source; `uv run --frozen pytest` enforces at least 80% branch-aware worker coverage.

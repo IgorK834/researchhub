@@ -2,7 +2,9 @@
 
 Rules for the Spring Boot modular monolith. Product context stays in [docs/context.md](../context.md) (sections 18, 19, and 32). REST error JSON is specified in [api-errors.md](api-errors.md). Request DTO validation, shared length limits, and the trim policy are specified in [validation.md](validation.md).
 
-Java owns domain rules and workspace authorization. Python under `ai-worker/` is outside this tree. Do not add a global `controllers`, `services`, or `repositories` package under `dev.researchhub`.
+Java owns domain rules and workspace authorization. Python under `ai-worker/` is outside this tree and exposes only
+its health probe plus explicit internal processing contracts; it has no product PostgreSQL access or product API.
+Do not add a global `controllers`, `services`, or `repositories` package under `dev.researchhub`.
 
 ## Packages in the repository today
 

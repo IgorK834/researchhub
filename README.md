@@ -26,7 +26,7 @@ researchhub/
 ├── frontend/      React + TypeScript application
 ├── ai-worker/     Internal Python processing worker
 ├── docs/          Project context and development docs
-├── compose.yaml   Local PostgreSQL and Azurite for backend development
+├── compose.yaml   Local PostgreSQL, Azurite, and AI worker
 ├── .editorconfig
 ├── .gitignore
 ├── .env.example
@@ -39,6 +39,7 @@ researchhub/
 - Node.js and npm
 - Docker and Docker Compose, for local PostgreSQL and Azure Blob emulation
 - Python 3.13.3 (pinned in `ai-worker/.python-version`)
+- uv 0.12.20 for local AI-worker dependency management (not needed when using Compose)
 
 ## Local PostgreSQL and Blob Storage
 
@@ -85,13 +86,15 @@ From `ai-worker/`:
 
 ```bash
 cd ai-worker
-PYTHONPATH=src python -m researchhub_worker
-python -m pytest
+uv sync --frozen
+uv run --frozen researchhub-worker
+uv run --frozen pytest
 ```
 
-The worker accepts only the internal source-ingest contract and carries no browser session or end-user token.
-`pytest` enforces at least 80% coverage. Durable state, retry policy, and idempotent job identity remain in PostgreSQL;
-see [docs/development/processing.md](docs/development/processing.md).
+The worker's process probe is `GET http://127.0.0.1:8090/health`. It accepts only the internal source-ingest contract
+and carries no browser session or end-user token. It has no product PostgreSQL dependency or business API routes.
+`pytest` enforces at least 80% coverage. Durable state, authorization, retry policy, and idempotent job identity remain
+in Spring/PostgreSQL; see [docs/development/processing.md](docs/development/processing.md).
 
 ## Frontend
 

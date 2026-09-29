@@ -338,8 +338,10 @@ openpyxl
 pydantic
 ```
 
-The source-ingest HTTP contract, validation, and idempotent execution seam are implemented without third-party runtime
-packages. The processing libraries and responsibilities below remain planned. Core domain logic stays in Spring Boot.
+The source-ingest HTTP contract, validation, and idempotent execution seam use a small FastAPI/Uvicorn internal API.
+Python dependencies are managed by uv with a committed lockfile. The worker has no product PostgreSQL access and no
+product/business endpoints. The processing libraries and responsibilities below remain planned; core domain logic,
+authorization, and durable state stay in Spring Boot.
 
 ---
 
