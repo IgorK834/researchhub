@@ -259,8 +259,8 @@ public class SourceService {
     private static SourceSummary summaryOf(Source source) {
         return new SourceSummary(source.id(), source.workspaceId(), source.originalFilename().value(),
                 source.displayName(), source.mediaType(), source.sourceType().name(), source.sizeBytes(),
-                source.contentSha256(), source.status().name(), source.uploadedBy(), source.createdAt(),
-                source.updatedAt());
+                source.contentSha256(), source.status().name(), source.failureSummary(), source.uploadedBy(),
+                source.createdAt(), source.updatedAt());
     }
 
 }

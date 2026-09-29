@@ -20,6 +20,7 @@ public record SourceSummary(
         long sizeBytes,
         String contentSha256,
         String status,
+        String failureSummary,
         UUID uploadedBy,
         Instant createdAt,
         Instant updatedAt

@@ -16,6 +16,7 @@ public record SourceResponse(
         long sizeBytes,
         String contentSha256,
         String status,
+        String failureSummary,
         UUID uploadedBy,
         Instant createdAt,
         Instant updatedAt
@@ -24,7 +25,7 @@ public record SourceResponse(
     static SourceResponse from(SourceSummary source) {
         return new SourceResponse(source.id(), source.workspaceId(), source.originalFilename(), source.displayName(),
                 source.mediaType(), source.sourceType(), source.sizeBytes(), source.contentSha256(), source.status(),
-                source.uploadedBy(), source.createdAt(), source.updatedAt());
+                source.failureSummary(), source.uploadedBy(), source.createdAt(), source.updatedAt());
     }
 
 }
