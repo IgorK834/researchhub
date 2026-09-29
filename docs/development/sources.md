@@ -176,9 +176,13 @@ without fetching the file. They never contain `storageKey`, container credential
 streamed through the authorized backend route; no public or permanent Blob URL is issued. The download response uses
 an encoded attachment filename plus `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`.
 
-The frontend performs an early
-extension/MIME/size check to avoid a pointless upload, but the backend repeats every validation and authorization
-decision and is authoritative.
+The workspace page lets owners/editors choose a file, shows upload byte progress when the browser reports it, and
+displays the server's rejection detail. Viewers see only the library. Each row shows its name, type, status, uploader,
+upload date, download action, and a link to a source detail page. The uploader's display name comes from the
+workspace roster; if the uploader is no longer a member, the immutable `uploadedBy` id remains visible. A member can
+refresh the source list to see another member's upload from a different browser session, and can refresh the detail
+page's processing status. The frontend performs an early extension/MIME/size check to avoid a pointless upload, but
+the backend repeats every validation and authorization decision and is authoritative.
 
 ## Access
 

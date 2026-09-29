@@ -14,7 +14,8 @@ them.
 
 For file uploads, pass `formData` rather than `body`. The client deliberately does not set `Content-Type` for
 `FormData`; the browser must add the multipart boundary. CSRF and session credentials are applied exactly as for a
-JSON mutation.
+JSON mutation. Supplying `onUploadProgress` for a multipart POST selects `XMLHttpRequest`, because `fetch` does not
+expose request-body byte progress. The same client still supplies CSRF, credentials, and ProblemDetail decoding.
 
 ## Modules
 

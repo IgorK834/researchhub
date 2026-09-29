@@ -525,8 +525,9 @@ Binary files go to object storage; metadata goes to PostgreSQL; processed chunks
 **Implemented:** the `source` module has the domain types, the `sources` table (V8/V9), the `SourceStorage` port,
 `SourceService`, workspace-scoped HTTP routes, and the React source browse/upload flow. Metadata exposes processing
 status and a bounded failure summary, while downloads stream through the authorized backend and never expose a
-permanent Blob URL. The service streams an upload
-into Azure Blob Storage (Azurite locally) while
+permanent Blob URL. The workspace library shows uploader, date, status, failure detail, and a source detail page; it
+can be refreshed to see uploads from another member's session. The service streams an upload into Azure Blob Storage
+(Azurite locally) while
 enforcing the size limit and hashing it, then records it as `UPLOADED`. The MVP types are PDF, DOCX, XLSX, CSV, and
 TXT, with a closed mapping to one canonical media type each. Unsupported files are refused with
 `415 UNSUPPORTED_FILE_TYPE`. File names are metadata only, storage keys are opaque and never authorize, and the
