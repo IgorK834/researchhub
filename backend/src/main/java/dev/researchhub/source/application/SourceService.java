@@ -1,5 +1,6 @@
 package dev.researchhub.source.application;
 
+import dev.researchhub.processing.application.ProcessingJobService;
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
 import dev.researchhub.shared.error.ConflictException;
@@ -44,10 +45,11 @@ import java.util.UUID;
  * does not exist. A source is always found by its id <em>within</em> the caller's workspace; its storage key is read
  * from that row afterwards and is never an input.
  *
- * <p><strong>Upload order.</strong> The bytes are streamed into storage first, then the row is inserted. Storage is
- * not transactional, so this is the order that fails safe: a failed store leaves no row pointing at nothing, and a
- * failed insert is compensated by deleting the stored object. A crash between the two can leave an unreferenced
- * object, which is harmless to readers and is what a later reconciliation job would sweep.
+ * <p><strong>Upload order.</strong> The bytes are streamed into storage first, then the source and its idempotent
+ * ingestion job are inserted in one database transaction. Storage is not transactional, so this is the order that
+ * fails safe: a failed store leaves no row pointing at nothing, and a failed database transaction is compensated by
+ * deleting the stored object. A crash between storage and the transaction can leave an unreferenced object, which is
+ * harmless to readers and is what a later reconciliation job would sweep.
  */
 @Service
 @Profile("local")
@@ -67,17 +69,20 @@ public class SourceService {
     private final SourceLimits limits;
     private final WorkspaceSourceQuota quota;
     private final WorkspaceAuthorizationService authorization;
+    private final ProcessingJobService processingJobs;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
     public SourceService(SourceRepository sources, SourceStorage storage, SourceLimits limits,
                          WorkspaceSourceQuota quota, WorkspaceAuthorizationService authorization,
-                         PlatformTransactionManager transactionManager, Clock clock) {
+                         ProcessingJobService processingJobs, PlatformTransactionManager transactionManager,
+                         Clock clock) {
         this.sources = sources;
         this.storage = storage;
         this.limits = limits;
         this.quota = quota;
         this.authorization = authorization;
+        this.processingJobs = processingJobs;
         this.transactions = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -89,7 +94,7 @@ public class SourceService {
      * is recognised from the extension and the declared media type; a declared size over the limit is refused
      * before reading anything; the bytes are streamed into storage through a meter that enforces the limit and
      * computes the SHA-256; the first bytes must look like the type; the workspace quota is asked with the real
-     * size; and only then is the row written.
+     * size; and only then are the source row and its durable ingestion job written atomically.
      *
      * @throws ResourceNotFoundException     when the caller is not a member of the workspace
      * @throws ForbiddenException            when the caller is a viewer
@@ -137,7 +142,11 @@ public class SourceService {
             quota.requireCapacity(workspaceId, size);
 
             Source source = Source.uploaded(workspaceId, filename, type, size, key, sha256, callerId, now);
-            SourceEntity saved = transactions.execute(status -> sources.saveAndFlush(SourceEntity.fromDomain(source)));
+            SourceEntity saved = transactions.execute(status -> {
+                SourceEntity recorded = sources.saveAndFlush(SourceEntity.fromDomain(source));
+                processingJobs.enqueueSourceIngest(workspaceId, recorded.getId());
+                return recorded;
+            });
 
             log.info("event=source.uploaded workspaceId={} sourceId={} sourceType={} sizeBytes={} userId={}",
                     workspaceId, saved.getId(), type, size, callerId);

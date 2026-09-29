@@ -1,5 +1,6 @@
 package dev.researchhub.source.application;
 
+import dev.researchhub.processing.application.ProcessingJobService;
 import dev.researchhub.source.infrastructure.SourceEntity;
 import dev.researchhub.source.infrastructure.SourceRepository;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
@@ -36,7 +37,8 @@ class SourceServiceCleanupTest {
         InMemorySourceStorage storage = new InMemorySourceStorage();
 
         SourceService service = new SourceService(repository, storage, new SourceLimits(1024),
-                new UnlimitedWorkspaceSourceQuota(), mock(WorkspaceAuthorizationService.class), transactions,
+                new UnlimitedWorkspaceSourceQuota(), mock(WorkspaceAuthorizationService.class),
+                mock(ProcessingJobService.class), transactions,
                 Clock.fixed(Instant.parse("2026-09-24T10:00:00Z"), ZoneOffset.UTC));
 
         assertThrows(DataIntegrityViolationException.class, () -> service.upload(UUID.randomUUID(),

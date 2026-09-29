@@ -35,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "researchhub.sources.storage.adapter=in-memory",
         "researchhub.sources.max-size-bytes=64",
         "spring.servlet.multipart.max-file-size=64B",
-        "spring.servlet.multipart.max-request-size=2KB"
+        "spring.servlet.multipart.max-request-size=2KB",
+        "researchhub.processing.dispatcher.enabled=false"
 })
 @Import({PostgresTestcontainersConfiguration.class, SourceApiIntegrationTest.StorageConfiguration.class})
 class SourceApiIntegrationTest {
@@ -67,6 +68,7 @@ class SourceApiIntegrationTest {
     @BeforeEach
     void clearData() {
         ((InMemorySourceStorage) storage).clear();
+        jdbcTemplate.execute("DELETE FROM processing_jobs");
         jdbcTemplate.execute("DELETE FROM sources");
         jdbcTemplate.execute("DELETE FROM workspace_members");
         jdbcTemplate.execute("DELETE FROM workspaces");

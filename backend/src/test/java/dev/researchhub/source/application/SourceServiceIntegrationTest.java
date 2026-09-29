@@ -45,7 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @PostgresIntegrationTest
 @TestPropertySource(properties = {
         "researchhub.sources.storage.adapter=in-memory",
-        "researchhub.sources.max-size-bytes=1024"
+        "researchhub.sources.max-size-bytes=1024",
+        "researchhub.processing.dispatcher.enabled=false"
 })
 class SourceServiceIntegrationTest {
 
@@ -141,6 +142,12 @@ class SourceServiceIntegrationTest {
         assertEquals(owner, source.uploadedBy());
         assertEquals(workspaceId, source.workspaceId());
         assertEquals(64, source.contentSha256().length());
+
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM processing_jobs
+                WHERE workspace_id = ? AND job_type = 'SOURCE_INGEST' AND resource_type = 'SOURCE'
+                  AND resource_id = ? AND status = 'PENDING' AND attempt_count = 0
+                """, Integer.class, workspaceId, source.id()));
 
         String key = jdbcTemplate.queryForObject("SELECT storage_key FROM sources WHERE id = ?", String.class,
                 source.id());

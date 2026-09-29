@@ -1,5 +1,9 @@
 package dev.researchhub.source.infrastructure;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.Repository;
 
 import java.util.List;
@@ -20,6 +24,12 @@ public interface SourceRepository extends Repository<SourceEntity, UUID> {
 
     /** One source, only if it belongs to this workspace. */
     Optional<SourceEntity> findByWorkspaceIdAndId(UUID workspaceId, UUID id);
+
+    /** State-listener read: serializes job callbacks that update a source lifecycle. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select source from SourceEntity source where source.workspaceId = :workspaceId and source.id = :id")
+    Optional<SourceEntity> findByWorkspaceIdAndIdForUpdate(@Param("workspaceId") UUID workspaceId,
+                                                           @Param("id") UUID id);
 
     /** The workspace's sources, newest first. */
     List<SourceEntity> findByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
