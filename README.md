@@ -15,7 +15,8 @@ Backend module rules: [docs/development/backend-architecture.md](docs/developmen
 - Backend: Java 25, Spring Boot 4.1.1, Maven
 - Frontend: React, TypeScript, Webpack, npm
 
-Python AI and data workloads are planned under `ai-worker/` and are not in the repository yet.
+The first Python AI/data boundary lives under `ai-worker/`: an internal source-ingest worker called by the durable
+PostgreSQL-backed dispatcher. Extraction/indexing implementations are deliberately still separate follow-up work.
 
 ## Directory structure
 
@@ -23,6 +24,7 @@ Python AI and data workloads are planned under `ai-worker/` and are not in the r
 researchhub/
 ├── backend/       Spring Boot application (dev.researchhub)
 ├── frontend/      React + TypeScript application
+├── ai-worker/     Internal Python processing worker
 ├── docs/          Project context and development docs
 ├── compose.yaml   Local PostgreSQL and Azurite for backend development
 ├── .editorconfig
@@ -31,29 +33,28 @@ researchhub/
 └── README.md
 ```
 
-`ai-worker/` (Python) is future work and is not implemented.
-
 ## Prerequisites
 
 - JDK 25 (`JAVA_HOME` or `java` on `PATH`)
 - Node.js and npm
 - Docker and Docker Compose, for local PostgreSQL and Azure Blob emulation
-- Python, when `ai-worker/` exists
+- Python 3.13.3 (pinned in `ai-worker/.python-version`)
 
 ## Local PostgreSQL and Blob Storage
 
 The backend's `local` profile connects to PostgreSQL, started from the root `compose.yaml`:
 
 ```bash
-docker compose up -d postgres azurite
+docker compose up -d postgres azurite ai-worker
 ```
 
-That starts PostgreSQL on `localhost:5432` and Azurite Blob on `localhost:10000`. Named volumes
+That starts PostgreSQL on `localhost:5432`, Azurite Blob on `localhost:10000`, and the internal Python worker on
+`localhost:8090`. Named volumes
 `postgres-data` and `azurite-data` preserve database rows and uploaded source files across restarts. The backend creates
 the `researchhub-sources` blob container automatically on first use.
 
 ```bash
-docker compose stop postgres azurite  # stop, keep rows and blobs
+docker compose stop postgres azurite ai-worker  # stop, keep rows and blobs
 docker compose down -v                # intentional reset: remove both named volumes
 ```
 
@@ -70,12 +71,27 @@ cd backend
 ```
 
 `./mvnw test` needs Docker. Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do
-not use the Compose services above. `./mvnw verify` also enforces at least 80% line coverage across the source module.
+not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
+and processing modules.
 `./mvnw spring-boot:run` still uses Compose.
 
 `./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication` on the `local` profile, which does need the PostgreSQL container above running. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
 
 Open this repository from the monorepo root in IntelliJ (not `backend/` alone) and import `backend/pom.xml` as a Maven project so the backend module is available. The root `.editorconfig` sets UTF-8, LF, 4-space Java and Python indentation, and 2-space TypeScript, JSON, and YAML indentation. Recent IntelliJ versions apply that file with the bundled EditorConfig plugin.
+
+## AI worker
+
+From `ai-worker/`:
+
+```bash
+cd ai-worker
+PYTHONPATH=src python -m researchhub_worker
+python -m pytest
+```
+
+The worker accepts only the internal source-ingest contract and carries no browser session or end-user token.
+`pytest` enforces at least 80% coverage. Durable state, retry policy, and idempotent job identity remain in PostgreSQL;
+see [docs/development/processing.md](docs/development/processing.md).
 
 ## Frontend
 

@@ -27,8 +27,9 @@ Applied migrations:
 | 7 | `V7__create_document_versions.sql` | `document_versions` and its immutability trigger, owned by the `document` module. |
 | 8 | `V8__create_sources.sql` | `sources` and the trigger that keeps each original input immutable, owned by the `source` module. |
 | 9 | `V9__add_source_failure_summary.sql` | Nullable `sources.failure_summary` plus the constraint tying it exactly to `FAILED`. |
+| 10 | `V10__create_processing_jobs.sql` | Durable `processing_jobs`, idempotent resource identity, retry state checks, claim index, and immutable identity trigger. |
 
-The next migration is `V10__<description>.sql`.
+The next migration is `V11__<description>.sql`.
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each
@@ -67,6 +68,7 @@ Today that is:
 | `workspace_members` | `workspace.infrastructure.WorkspaceMemberEntity`, `WorkspaceMemberRepository` | `workspace.domain`: `WorkspaceMembership`, `WorkspaceMembers`, `WorkspaceRole`, `WorkspaceCapability` |
 | `documents` | `document.infrastructure.DocumentEntity`, `DocumentRepository` | `document.domain`: `Document`, `DocumentContent`, `DocumentContentFormat` |
 | `sources` | `source.infrastructure.SourceEntity`, `SourceRepository` | `source.domain`: `Source`, `SourceType`, `SourceStatus`, `SourceFilename`, `StorageKey` |
+| `processing_jobs` | `processing.infrastructure.PostgresProcessingJobQueue` (JDBC, no JPA entity) | `processing.domain`: `ProcessingJob`, its status graph, bounded safe error, and attempt ceiling |
 | `document_versions` | `document.infrastructure.DocumentVersionEntity`, `DocumentVersionRepository` | `document.domain`: `DocumentVersion`, `DocumentVersionReason`; when to snapshot is `document.application.CheckpointPolicy` |
 
 In each case the entity is the persistence representation and converts in both directions; the rules live
@@ -173,6 +175,18 @@ adds three rules of its own. The full reference is [sources.md](sources.md).
 
 `SourceRepositoryIntegrationTest` proves each of these against PostgreSQL, including hand-written `UPDATE`s that the
 trigger refuses.
+
+### Processing jobs
+
+`processing_jobs` is both the durable queue and the attempt ledger. It deliberately uses a JDBC adapter rather than a
+JPA entity because claim is one PostgreSQL-specific `FOR UPDATE SKIP LOCKED` CTE/update statement. The unique
+`(job_type, resource_type, resource_id)` key identifies duplicate enqueue requests; the UUID primary key is the
+worker delivery idempotency key. `workspace_id` is a foreign key, while `resource_id` is a typed generic reference
+whose allowed combinations are closed by the job/resource check constraints.
+
+The state-field check requires exactly the timestamps, retry time, and safe error appropriate for each status.
+`attempt_count` is 0–100, error text is paired and bounded, and the identity trigger prevents retargeting a job.
+Detailed exceptions never enter this table. See [processing.md](processing.md) for claiming, retry, and recovery.
 
 ### Archiving does not delete
 

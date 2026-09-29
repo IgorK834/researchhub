@@ -30,9 +30,13 @@ dev.researchhub
 │   └── infrastructure  DocumentEntity, DocumentRepository, DocumentVersionEntity, DocumentVersionRepository
 ├── source          Uploaded research material
 │   ├── api             SourceController and SourceResponse
-│   ├── application     SourceService, the SourceStorage port, MeteredInputStream, SourceLimits, WorkspaceSourceQuota
+│   ├── application     SourceService, processing listener, the SourceStorage port, limits and quota
 │   ├── domain          Source, SourceType, SourceStatus, SourceFilename, StorageKey
 │   └── infrastructure  SourceEntity, SourceRepository, AzureBlobSourceStorage and its configuration
+├── processing      Durable asynchronous work
+│   ├── application     enqueue service, dispatcher, worker/listener ports and cross-module notifications
+│   ├── domain          ProcessingJob, ProcessingJobStatus, job/resource types, safe error
+│   └── infrastructure  PostgreSQL queue, local HTTP worker client and configuration
 └── shared
     ├── error       Stable API error codes and exceptions modules may throw
     ├── api         HTTP translation of those errors
@@ -150,7 +154,8 @@ The security filter chain is deliberately **not** scoped that way, and authentic
 
 `dev.researchhub.config` holds cross-cutting startup configuration, including the cloud profile's required settings. It is not a dumping ground for product rules.
 
-`shared` holds technology that more than one module needs. It does not hold workspace, document, source, or analysis behavior.
+`shared` holds technology that more than one module needs. It does not hold workspace, document, source, processing,
+or analysis behavior.
 
 ## Modules added with their first feature
 
@@ -163,6 +168,7 @@ Create the package when the first type for that module is added. Do not add empt
 | `workspace` | Workspace aggregate, membership, and authorization decisions for workspace-owned resources |
 | `document` | Collaborative report content owned by a workspace |
 | `source` | Workspace source metadata and ingestion status |
+| `processing` | Durable job identity/state, safe claim/retry/recovery, and worker delivery ports |
 | `ai` | AI request orchestration. Model calls and data processing stay outside this Java module when they belong in `ai-worker/` |
 | `analysis` | Analysis artifacts, execution status, and provenance of computed results |
 | `audit` | Audit events |
@@ -210,6 +216,7 @@ prohibition of the normal case.
 | `workspace.application` | `dev.researchhub.user.application.UserLookupService` and `UserAccount` | A workspace's roster is membership rows plus the names and addresses they point at, and `user` owns those. `WorkspaceMembershipService` resolves one exact email to add a member, and a set of ids to render the roster. It reads `id()`, `email()`, and `displayName()`, and never `status()`. |
 | `document.api` | `dev.researchhub.auth.application` | Every document route acts on behalf of the signed-in user, and `auth` owns the session. As in `workspace.api`, the caller comes from `CurrentUserResolver` rather than the body, and only `id()` is read. |
 | `source.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Exactly as for documents: a source's access rule is its workspace's. `SourceService` calls the two `void` guards and never learns what a role is. `source` must not import `workspace.domain`, `workspace.infrastructure`, `user.domain`, or `user.infrastructure`, and nothing in `source.domain` or `source.application` may import a cloud SDK. |
+| `source.application` | `dev.researchhub.processing.application` | `SourceService` enqueues the durable job in its database transaction; `SourceIngestJobStateListener` implements the narrow notification interface to mirror status. It imports no processing domain or infrastructure type. |
 | `document.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | A document's access rule *is* its workspace's. `DocumentService` calls `requireContentReader` and `requireContentEditor`, which return `void` precisely so this edge stays this narrow. |
 
 **The document module never learns what a role is.** It does not import `WorkspaceRole` or
@@ -236,7 +243,7 @@ reimplementing it, and would drift the first time the rule changed.
 
 - `UserAccount.status` is a `String`, not the `UserStatus` enum. Returning the enum would force every reader of `user.application` to import `user.domain`, quietly widening this dependency.
 - `user.application` hashes passwords through Spring Security's `PasswordEncoder` interface, not through anything in `auth`. The bean is defined in `auth`, but the type it satisfies is a library interface, so the arrow still points one way.
-- `shared` must not depend on `auth`, `user`, `workspace`, `document`, `source`, `ai`, `analysis`, `audit`, or the future modules above.
+- `shared` must not depend on `auth`, `user`, `workspace`, `document`, `source`, `processing`, `ai`, `analysis`, `audit`, or the future modules above.
 - `config` may use Spring and `shared`. It must not depend on a product module.
 - `BackendApplication` stays in `dev.researchhub` so component scan covers `dev.researchhub` and its children. New modules belong under that root.
 
@@ -265,7 +272,7 @@ If a type names a product concept, it belongs in that module.
 Name the owning module in the issue body:
 
 ```text
-Module: auth | user | workspace | document | source | ai | analysis | audit | shared
+Module: auth | user | workspace | document | source | processing | ai | analysis | audit | shared
 ```
 
 Use `shared` only when the change is cross-cutting. A feature that touches a workspace resource is `workspace` even if it also returns an error from `shared`.

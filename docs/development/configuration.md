@@ -60,13 +60,14 @@ public emulator account and key; those values grant access only to the local emu
 
 When a later task needs something like a database URL on your machine, export it in the shell or set it on the IntelliJ run configuration. Copy names from `.env.example` if you keep a private `.env` for your own tools. Do not commit that private file.
 
-## Local PostgreSQL and Azurite
+## Local PostgreSQL, Azurite, and processing worker
 
-The root `compose.yaml` runs PostgreSQL and the Azure Blob emulator for local development. Both use named volumes, so
+The root `compose.yaml` runs PostgreSQL, the Azure Blob emulator, and the internal Python worker for local development.
+PostgreSQL and Azurite use named volumes, so
 ordinary stop/start cycles preserve database rows and uploaded blobs.
 
 ```bash
-docker compose up -d postgres azurite
+docker compose up -d postgres azurite ai-worker
 ```
 
 `application-local.yaml` connects to PostgreSQL with these variables. Each already has a default matching
@@ -128,6 +129,12 @@ The defaults need no environment variables. If port 10000 is occupied, set `AZUR
 `AZURITE_BLOB_ENDPOINT` to the matching host URL, including `/devstoreaccount1`. The account name, public emulator
 key, and container can also be overridden with `AZURITE_ACCOUNT_NAME`, `AZURITE_ACCOUNT_KEY`, and
 `AZURITE_CONTAINER_NAME`. None of these local values is read by the cloud profile.
+
+The worker listens on `localhost:${AI_WORKER_PORT:-8090}`. Spring targets
+`AI_WORKER_BASE_URL` (default `http://127.0.0.1:8090`) and creates fresh internal requests without end-user
+credentials. `AI_WORKER_REQUEST_TIMEOUT` defaults to `PT30S`. Dispatcher variables and failure semantics are listed
+in [processing.md](processing.md). If the published port changes, set the base URL to match. Stopping `ai-worker` is
+safe: committed jobs remain in PostgreSQL and are retried.
 
 ## Test profile
 
@@ -226,3 +233,20 @@ autosave, and a negative value fails startup. See [persistence.md](persistence.m
 The adapter also has `account-key`; the committed default is Azurite's public development key, never a cloud key.
 Container names, paths, and credentials belong to the chosen adapter's own settings, never to the source module. See
 [sources.md](sources.md#storage).
+
+### Durable processing
+
+| Setting | Value |
+| --- | --- |
+| Dispatcher enabled | `researchhub.processing.dispatcher.enabled`; `PROCESSING_DISPATCHER_ENABLED`, default `true`. |
+| Poll delay | `researchhub.processing.dispatcher.fixed-delay`; `PROCESSING_FIXED_DELAY`, default `PT1S`. |
+| Batch size | `researchhub.processing.dispatcher.batch-size`; `PROCESSING_BATCH_SIZE`, default `4`, range 1–100. |
+| Attempt limit | `researchhub.processing.dispatcher.max-attempts`; `PROCESSING_MAX_ATTEMPTS`, default `5`, range 1–100. |
+| Retry delay | `initial-backoff` / `max-backoff`; `PROCESSING_INITIAL_BACKOFF` / `PROCESSING_MAX_BACKOFF`, defaults `PT2S` / `PT1M`. |
+| Stale lease | `researchhub.processing.dispatcher.stale-timeout`; `PROCESSING_STALE_TIMEOUT`, default `PT5M`. |
+| Worker URL | `researchhub.processing.worker.base-url`; `AI_WORKER_BASE_URL`, default `http://127.0.0.1:8090`. |
+| Worker published port | Compose-only `AI_WORKER_PORT`, default `8090`; keep the worker URL in sync. |
+| Worker timeout | `researchhub.processing.worker.request-timeout`; `AI_WORKER_REQUEST_TIMEOUT`, default `PT30S`. |
+
+Durations are ISO-8601 and must be positive. The full state, retry, and internal contract reference is
+[processing.md](processing.md).

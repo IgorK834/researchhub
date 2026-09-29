@@ -4,8 +4,9 @@ Uploaded research material: the files a workspace's documents, retrieval, and an
 reference for how a file becomes a source. Product context: [../context.md](../context.md) section 10. Schema:
 [persistence.md](persistence.md#sources).
 
-The domain model, `sources` table (V8 and V9), application service, HTTP API, React browse/upload UI, and Azure Blob adapter are
-implemented. Locally the adapter talks to Azurite through the same Azure SDK client used for Azure Blob Storage.
+The domain model, `sources` table (V8 and V9), application service, durable `SOURCE_INGEST` enqueue, HTTP API, React
+browse/upload UI, and Azure Blob adapter are implemented. Locally the adapter talks to Azurite through the same Azure
+SDK client used for Azure Blob Storage.
 The source service is only created once an adapter is configured (see [Storage](#storage)).
 
 ## Types
@@ -148,17 +149,19 @@ silently falling back to local disk. `SourceStorageContract` is the common adapt
 `AzureBlobSourceStorageIntegrationTest` runs it against a real Azurite container as well as exercising the complete
 `SourceService` -> PostgreSQL + Azurite -> read-back path.
 
-**Upload order.** The bytes are stored first and the row is inserted second. Storage is not transactional, so this
+**Upload order.** The bytes are stored first, then the source row and its idempotent `SOURCE_INGEST` job are inserted
+in one PostgreSQL transaction. Storage is not transactional, so this
 order fails safe:
 
 - a failed store leaves no row pointing at nothing
-- a refused or failed insert deletes the stored object
+- a refused or failed source/job transaction deletes the stored object
 - a crash between the two leaves an unreferenced object, which nothing can reach and a future reconciliation job would
   sweep
 
-No failed upload is ever marked `READY`: a successfully stored and recorded input starts at `UPLOADED`; processing is
-a separate lifecycle step. A future reconciliation job may remove crash-only orphan blobs, but no scheduler was added
-as part of RH-072/RH-073.
+No failed upload is ever marked `READY`: a successfully stored and recorded input starts at `UPLOADED`. The processing
+dispatcher later mirrors `RUNNING`/success/terminal failure as `PROCESSING`/`READY`/`FAILED`. A future reconciliation
+job may remove crash-only orphan blobs; the processing scheduler does not delete storage. Queue behavior:
+[processing.md](processing.md).
 
 ## HTTP API
 
