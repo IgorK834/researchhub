@@ -1,59 +1,107 @@
+import json
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
-from researchhub_worker.contracts import ContractError, SourceIngestCommand
+from researchhub_worker.contracts import (
+    ContractError,
+    SourceIngestCommand,
+    SourceIngestResult,
+    parse_source_ingest,
+)
 
-
-def payload() -> dict[str, object]:
-    return {
-        "jobId": str(uuid4()),
-        "workspaceId": str(uuid4()),
-        "jobType": "SOURCE_INGEST",
-        "resourceType": "SOURCE",
-        "resourceId": str(uuid4()),
-        "attempt": 1,
-    }
+FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v1"
 
 
-def test_parses_the_explicit_source_ingest_contract() -> None:
-    raw = payload()
-    command = SourceIngestCommand.from_json(raw)
+def fixture(name: str) -> dict[str, object]:
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+
+
+def test_parses_and_round_trips_the_shared_request_fixture() -> None:
+    raw = fixture("source-ingest-request.json")
+
+    command = parse_source_ingest(raw)
 
     assert str(command.job_id) == raw["jobId"]
-    assert command.job_type == "SOURCE_INGEST"
-    assert command.resource_type == "SOURCE"
-    assert command.attempt == 1
+    assert command.source_type == "PDF"
+    assert command.file_access.kind == "SIGNED_URL"
+    assert command.requested_processing_version == "source-ingest-1"
+    assert command.model_dump(mode="json", by_alias=True) == raw
 
 
 @pytest.mark.parametrize(
-    ("change", "message"),
+    "change",
     [
-        ({"jobId": "bad"}, "jobId must be a UUID"),
-        ({"workspaceId": 7}, "workspaceId must be a UUID"),
-        ({"resourceId": "bad"}, "resourceId must be a UUID"),
-        ({"jobType": "ANALYSIS_EXECUTION"}, "jobType must be SOURCE_INGEST"),
-        ({"resourceType": "DOCUMENT"}, "resourceType must be SOURCE"),
-        ({"attempt": 0}, "attempt must be an integer between 1 and 100"),
-        ({"attempt": True}, "attempt must be an integer between 1 and 100"),
+        {"schemaVersion": "2.0"},
+        {"jobId": "bad"},
+        {"workspaceId": 7},
+        {"sourceId": "bad"},
+        {"sourceType": "EXECUTABLE"},
+        {"requestedProcessingVersion": "latest"},
+        {"attempt": 0},
+        {"attempt": True},
     ],
 )
-def test_rejects_invalid_fields(change: dict[str, object], message: str) -> None:
-    raw = payload() | change
-    with pytest.raises(ContractError, match=message):
-        SourceIngestCommand.from_json(raw)
+def test_rejects_invalid_request_fields_without_echoing_values(change: dict[str, object]) -> None:
+    raw = fixture("source-ingest-request.json") | change
+
+    with pytest.raises(ContractError, match="contract v1") as failure:
+        parse_source_ingest(raw)
+
+    assert "bad" not in str(failure.value)
+    assert "latest" not in str(failure.value)
 
 
-def test_rejects_missing_unknown_and_non_object_contracts() -> None:
-    raw = payload()
-    raw["authorization"] = "must-never-cross-the-boundary"
-    with pytest.raises(ContractError, match="fields do not match"):
-        SourceIngestCommand.from_json(raw)
+def test_rejects_missing_unknown_and_unsafe_file_access() -> None:
+    unknown = fixture("source-ingest-request.json") | {"authorization": "must-not-cross"}
+    with pytest.raises(ContractError, match="contract v1"):
+        parse_source_ingest(unknown)
 
-    del raw["authorization"]
-    del raw["resourceId"]
-    with pytest.raises(ContractError, match="fields do not match"):
-        SourceIngestCommand.from_json(raw)
+    missing = fixture("source-ingest-request.json")
+    del missing["sourceId"]
+    with pytest.raises(ContractError, match="contract v1"):
+        parse_source_ingest(missing)
 
-    with pytest.raises(ContractError, match="JSON object"):
-        SourceIngestCommand.from_json([])
+    unsafe = fixture("source-ingest-request.json")
+    unsafe["fileAccess"] = {
+        "kind": "LOCAL_PATH",
+        "url": "file:///private/input.pdf",
+        "expiresAt": "2030-01-02T03:04:05",
+    }
+    with pytest.raises(ContractError, match="contract v1"):
+        parse_source_ingest(unsafe)
+
+
+def test_parses_shared_success_and_failure_result_fixtures() -> None:
+    success = SourceIngestResult.model_validate(fixture("source-ingest-result-success.json"))
+    failed = SourceIngestResult.model_validate(fixture("source-ingest-result-failure.json"))
+
+    assert success.status == "SUCCEEDED"
+    assert success.extraction_metadata is not None
+    assert len(success.structure.pages) == 1
+    assert len(success.structure.sections) == 1
+    assert len(success.chunks) == 1
+    assert failed.status == "FAILED"
+    assert failed.failure is not None
+    assert failed.failure.code == "DOCUMENT_PARSE_FAILED"
+
+
+def test_result_status_ranges_and_identity_are_validated() -> None:
+    command = SourceIngestCommand.model_validate(fixture("source-ingest-request.json"))
+    success = SourceIngestResult.model_validate(fixture("source-ingest-result-success.json"))
+    success.validate_identity(command)
+
+    with pytest.raises(ContractError, match="identity"):
+        success.model_copy(update={"workspace_id": uuid4()}).validate_identity(command)
+
+    invalid_status = fixture("source-ingest-result-success.json")
+    invalid_status["failure"] = {"code": "FAILED", "message": "safe"}
+    with pytest.raises(ValidationError, match="successful result"):
+        SourceIngestResult.model_validate(invalid_status)
+
+    reversed_page = fixture("source-ingest-result-success.json")
+    reversed_page["structure"]["pages"][0]["characterStart"] = 29  # type: ignore[index]
+    with pytest.raises(ValidationError, match="range is reversed"):
+        SourceIngestResult.model_validate(reversed_page)

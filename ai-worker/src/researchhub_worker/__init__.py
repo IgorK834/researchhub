@@ -1,6 +1,6 @@
-"""Internal, token-free processing boundary for ResearchHub."""
+"""Authenticated internal processing boundary for ResearchHub."""
 
-from .contracts import SourceIngestCommand
+from .contracts import SourceIngestCommand, SourceIngestResult
 from .processor import IdempotentSourceIngestProcessor, ProcessResult
 
-__all__ = ["IdempotentSourceIngestProcessor", "ProcessResult", "SourceIngestCommand"]
+__all__ = ["IdempotentSourceIngestProcessor", "ProcessResult", "SourceIngestCommand", "SourceIngestResult"]

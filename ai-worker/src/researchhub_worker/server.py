@@ -1,9 +1,11 @@
-"""Minimal internal FastAPI surface for asynchronous AI/data processing."""
+"""Minimal authenticated FastAPI surface for asynchronous AI/data processing."""
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+import secrets
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -11,18 +13,21 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHttpException
 
-from .contracts import ContractError, SourceIngestCommand
+from .contracts import ContractError, parse_source_ingest
 from .processor import IdempotencyConflict, IdempotentSourceIngestProcessor
 
 LOGGER = logging.getLogger(__name__)
 MAX_REQUEST_BYTES = 16 * 1024
+MIN_SERVICE_TOKEN_LENGTH = 32
 SOURCE_INGEST_PATH = "/internal/jobs/source-ingest"
 
 
 def create_app(
     processor: IdempotentSourceIngestProcessor | None = None,
+    service_token: str | None = None,
 ) -> FastAPI:
-    """Build the internal worker API without product-facing domain routes."""
+    """Build the internal worker API; fail closed when no service credential exists."""
+    expected_token = _service_token(service_token)
     app = FastAPI(
         title="ResearchHub AI worker",
         docs_url=None,
@@ -51,10 +56,19 @@ def create_app(
 
     @app.post(SOURCE_INGEST_PATH, include_in_schema=False)
     async def source_ingest(request: Request) -> JSONResponse:
+        if not _authorized(request, expected_token):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Unauthorized"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         try:
-            command = SourceIngestCommand.from_json(await _request_json(request))
-            result = await run_in_threadpool(worker.process, command)
-            return JSONResponse(status_code=200, content={"accepted": True, "duplicate": result.duplicate})
+            command = parse_source_ingest(await _request_json(request))
+            processed = await run_in_threadpool(worker.process, command)
+            return JSONResponse(
+                status_code=200,
+                content=processed.result.model_dump(mode="json", by_alias=True),
+            )
         except ContractError as invalid:
             return JSONResponse(status_code=400, content={"error": str(invalid)})
         except IdempotencyConflict as conflict:
@@ -64,6 +78,23 @@ def create_app(
             return JSONResponse(status_code=500, content={"error": "Processing failed"})
 
     return app
+
+
+def _service_token(provided: str | None) -> str:
+    token = provided if provided is not None else os.getenv("AI_WORKER_SERVICE_TOKEN")
+    if token is None or len(token) < MIN_SERVICE_TOKEN_LENGTH or token.strip() != token:
+        raise RuntimeError("AI_WORKER_SERVICE_TOKEN must contain at least 32 non-whitespace characters")
+    return token
+
+
+def _authorized(request: Request, expected_token: str) -> bool:
+    scheme, separator, credential = request.headers.get("Authorization", "").partition(" ")
+    return (
+        separator == " "
+        and scheme.lower() == "bearer"
+        and bool(credential)
+        and secrets.compare_digest(credential, expected_token)
+    )
 
 
 async def _request_json(request: Request) -> Any:

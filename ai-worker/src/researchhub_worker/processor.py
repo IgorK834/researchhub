@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from threading import Lock
 
-from .contracts import SourceIngestCommand
+from .contracts import ContractError, SourceIngestCommand, SourceIngestResult
 
 
 class IdempotencyConflict(RuntimeError):
@@ -15,20 +15,19 @@ class IdempotencyConflict(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class ProcessResult:
+    result: SourceIngestResult
     duplicate: bool
 
 
 class IdempotentSourceIngestProcessor:
-    """Executes a command once per process and makes HTTP redelivery harmless.
+    """Executes a command once per process and makes HTTP redelivery harmless."""
 
-    PostgreSQL remains the durable source of truth. This small registry only protects a
-    running worker from an ambiguous HTTP retry; future extraction writes must also use
-    ``job_id`` as their database idempotency key.
-    """
-
-    def __init__(self, handler: Callable[[SourceIngestCommand], None] | None = None) -> None:
-        self._handler = handler or (lambda _command: None)
-        self._completed: dict[str, SourceIngestCommand] = {}
+    def __init__(
+        self,
+        handler: Callable[[SourceIngestCommand], SourceIngestResult] | None = None,
+    ) -> None:
+        self._handler = handler or SourceIngestResult.empty_success
+        self._completed: dict[str, tuple[SourceIngestCommand, SourceIngestResult]] = {}
         self._lock = Lock()
 
     def process(self, command: SourceIngestCommand) -> ProcessResult:
@@ -36,12 +35,16 @@ class IdempotentSourceIngestProcessor:
         with self._lock:
             existing = self._completed.get(key)
             if existing is not None:
-                if existing.operation_key() != command.operation_key():
+                existing_command, result = existing
+                if existing_command.operation_key() != command.operation_key():
                     raise IdempotencyConflict("job id was already used for a different command")
-                return ProcessResult(duplicate=True)
+                return ProcessResult(result=result.as_duplicate(), duplicate=True)
 
-            # Keep the critical section through execution. The local worker is deliberately
-            # conservative: concurrent redelivery cannot acknowledge before the first call ends.
-            self._handler(command)
-            self._completed[key] = command
-            return ProcessResult(duplicate=False)
+            # Keep the critical section through execution so concurrent redelivery cannot
+            # acknowledge before the first execution has produced a validated result.
+            result = self._handler(command)
+            if not isinstance(result, SourceIngestResult):
+                raise ContractError("Processor did not return contract v1")
+            result.validate_identity(command)
+            self._completed[key] = (command, result)
+            return ProcessResult(result=result, duplicate=False)

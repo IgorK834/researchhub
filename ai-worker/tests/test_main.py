@@ -9,6 +9,7 @@ def test_main_starts_uvicorn_from_environment(monkeypatch) -> None:
     monkeypatch.setenv("AI_WORKER_HOST", "127.0.0.1")
     monkeypatch.setenv("AI_WORKER_PORT", "9010")
     monkeypatch.setenv("LOG_LEVEL", "WARNING")
+    monkeypatch.setenv("AI_WORKER_SERVICE_TOKEN", "unit-test-service-token-at-least-32-characters")
 
     with patch("researchhub_worker.__main__.uvicorn.run") as run:
         main()

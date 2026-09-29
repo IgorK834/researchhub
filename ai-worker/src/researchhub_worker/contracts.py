@@ -1,59 +1,202 @@
-"""Strict JSON contracts shared at the Spring/Python boundary."""
+"""Versioned, strict contracts at the Spring/Python processing boundary."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+from datetime import datetime
+from typing import Annotated, Literal
 from uuid import UUID
+
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StringConstraints,
+    ValidationError,
+    model_validator,
+)
+
+SCHEMA_VERSION = "1.0"
+PROCESSING_VERSION = "source-ingest-1"
+MAX_PAGES = 10_000
+MAX_SECTIONS = 50_000
+MAX_CHUNKS = 100_000
+MAX_WARNINGS = 100
+
+ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+Identifier = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+FailureCode = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,63}$")]
+
+
+def _camel_case(value: str) -> str:
+    first, *rest = value.split("_")
+    return first + "".join(word.capitalize() for word in rest)
 
 
 class ContractError(ValueError):
-    """A safe request validation failure."""
+    """A safe validation failure that never echoes submitted values."""
 
 
-@dataclass(frozen=True, slots=True)
-class SourceIngestCommand:
-    job_id: UUID
-    workspace_id: UUID
-    job_type: str
-    resource_type: str
-    resource_id: UUID
-    attempt: int
+class ContractModel(BaseModel):
+    """No unknown fields and stable camelCase JSON on every boundary model."""
 
-    _FIELDS = frozenset(
-        {"jobId", "workspaceId", "jobType", "resourceType", "resourceId", "attempt"}
+    model_config = ConfigDict(
+        alias_generator=lambda name: _camel_case(name),
+        populate_by_name=True,
+        extra="forbid",
+        frozen=True,
     )
 
-    def operation_key(self) -> tuple[UUID, str, str, UUID]:
-        """Immutable target identity; attempt is delivery metadata and may increase on retry."""
-        return self.workspace_id, self.job_type, self.resource_type, self.resource_id
+
+class TemporaryFileAccess(ContractModel):
+    kind: Literal["SIGNED_URL"]
+    url: AnyHttpUrl
+    expires_at: datetime
+
+    @model_validator(mode="after")
+    def require_timezone(self) -> TemporaryFileAccess:
+        if self.expires_at.tzinfo is None or self.expires_at.utcoffset() is None:
+            raise ValueError("expiresAt must include a timezone")
+        return self
+
+
+class SourceIngestCommand(ContractModel):
+    schema_version: Literal[SCHEMA_VERSION]
+    job_id: UUID
+    workspace_id: UUID
+    source_id: UUID
+    source_type: Literal["PDF", "DOCX", "XLSX", "CSV", "TXT"]
+    file_access: TemporaryFileAccess
+    requested_processing_version: Literal[PROCESSING_VERSION]
+    attempt: Annotated[StrictInt, Field(ge=1, le=100)]
+
+    def operation_key(self) -> tuple[UUID, UUID, str, str]:
+        """Immutable target identity; delivery attempt and a renewed URL may change."""
+        return (
+            self.workspace_id,
+            self.source_id,
+            self.source_type,
+            self.requested_processing_version,
+        )
+
+
+class ExtractionMetadata(ContractModel):
+    title: Annotated[str, StringConstraints(max_length=500)] | None = None
+    author: Annotated[str, StringConstraints(max_length=500)] | None = None
+    language: Annotated[str, StringConstraints(max_length=32)] | None = None
+    page_count: Annotated[int, Field(ge=0)]
+    character_count: Annotated[int, Field(ge=0)]
+    content_sha256: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")] | None = None
+
+
+class PageStructure(ContractModel):
+    page_number: Annotated[int, Field(ge=1)]
+    character_start: Annotated[int, Field(ge=0)]
+    character_end: Annotated[int, Field(ge=0)]
+
+    @model_validator(mode="after")
+    def valid_range(self) -> PageStructure:
+        if self.character_end < self.character_start:
+            raise ValueError("page character range is reversed")
+        return self
+
+
+class SectionStructure(ContractModel):
+    section_id: Identifier
+    heading: Annotated[str, StringConstraints(max_length=500)] | None = None
+    level: Annotated[int, Field(ge=1, le=20)]
+    parent_section_id: Identifier | None = None
+    character_start: Annotated[int, Field(ge=0)]
+    character_end: Annotated[int, Field(ge=0)]
+
+    @model_validator(mode="after")
+    def valid_range(self) -> SectionStructure:
+        if self.character_end < self.character_start:
+            raise ValueError("section character range is reversed")
+        return self
+
+
+class DocumentStructure(ContractModel):
+    pages: Annotated[list[PageStructure], Field(max_length=MAX_PAGES)]
+    sections: Annotated[list[SectionStructure], Field(max_length=MAX_SECTIONS)]
+
+
+class ExtractedChunk(ContractModel):
+    chunk_id: Identifier
+    ordinal: Annotated[int, Field(ge=0)]
+    text: Annotated[str, StringConstraints(max_length=250_000)]
+    page_number: Annotated[int, Field(ge=1)] | None = None
+    section_id: Identifier | None = None
+    character_start: Annotated[int, Field(ge=0)]
+    character_end: Annotated[int, Field(ge=0)]
+
+    @model_validator(mode="after")
+    def valid_range(self) -> ExtractedChunk:
+        if self.character_end < self.character_start:
+            raise ValueError("chunk character range is reversed")
+        return self
+
+
+class ProcessingFailure(ContractModel):
+    code: FailureCode
+    message: ShortText
+
+
+class SourceIngestResult(ContractModel):
+    schema_version: Literal[SCHEMA_VERSION]
+    job_id: UUID
+    workspace_id: UUID
+    source_id: UUID
+    processing_version: Literal[PROCESSING_VERSION]
+    status: Literal["SUCCEEDED", "FAILED"]
+    duplicate_delivery: bool = False
+    extraction_metadata: ExtractionMetadata | None
+    structure: DocumentStructure
+    chunks: Annotated[list[ExtractedChunk], Field(max_length=MAX_CHUNKS)]
+    warnings: Annotated[list[ShortText], Field(max_length=MAX_WARNINGS)]
+    failure: ProcessingFailure | None
+
+    @model_validator(mode="after")
+    def consistent_status(self) -> SourceIngestResult:
+        if self.status == "SUCCEEDED" and (self.failure is not None or self.extraction_metadata is None):
+            raise ValueError("a successful result needs metadata and no failure")
+        if self.status == "FAILED" and self.failure is None:
+            raise ValueError("a failed result needs a failure")
+        return self
+
+    def validate_identity(self, command: SourceIngestCommand) -> None:
+        if (
+            self.job_id != command.job_id
+            or self.workspace_id != command.workspace_id
+            or self.source_id != command.source_id
+            or self.processing_version != command.requested_processing_version
+        ):
+            raise ContractError("Worker result identity does not match the request")
 
     @classmethod
-    def from_json(cls, value: Any) -> SourceIngestCommand:
-        if not isinstance(value, dict):
-            raise ContractError("Request body must be a JSON object")
-        unknown = set(value) - cls._FIELDS
-        missing = cls._FIELDS - set(value)
-        if unknown or missing:
-            raise ContractError("Request fields do not match the source-ingest contract")
+    def empty_success(cls, command: SourceIngestCommand) -> SourceIngestResult:
+        return cls(
+            schema_version=SCHEMA_VERSION,
+            job_id=command.job_id,
+            workspace_id=command.workspace_id,
+            source_id=command.source_id,
+            processing_version=command.requested_processing_version,
+            status="SUCCEEDED",
+            extraction_metadata=ExtractionMetadata(page_count=0, character_count=0),
+            structure=DocumentStructure(pages=[], sections=[]),
+            chunks=[],
+            warnings=[],
+            failure=None,
+        )
 
-        job_id = _uuid(value["jobId"], "jobId")
-        workspace_id = _uuid(value["workspaceId"], "workspaceId")
-        resource_id = _uuid(value["resourceId"], "resourceId")
-        if value["jobType"] != "SOURCE_INGEST":
-            raise ContractError("jobType must be SOURCE_INGEST")
-        if value["resourceType"] != "SOURCE":
-            raise ContractError("resourceType must be SOURCE")
-        attempt = value["attempt"]
-        if isinstance(attempt, bool) or not isinstance(attempt, int) or not 1 <= attempt <= 100:
-            raise ContractError("attempt must be an integer between 1 and 100")
-        return cls(job_id, workspace_id, value["jobType"], value["resourceType"], resource_id, attempt)
+    def as_duplicate(self) -> SourceIngestResult:
+        return self.model_copy(update={"duplicate_delivery": True})
 
 
-def _uuid(value: Any, field: str) -> UUID:
-    if not isinstance(value, str):
-        raise ContractError(f"{field} must be a UUID")
+def parse_source_ingest(value: object) -> SourceIngestCommand:
+    """Parse untrusted JSON while exposing only a stable, value-free error."""
     try:
-        return UUID(value)
-    except ValueError as invalid:
-        raise ContractError(f"{field} must be a UUID") from invalid
+        return SourceIngestCommand.model_validate(value)
+    except ValidationError as invalid:
+        raise ContractError("Request does not match source-ingest contract v1") from invalid

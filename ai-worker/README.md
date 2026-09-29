@@ -1,12 +1,13 @@
 # ResearchHub AI worker
 
 This dedicated, internal-only Python process is the boundary for document and AI/data workloads. It receives durable
-processing jobs from the Spring dispatcher. PostgreSQL in the backend remains the source of truth; the HTTP contract
-carries only job/workspace/resource identifiers and an attempt number—never an end-user cookie or authorization
-token.
+processing jobs from the Spring dispatcher. PostgreSQL in the backend remains the source of truth. The versioned
+HTTP contract carries trusted job/workspace/source identity and a short-lived, read-only blob URL—never an end-user
+cookie or authorization token.
 
-The first contract is `POST /internal/jobs/source-ingest`. The current handler establishes validation,
-idempotency, retries, and the process boundary; extraction/indexing is added behind
+The first contract is `POST /internal/jobs/source-ingest`. It requires a backend service Bearer token and returns a
+strict result with extraction metadata, document structure, chunks, warnings, and a failure object. The current
+handler establishes validation, idempotency, retries, and the process boundary; extraction/indexing is added behind
 `IdempotentSourceIngestProcessor` without moving those concerns into the Java domain.
 
 The only other route is the process probe `GET /health`. This is not a product API. Workspace membership,
@@ -22,7 +23,7 @@ Install the pinned uv release (for example `python -m pip install uv==0.12.20`),
 
 ```bash
 uv sync --frozen
-uv run --frozen researchhub-worker
+AI_WORKER_SERVICE_TOKEN="replace-with-at-least-32-random-characters" uv run --frozen researchhub-worker
 ```
 
 The worker is now independent of the backend and answers `http://127.0.0.1:8090/health`. It can also be built and
@@ -41,9 +42,17 @@ uv run --frozen pytest
 
 `pytest` enforces at least 80% branch-aware coverage of `researchhub_worker`.
 
+`AI_WORKER_SERVICE_TOKEN` is mandatory when the process starts. Compose supplies a conspicuous localhost-only
+default shared with Spring; a deployment must inject the same high-entropy secret into both processes. It must not
+be exposed as a frontend variable or written to logs. Missing and invalid credentials receive `401`. The public
+`/health` probe performs no work and needs no credential.
+
 ## Data and security boundary
 
 The worker has no PostgreSQL driver, receives no product database URL, and must not connect directly to ResearchHub's
 product database. Spring owns workspace authorization and durable job state. Future processors may use explicitly
 scoped internal contracts or storage access designed for the workload, but they must not bypass that boundary. The
 worker also does not execute generated user/AI code; such execution belongs in the separately isolated sandbox.
+
+The canonical v1 examples are in `../contracts/processing/v1/`; both Java and Python contract tests consume those
+same files. See `../docs/development/processing-contract-v1.md` for the compatibility and limit policy.
