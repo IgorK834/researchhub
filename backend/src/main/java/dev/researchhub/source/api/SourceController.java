@@ -82,6 +82,8 @@ public class SourceController {
                 .contentType(MediaType.parseMediaType(opened.source().mediaType()))
                 .contentLength(opened.source().sizeBytes())
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .header("X-Content-Type-Options", "nosniff")
                 .body(new InputStreamResource(opened.content()));
     }
 

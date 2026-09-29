@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.ContentDisposition;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -123,6 +124,7 @@ class SourceApiIntegrationTest {
             JsonNode source = owner.browser().json(response);
             assertEquals(upload.type(), source.get("sourceType").asString());
             assertEquals("UPLOADED", source.get("status").asString());
+            assertTrue(source.get("failureSummary").isNull());
             assertFalse(source.has("storageKey"), "storage locations are never a public capability");
             if (upload.type().equals("PDF")) {
                 pdfId = source.get("id").asString();
@@ -138,6 +140,46 @@ class SourceApiIntegrationTest {
         HttpResponse<String> listed = owner.browser().get(sourcesPath(owner.workspaceId()));
         assertEquals(200, listed.statusCode(), listed.body());
         assertEquals(3, owner.browser().json(listed).size());
+    }
+
+    @Test
+    void viewerCanBrowseMetadataAndDownloadWithASafeFilename() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        HttpResponse<String> uploaded = owner.browser().postFile(sourcesPath(owner.workspaceId()),
+                "Quarterly report.pdf", "application/pdf", PDF);
+        String sourceId = owner.browser().json(uploaded).get("id").asString();
+        jdbcTemplate.update("""
+                UPDATE sources
+                SET status = 'FAILED', failure_summary = 'The PDF is password protected.', updated_at = now()
+                WHERE id = ?
+                """, UUID.fromString(sourceId));
+        ApiBrowser viewer = memberWithRole(owner, "reader@example.com", "VIEWER");
+
+        HttpResponse<String> listed = viewer.get(sourcesPath(owner.workspaceId()));
+        HttpResponse<String> detail = viewer.get(sourcesPath(owner.workspaceId()) + "/" + sourceId);
+        HttpResponse<String> content = viewer.get(sourcesPath(owner.workspaceId()) + "/" + sourceId + "/content");
+
+        assertEquals(200, listed.statusCode(), listed.body());
+        assertEquals(1, viewer.json(listed).size());
+        assertFalse(viewer.json(listed).get(0).has("storageKey"));
+        assertFalse(viewer.json(listed).get(0).has("content"), "the metadata list never embeds file bytes");
+        assertEquals("FAILED", viewer.json(listed).get(0).get("status").asString());
+        assertEquals("The PDF is password protected.",
+                viewer.json(listed).get(0).get("failureSummary").asString());
+
+        assertEquals(200, detail.statusCode(), detail.body());
+        assertEquals(sourceId, viewer.json(detail).get("id").asString());
+        assertEquals("The PDF is password protected.", viewer.json(detail).get("failureSummary").asString());
+
+        assertEquals(200, content.statusCode(), content.body());
+        assertEquals("application/pdf", content.headers().firstValue("Content-Type").orElseThrow());
+        assertEquals("private, no-store", content.headers().firstValue("Cache-Control").orElseThrow());
+        assertEquals("nosniff", content.headers().firstValue("X-Content-Type-Options").orElseThrow());
+        String dispositionHeader = content.headers().firstValue("Content-Disposition").orElseThrow();
+        assertEquals("Quarterly report.pdf", ContentDisposition.parse(dispositionHeader).getFilename());
+        assertFalse(dispositionHeader.contains("\r"));
+        assertFalse(dispositionHeader.contains("\n"));
+        assertEquals(new String(PDF, StandardCharsets.US_ASCII), content.body());
     }
 
     @Test
@@ -191,6 +233,31 @@ class SourceApiIntegrationTest {
         assertEquals(outsider.json(missing).get("detail").asString(),
                 outsider.json(denied).get("detail").asString());
         assertEquals(0, sourceRows());
+    }
+
+    @Test
+    void nonMemberCannotInferSourceFromListDetailOrContent() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        HttpResponse<String> uploaded = owner.browser().postFile(sourcesPath(owner.workspaceId()),
+                "private.csv", "text/csv", CSV);
+        String sourceId = owner.browser().json(uploaded).get("id").asString();
+        ApiBrowser outsider = browser();
+        outsider.signUp("no-access@example.com", "No Access");
+        String missingSourceId = UUID.randomUUID().toString();
+
+        List<HttpResponse<String>> denied = List.of(
+                outsider.get(sourcesPath(owner.workspaceId())),
+                outsider.get(sourcesPath(owner.workspaceId()) + "/" + sourceId),
+                outsider.get(sourcesPath(owner.workspaceId()) + "/" + sourceId + "/content"));
+        HttpResponse<String> missing = outsider.get(sourcesPath(owner.workspaceId()) + "/" + missingSourceId);
+
+        for (HttpResponse<String> response : denied) {
+            assertEquals(404, response.statusCode(), response.body());
+            assertEquals("RESOURCE_NOT_FOUND", outsider.json(response).get("code").asString());
+            assertEquals(outsider.json(missing).get("detail").asString(),
+                    outsider.json(response).get("detail").asString());
+            assertFalse(response.body().contains("private.csv"));
+        }
     }
 
     private record UploadCase(String filename, String mediaType, byte[] bytes, String type) {
