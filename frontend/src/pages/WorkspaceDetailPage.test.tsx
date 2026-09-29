@@ -147,14 +147,17 @@ function stubWorkspaceApi(options: {
   readonly documents?: readonly DocumentRow[];
   readonly documentsResponse?: Response;
   readonly sources?: readonly SourceRow[];
+  readonly sourceState?: SourceRow[];
   readonly sourcesResponse?: Response;
+  readonly sourceUploadResponse?: Response;
+  readonly sourceUploadPending?: boolean;
   /** When true, the list request never resolves, so the loading state stays on screen. */
   readonly documentsPending?: boolean;
 }): jest.Mock {
   let current = options.workspace ?? workspaceRow();
   const members: MemberRow[] = [...(options.members ?? [OWNER_MEMBER])];
   const documents: DocumentRow[] = [...(options.documents ?? [])];
-  const sources: SourceRow[] = [...(options.sources ?? [])];
+  const sources: SourceRow[] = options.sourceState ?? [...(options.sources ?? [])];
   const membersPath = `/api/workspaces/${WORKSPACE_ID}/members`;
   const documentsPath = `/api/workspaces/${WORKSPACE_ID}/documents`;
   const sourcesPath = `/api/workspaces/${WORKSPACE_ID}/sources`;
@@ -189,6 +192,12 @@ function stubWorkspaceApi(options: {
       );
     }
     if (path === sourcesPath && method === 'POST') {
+      if (options.sourceUploadPending === true) {
+        return new Promise<Response>(() => undefined);
+      }
+      if (options.sourceUploadResponse !== undefined) {
+        return Promise.resolve(options.sourceUploadResponse);
+      }
       const body = init?.body as FormData;
       const file = body.get('file') as File;
       const extension = file.name.split('.').pop()?.toUpperCase() ?? 'TXT';
@@ -305,9 +314,65 @@ function renderWorkspaceDetailPage(): QueryClient {
 }
 
 const originalFetch = globalThis.fetch;
+const originalXhr = globalThis.XMLHttpRequest;
+
+/** Makes the progress-capable upload transport talk to the same in-memory API as the other requests. */
+function installUploadTransport(fetchMock: jest.Mock): void {
+  class UploadRequest {
+    readonly upload: { onprogress: ((event: ProgressEvent) => void) | null } = {
+      onprogress: null,
+    };
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onabort: (() => void) | null = null;
+    withCredentials = false;
+    status = 0;
+    statusText = '';
+    responseText = '';
+    private path = '';
+    private readonly headers: Record<string, string> = {};
+
+    open(method: string, path: string): void {
+      expect(method).toBe('POST');
+      this.path = path;
+    }
+
+    setRequestHeader(name: string, value: string): void {
+      this.headers[name] = value;
+    }
+
+    getResponseHeader(name: string): string | null {
+      return name.toLowerCase() === 'content-type' ? 'application/json' : null;
+    }
+
+    send(body: FormData): void {
+      this.upload.onprogress?.({
+        lengthComputable: true,
+        loaded: 6,
+        total: 12,
+      } as ProgressEvent);
+      void (
+        fetchMock(this.path, {
+          method: 'POST',
+          body,
+          headers: this.headers,
+        }) as Promise<Response>
+      )
+        .then(async (response) => {
+          this.status = response.status;
+          this.responseText = await response.text();
+          this.onload?.();
+        })
+        .catch(() => this.onerror?.());
+    }
+  }
+
+  globalThis.XMLHttpRequest = UploadRequest as unknown as typeof XMLHttpRequest;
+}
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  globalThis.XMLHttpRequest = originalXhr;
   mockNavigate.mockReset();
   jest.restoreAllMocks();
 });
@@ -622,7 +687,7 @@ describe('WorkspaceDetailPage', () => {
 
   // --- sources ---
 
-  it('lists source metadata and links to authenticated content', async () => {
+  it('lists source metadata, uploader, date, detail and authenticated download', async () => {
     stubWorkspaceApi({
       sources: [
         {
@@ -646,11 +711,16 @@ describe('WorkspaceDetailPage', () => {
     renderWorkspaceDetailPage();
 
     const link = await screen.findByRole('link', { name: 'measurements.csv' });
-    expect(link.getAttribute('href')).toBe(
+    expect(link.getAttribute('href')).toBe(`/app/workspaces/${WORKSPACE_ID}/sources/s-1`);
+    expect(screen.getByRole('link', { name: 'Download' }).getAttribute('href')).toBe(
       `/api/workspaces/${WORKSPACE_ID}/sources/s-1/content`,
     );
     expect(screen.getByText('Uploaded')).not.toBeNull();
     expect(link.parentElement?.textContent).toContain('CSV, 2.0 KB');
+    expect(link.parentElement?.textContent).toContain('Uploaded by Ada Lovelace');
+    expect(link.parentElement?.querySelector('time')?.getAttribute('dateTime')).toBe(
+      '2026-09-23T10:15:30Z',
+    );
   });
 
   it('shows a processing failure summary with the failed source', async () => {
@@ -677,13 +747,14 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage();
 
-    expect(await screen.findByText('Processing failed')).not.toBeNull();
+    expect(await screen.findByText('Failed')).not.toBeNull();
     expect(screen.getByText('Failure: The workbook is encrypted.')).not.toBeNull();
     expect(screen.queryByLabelText('Source file')).toBeNull();
   });
 
   it('uploads a valid source as multipart data and refreshes the list', async () => {
     const fetchMock = stubWorkspaceApi({ sources: [] });
+    installUploadTransport(fetchMock);
     renderWorkspaceDetailPage();
     const picker = await screen.findByLabelText('Source file');
     const file = new File(['name,value\na,1\n'], 'measurements.csv', {
@@ -702,6 +773,74 @@ describe('WorkspaceDetailPage', () => {
     );
     expect((upload?.[1] as RequestInit).body).toBeInstanceOf(FormData);
     expect((upload?.[1] as RequestInit).headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('refreshes sources uploaded in another browser session', async () => {
+    const sharedSources: SourceRow[] = [];
+    stubWorkspaceApi({
+      workspace: workspaceRow({ role: 'VIEWER' }),
+      sourceState: sharedSources,
+    });
+    renderWorkspaceDetailPage();
+    expect(await screen.findByText('No sources yet.')).not.toBeNull();
+
+    sharedSources.push({
+      id: 's-remote',
+      workspaceId: WORKSPACE_ID,
+      originalFilename: 'team.csv',
+      displayName: 'team.csv',
+      mediaType: 'text/csv',
+      sourceType: 'CSV',
+      sizeBytes: 12,
+      contentSha256: '0'.repeat(64),
+      status: 'UPLOADED',
+      failureSummary: null,
+      uploadedBy: 'u-kasia',
+      createdAt: '2026-09-23T10:15:30Z',
+      updatedAt: '2026-09-23T10:15:30Z',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh sources' }));
+
+    expect(await screen.findByRole('link', { name: 'team.csv' })).not.toBeNull();
+    expect(screen.queryByLabelText('Source file')).toBeNull();
+  });
+
+  it('shows upload progress while the server is storing the file', async () => {
+    const fetchMock = stubWorkspaceApi({ sourceUploadPending: true });
+    installUploadTransport(fetchMock);
+    renderWorkspaceDetailPage();
+    const file = new File(['a,b\n1,2'], 'team.csv', { type: 'text/csv' });
+    fireEvent.change(await screen.findByLabelText('Source file'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
+
+    expect(await screen.findByText('Uploading team.csv: 50%')).not.toBeNull();
+    expect((screen.getByLabelText('Upload progress') as HTMLProgressElement).value).toBe(
+      50,
+    );
+  });
+
+  it('shows a server rejection with its actionable reason', async () => {
+    const fetchMock = stubWorkspaceApi({
+      sourceUploadResponse: problem(
+        415,
+        'UNSUPPORTED_FILE_TYPE',
+        'The file contents do not match its .csv extension',
+      ),
+    });
+    installUploadTransport(fetchMock);
+    renderWorkspaceDetailPage();
+    const file = new File(['MZ'], 'team.csv', { type: 'text/csv' });
+    fireEvent.change(await screen.findByLabelText('Source file'), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'The file contents do not match its .csv extension',
+    );
+    expect(screen.queryByRole('link', { name: 'team.csv' })).toBeNull();
   });
 
   it('refuses an unsupported source before making an upload request', async () => {

@@ -18,10 +18,12 @@ export function SourceUploadForm({
   const [file, setFile] = useState<File | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const [uploadedName, setUploadedName] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const upload = useUploadSource(workspaceId);
 
   const choose = (chosen: File | null): void => {
     setUploadedName(null);
+    setProgress(null);
     upload.reset();
     if (chosen === null) {
       setFile(null);
@@ -51,20 +53,40 @@ export function SourceUploadForm({
             }
             return;
           }
-          upload.mutate(file, {
-            onSuccess: (created) => {
-              setUploadedName(created.displayName);
-              setFile(null);
-              setClientError(null);
-              if (input.current !== null) {
-                input.current.value = '';
-              }
+          setProgress(null);
+          upload.mutate(
+            {
+              file,
+              onProgress: (loaded, total) => {
+                setProgress(Math.min(100, Math.round((loaded / total) * 100)));
+              },
             },
-          });
+            {
+              onSuccess: (created) => {
+                setUploadedName(created.displayName);
+                setFile(null);
+                setClientError(null);
+                if (input.current !== null) {
+                  input.current.value = '';
+                }
+              },
+            },
+          );
         }}
       >
         {clientError !== null ? <p role="alert">{clientError}</p> : null}
         {upload.error !== null ? <p role="alert">{describeError(upload.error)}</p> : null}
+        {upload.isPending ? (
+          <p role="status" aria-live="polite">
+            Uploading {file?.name}
+            {progress === null ? '…' : `: ${String(progress)}%`}
+            <progress
+              aria-label="Upload progress"
+              value={progress ?? undefined}
+              max={100}
+            />
+          </p>
+        ) : null}
         {uploadedName !== null ? (
           <p role="status" aria-live="polite">
             Uploaded {uploadedName}.
@@ -78,6 +100,7 @@ export function SourceUploadForm({
             name="source-file"
             type="file"
             accept={SOURCE_FILE_ACCEPT}
+            disabled={upload.isPending}
             onChange={(event) => choose(event.target.files?.[0] ?? null)}
           />
         </p>
