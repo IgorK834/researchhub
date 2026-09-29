@@ -96,6 +96,8 @@ public class ProcessingProperties {
     public static class Worker {
         private URI baseUrl = URI.create("http://127.0.0.1:8090");
         private Duration requestTimeout = Duration.ofSeconds(30);
+        private Duration sourceAccessTtl = Duration.ofMinutes(5);
+        private String serviceToken;
 
         public URI getBaseUrl() {
             return baseUrl;
@@ -115,6 +117,33 @@ public class ProcessingProperties {
 
         public void setRequestTimeout(Duration requestTimeout) {
             this.requestTimeout = positive(requestTimeout, "worker request timeout");
+        }
+
+        public Duration getSourceAccessTtl() {
+            return sourceAccessTtl;
+        }
+
+        public void setSourceAccessTtl(Duration sourceAccessTtl) {
+            Duration checked = positive(sourceAccessTtl, "worker source access TTL");
+            if (checked.compareTo(Duration.ofMinutes(15)) > 0) {
+                throw new IllegalArgumentException("processing worker source access TTL must be at most 15 minutes");
+            }
+            this.sourceAccessTtl = checked;
+        }
+
+        public String getServiceToken() {
+            if (serviceToken == null) {
+                throw new IllegalStateException("processing worker service token is required");
+            }
+            return serviceToken;
+        }
+
+        public void setServiceToken(String serviceToken) {
+            if (serviceToken == null || serviceToken.length() < 32 || !serviceToken.equals(serviceToken.strip())) {
+                throw new IllegalArgumentException(
+                        "processing worker service token must contain at least 32 non-whitespace characters");
+            }
+            this.serviceToken = serviceToken;
         }
     }
 

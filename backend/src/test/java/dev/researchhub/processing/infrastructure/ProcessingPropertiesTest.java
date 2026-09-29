@@ -24,6 +24,8 @@ class ProcessingPropertiesTest {
         dispatcher.setStaleTimeout(Duration.ofMinutes(9));
         properties.getWorker().setBaseUrl(URI.create("https://worker.internal"));
         properties.getWorker().setRequestTimeout(Duration.ofSeconds(12));
+        properties.getWorker().setSourceAccessTtl(Duration.ofMinutes(3));
+        properties.getWorker().setServiceToken("unit-test-service-token-at-least-32-characters");
 
         assertFalse(dispatcher.isEnabled());
         assertEquals(Duration.ofSeconds(3), dispatcher.getFixedDelay());
@@ -34,6 +36,9 @@ class ProcessingPropertiesTest {
         assertEquals(Duration.ofMinutes(9), dispatcher.getStaleTimeout());
         assertEquals(URI.create("https://worker.internal"), properties.getWorker().getBaseUrl());
         assertEquals(Duration.ofSeconds(12), properties.getWorker().getRequestTimeout());
+        assertEquals(Duration.ofMinutes(3), properties.getWorker().getSourceAccessTtl());
+        assertEquals("unit-test-service-token-at-least-32-characters",
+                properties.getWorker().getServiceToken());
     }
 
     @Test
@@ -55,5 +60,10 @@ class ProcessingPropertiesTest {
                 () -> properties.getWorker().setBaseUrl(URI.create("file:///tmp/worker")));
         assertThrows(IllegalArgumentException.class,
                 () -> properties.getWorker().setRequestTimeout(Duration.ZERO));
+        assertThrows(IllegalArgumentException.class,
+                () -> properties.getWorker().setSourceAccessTtl(Duration.ofMinutes(16)));
+        assertThrows(IllegalArgumentException.class,
+                () -> properties.getWorker().setServiceToken("too-short"));
+        assertThrows(IllegalStateException.class, () -> properties.getWorker().getServiceToken());
     }
 }

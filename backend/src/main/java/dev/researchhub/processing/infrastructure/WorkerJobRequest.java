@@ -1,20 +1,32 @@
 package dev.researchhub.processing.infrastructure;
 
+import dev.researchhub.processing.application.SourceIngestInput;
 import dev.researchhub.processing.domain.ProcessingJob;
 
+import java.net.URI;
+import java.time.Instant;
 import java.util.UUID;
 
-/** Explicit internal contract. It deliberately has no user token, cookie, blob key, or file contents. */
+/** Versioned internal request. It contains no user token, cookie, storage key, or file bytes. */
 public record WorkerJobRequest(
+        String schemaVersion,
         UUID jobId,
         UUID workspaceId,
-        String jobType,
-        String resourceType,
-        UUID resourceId,
+        UUID sourceId,
+        String sourceType,
+        TemporaryFileAccess fileAccess,
+        String requestedProcessingVersion,
         int attempt
 ) {
-    static WorkerJobRequest from(ProcessingJob job) {
-        return new WorkerJobRequest(job.id(), job.workspaceId(), job.jobType().name(), job.resourceType().name(),
-                job.resourceId(), job.attemptCount());
+    static final String SCHEMA_VERSION = "1.0";
+    static final String PROCESSING_VERSION = "source-ingest-1";
+
+    static WorkerJobRequest from(ProcessingJob job, SourceIngestInput input) {
+        return new WorkerJobRequest(SCHEMA_VERSION, job.id(), job.workspaceId(), job.resourceId(), input.sourceType(),
+                new TemporaryFileAccess("SIGNED_URL", input.signedReadUrl(), input.expiresAt()),
+                PROCESSING_VERSION, job.attemptCount());
+    }
+
+    public record TemporaryFileAccess(String kind, URI url, Instant expiresAt) {
     }
 }
