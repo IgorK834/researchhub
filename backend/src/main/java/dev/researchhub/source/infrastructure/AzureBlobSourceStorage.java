@@ -5,6 +5,9 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobHttpHeaders;
 import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
+import com.azure.storage.common.sas.SasProtocol;
 import com.azure.storage.blob.options.BlockBlobOutputStreamOptions;
 import com.azure.storage.blob.specialized.BlobOutputStream;
 import dev.researchhub.source.application.SourceStorage;
@@ -15,6 +18,9 @@ import dev.researchhub.source.domain.StorageKey;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -100,10 +106,28 @@ public final class AzureBlobSourceStorage implements SourceStorage {
     }
 
     @Override
-    public Optional<TemporaryReadAccess> createTemporaryReadAccess(StorageKey key, Duration ttl) {
-        // ResearchHub streams authorized downloads through its API. A cloud profile may enable single-blob SAS
-        // later without changing the port or exposing storage credentials to the browser.
-        return Optional.empty();
+    public Optional<TemporaryReadAccess> createTemporaryReadAccess(StorageKey key, Duration ttl) throws IOException {
+        if (ttl == null || ttl.isZero() || ttl.isNegative()) {
+            throw new IllegalArgumentException("temporary read access TTL must be positive");
+        }
+        ensureContainer();
+        BlobClient blob = container.getBlobClient(key.value());
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(ttl);
+        BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(
+                OffsetDateTime.ofInstant(expiresAt, ZoneOffset.UTC),
+                new BlobSasPermission().setReadPermission(true))
+                .setStartTime(OffsetDateTime.ofInstant(now.minusSeconds(30), ZoneOffset.UTC))
+                .setProtocol(SasProtocol.HTTPS_HTTP);
+        try {
+            String sas = blob.generateSas(values);
+            return Optional.of(new TemporaryReadAccess(java.net.URI.create(blob.getBlobUrl() + "?" + sas),
+                    expiresAt));
+        } catch (BlobStorageException failure) {
+            throw storageFailure("authorize", key, failure);
+        } catch (RuntimeException failure) {
+            throw new IOException("Azure Blob could not authorize " + key, failure);
+        }
     }
 
     private void ensureContainer() throws IOException {

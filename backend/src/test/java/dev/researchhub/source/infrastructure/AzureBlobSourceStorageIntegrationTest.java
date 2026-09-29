@@ -7,6 +7,7 @@ import dev.researchhub.source.application.SourceService;
 import dev.researchhub.source.application.SourceStorage;
 import dev.researchhub.source.application.SourceStorageContract;
 import dev.researchhub.source.application.SourceSummary;
+import dev.researchhub.source.application.TemporaryReadAccess;
 import dev.researchhub.source.application.UploadSourceCommand;
 import dev.researchhub.source.domain.StorageKey;
 import dev.researchhub.workspace.UserRowFixture;
@@ -25,7 +26,11 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -108,6 +113,21 @@ class AzureBlobSourceStorageIntegrationTest extends SourceStorageContract {
         try (InputStream read = restarted.open(key)) {
             assertArrayEquals(bytes, read.readAllBytes());
         }
+    }
+
+    @Test
+    void createsAReadOnlyShortLivedSasForExactlyOneAzuriteBlob() throws Exception {
+        StorageKey key = StorageKey.generate();
+        byte[] bytes = "worker input through a signed URL".getBytes(StandardCharsets.UTF_8);
+        storage.store(key, new ByteArrayInputStream(bytes), "text/plain");
+
+        TemporaryReadAccess access = storage.createTemporaryReadAccess(key, Duration.ofMinutes(5)).orElseThrow();
+        HttpResponse<byte[]> response = HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder(access.uri()).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+
+        assertEquals(200, response.statusCode());
+        assertArrayEquals(bytes, response.body());
+        assertTrue(access.uri().getQuery().contains("sp=r"), "SAS grants read only");
     }
 
 }
