@@ -69,11 +69,16 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, sourceFailureMigrationRows, "Flyway should record V9__add_source_failure_summary.sql");
 
+        Integer processingJobsMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '10'",
+                Integer.class);
+        assertEquals(1, processingJobsMigrationRows, "Flyway should record V10__create_processing_jobs.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(9, appliedVersions,
-                "A fresh database should have exactly versions 1 through 9 applied");
+        assertEquals(10, appliedVersions,
+                "A fresh database should have exactly versions 1 through 10 applied");
     }
 
     /**
@@ -151,6 +156,40 @@ class FlywayMigrationIntegrationTest {
                   AND event_manipulation = 'UPDATE'
                 """, Integer.class);
         assertEquals(1, trigger, "The original input refuses updates");
+    }
+
+    /** V10 makes async delivery recoverable, bounded, and idempotent in PostgreSQL. */
+    @Test
+    @Order(1)
+    void createsTheDurableProcessingQueueWithStateGuardrails() {
+        Integer constraints = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name = 'processing_jobs'
+                  AND constraint_name IN ('pk_processing_jobs',
+                                          'fk_processing_jobs_workspace',
+                                          'uq_processing_jobs_resource',
+                                          'ck_processing_jobs_type',
+                                          'ck_processing_jobs_resource_type',
+                                          'ck_processing_jobs_status',
+                                          'ck_processing_jobs_attempt_count',
+                                          'ck_processing_jobs_error_pair',
+                                          'ck_processing_jobs_state_fields',
+                                          'ck_processing_jobs_time_order')
+                """, Integer.class);
+        assertEquals(10, constraints, "Job identity, state, retry and workspace rules belong to the schema too");
+
+        assertEquals(500, jdbcTemplate.queryForObject("""
+                SELECT character_maximum_length FROM information_schema.columns
+                WHERE table_name = 'processing_jobs' AND column_name = 'last_error_message'
+                """, Integer.class), "Only a bounded user-safe failure summary may be persisted");
+
+        Integer trigger = jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.triggers
+                WHERE event_object_table = 'processing_jobs'
+                  AND trigger_name = 'tg_processing_job_identity_is_immutable'
+                  AND event_manipulation = 'UPDATE'
+                """, Integer.class);
+        assertEquals(1, trigger, "A processing job cannot be retargeted after creation");
     }
 
     /** V7 gives documents an immutable history. */
