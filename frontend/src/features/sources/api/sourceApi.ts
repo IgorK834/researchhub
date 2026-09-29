@@ -32,15 +32,30 @@ export function fetchSources(
   });
 }
 
+/** One source's metadata, scoped to the workspace by the server. */
+export function fetchSource(
+  workspaceId: string,
+  sourceId: string,
+  signal?: AbortSignal,
+): Promise<WorkspaceSource> {
+  return apiClient.get<WorkspaceSource>(`${sourcesPath(workspaceId)}/${sourceId}`, {
+    ...(signal === undefined ? {} : { signal }),
+  });
+}
+
 /** Uploads one immutable source. Requires EDIT_CONTENT on the server. */
 export async function uploadSource(
   workspaceId: string,
   file: File,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<WorkspaceSource> {
   await apiClient.get<void>(CSRF_PRIMING_PATH);
   const formData = new FormData();
   formData.append('file', file, file.name);
-  return apiClient.post<WorkspaceSource>(sourcesPath(workspaceId), { formData });
+  return apiClient.post<WorkspaceSource>(sourcesPath(workspaceId), {
+    formData,
+    ...(onProgress === undefined ? {} : { onUploadProgress: onProgress }),
+  });
 }
 
 export function sourceContentPath(workspaceId: string, sourceId: string): string {

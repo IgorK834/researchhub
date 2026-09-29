@@ -19,7 +19,7 @@ export const SOURCE_STATUS_LABELS: Readonly<Record<SourceStatus, string>> = {
   UPLOADED: 'Uploaded',
   PROCESSING: 'Processing',
   READY: 'Ready',
-  FAILED: 'Processing failed',
+  FAILED: 'Failed',
 };
 
 interface SourceTypeRule {

@@ -22,7 +22,7 @@ describe('source types', () => {
       );
     }
     expect(SOURCE_FILE_ACCEPT).toBe('.pdf,.docx,.xlsx,.csv,.txt');
-    expect(SOURCE_STATUS_LABELS.FAILED).toBe('Processing failed');
+    expect(SOURCE_STATUS_LABELS.FAILED).toBe('Failed');
   });
 
   it('words the supported list the way the server does', () => {

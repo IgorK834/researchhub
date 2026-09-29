@@ -7,7 +7,12 @@ import {
 } from '@tanstack/react-query';
 
 import { queryKeys, type ApiError } from '../../../shared/api';
-import { fetchSources, uploadSource, type WorkspaceSource } from './sourceApi';
+import {
+  fetchSource,
+  fetchSources,
+  uploadSource,
+  type WorkspaceSource,
+} from './sourceApi';
 
 export function useSourcesQuery(
   workspaceId: string,
@@ -18,13 +23,29 @@ export function useSourcesQuery(
   });
 }
 
+export function useSourceQuery(
+  workspaceId: string,
+  sourceId: string,
+): UseQueryResult<WorkspaceSource, Error> {
+  return useQuery({
+    queryKey: queryKeys.source(workspaceId, sourceId),
+    queryFn: ({ signal }) => fetchSource(workspaceId, sourceId, signal),
+  });
+}
+
+export interface UploadSourceInput {
+  readonly file: File;
+  readonly onProgress?: (loaded: number, total: number) => void;
+}
+
 export function useUploadSource(
   workspaceId: string,
-): UseMutationResult<WorkspaceSource, ApiError, File> {
+): UseMutationResult<WorkspaceSource, ApiError, UploadSourceInput> {
   const queryClient = useQueryClient();
-  return useMutation<WorkspaceSource, ApiError, File>({
-    mutationFn: (file) => uploadSource(workspaceId, file),
-    onSuccess: () => {
+  return useMutation<WorkspaceSource, ApiError, UploadSourceInput>({
+    mutationFn: ({ file, onProgress }) => uploadSource(workspaceId, file, onProgress),
+    onSuccess: (source) => {
+      queryClient.setQueryData(queryKeys.source(workspaceId, source.id), source);
       void queryClient.invalidateQueries({ queryKey: queryKeys.sources(workspaceId) });
     },
   });
