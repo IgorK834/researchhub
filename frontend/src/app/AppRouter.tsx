@@ -7,6 +7,7 @@ import { DocumentDetailPage } from '../pages/DocumentDetailPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { SourceDetailPage } from '../pages/SourceDetailPage';
 import { WorkspaceDetailPage } from '../pages/WorkspaceDetailPage';
 import { WorkspaceListPage } from '../pages/WorkspaceListPage';
 
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
           { index: true, element: <WorkspaceListPage /> },
           { path: 'workspaces', element: <WorkspaceListPage /> },
           { path: 'workspaces/:workspaceId', element: <WorkspaceDetailPage /> },
+          {
+            path: 'workspaces/:workspaceId/sources/:sourceId',
+            element: <SourceDetailPage />,
+          },
           {
             path: 'workspaces/:workspaceId/documents/:documentId',
             element: <DocumentDetailPage />,
