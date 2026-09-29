@@ -47,24 +47,22 @@ services:
       start_period: 5s
 
   ai-worker:
-    image: python:3.13.3-slim
+    build:
+      context: ./ai-worker
+      dockerfile: Dockerfile
+    image: researchhub-ai-worker:local
     container_name: researchhub-ai-worker
-    working_dir: /app
-    command: python -m researchhub_worker
     environment:
-      PYTHONPATH: /app/src
       AI_WORKER_HOST: 0.0.0.0
       AI_WORKER_PORT: 8090
     ports:
-      - "${AI_WORKER_PORT:-8090}:8090"
-    volumes:
-      - ./ai-worker:/app:ro
+      - "127.0.0.1:${AI_WORKER_PORT:-8090}:8090"
     healthcheck:
       test:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=2)"
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"
       interval: 5s
       timeout: 3s
       retries: 10
