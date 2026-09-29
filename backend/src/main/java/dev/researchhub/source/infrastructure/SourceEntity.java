@@ -21,7 +21,7 @@ import java.util.UUID;
  *
  * <p>Every column describing the original input is {@code updatable = false}, so Hibernate never writes one after
  * the insert; {@code tg_sources_original_is_immutable} refuses it from anybody else. Only {@code display_name},
- * {@code status}, and {@code updated_at} are updatable.
+ * {@code status}, {@code failure_summary}, and {@code updated_at} are updatable.
  *
  * <p>{@code media_type} is written from the source type, never from a client, and checked against it on the way
  * back: a row whose pair disagrees would already have been refused by {@code ck_sources_media_type_matches_type}.
@@ -64,6 +64,9 @@ public class SourceEntity {
     @Column(name = "status", nullable = false, length = 16)
     private SourceStatus status;
 
+    @Column(name = "failure_summary", length = Source.FAILURE_SUMMARY_MAX_LENGTH)
+    private String failureSummary;
+
     @Column(name = "uploaded_by", nullable = false, updatable = false)
     private UUID uploadedBy;
 
@@ -89,6 +92,7 @@ public class SourceEntity {
         entity.storageKey = source.storageKey().value();
         entity.contentSha256 = source.contentSha256();
         entity.status = source.status();
+        entity.failureSummary = source.failureSummary();
         entity.uploadedBy = source.uploadedBy();
         entity.createdAt = source.createdAt();
         entity.updatedAt = source.updatedAt();
@@ -101,7 +105,7 @@ public class SourceEntity {
                     + ", which is not the media type of " + sourceType);
         }
         return new Source(id, workspaceId, new SourceFilename(originalFilename), displayName, sourceType, sizeBytes,
-                new StorageKey(storageKey), contentSha256, status, uploadedBy, createdAt, updatedAt);
+                new StorageKey(storageKey), contentSha256, status, failureSummary, uploadedBy, createdAt, updatedAt);
     }
 
     public UUID getId() {

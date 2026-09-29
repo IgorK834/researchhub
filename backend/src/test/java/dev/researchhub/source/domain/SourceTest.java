@@ -28,7 +28,7 @@ class SourceTest {
 
     private static Source withSize(long size) {
         return new Source(null, WORKSPACE, SourceFilename.of("r.pdf"), "r.pdf", SourceType.PDF, size,
-                StorageKey.generate(), SHA, SourceStatus.UPLOADED, UPLOADER, NOW, NOW);
+                StorageKey.generate(), SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW);
     }
 
     @Test
@@ -68,13 +68,13 @@ class SourceTest {
         StorageKey key = StorageKey.generate();
         SourceFilename name = SourceFilename.of("r.pdf");
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, name, "  ", SourceType.PDF,
-                1, key, SHA, SourceStatus.UPLOADED, UPLOADER, NOW, NOW));
+                1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW));
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, name, null, SourceType.PDF,
-                1, key, SHA, SourceStatus.UPLOADED, UPLOADER, NOW, NOW));
+                1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW));
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, name, "x".repeat(256),
-                SourceType.PDF, 1, key, SHA, SourceStatus.UPLOADED, UPLOADER, NOW, NOW));
+                SourceType.PDF, 1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW));
         assertEquals("Trimmed", new Source(null, WORKSPACE, name, "  Trimmed ", SourceType.PDF, 1, key, SHA,
-                SourceStatus.UPLOADED, UPLOADER, NOW, NOW).displayName());
+                SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW).displayName());
     }
 
     @Test
@@ -100,8 +100,12 @@ class SourceTest {
 
     @Test
     void aFailedSourceMayBeProcessedAgainButAReadyOneIsFinal() {
-        Source failed = uploaded().moveTo(SourceStatus.PROCESSING, LATER).moveTo(SourceStatus.FAILED, LATER);
-        assertEquals(SourceStatus.PROCESSING, failed.moveTo(SourceStatus.PROCESSING, LATER).status());
+        Source failed = uploaded().moveTo(SourceStatus.PROCESSING, LATER)
+                .processingFailed("  The workbook is encrypted.  ", LATER);
+        Source retrying = failed.moveTo(SourceStatus.PROCESSING, LATER);
+        assertEquals("The workbook is encrypted.", failed.failureSummary());
+        assertEquals(SourceStatus.PROCESSING, retrying.status());
+        assertNull(retrying.failureSummary(), "retrying clears the previous attempt's failure");
 
         Source ready = uploaded().moveTo(SourceStatus.PROCESSING, LATER).moveTo(SourceStatus.READY, LATER);
         ConflictException refused = assertThrows(ConflictException.class,
@@ -112,8 +116,21 @@ class SourceTest {
     @Test
     void skippingProcessingIsRefused() {
         assertThrows(ConflictException.class, () -> uploaded().moveTo(SourceStatus.READY, LATER));
-        assertThrows(ConflictException.class, () -> uploaded().moveTo(SourceStatus.FAILED, LATER));
+        assertThrows(ConflictException.class, () -> uploaded().processingFailed("Failed", LATER));
         assertThrows(ConflictException.class, () -> uploaded().moveTo(SourceStatus.UPLOADED, LATER));
+    }
+
+    @Test
+    void failureSummaryIsRequiredOnlyForFailedSourcesAndIsBounded() {
+        Source processing = uploaded().moveTo(SourceStatus.PROCESSING, LATER);
+
+        assertThrows(IllegalArgumentException.class, () -> processing.processingFailed("  ", LATER));
+        assertThrows(IllegalArgumentException.class,
+                () -> processing.processingFailed("x".repeat(Source.FAILURE_SUMMARY_MAX_LENGTH + 1), LATER));
+        assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE,
+                SourceFilename.of("r.pdf"), "r.pdf", SourceType.PDF, 1, StorageKey.generate(), SHA,
+                SourceStatus.UPLOADED, "not applicable", UPLOADER, NOW, NOW));
+        assertThrows(IllegalArgumentException.class, () -> processing.moveTo(SourceStatus.FAILED, LATER));
     }
 
     @Test
