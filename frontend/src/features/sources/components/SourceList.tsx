@@ -48,7 +48,12 @@ export function SourceList({
                   {source.displayName}
                 </a>{' '}
                 — {source.sourceType}, {formatBytes(source.sizeBytes)},{' '}
-                {SOURCE_STATUS_LABELS[source.status]}
+                <span aria-label="Source status">
+                  {SOURCE_STATUS_LABELS[source.status]}
+                </span>
+                {source.failureSummary !== null ? (
+                  <p>Failure: {source.failureSummary}</p>
+                ) : null}
               </li>
             ))}
           </ul>

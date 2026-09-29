@@ -69,6 +69,7 @@ interface SourceRow {
   readonly sizeBytes: number;
   readonly contentSha256: string;
   readonly status: 'UPLOADED' | 'PROCESSING' | 'READY' | 'FAILED';
+  readonly failureSummary: string | null;
   readonly uploadedBy: string;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -201,6 +202,7 @@ function stubWorkspaceApi(options: {
         sizeBytes: file.size,
         contentSha256: '0'.repeat(64),
         status: 'UPLOADED',
+        failureSummary: null,
         uploadedBy: 'u-ada',
         createdAt: '2026-09-23T10:15:30Z',
         updatedAt: '2026-09-23T10:15:30Z',
@@ -633,6 +635,7 @@ describe('WorkspaceDetailPage', () => {
           sizeBytes: 2048,
           contentSha256: '0'.repeat(64),
           status: 'UPLOADED',
+          failureSummary: null,
           uploadedBy: 'u-ada',
           createdAt: '2026-09-23T10:15:30Z',
           updatedAt: '2026-09-23T10:15:30Z',
@@ -646,7 +649,37 @@ describe('WorkspaceDetailPage', () => {
     expect(link.getAttribute('href')).toBe(
       `/api/workspaces/${WORKSPACE_ID}/sources/s-1/content`,
     );
-    expect(screen.getByText(/CSV, 2.0 KB, Uploaded/)).not.toBeNull();
+    expect(screen.getByText('Uploaded')).not.toBeNull();
+    expect(link.parentElement?.textContent).toContain('CSV, 2.0 KB');
+  });
+
+  it('shows a processing failure summary with the failed source', async () => {
+    stubWorkspaceApi({
+      workspace: workspaceRow({ role: 'VIEWER' }),
+      sources: [
+        {
+          id: 's-failed',
+          workspaceId: WORKSPACE_ID,
+          originalFilename: 'encrypted.xlsx',
+          displayName: 'encrypted.xlsx',
+          mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          sourceType: 'XLSX',
+          sizeBytes: 4096,
+          contentSha256: '1'.repeat(64),
+          status: 'FAILED',
+          failureSummary: 'The workbook is encrypted.',
+          uploadedBy: 'u-ada',
+          createdAt: '2026-09-23T10:15:30Z',
+          updatedAt: '2026-09-23T10:16:30Z',
+        },
+      ],
+    });
+
+    renderWorkspaceDetailPage();
+
+    expect(await screen.findByText('Processing failed')).not.toBeNull();
+    expect(screen.getByText('Failure: The workbook is encrypted.')).not.toBeNull();
+    expect(screen.queryByLabelText('Source file')).toBeNull();
   });
 
   it('uploads a valid source as multipart data and refreshes the list', async () => {

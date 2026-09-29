@@ -17,6 +17,7 @@ export interface WorkspaceSource {
   readonly sizeBytes: number;
   readonly contentSha256: string;
   readonly status: SourceStatus;
+  readonly failureSummary: string | null;
   readonly uploadedBy: string;
   readonly createdAt: string;
   readonly updatedAt: string;
