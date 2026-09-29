@@ -17,6 +17,18 @@ researchhub:
         account-name: ${AZURITE_ACCOUNT_NAME:devstoreaccount1}
         account-key: ${AZURITE_ACCOUNT_KEY:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}
         container-name: ${AZURITE_CONTAINER_NAME:researchhub-sources}
+  processing:
+    dispatcher:
+      enabled: ${PROCESSING_DISPATCHER_ENABLED:true}
+      fixed-delay: ${PROCESSING_FIXED_DELAY:PT1S}
+      batch-size: ${PROCESSING_BATCH_SIZE:4}
+      max-attempts: ${PROCESSING_MAX_ATTEMPTS:5}
+      initial-backoff: ${PROCESSING_INITIAL_BACKOFF:PT2S}
+      max-backoff: ${PROCESSING_MAX_BACKOFF:PT1M}
+      stale-timeout: ${PROCESSING_STALE_TIMEOUT:PT5M}
+    worker:
+      base-url: ${AI_WORKER_BASE_URL:http://127.0.0.1:8090}
+      request-timeout: ${AI_WORKER_REQUEST_TIMEOUT:PT30S}
 
 server:
   servlet:
