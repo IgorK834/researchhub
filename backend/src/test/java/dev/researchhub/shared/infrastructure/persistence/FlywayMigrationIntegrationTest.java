@@ -64,11 +64,16 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, sourcesMigrationRows, "Flyway should record V8__create_sources.sql");
 
+        Integer sourceFailureMigrationRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '9'",
+                Integer.class);
+        assertEquals(1, sourceFailureMigrationRows, "Flyway should record V9__add_source_failure_summary.sql");
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(8, appliedVersions,
-                "A fresh database should have exactly versions 1 through 8 applied");
+        assertEquals(9, appliedVersions,
+                "A fresh database should have exactly versions 1 through 9 applied");
     }
 
     /**
@@ -111,7 +116,7 @@ class FlywayMigrationIntegrationTest {
                 "A document points at a real workspace and a real author");
     }
 
-    /** V8 gives sources a closed type mapping, an opaque key, and an immutable original. */
+    /** V8/V9 give sources a closed type mapping, an opaque key, an immutable original, and bounded failure metadata. */
     @Test
     @Order(1)
     void createsTheSourcesTableWithItsMappingAndImmutability() {
@@ -129,9 +134,15 @@ class FlywayMigrationIntegrationTest {
                                           'ck_sources_storage_key_format',
                                           'ck_sources_content_sha256_format',
                                           'ck_sources_original_filename_not_blank',
-                                          'ck_sources_display_name_not_blank')
+                                          'ck_sources_display_name_not_blank',
+                                          'ck_sources_failure_summary_matches_status')
                 """, Integer.class);
-        assertEquals(12, constraints, "V8 should create the source metadata table's keys and checks");
+        assertEquals(13, constraints, "V8/V9 should create the source metadata table's keys and checks");
+
+        assertEquals(1000, jdbcTemplate.queryForObject("""
+                SELECT character_maximum_length FROM information_schema.columns
+                WHERE table_name = 'sources' AND column_name = 'failure_summary'
+                """, Integer.class), "A failure summary must stay concise enough for workspace metadata");
 
         Integer trigger = jdbcTemplate.queryForObject("""
                 SELECT count(*) FROM information_schema.triggers

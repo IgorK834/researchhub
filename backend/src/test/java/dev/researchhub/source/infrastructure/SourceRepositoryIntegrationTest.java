@@ -7,6 +7,7 @@ import dev.researchhub.source.domain.SourceStatus;
 import dev.researchhub.source.domain.SourceType;
 import dev.researchhub.source.domain.StorageKey;
 import dev.researchhub.workspace.UserRowFixture;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Proves the {@code sources} table holds the rules V8 states, for any writer: the closed type mapping, the key
- * format, the size bounds, workspace scoping, and that the original input cannot be changed after the fact.
+ * Proves the {@code sources} table holds the rules V8/V9 state, for any writer: the closed type mapping, the key
+ * format, the size bounds, failure metadata, workspace scoping, and immutable original input.
  */
 @PostgresIntegrationTest
 class SourceRepositoryIntegrationTest {
@@ -36,6 +37,9 @@ class SourceRepositoryIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private UUID insertWorkspace(UUID createdBy) {
         UUID id = UUID.randomUUID();
@@ -93,6 +97,40 @@ class SourceRepositoryIntegrationTest {
 
         assertEquals("PROCESSING", jdbcTemplate.queryForObject("SELECT status FROM sources WHERE id = ?",
                 String.class, id));
+    }
+
+    @Test
+    void aFailureSummaryRoundTripsWithAFailedSource() {
+        UUID ada = UserRowFixture.insertUser(jdbcTemplate, "failure@example.com", "Failure");
+        UUID workspace = insertWorkspace(ada);
+        UUID id = insert(workspace, ada, "a.txt", SourceType.TXT).getId();
+
+        updateColumn("status = 'PROCESSING'", id);
+        updateColumn("status = 'FAILED', failure_summary = 'Parser could not read the file.'", id);
+        entityManager.clear();
+
+        Source failed = sources.findByWorkspaceIdAndId(workspace, id).orElseThrow().toDomain();
+        assertEquals(SourceStatus.FAILED, failed.status());
+        assertEquals("Parser could not read the file.", failed.failureSummary());
+    }
+
+    @Test
+    void refusesAFailedStatusWithoutASummary() {
+        UUID ada = UserRowFixture.insertUser(jdbcTemplate, "missing-summary@example.com", "Failure");
+        UUID id = insert(insertWorkspace(ada), ada, "a.txt", SourceType.TXT).getId();
+
+        updateColumn("status = 'PROCESSING'", id);
+        assertRefusedBy("ck_sources_failure_summary_matches_status",
+                () -> updateColumn("status = 'FAILED'", id));
+    }
+
+    @Test
+    void refusesAFailureSummaryOnANonFailedSource() {
+        UUID ada = UserRowFixture.insertUser(jdbcTemplate, "unexpected-summary@example.com", "Failure");
+        UUID id = insert(insertWorkspace(ada), ada, "a.txt", SourceType.TXT).getId();
+
+        assertRefusedBy("ck_sources_failure_summary_matches_status",
+                () -> updateColumn("failure_summary = 'Not failed'", id));
     }
 
     @Test
