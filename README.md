@@ -25,6 +25,7 @@ researchhub/
 ├── backend/       Spring Boot application (dev.researchhub)
 ├── frontend/      React + TypeScript application
 ├── ai-worker/     Internal Python processing worker
+├── contracts/     Versioned Java/Python processing fixtures
 ├── docs/          Project context and development docs
 ├── compose.yaml   Local PostgreSQL, Azurite, and AI worker
 ├── .editorconfig
@@ -91,8 +92,9 @@ uv run --frozen researchhub-worker
 uv run --frozen pytest
 ```
 
-The worker's process probe is `GET http://127.0.0.1:8090/health`. It accepts only the internal source-ingest contract
-and carries no browser session or end-user token. It has no product PostgreSQL dependency or business API routes.
+The worker's process probe is `GET http://127.0.0.1:8090/health`. Its execution endpoint accepts only the versioned,
+service-token-authenticated source-ingest contract and carries no browser session or end-user token. It has no product
+PostgreSQL dependency or business API routes. Canonical Java/Python fixtures live in `contracts/processing/v1`.
 `pytest` enforces at least 80% coverage. Durable state, authorization, retry policy, and idempotent job identity remain
 in Spring/PostgreSQL; see [docs/development/processing.md](docs/development/processing.md).
 

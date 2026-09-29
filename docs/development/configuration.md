@@ -132,7 +132,9 @@ key, and container can also be overridden with `AZURITE_ACCOUNT_NAME`, `AZURITE_
 
 The worker listens on `localhost:${AI_WORKER_PORT:-8090}`. Spring targets
 `AI_WORKER_BASE_URL` (default `http://127.0.0.1:8090`) and creates fresh internal requests without end-user
-credentials. `AI_WORKER_REQUEST_TIMEOUT` defaults to `PT30S`. Dispatcher variables and failure semantics are listed
+credentials. It authenticates with `AI_WORKER_SERVICE_TOKEN`; Compose and the local Spring profile share an explicit
+localhost-only default, while deployments must inject a high-entropy value from secret configuration.
+`AI_WORKER_REQUEST_TIMEOUT` defaults to `PT30S`. Dispatcher variables and failure semantics are listed
 in [processing.md](processing.md). If the published port changes, set the base URL to match. Stopping `ai-worker` is
 safe: committed jobs remain in PostgreSQL and are retried.
 
@@ -247,6 +249,8 @@ Container names, paths, and credentials belong to the chosen adapter's own setti
 | Worker URL | `researchhub.processing.worker.base-url`; `AI_WORKER_BASE_URL`, default `http://127.0.0.1:8090`. |
 | Worker published port | Compose-only `AI_WORKER_PORT`, default `8090`; keep the worker URL in sync. |
 | Worker timeout | `researchhub.processing.worker.request-timeout`; `AI_WORKER_REQUEST_TIMEOUT`, default `PT30S`. |
+| Signed source lifetime | `researchhub.processing.worker.source-access-ttl`; `AI_WORKER_SOURCE_ACCESS_TTL`, default `PT5M`, maximum `PT15M`. |
+| Worker credential | `researchhub.processing.worker.service-token`; `AI_WORKER_SERVICE_TOKEN`, minimum 32 characters. |
 
 Durations are ISO-8601 and must be positive. The full state, retry, and internal contract reference is
 [processing.md](processing.md).

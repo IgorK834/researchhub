@@ -42,33 +42,39 @@ The source module listens through the narrow `processing.application` contract. 
 to `PROCESSING`; success moves it to `READY`; terminal failure stores the safe summary and moves it to `FAILED`.
 Detailed exceptions and stack traces are logged by the backend or worker and never copied to either metadata table.
 
-## Internal HTTP contract
+## Authenticated internal HTTP contract
 
-The dispatcher creates a fresh request; it does not forward `Authorization`, cookies, CSRF headers, or any browser
-request object:
+The dispatcher creates a fresh request and authenticates itself with a service Bearer token. It does not forward an
+end-user `Authorization`, cookies, CSRF headers, or any browser request object. The shortened shape is:
 
 ```http
 POST /internal/jobs/source-ingest
 Content-Type: application/json
+Authorization: Bearer <service credential>
 
 {
+  "schemaVersion": "1.0",
   "jobId": "uuid",
   "workspaceId": "uuid",
-  "jobType": "SOURCE_INGEST",
-  "resourceType": "SOURCE",
-  "resourceId": "uuid",
+  "sourceId": "uuid",
+  "sourceType": "PDF",
+  "fileAccess": {"kind": "SIGNED_URL", "url": "https://...", "expiresAt": "..."},
+  "requestedProcessingVersion": "source-ingest-1",
   "attempt": 1
 }
 ```
 
-Python validates an exact field set, including UUIDs and the closed type values. An accidental credential field is
-rejected. Redelivery of the same job and immutable target in one worker process is acknowledged without executing the
-handler twice, even when `attempt` has increased; reuse of a job id for a different target is `409`. Future durable
-extraction outputs must also use `jobId` as their database idempotency key, because a worker restart intentionally
+Spring resolves the source with both workspace and source id and creates a short-lived read-only SAS. Python validates
+an exact field set and refuses a handler result that changes any identity; Spring repeats the identity and result
+limit checks. Redelivery of the same job and immutable target in one worker process is acknowledged without executing
+the handler twice, even when `attempt` and the renewed SAS change. Reuse of a job id for a different target is `409`.
+Future durable outputs must also use `jobId` as their database idempotency key because a worker restart intentionally
 clears its process-local delivery cache.
 
-The current handler is the tested ingestion seam and performs no parsing yet. PDF/XLSX/CSV extraction, chunks, and
-index writes belong behind `IdempotentSourceIngestProcessor` in later ingestion work, not in Spring domain code.
+The synchronous response separates extraction metadata, page/section structure, chunks with provenance, warnings,
+and a safe failure. Canonical examples, compatibility rules, size/count limits, and credential behavior are in
+[processing-contract-v1.md](processing-contract-v1.md). The current handler is the tested ingestion seam and returns
+an empty successful extraction; real parsers and index writes belong behind `IdempotentSourceIngestProcessor`.
 
 ## Local operation
 
@@ -100,9 +106,12 @@ delivery; it is not a second product/domain API.
 | `researchhub.processing.dispatcher.stale-timeout` | `PROCESSING_STALE_TIMEOUT` | `PT5M` |
 | `researchhub.processing.worker.base-url` | `AI_WORKER_BASE_URL` | `http://127.0.0.1:8090` |
 | `researchhub.processing.worker.request-timeout` | `AI_WORKER_REQUEST_TIMEOUT` | `PT30S` |
+| `researchhub.processing.worker.source-access-ttl` | `AI_WORKER_SOURCE_ACCESS_TTL` | `PT5M` |
+| `researchhub.processing.worker.service-token` | `AI_WORKER_SERVICE_TOKEN` | local-only Compose value |
 
 Compose also reads `AI_WORKER_PORT` (default `8090`) for the host mapping; when changing it, change the base URL too.
-Durations use ISO-8601 syntax. Bounds are validated at startup: batch size is 1–100 and attempts are 1–100.
+Durations use ISO-8601 syntax. Source access is positive and at most 15 minutes. Service tokens have at least 32
+characters. A deployed value comes from secret configuration and is never a `RESEARCHHUB_*` browser variable.
 
 ## Verification
 
