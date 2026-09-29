@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "jobId": "018f1f7a-6c20-7c2f-9d3f-4cda0ca3b8bd",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "processingVersion": "source-ingest-1",
+  "status": "SUCCEEDED",
+  "duplicateDelivery": false,
+  "extractionMetadata": {
+    "title": "Example research paper",
+    "author": "Example Author",
+    "language": "en",
+    "pageCount": 1,
+    "characterCount": 28,
+    "contentSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "structure": {
+    "pages": [
+      {"pageNumber": 1, "characterStart": 0, "characterEnd": 28}
+    ],
+    "sections": [
+      {
+        "sectionId": "introduction",
+        "heading": "Introduction",
+        "level": 1,
+        "parentSectionId": null,
+        "characterStart": 0,
+        "characterEnd": 28
+      }
+    ]
+  },
+  "chunks": [
+    {
+      "chunkId": "chunk-0",
+      "ordinal": 0,
+      "text": "Representative extracted text",
+      "pageNumber": 1,
+      "sectionId": "introduction",
+      "characterStart": 0,
+      "characterEnd": 28
+    }
+  ],
+  "warnings": ["Example warning suitable for a user"],
+  "failure": null
+}
