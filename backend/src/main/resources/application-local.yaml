@@ -29,6 +29,10 @@ researchhub:
     worker:
       base-url: ${AI_WORKER_BASE_URL:http://127.0.0.1:8090}
       request-timeout: ${AI_WORKER_REQUEST_TIMEOUT:PT30S}
+      source-access-ttl: ${AI_WORKER_SOURCE_ACCESS_TTL:PT5M}
+      # Shared only by the local Spring process and worker. Deployments must inject a secret;
+      # this deliberately obvious default is for localhost/Compose only.
+      service-token: ${AI_WORKER_SERVICE_TOKEN:local-development-worker-token-change-before-deployment}
 
 server:
   servlet:
