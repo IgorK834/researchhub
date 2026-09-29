@@ -13,8 +13,11 @@ frontend/node_modules/
 frontend/dist/
 npm-debug.log*
 
-# Python (future ai-worker)
+# Python / ai-worker
 ai-worker/.venv/
+ai-worker/.pytest_cache/
+ai-worker/.coverage
+ai-worker/htmlcov/
 __pycache__/
 *.py[cod]
 

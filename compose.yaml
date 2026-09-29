@@ -1,8 +1,8 @@
-# Local PostgreSQL and Azure Blob emulator for backend development. Neither consumes cloud
+# Local PostgreSQL, Azure Blob emulator, and Python processing worker for development. None consumes cloud
 # resources: the cloud profile's DB_URL and BLOB_ENDPOINT are unrelated and do not come from here.
 #
-# Start:   docker compose up -d postgres azurite
-# Stop:    docker compose stop postgres azurite
+# Start:   docker compose up -d postgres azurite ai-worker
+# Stop:    docker compose stop postgres azurite ai-worker
 # Reset:   docker compose down -v   (removes both named volumes; deletes local data and blobs)
 #
 # DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD override the defaults below and are
@@ -45,6 +45,30 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+
+  ai-worker:
+    image: python:3.13.3-slim
+    container_name: researchhub-ai-worker
+    working_dir: /app
+    command: python -m researchhub_worker
+    environment:
+      PYTHONPATH: /app/src
+      AI_WORKER_HOST: 0.0.0.0
+      AI_WORKER_PORT: 8090
+    ports:
+      - "${AI_WORKER_PORT:-8090}:8090"
+    volumes:
+      - ./ai-worker:/app:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
 
 volumes:
   postgres-data:
