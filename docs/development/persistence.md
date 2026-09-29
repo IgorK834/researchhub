@@ -26,8 +26,9 @@ Applied migrations:
 | 6 | `V6__create_documents.sql` | `documents`, owned by the `document` module. |
 | 7 | `V7__create_document_versions.sql` | `document_versions` and its immutability trigger, owned by the `document` module. |
 | 8 | `V8__create_sources.sql` | `sources` and the trigger that keeps each original input immutable, owned by the `source` module. |
+| 9 | `V9__add_source_failure_summary.sql` | Nullable `sources.failure_summary` plus the constraint tying it exactly to `FAILED`. |
 
-The next migration is `V9__<description>.sql`.
+The next migration is `V10__<description>.sql`.
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each
@@ -163,10 +164,12 @@ adds three rules of its own. The full reference is [sources.md](sources.md).
   `SourceRepository` has no lookup by key.
 - **Immutable original.** `tg_sources_original_is_immutable` refuses changing `id`, `workspace_id`,
   `original_filename`, `media_type`, `source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by`, or
-  `created_at`. `display_name`, `status`, and `updated_at` may change. A replacement file will be a new version, never
-  an update of this row.
+  `created_at`. `display_name`, `status`, `failure_summary`, and `updated_at` may change. A replacement file will be a
+  new version, never an update of this row.
 - `size_bytes` is between 1 and 1 GiB (`ck_sources_size_bytes`). The configured per-source limit is at most that.
   `content_sha256` is lowercase hex (`ck_sources_content_sha256_format`).
+- `ck_sources_failure_summary_matches_status` requires a concise summary for `FAILED` and requires it to be null for
+  every other status. The value is capped at 1000 characters and is metadata visible to workspace members.
 
 `SourceRepositoryIntegrationTest` proves each of these against PostgreSQL, including hand-written `UPDATE`s that the
 trigger refuses.

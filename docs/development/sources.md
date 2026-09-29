@@ -4,7 +4,7 @@ Uploaded research material: the files a workspace's documents, retrieval, and an
 reference for how a file becomes a source. Product context: [../context.md](../context.md) section 10. Schema:
 [persistence.md](persistence.md#sources).
 
-The domain model, `sources` table (V8), application service, HTTP API, React upload UI, and Azure Blob adapter are
+The domain model, `sources` table (V8 and V9), application service, HTTP API, React browse/upload UI, and Azure Blob adapter are
 implemented. Locally the adapter talks to Azurite through the same Azure SDK client used for Azure Blob Storage.
 The source service is only created once an adapter is configured (see [Storage](#storage)).
 
@@ -61,7 +61,10 @@ frontend mirror.
 | `FAILED` | `PROCESSING` | Processing failed. The original is kept and may be processed again. |
 | `READY` | — | Final. Processing a changed file is a new version, not a re-run that changes what citations point at. |
 
-Any other move is `409 CONFLICT` (`Source.moveTo`).
+Any other move is refused by the domain lifecycle. `Source.processingFailed` requires a non-blank, user-safe summary
+of at most 1000 characters. `ck_sources_failure_summary_matches_status` guarantees that `failure_summary` is present
+exactly for `FAILED`; retrying processing clears the previous attempt's summary. It is intended for a concise
+explanation such as an encrypted workbook, never a stack trace or raw document content.
 
 ## File names
 
@@ -108,7 +111,7 @@ after storing. A future quota answers by throwing `PayloadTooLargeException`. Re
 A source's **original input never changes**. `id`, `workspace_id`, `original_filename`, `media_type`,
 `source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by`, and `created_at` are `updatable = false`
 on the entity. `tg_sources_original_is_immutable` refuses changing any of them from any writer. Only `display_name`,
-`status`, and `updated_at` move. Storage adapters must refuse to overwrite an existing key.
+`status`, `failure_summary`, and `updated_at` move. Storage adapters must refuse to overwrite an existing key.
 
 `content_sha256` is the SHA-256 of the stored bytes, computed while they streamed in. It is what provenance can cite,
 and it shows two uploads of the same file to be the same bytes.
@@ -168,7 +171,12 @@ All routes require a session. Mutating requests also require the normal CSRF hea
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}` | One source's metadata. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}/content` | Streams the original bytes with canonical content type and an encoded attachment filename. |
 
-Responses never contain `storageKey`, container credentials, or document contents. The frontend performs an early
+Metadata responses contain `status` and nullable `failureSummary`, so the list can explain a processing failure
+without fetching the file. They never contain `storageKey`, container credentials, or document contents. Content is
+streamed through the authorized backend route; no public or permanent Blob URL is issued. The download response uses
+an encoded attachment filename plus `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`.
+
+The frontend performs an early
 extension/MIME/size check to avoid a pointless upload, but the backend repeats every validation and authorization
 decision and is authoritative.
 
