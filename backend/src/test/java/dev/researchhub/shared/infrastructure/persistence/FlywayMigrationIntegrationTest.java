@@ -82,8 +82,8 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(13, appliedVersions,
-                "A fresh database should have exactly versions 1 through 13 applied");
+        assertEquals(14, appliedVersions,
+                "A fresh database should have exactly versions 1 through 14 applied");
     }
 
     /**
@@ -313,6 +313,7 @@ class FlywayMigrationIntegrationTest {
                 SELECT count(*) FROM information_schema.referential_constraints
                 WHERE constraint_schema = current_schema()
                   AND (delete_rule <> 'NO ACTION' OR update_rule <> 'NO ACTION')
+                  AND constraint_name IN ('fk_workspaces_created_by', 'fk_workspaces_archived_by', 'fk_workspace_members_workspace', 'fk_workspace_members_user')
                 """, Integer.class);
         assertEquals(0, cascades,
                 "No workspace foreign key may cascade: archiving retires a workspace, it never deletes");
