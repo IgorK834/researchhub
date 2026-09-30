@@ -1,5 +1,9 @@
 # ResearchHub AI worker
 
+RH-112 workspace questions reuse the contextual gateway and Foundry adapter with the versioned
+`workspace-question:1` policy. The deterministic fixture quotes lexically matching passages or
+reports insufficient evidence. Contracts/configuration: [workspace questions](../docs/development/workspace-questions.md).
+
 This dedicated, internal-only Python process is the boundary for document and AI/data workloads. It receives durable
 processing jobs from the Spring dispatcher. PostgreSQL in the backend remains the source of truth. The versioned
 HTTP contract carries trusted job/workspace/source identity and a short-lived, read-only blob URL—never an end-user
@@ -11,7 +15,7 @@ strict result with extraction metadata, document structure, chunks, warnings, an
 validated output. Embedding providers now serve the internal `/internal/embeddings` boundary; Spring owns the
 pgvector index. See [ADR-002](../docs/adr/ADR-002-retrieval.md).
 
-Embedding metadata/documents/query endpoints and the process probe `GET /health` complete the internal surface. This is not a product API. Workspace membership,
+Embedding metadata/documents/query endpoints, model metadata/structured generation endpoints and the process probe `GET /health` complete the internal surface. This is not a product API. Workspace membership,
 authorization, job durability, source metadata, and every product/business endpoint remain in Spring Boot.
 
 ## Dependency management
@@ -62,3 +66,12 @@ Parser behavior, cloud OCR evaluation, limits, Compose blob networking and E2E c
 [Source extraction](../docs/development/source-extraction.md).
 
 Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](../docs/development/source-retrieval.md).
+
+RH-110 adds `ai/`, the central model gateway with deterministic and Foundry adapters. The model receives
+explicit text/evidence only, without parser/storage access or tools. Templates and parameters come from
+Spring feature configuration. Contracts and configuration: [model-gateway.md](../docs/development/model-gateway.md).
+`sh scripts/check.sh` runs all tests and enforces a separate 80% coverage gate for the Python AI package.
+
+RH-111 adds `ai/context.py`: strict validation of application-built v2 context and local citation-key
+translation before exposing a grounded response. The original v1 internal contract remains supported.
+The check script enforces a separate context-module coverage gate. [Grounded context](../docs/development/grounded-context.md).
