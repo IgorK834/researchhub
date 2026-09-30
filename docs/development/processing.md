@@ -75,7 +75,7 @@ clears its process-local delivery cache.
 The synchronous response separates extraction metadata, page/section structure, chunks with provenance, warnings,
 and a safe failure. Canonical examples, compatibility rules, size/count limits, and credential behavior are in
 [source-extraction.md](source-extraction.md). The handler extracts PDF/DOCX/CSV/XLSX content with source provenance;
-Spring persists the validated output before publishing READY. Index writes remain later work.
+Spring embeds and transactionally persists the validated output and pgvector index before publishing READY.
 
 ## Local operation
 
@@ -93,8 +93,8 @@ preserves jobs across ordinary Compose restarts.
 `docker compose down -v` is the intentional reset that deletes them.
 
 The worker does not receive `DB_URL`, has no PostgreSQL driver, and must not read product tables directly. Spring owns
-authorization, source metadata, and durable job state. FastAPI is used only for the health probe and internal job
-delivery; it is not a second product/domain API.
+authorization, source metadata, and durable job state. FastAPI is used only for the health probe, internal job
+delivery and embedding provider operations; it is not a second product/domain API.
 
 | Spring property | Environment variable | Default |
 | --- | --- | --- |
@@ -125,3 +125,11 @@ RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
 [Source extraction](source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
 
 Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](source-retrieval.md).
+
+
+RH-105 completes source ingest with EXTRACT/CHUNK/EMBED/INDEX/FINALIZE stages. Embedding
+HTTP calls run outside DB transactions. Result storage includes the search projection,
+and READY requires the exact job's complete indexed chunk set. The authorized
+`GET /api/workspaces/{workspaceId}/sources/{sourceId}/processing` endpoint exposes
+coarse progress and attempts. See [source-retrieval.md](source-retrieval.md) for stage
+semantics, failure handling, model namespaces and retry/rebuild behavior.

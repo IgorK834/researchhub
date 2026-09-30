@@ -28,8 +28,12 @@ Applied migrations:
 | 8 | `V8__create_sources.sql` | `sources` and the trigger that keeps each original input immutable, owned by the `source` module. |
 | 9 | `V9__add_source_failure_summary.sql` | Nullable `sources.failure_summary` plus the constraint tying it exactly to `FAILED`. |
 | 10 | `V10__create_processing_jobs.sql` | Durable `processing_jobs`, idempotent resource identity, retry state checks, claim index, and immutable identity trigger. |
+| 11 | `V11__create_source_extractions.sql` | Validated current extraction with scoped source/job identities. |
+| 12 | `V12__version_source_processing.sql` | Processing generations and immutable successful extraction-run journal. |
+| 13 | `V13__create_source_retrieval_chunks.sql` | Current versioned retrieval manifests and grounded source spans. |
+| 14 | `V14__index_source_embeddings.sql` | pgvector extension, versioned embedding namespaces, scoped search projection and job stage. |
 
-The next migration is `V11__<description>.sql`.
+The next migration is `V15__<description>.sql`.
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each

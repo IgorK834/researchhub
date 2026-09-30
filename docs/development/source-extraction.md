@@ -2,7 +2,7 @@
 
 Implemented on the existing upload → PostgreSQL SOURCE_INGEST job → internal HTTP Python worker → source result
 flow. The worker boundary (the prerequisite processing work) already existed; it previously acknowledged empty
-results. Extraction is now performed before a source becomes READY. No index, retrieval engine, macro execution,
+results. Extraction is now performed before a source becomes READY. [RH-102–RH-105](source-retrieval.md) now add embedding and retrieval indexing. No macro execution,
 formula engine, or new infrastructure service is introduced.
 
 ## Output and provenance
@@ -44,7 +44,7 @@ second full text blob. Small bounded row previews are separate from column sampl
 Flyway V12 creates `source_extraction_runs`, a journal of successful result persistence keyed by job ID. It records
 versions, digest and timestamp, without copying extraction text. Retrying one job is idempotent. Reprocessing the
 same immutable source creates a fresh job/generation and refreshes its current output. Earlier run metadata remains;
-earlier full extraction text is not retained. Version/hash metadata allows future indexes to detect stale outputs.
+earlier full extraction text is not retained. Version/hash metadata allows retrieval indexes to detect stale outputs.
 
 The current-attempt lock rejects prior attempts/generations. Output and journal persistence share a transaction;
 if either fails, both roll back. Source READY publication separately requires persisted output for that exact job
@@ -76,7 +76,7 @@ character range, typed location, parser/processing version, original SHA-256, pr
 (or null for non-PDF). Missing/unauthorized/unpublished locations return the same `404`. The product URL accepts
 `unit`, `page`, `sheet`, and `parserVersion` query parameters; matching units open and scroll into view. Each unit
 has a location link. A link with a changed parser or missing unit displays a warning after reprocessing. It does not
-pretend to reproduce old extracted text. These location APIs prepare future citations without adding indexing.
+pretend to reproduce old extracted text. These location APIs retain exact citation provenance, also used by the retrieval index.
 
 ## Parsers
 

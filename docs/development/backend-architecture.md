@@ -223,6 +223,11 @@ prohibition of the normal case.
 | `document.api` | `dev.researchhub.auth.application` | Every document route acts on behalf of the signed-in user, and `auth` owns the session. As in `workspace.api`, the caller comes from `CurrentUserResolver` rather than the body, and only `id()` is read. |
 | `source.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Exactly as for documents: a source's access rule is its workspace's. `SourceService` calls the two `void` guards and never learns what a role is. `source` must not import `workspace.domain`, `workspace.infrastructure`, `user.domain`, or `user.infrastructure`, and nothing in `source.domain` or `source.application` may import a cloud SDK. |
 | `source.application` | `dev.researchhub.processing.application` | `SourceService` enqueues the durable job in its database transaction; `SourceIngestJobStateListener` implements the narrow notification interface to mirror status. It imports no processing domain or infrastructure type. |
+| `ai.application` | `dev.researchhub.source.application.SourceReadScope` and `SourceExtractionService` | Selected-source ownership and grounded chunk reads go through public source contracts; no source repository/domain import. |
+| `ai.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Retrieval authorizes the workspace before embedding; its adapter also applies workspace filtering inside SQL. |
+| `ai.api` | `dev.researchhub.auth.application.CurrentUserResolver` | The caller comes from the authenticated session, never a request field. |
+| `source.application` | `dev.researchhub.ai.application` | Ingestion uses embedding/index/chunk ports and requires complete indexed publication before READY. No vendor dependency. |
+| `processing.infrastructure` | `dev.researchhub.ai.application` | The worker transport validates retrieval outputs and maps vendor-neutral embedding failures to durable job retry/error policy. |
 | `document.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | A document's access rule *is* its workspace's. `DocumentService` calls `requireContentReader` and `requireContentEditor`, which return `void` precisely so this edge stays this narrow. |
 
 **The document module never learns what a role is.** It does not import `WorkspaceRole` or

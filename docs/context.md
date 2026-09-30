@@ -201,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring are implemented: the document page is a writing shell with the workspace's documents down the side, create-and-open, a title input and a Tiptap editor over the stored ProseMirror JSON, autosave with a visible save state, and a version history with restore. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` now provides the internal source-ingest HTTP boundary; PDF/DOCX/XLSX parsers are implemented; indexing remains later work.
+The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring are implemented: the document page is a writing shell with the workspace's documents down the side, create-and-open, a title input and a Tiptap editor over the stored ProseMirror JSON, autosave with a visible save state, and a version history with restore. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` now provides the internal source-ingest HTTP boundary; PDF/DOCX/XLSX parsers and configurable embedding providers are implemented; Spring owns pgvector indexing.
 
 Local-only paths are ignored and must not be committed:
 
@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Search indexing, RAG generation, AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. RAG generation, AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
 
 ---
 
@@ -536,7 +536,7 @@ TXT, with a closed mapping to one canonical media type each. Unsupported files a
 `415 UNSUPPORTED_FILE_TYPE`. File names are metadata only, storage keys are opaque and never authorize, and the
 original input is immutable, so a replacement will be a version. Each upload atomically creates a durable
 `SOURCE_INGEST` job (V10); Spring claims it safely and invokes the internal Python worker with no end-user token.
-Parsing and provenance-rich retrieval chunks are implemented; embeddings and search indexing remain future work. References: [development/sources.md](development/sources.md)
+Parsing, provenance-rich retrieval chunks, vendor-neutral embeddings and pgvector hybrid retrieval are implemented. References: [development/sources.md](development/sources.md)
 and [development/processing.md](development/processing.md).
 
 ---
@@ -1447,8 +1447,8 @@ Do not lock these prematurely:
 - Tiptap vs alternative editor,
 - Hocuspocus vs other Yjs server approach,
 - Azure Web PubSub usage,
-- pgvector vs Azure AI Search for early/local RAG,
-- embedding model,
+- early/local RAG: resolved by [ADR-002](adr/ADR-002-retrieval.md), PostgreSQL + pgvector first; Azure AI Search deferred,
+- production embedding model selection (configurable provider port and deterministic offline fake exist),
 - LLM model,
 - reranker,
 - document parsing strategy per file type,

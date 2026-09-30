@@ -16,7 +16,8 @@ Backend module rules: [docs/development/backend-architecture.md](docs/developmen
 - Frontend: React, TypeScript, Webpack, npm
 
 The first Python AI/data boundary lives under `ai-worker/`: an internal source-ingest worker called by the durable
-PostgreSQL-backed dispatcher. Extraction/indexing implementations are deliberately still separate follow-up work.
+PostgreSQL-backed dispatcher. Extraction, chunking and provider-neutral embeddings are implemented; Spring transactionally indexes
+the resulting chunks in pgvector.
 
 ## Directory structure
 
@@ -74,7 +75,7 @@ cd backend
 
 `./mvnw test` needs Docker. Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do
 not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
-and processing modules.
+processing and AI/retrieval modules.
 `./mvnw spring-boot:run` still uses Compose.
 
 `./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication` on the `local` profile, which does need the PostgreSQL container above running. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
@@ -149,3 +150,13 @@ RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
 [Source extraction](docs/development/source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
 
 Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](docs/development/source-retrieval.md).
+
+
+Retrieval (RH-102–RH-105): normal PDF/DOCX/TXT ingestion now embeds and indexes chunks
+before READY. [ADR-002](docs/adr/ADR-002-retrieval.md) selects PostgreSQL + pgvector;
+[retrieval contracts/API/configuration](docs/development/source-retrieval.md) describe
+workspace isolation, hybrid search and model rebuilds. Offline embedding is the default;
+Azure model selection is configured solely in the Python worker. Recreate the local
+PostgreSQL 17 container with the new Compose image (preserve the named volume) and rebuild
+the worker together with the backend. Previously READY sources need explicit reprocessing
+before search. No Azure AI Search service is provisioned by this change.
