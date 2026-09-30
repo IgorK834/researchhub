@@ -228,6 +228,15 @@ function stubDocumentApi(options: {
     const path = String(url);
     const method = init?.method ?? 'GET';
 
+    if (path === `/api/workspaces/${WORKSPACE_ID}/sources`) {
+      return Promise.resolve(jsonResponse([], 200, 'application/json'));
+    }
+    if (path === `/api/workspaces/${WORKSPACE_ID}/ai/conversations?offset=0`) {
+      return Promise.resolve(
+        jsonResponse({ items: [], nextOffset: null }, 200, 'application/json'),
+      );
+    }
+
     if (path === '/api/auth/csrf') {
       return Promise.resolve(emptyNoContent());
     }
@@ -448,6 +457,13 @@ describe('DocumentDetailPage', () => {
       expect((await findBody()).textContent).toBe('Measurements');
       expect(saveState()).toBe('Saved');
       expect(screen.getByText(/revision 4/)).not.toBeNull();
+      expect(
+        await screen.findByRole('region', { name: 'AI research panel' }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole('complementary', { name: 'Research alongside the document' })
+          .parentElement,
+      ).toBe(screen.getByRole('region', { name: 'Editor' }).parentElement);
     });
 
     it('opens a paragraph-only document from the textarea editor as it is stored', async () => {

@@ -65,6 +65,13 @@ function stubBackend(role: string): { documents: StoredDocument[] } {
   globalThis.fetch = jest.fn((url: unknown, init?: RequestInit) => {
     const path = String(url);
     const method = init?.method ?? 'GET';
+
+    if (path === `/api/workspaces/${WORKSPACE_ID}/ai/conversations?offset=0`) {
+      return Promise.resolve(json({ items: [], nextOffset: null }));
+    }
+    if (path === `/api/workspaces/${WORKSPACE_ID}/sources`) {
+      return Promise.resolve(json([]));
+    }
     const body =
       init?.body === undefined
         ? undefined

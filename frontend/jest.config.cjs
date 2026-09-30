@@ -15,8 +15,10 @@ module.exports = {
     'src/shared/api/**/*.ts',
     '!src/shared/api/index.ts',
     'src/features/sources/**/*.{ts,tsx}',
+    'src/features/ai/**/*.{ts,tsx}',
   ],
   coverageThreshold: {
+    'src/features/ai/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'src/features/sources/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'src/features/sources/api/sourceLocations.ts': {
       lines: 80,

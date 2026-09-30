@@ -1,5 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ResearchPanel } from '../features/ai/components/ResearchPanel';
+import { useSourcesQuery } from '../features/sources/api/useSources';
 
 import { useDocumentQuery } from '../features/documents/api/useDocuments';
 import { CreateDocumentForm } from '../features/documents/components/CreateDocumentForm';
@@ -79,6 +81,7 @@ function DocumentScreen({
   const document = useDocumentQuery(workspaceId, documentId);
   // The caller's role, for deciding what to render. Usually already cached from the workspace page.
   const workspace = useWorkspaceQuery(workspaceId);
+  const sources = useSourcesQuery(workspaceId);
   const navigate = useNavigate();
 
   // Bumped when the stored document replaces what the editor holds: the user asked for the latest version after
@@ -130,6 +133,29 @@ function DocumentScreen({
           }}
         />
       </section>
+      {document.data !== undefined && workspace.data !== undefined ? (
+        <aside
+          aria-label="Research alongside the document"
+          style={{ flex: '0 1 24rem', minWidth: '18rem', maxWidth: '100%' }}
+        >
+          <ResearchPanel
+            workspaceId={workspaceId}
+            sources={{
+              sources:
+                sources.data?.map((source) => ({
+                  id: source.id,
+                  title: source.displayName,
+                  ready: source.status === 'READY',
+                })) ?? [],
+              loading: sources.isPending,
+              error:
+                sources.error === null
+                  ? null
+                  : `Could not load research sources: ${describeError(sources.error)}`,
+            }}
+          />
+        </aside>
+      ) : null}
     </div>
   );
 }

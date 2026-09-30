@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { CitationVersionStatus } from '../features/ai/components/CitationVersionStatus';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { PdfSourcePreview } from '../features/sources/components/PdfSourcePreview';
@@ -93,6 +94,14 @@ function SourceDetail({
         <Link to={`/app/workspaces/${workspaceId}`}>Back to the workspace</Link>
       </p>
       <h1>{source.displayName}</h1>
+      {search.get('processingVersion') ? (
+        <CitationVersionStatus
+          key={source.updatedAt}
+          workspaceId={workspaceId}
+          sourceId={sourceId}
+          processingVersion={search.get('processingVersion') ?? ''}
+        />
+      ) : null}
       <dl>
         <dt>Type</dt>
         <dd>{source.sourceType}</dd>
