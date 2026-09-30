@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "10000000-0000-0000-0000-000000000001",
+  "templateId": "grounded-response:1",
+  "templateHash": "04d3c2f72c6a75b417c8f5ce81112b336490247320c1483ade8e8db0e7d17f36",
+  "model": {
+    "provider": "deterministic",
+    "name": "extractive-fixture",
+    "version": "1",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "usage": {
+    "inputTokens": 115,
+    "outputTokens": 11,
+    "totalTokens": 126,
+    "estimated": true
+  },
+  "providerRequestId": "7795bf4fcdcd0e4c6982235af78aad3d78fa39ac271322d569069a2b3f67f401",
+  "answer": {
+    "status": "SUPPORTED",
+    "claims": [
+      {
+        "text": "Lecture 2: kinetic energy equals half the mass times velocity squared.",
+        "evidenceIds": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      }
+    ]
+  }
+}

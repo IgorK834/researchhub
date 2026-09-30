@@ -1,0 +1,7 @@
+{
+  "status": "INSUFFICIENT_EVIDENCE",
+  "reason": "NO_RETRIEVED_EVIDENCE",
+  "answer": "No searchable evidence was found in the authorized sources for this question.",
+  "citations": [],
+  "generation": null
+}

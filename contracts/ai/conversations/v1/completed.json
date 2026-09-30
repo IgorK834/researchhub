@@ -1,0 +1,130 @@
+{
+  "user": {
+    "id": "10000000-0000-0000-0000-000000000007",
+    "clientRequestId": "10000000-0000-0000-0000-000000000006",
+    "sequence": 1,
+    "role": "USER",
+    "status": "COMPLETED",
+    "authorId": "10000000-0000-0000-0000-000000000005",
+    "content": "What is kinetic energy?",
+    "selectedSourceIds": [
+      "10000000-0000-0000-0000-000000000003"
+    ],
+    "response": null,
+    "errorCode": null,
+    "createdAt": "2026-09-30T12:00:01Z",
+    "completedAt": "2026-09-30T12:00:02Z"
+  },
+  "assistant": {
+    "id": "10000000-0000-0000-0000-000000000008",
+    "clientRequestId": "10000000-0000-0000-0000-000000000006",
+    "sequence": 2,
+    "role": "ASSISTANT",
+    "status": "COMPLETED",
+    "authorId": null,
+    "content": "Lecture 2: kinetic energy equals half the mass times velocity squared.",
+    "selectedSourceIds": null,
+    "response": {
+      "status": "SUPPORTED",
+      "reason": null,
+      "answer": "Lecture 2: kinetic energy equals half the mass times velocity squared.",
+      "citations": [
+        {
+          "chunkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sourceId": "10000000-0000-0000-0000-000000000003",
+          "title": "Lecture 5",
+          "pageStart": 38,
+          "pageEnd": 38,
+          "sectionTitle": "Energy",
+          "processingVersion": "retrieval-1:fixture",
+          "spans": [
+            {
+              "unitId": "unit-38",
+              "characterStart": 0,
+              "characterEnd": 70
+            }
+          ],
+          "workspaceId": "10000000-0000-0000-0000-000000000002",
+          "sourceVersionId": null,
+          "contentHash": "99023fdecfeb118c348ff9f1347076debe89bcfb2aa8c5b6d853d72534cae695"
+        }
+      ],
+      "generation": {
+        "result": {
+          "schemaVersion": "1.0",
+          "requestId": "10000000-0000-0000-0000-000000000001",
+          "templateId": "workspace-question:1",
+          "templateHash": "70694869cf12fbf57df0fb167678c45d7b5014ca5fb722985cb05e37b1ae1311",
+          "model": {
+            "provider": "deterministic",
+            "name": "extractive-fixture",
+            "version": "1",
+            "structuredOutput": true,
+            "streaming": false
+          },
+          "usage": {
+            "inputTokens": 148,
+            "outputTokens": 11,
+            "totalTokens": 159,
+            "estimated": true
+          },
+          "providerRequestId": "7795bf4fcdcd0e4c6982235af78aad3d78fa39ac271322d569069a2b3f67f401",
+          "answer": {
+            "status": "SUPPORTED",
+            "claims": [
+              {
+                "text": "Lecture 2: kinetic energy equals half the mass times velocity squared.",
+                "evidenceIds": [
+                  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                ]
+              }
+            ]
+          }
+        },
+        "evidence": [
+          {
+            "chunkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sourceId": "10000000-0000-0000-0000-000000000003",
+            "title": "Lecture 5",
+            "pageStart": 38,
+            "pageEnd": 38,
+            "sectionTitle": "Energy",
+            "processingVersion": "retrieval-1:fixture",
+            "spans": [
+              {
+                "unitId": "unit-38",
+                "characterStart": 0,
+                "characterEnd": 70
+              }
+            ],
+            "workspaceId": "10000000-0000-0000-0000-000000000002",
+            "sourceVersionId": null,
+            "contentHash": "99023fdecfeb118c348ff9f1347076debe89bcfb2aa8c5b6d853d72534cae695"
+          }
+        ],
+        "context": {
+          "builderVersion": "1.0",
+          "tokenPolicy": "utf8-conservative-v1",
+          "budget": {
+            "maxTokens": 32768,
+            "maxBytes": 24576,
+            "collapseExactDuplicates": true
+          },
+          "contextHash": "7a935ca6672718319900589371f7966781fe6c7a5f2d2ae58d7d9f9e2d7d8b2e",
+          "contextBytes": 416,
+          "tokenUpperBound": 4489,
+          "citations": [
+            {
+              "citationKey": "S1",
+              "chunkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "textReference": null
+            }
+          ]
+        }
+      }
+    },
+    "errorCode": null,
+    "createdAt": "2026-09-30T12:00:02Z",
+    "completedAt": "2026-09-30T12:00:02Z"
+  }
+}

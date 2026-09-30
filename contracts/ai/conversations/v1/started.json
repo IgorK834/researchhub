@@ -1,0 +1,19 @@
+{
+  "conversationId": "10000000-0000-0000-0000-000000000004",
+  "user": {
+    "id": "10000000-0000-0000-0000-000000000007",
+    "clientRequestId": "10000000-0000-0000-0000-000000000006",
+    "sequence": 1,
+    "role": "USER",
+    "status": "PENDING",
+    "authorId": "10000000-0000-0000-0000-000000000005",
+    "content": "What is kinetic energy?",
+    "selectedSourceIds": [
+      "10000000-0000-0000-0000-000000000003"
+    ],
+    "response": null,
+    "errorCode": null,
+    "createdAt": "2026-09-30T12:00:01Z",
+    "completedAt": null
+  }
+}
