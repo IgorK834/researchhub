@@ -53,13 +53,13 @@ Content-Type: application/json
 Authorization: Bearer <service credential>
 
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "2.0",
   "jobId": "uuid",
   "workspaceId": "uuid",
   "sourceId": "uuid",
   "sourceType": "PDF",
   "fileAccess": {"kind": "SIGNED_URL", "url": "https://...", "expiresAt": "..."},
-  "requestedProcessingVersion": "source-ingest-1",
+  "requestedProcessingVersion": "source-ingest-2",
   "attempt": 1
 }
 ```
@@ -73,8 +73,8 @@ clears its process-local delivery cache.
 
 The synchronous response separates extraction metadata, page/section structure, chunks with provenance, warnings,
 and a safe failure. Canonical examples, compatibility rules, size/count limits, and credential behavior are in
-[processing-contract-v1.md](processing-contract-v1.md). The current handler is the tested ingestion seam and returns
-an empty successful extraction; real parsers and index writes belong behind `IdempotentSourceIngestProcessor`.
+[source-extraction.md](source-extraction.md). The handler extracts PDF/DOCX/XLSX content with source provenance;
+Spring persists the validated output before publishing READY. Index writes remain later work.
 
 ## Local operation
 
@@ -119,3 +119,6 @@ characters. A deployed value comes from secret configuration and is never a `RES
 retry, worker-down behavior, and a real two-thread double-claim race against PostgreSQL. The HTTP client test asserts
 that no user credential header crosses the boundary. `./mvnw verify` enforces at least 80% line coverage for the Java
 processing module separately from source; `uv run --frozen pytest` enforces at least 80% branch-aware worker coverage.
+
+RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
+[Source extraction](source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
