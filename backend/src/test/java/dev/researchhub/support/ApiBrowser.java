@@ -57,6 +57,14 @@ public final class ApiBrowser {
     public HttpResponse<String> postJson(String path, String body) throws Exception {
         return sendWithCsrf("POST", path, body);
     }
+    /** Leaves the SSE body live, so tests can assert early events and real disconnect behavior. */
+    public HttpResponse<java.io.InputStream> postStream(String path,String body) throws Exception {
+        get("/api/auth/csrf");
+        return http.send(HttpRequest.newBuilder(url(path)).timeout(java.time.Duration.ofSeconds(15))
+            .header("Content-Type","application/json").header("Accept","text/event-stream")
+            .header("X-XSRF-TOKEN",cookieValue("XSRF-TOKEN").orElseThrow())
+            .POST(HttpRequest.BodyPublishers.ofString(body)).build(),HttpResponse.BodyHandlers.ofInputStream());
+    }
 
     /** POSTs one binary multipart part using the same session and CSRF rules as the browser client. */
     public HttpResponse<String> postFile(String path, String filename, String contentType, byte[] content)
