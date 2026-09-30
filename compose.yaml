@@ -10,7 +10,7 @@
 # docs/development/configuration.md.
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:0.8.2-pg17-bookworm
     container_name: researchhub-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-researchhub}
@@ -71,6 +71,13 @@ services:
       AI_WORKER_CHUNK_MIN_CHARACTERS: ${AI_WORKER_CHUNK_MIN_CHARACTERS:-200}
       AI_WORKER_PREVIEW_ROWS: ${AI_WORKER_PREVIEW_ROWS:-50}
       AI_WORKER_XLSX_SAMPLES: ${AI_WORKER_XLSX_SAMPLES:-10}
+      AI_WORKER_EMBEDDING_PROVIDER: ${AI_WORKER_EMBEDDING_PROVIDER:-deterministic}
+      AZURE_EMBEDDING_ENDPOINT: ${AZURE_EMBEDDING_ENDPOINT:-}
+      AZURE_EMBEDDING_API_KEY: ${AZURE_EMBEDDING_API_KEY:-}
+      AZURE_EMBEDDING_DEPLOYMENT: ${AZURE_EMBEDDING_DEPLOYMENT:-}
+      AZURE_EMBEDDING_MODEL: ${AZURE_EMBEDDING_MODEL:-}
+      AZURE_EMBEDDING_VERSION: ${AZURE_EMBEDDING_VERSION:-}
+      AZURE_EMBEDDING_DIMENSION: ${AZURE_EMBEDDING_DIMENSION:-}
       AI_WORKER_SERVICE_TOKEN: ${AI_WORKER_SERVICE_TOKEN:-local-development-worker-token-change-before-deployment}
     ports:
       - "127.0.0.1:${AI_WORKER_PORT:-8090}:8090"

@@ -254,3 +254,11 @@ Container names, paths, and credentials belong to the chosen adapter's own setti
 
 Durations are ISO-8601 and must be positive. The full state, retry, and internal contract reference is
 [processing.md](processing.md).
+
+
+Retrieval now requires pgvector, enabled through Flyway V14. Local Compose/Testcontainers
+use `pgvector/pgvector:0.8.2-pg17-bookworm`. The default worker embedding provider is
+`AI_WORKER_EMBEDDING_PROVIDER=deterministic`; `azure` requires endpoint, API key,
+deployment, model name, immutable model version and dimension via `AZURE_EMBEDDING_*`.
+These are worker-only server secrets/configuration, never frontend values. Full bounds
+and migration/rebuild instructions: [source-retrieval.md](source-retrieval.md).
