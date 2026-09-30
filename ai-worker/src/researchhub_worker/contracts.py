@@ -17,8 +17,8 @@ from pydantic import (
     model_validator,
 )
 
-SCHEMA_VERSION = "1.0"
-PROCESSING_VERSION = "source-ingest-1"
+SCHEMA_VERSION = "2.0"
+PROCESSING_VERSION = "source-ingest-2"
 MAX_PAGES = 10_000
 MAX_SECTIONS = 50_000
 MAX_CHUNKS = 100_000
@@ -122,7 +122,46 @@ class DocumentStructure(ContractModel):
     sections: Annotated[list[SectionStructure], Field(max_length=MAX_SECTIONS)]
 
 
+class UnitLocation(ContractModel):
+    kind: Literal["PDF_PAGE", "PARAGRAPH", "HEADING", "TABLE", "SHEET", "TEXT"]
+    block_index: Annotated[int, Field(ge=0)] | None = None
+    heading_level: Annotated[int, Field(ge=1, le=20)] | None = None
+    sheet_name: Annotated[str, StringConstraints(max_length=128)] | None = None
+    cell_range: Annotated[str, StringConstraints(max_length=64)] | None = None
+
+
+class ColumnSample(ContractModel):
+    column_number: Annotated[int, Field(ge=1, le=16384)]
+    values: Annotated[list[Annotated[str, StringConstraints(max_length=500)]], Field(max_length=100)]
+    data_types: Annotated[list[str], Field(max_length=10)]
+
+
+class SheetMetadata(ContractModel):
+    name: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    state: Literal["visible", "hidden", "veryHidden"]
+    used_range: Annotated[str, StringConstraints(max_length=64)] | None
+    row_count_estimate: Annotated[int, Field(ge=0, le=1048576)] | None
+    column_count: Annotated[int, Field(ge=0, le=16384)] | None
+    header_candidate: Annotated[list[Annotated[str, StringConstraints(max_length=500)]], Field(max_length=256)]
+    header_row: Annotated[int, Field(ge=1)] | None
+    columns: Annotated[list[ColumnSample], Field(max_length=256)]
+    sampled_rows: Annotated[int, Field(ge=0)]
+    truncated: bool
+    formula_presence: bool | None
+    formula_scan_complete: bool
+
+
+class WorkbookMetadata(ContractModel):
+    sheets: Annotated[list[SheetMetadata], Field(max_length=100)]
+    row_limit: Annotated[int, Field(ge=1, le=10000)]
+    column_limit: Annotated[int, Field(ge=1, le=256)]
+    sample_limit: Annotated[int, Field(ge=1, le=100)]
+
+
 class ExtractedChunk(ContractModel):
+    source_id: UUID
+    parser_version: Identifier
+    location: UnitLocation | None = None
     chunk_id: Identifier
     ordinal: Annotated[int, Field(ge=0)]
     text: Annotated[str, StringConstraints(max_length=250_000)]
@@ -151,6 +190,8 @@ class SourceIngestResult(ContractModel):
     processing_version: Literal[PROCESSING_VERSION]
     status: Literal["SUCCEEDED", "FAILED"]
     duplicate_delivery: bool = False
+    parser_version: Identifier | None = None
+    workbook: WorkbookMetadata | None = None
     extraction_metadata: ExtractionMetadata | None
     structure: DocumentStructure
     chunks: Annotated[list[ExtractedChunk], Field(max_length=MAX_CHUNKS)]
@@ -199,4 +240,4 @@ def parse_source_ingest(value: object) -> SourceIngestCommand:
     try:
         return SourceIngestCommand.model_validate(value)
     except ValidationError as invalid:
-        raise ContractError("Request does not match source-ingest contract v1") from invalid
+        raise ContractError("Request does not match source-ingest contract v2") from invalid

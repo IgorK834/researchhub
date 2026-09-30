@@ -12,7 +12,7 @@ from researchhub_worker.contracts import (
     parse_source_ingest,
 )
 
-FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v1"
+FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v2"
 
 
 def fixture(name: str) -> dict[str, object]:
@@ -27,14 +27,14 @@ def test_parses_and_round_trips_the_shared_request_fixture() -> None:
     assert str(command.job_id) == raw["jobId"]
     assert command.source_type == "PDF"
     assert command.file_access.kind == "SIGNED_URL"
-    assert command.requested_processing_version == "source-ingest-1"
+    assert command.requested_processing_version == "source-ingest-2"
     assert command.model_dump(mode="json", by_alias=True) == raw
 
 
 @pytest.mark.parametrize(
     "change",
     [
-        {"schemaVersion": "2.0"},
+        {"schemaVersion": "1.0"},
         {"jobId": "bad"},
         {"workspaceId": 7},
         {"sourceId": "bad"},
@@ -47,7 +47,7 @@ def test_parses_and_round_trips_the_shared_request_fixture() -> None:
 def test_rejects_invalid_request_fields_without_echoing_values(change: dict[str, object]) -> None:
     raw = fixture("source-ingest-request.json") | change
 
-    with pytest.raises(ContractError, match="contract v1") as failure:
+    with pytest.raises(ContractError, match="contract v2") as failure:
         parse_source_ingest(raw)
 
     assert "bad" not in str(failure.value)
@@ -56,12 +56,12 @@ def test_rejects_invalid_request_fields_without_echoing_values(change: dict[str,
 
 def test_rejects_missing_unknown_and_unsafe_file_access() -> None:
     unknown = fixture("source-ingest-request.json") | {"authorization": "must-not-cross"}
-    with pytest.raises(ContractError, match="contract v1"):
+    with pytest.raises(ContractError, match="contract v2"):
         parse_source_ingest(unknown)
 
     missing = fixture("source-ingest-request.json")
     del missing["sourceId"]
-    with pytest.raises(ContractError, match="contract v1"):
+    with pytest.raises(ContractError, match="contract v2"):
         parse_source_ingest(missing)
 
     unsafe = fixture("source-ingest-request.json")
@@ -70,7 +70,7 @@ def test_rejects_missing_unknown_and_unsafe_file_access() -> None:
         "url": "file:///private/input.pdf",
         "expiresAt": "2030-01-02T03:04:05",
     }
-    with pytest.raises(ContractError, match="contract v1"):
+    with pytest.raises(ContractError, match="contract v2"):
         parse_source_ingest(unsafe)
 
 
@@ -102,6 +102,6 @@ def test_result_status_ranges_and_identity_are_validated() -> None:
         SourceIngestResult.model_validate(invalid_status)
 
     reversed_page = fixture("source-ingest-result-success.json")
-    reversed_page["structure"]["pages"][0]["characterStart"] = 29  # type: ignore[index]
+    reversed_page["structure"]["pages"][0]["characterStart"] = 100  # type: ignore[index]
     with pytest.raises(ValidationError, match="range is reversed"):
         SourceIngestResult.model_validate(reversed_page)

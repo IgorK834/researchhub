@@ -7,7 +7,7 @@ import pytest
 from researchhub_worker.contracts import ContractError, SourceIngestCommand, SourceIngestResult
 from researchhub_worker.processor import IdempotencyConflict, IdempotentSourceIngestProcessor
 
-FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v1"
+FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v2"
 
 
 def command() -> SourceIngestCommand:
@@ -42,7 +42,7 @@ def test_redelivery_is_idempotent_even_with_a_renewed_url() -> None:
 
 
 def test_same_job_id_with_different_identity_is_a_conflict() -> None:
-    processor = IdempotentSourceIngestProcessor()
+    processor = IdempotentSourceIngestProcessor(SourceIngestResult.empty_success)
     work = command()
     processor.process(work)
 
@@ -75,5 +75,5 @@ def test_worker_cannot_return_a_different_identity_or_non_contract_result() -> N
     with pytest.raises(ContractError, match="identity"):
         IdempotentSourceIngestProcessor(lambda _work: mismatched).process(work)
 
-    with pytest.raises(ContractError, match="contract v1"):
+    with pytest.raises(ContractError, match="contract v2"):
         IdempotentSourceIngestProcessor(lambda _work: None).process(work)  # type: ignore[arg-type,return-value]

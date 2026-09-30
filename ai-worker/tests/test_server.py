@@ -12,12 +12,12 @@ from researchhub_worker.server import create_app
 
 SERVICE_TOKEN = "unit-test-service-token-at-least-32-characters"
 AUTHORIZATION = {"Authorization": f"Bearer {SERVICE_TOKEN}"}
-FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v1"
+FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v2"
 
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(create_app(service_token=SERVICE_TOKEN))
+    return TestClient(create_app(IdempotentSourceIngestProcessor(SourceIngestResult.empty_success), service_token=SERVICE_TOKEN))
 
 
 def payload() -> dict[str, object]:
@@ -78,7 +78,7 @@ def test_rejects_bad_media_type_json_contract_and_body_size(client: TestClient) 
         "/internal/jobs/source-ingest", json=payload() | {"browserToken": "private"}, headers=AUTHORIZATION
     )
     assert invalid_contract.status_code == 400
-    assert invalid_contract.json() == {"error": "Request does not match source-ingest contract v1"}
+    assert invalid_contract.json() == {"error": "Request does not match source-ingest contract v2"}
     assert "private" not in invalid_contract.text
 
     oversized = client.post(
