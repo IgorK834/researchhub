@@ -264,3 +264,31 @@ it('loads the new extraction revision without displaying cached text from an ear
     old,
   );
 });
+
+it('shows the server stage and coarse progress while processing a source', async () => {
+  globalThis.fetch = jest.fn(() =>
+    Promise.resolve(
+      response({
+        jobId: 'job',
+        status: 'RUNNING',
+        stage: 'EMBED',
+        progress: 50,
+        attempt: 1,
+      }),
+    ),
+  );
+  render(
+    <QueryClientProvider client={client()}>
+      <SourceProcessing workspaceId="w" sourceId="s" status="PROCESSING" canEdit />
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText('Making source searchable · 50%')).not.toBeNull();
+  expect(screen.getByRole('progressbar').getAttribute('value')).toBe('50');
+  expect(
+    screen.getByRole('button', { name: 'Reprocess source' }).hasAttribute('disabled'),
+  ).toBe(true);
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    '/api/workspaces/w/sources/s/processing',
+    expect.anything(),
+  );
+});

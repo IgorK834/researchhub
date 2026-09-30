@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
+import { fetchSourceProcessing } from '../api/sourceApi';
 import { fetchExtractionRuns } from '../api/sourceExtraction';
 import { useReprocessSource } from '../api/useSources';
 import type { SourceStatus } from '../api/sourceTypes';
@@ -23,11 +24,41 @@ export function SourceProcessing({
     queryKey: queryKeys.extractionRuns(workspaceId, sourceId),
     queryFn: ({ signal }) => fetchExtractionRuns(workspaceId, sourceId, signal),
   });
+  const processing = useQuery({
+    enabled: busy,
+    queryKey: queryKeys.sourceProcessing(workspaceId, sourceId),
+    queryFn: ({ signal }) => fetchSourceProcessing(workspaceId, sourceId, signal),
+    refetchInterval: busy ? 2000 : false,
+  });
+  const stageLabels = {
+    EXTRACT: 'Reading source',
+    CHUNK: 'Preparing source fragments',
+    EMBED: 'Making source searchable',
+    INDEX: 'Saving searchable fragments',
+    FINALIZE: 'Finishing processing',
+  };
   return (
     <section aria-label="Source processing">
       {busy ? (
         <p role="status">
           Source processing is in progress. Status updates automatically.
+        </p>
+      ) : null}
+      {busy && processing.data?.stage ? (
+        <div aria-live="polite">
+          <p>
+            {stageLabels[processing.data.stage]} · {processing.data.progress}%
+          </p>
+          <progress
+            aria-label="Source processing progress"
+            value={processing.data.progress}
+            max={100}
+          />
+        </div>
+      ) : null}
+      {busy && processing.error ? (
+        <p role="alert">
+          Could not load processing progress: {describeError(processing.error)}
         </p>
       ) : null}
       {canEdit ? (

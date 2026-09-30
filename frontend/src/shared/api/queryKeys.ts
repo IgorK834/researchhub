@@ -57,5 +57,8 @@ export const queryKeys = {
   extractionRuns: (workspaceId: string, sourceId: string) =>
     ['sources', workspaceId, sourceId, 'extraction', 'runs'] as const,
 
+  sourceProcessing: (workspaceId: string, sourceId: string) =>
+    ['sources', workspaceId, sourceId, 'processing'] as const,
+
   job: (jobId: string) => ['jobs', jobId] as const,
 } as const;

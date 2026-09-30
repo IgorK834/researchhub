@@ -71,3 +71,22 @@ export async function reprocessSource(
     `${sourcesPath(workspaceId)}/${sourceId}/reprocess`,
   );
 }
+
+export interface SourceProcessingProgress {
+  readonly jobId: string;
+  readonly status: string;
+  readonly stage: 'EXTRACT' | 'CHUNK' | 'EMBED' | 'INDEX' | 'FINALIZE' | null;
+  readonly progress: number;
+  readonly attempt: number;
+}
+
+export function fetchSourceProcessing(
+  workspaceId: string,
+  sourceId: string,
+  signal?: AbortSignal,
+): Promise<SourceProcessingProgress | undefined> {
+  return apiClient.get<SourceProcessingProgress | undefined>(
+    `${sourcesPath(workspaceId)}/${sourceId}/processing`,
+    { ...(signal === undefined ? {} : { signal }) },
+  );
+}
