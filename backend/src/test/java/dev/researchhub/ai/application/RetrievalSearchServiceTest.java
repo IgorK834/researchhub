@@ -34,4 +34,24 @@ class RetrievalSearchServiceTest {
         assertTrue(service.search("query",workspace,List.of(),10,user).isEmpty());
         verifyNoInteractions(embeddings,index);
     }
+    @Test void absenceOfPublishedEvidenceAvoidsEmbeddingEvenWhenTheCloudIsUnavailable() {
+        when(embeddings.embedQuery(anyString())).thenThrow(new EmbeddingFailure(new IllegalStateException("Cloud unavailable"),true));
+        assertTrue(service.search("query",workspace,null,6,user).isEmpty());
+        verify(index).hasSearchableChunks(workspace,null);
+        verifyNoInteractions(embeddings);
+    }
+    @Test void validatesSourceScopeBeforePresenceAndUsesTheConfiguredLimitWhenEvidenceExists() {
+        var source = UUID.randomUUID(); var selected = List.of(source);
+        when(index.hasSearchableChunks(workspace,selected)).thenReturn(true);
+        var batch = new EmbeddingBatch(new EmbeddingModel("fake","model","1",2),List.of(List.of(1.0,0.0)));
+        when(embeddings.embedQuery("query")).thenReturn(batch);
+        when(index.search("query",workspace,selected,6,batch)).thenReturn(List.of());
+        assertTrue(service.search("query",workspace,selected,6,user).isEmpty());
+        var order = inOrder(authorization,sources,index,embeddings);
+        order.verify(authorization).requireContentReader(workspace,user);
+        order.verify(sources).requireSources(workspace,user,selected);
+        order.verify(index).hasSearchableChunks(workspace,selected);
+        order.verify(embeddings).embedQuery("query");
+        order.verify(index).search("query",workspace,selected,6,batch);
+    }
 }

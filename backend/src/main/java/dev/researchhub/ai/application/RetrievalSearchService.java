@@ -24,6 +24,7 @@ public class RetrievalSearchService {
             throw new ApiException(ApiErrorCode.VALIDATION_FAILED, "Invalid retrieval query or limits");
         if (sourceIds != null) sources.requireSources(workspaceId, callerId, sourceIds);
         if (sourceIds != null && sourceIds.isEmpty()) return List.of();
+        if (!index.hasSearchableChunks(workspaceId, sourceIds)) return List.of();
         var embedding = embeddings.embedQuery(query);
         embedding.requireCount(1);
         return index.search(query, workspaceId, sourceIds, topK, embedding);

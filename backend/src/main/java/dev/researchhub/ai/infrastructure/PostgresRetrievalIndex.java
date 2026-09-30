@@ -58,6 +58,24 @@ public class PostgresRetrievalIndex implements RetrievalIndex {
             """, Boolean.class, workspaceId, sourceId, jobId));
     }
     @Override @Transactional(readOnly = true)
+    public boolean hasSearchableChunks(UUID workspaceId, List<UUID> sourceIds) {
+        Objects.requireNonNull(workspaceId);
+        if (sourceIds != null && sourceIds.size() > 100) throw new IllegalArgumentException("Invalid source limits");
+        if (sourceIds != null && sourceIds.isEmpty()) return false;
+        String filter = sourceIds == null ? "" : " AND v.source_id IN (" + String.join(",", Collections.nCopies(sourceIds.size(), "?")) + ")";
+        var args = new ArrayList<Object>(); args.add(workspaceId);
+        if (sourceIds != null) args.addAll(sourceIds);
+        // Same READY/current extraction publication boundary as search, before any remote embedding.
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT EXISTS (SELECT 1 FROM source_chunk_embeddings v
+                JOIN sources s ON s.id=v.source_id AND s.workspace_id=v.workspace_id
+                JOIN source_retrieval_chunks c ON c.chunk_id=v.chunk_id AND c.workspace_id=v.workspace_id AND c.source_id=v.source_id
+                JOIN source_retrieval_sets r ON r.source_id=v.source_id AND r.workspace_id=v.workspace_id AND r.processing_version=v.processing_version
+                JOIN source_extractions e ON e.source_id=r.source_id AND e.workspace_id=r.workspace_id AND e.job_id=r.job_id
+                WHERE v.workspace_id=? AND s.status='READY'
+            """ + filter + ")",Boolean.class,args.toArray()));
+    }
+    @Override @Transactional(readOnly = true)
     public List<RetrievalHit> search(String query, UUID workspaceId, List<UUID> sourceIds, int topK, EmbeddingBatch embedding) {
         Objects.requireNonNull(workspaceId);
         if (query == null || query.isBlank() || topK < 1 || topK > 50 || (sourceIds != null && sourceIds.size() > 100))
