@@ -8,8 +8,6 @@ from uuid import UUID
 
 from pydantic import (
     AnyHttpUrl,
-    BaseModel,
-    ConfigDict,
     Field,
     StrictInt,
     StringConstraints,
@@ -17,8 +15,8 @@ from pydantic import (
     model_validator,
 )
 
-SCHEMA_VERSION = "2.0"
-PROCESSING_VERSION = "source-ingest-2"
+SCHEMA_VERSION = "4.0"
+PROCESSING_VERSION = "source-ingest-4"
 MAX_PAGES = 10_000
 MAX_SECTIONS = 50_000
 MAX_CHUNKS = 100_000
@@ -29,24 +27,12 @@ Identifier = Annotated[str, StringConstraints(strip_whitespace=True, min_length=
 FailureCode = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,63}$")]
 
 
-def _camel_case(value: str) -> str:
-    first, *rest = value.split("_")
-    return first + "".join(word.capitalize() for word in rest)
+from .contract_model import ContractModel
+from .retrieval.contracts import RetrievalChunkSet
 
 
 class ContractError(ValueError):
     """A safe validation failure that never echoes submitted values."""
-
-
-class ContractModel(BaseModel):
-    """No unknown fields and stable camelCase JSON on every boundary model."""
-
-    model_config = ConfigDict(
-        alias_generator=lambda name: _camel_case(name),
-        populate_by_name=True,
-        extra="forbid",
-        frozen=True,
-    )
 
 
 class TemporaryFileAccess(ContractModel):
@@ -136,7 +122,13 @@ class ColumnSample(ContractModel):
     data_types: Annotated[list[str], Field(max_length=10)]
 
 
+class PreviewRow(ContractModel):
+    row_number: Annotated[int, Field(ge=1)]
+    cells: Annotated[list[Annotated[str, StringConstraints(max_length=500)]], Field(max_length=256)]
+
+
 class SheetMetadata(ContractModel):
+    preview_rows: Annotated[list[PreviewRow], Field(max_length=100)]
     name: Annotated[str, StringConstraints(min_length=1, max_length=128)]
     state: Literal["visible", "hidden", "veryHidden"]
     used_range: Annotated[str, StringConstraints(max_length=64)] | None
@@ -152,6 +144,7 @@ class SheetMetadata(ContractModel):
 
 
 class WorkbookMetadata(ContractModel):
+    preview_row_limit: Annotated[int, Field(ge=1, le=100)]
     sheets: Annotated[list[SheetMetadata], Field(max_length=100)]
     row_limit: Annotated[int, Field(ge=1, le=10000)]
     column_limit: Annotated[int, Field(ge=1, le=256)]
@@ -190,6 +183,7 @@ class SourceIngestResult(ContractModel):
     processing_version: Literal[PROCESSING_VERSION]
     status: Literal["SUCCEEDED", "FAILED"]
     duplicate_delivery: bool = False
+    retrieval: RetrievalChunkSet | None = None
     parser_version: Identifier | None = None
     workbook: WorkbookMetadata | None = None
     extraction_metadata: ExtractionMetadata | None
@@ -200,9 +194,9 @@ class SourceIngestResult(ContractModel):
 
     @model_validator(mode="after")
     def consistent_status(self) -> SourceIngestResult:
-        if self.status == "SUCCEEDED" and (self.failure is not None or self.extraction_metadata is None):
+        if self.status == "SUCCEEDED" and (self.failure is not None or self.extraction_metadata is None or self.retrieval is None):
             raise ValueError("a successful result needs metadata and no failure")
-        if self.status == "FAILED" and self.failure is None:
+        if self.status == "FAILED" and (self.failure is None or self.retrieval is not None):
             raise ValueError("a failed result needs a failure")
         return self
 
@@ -217,19 +211,21 @@ class SourceIngestResult(ContractModel):
 
     @classmethod
     def empty_success(cls, command: SourceIngestCommand) -> SourceIngestResult:
-        return cls(
-            schema_version=SCHEMA_VERSION,
-            job_id=command.job_id,
-            workspace_id=command.workspace_id,
-            source_id=command.source_id,
-            processing_version=command.requested_processing_version,
-            status="SUCCEEDED",
-            extraction_metadata=ExtractionMetadata(page_count=0, character_count=0),
-            structure=DocumentStructure(pages=[], sections=[]),
-            chunks=[],
-            warnings=[],
-            failure=None,
-        )
+        from .retrieval.contracts import ChunkingConfig, digest, identity_digest
+        config = ChunkingConfig()
+        parser = 'contract-test-1'
+        file_hash, text_hash = 'a' * 64, digest('')
+        version = 'retrieval-1:' + identity_digest([command.requested_processing_version, parser,
+            file_hash, text_hash, config.version, config.max_characters, config.overlap_characters, config.min_characters])
+        retrieval = RetrievalChunkSet(source_id=command.source_id, workspace_id=command.workspace_id,
+            source_version_id=None, ingestion_version=command.requested_processing_version,
+            parser_version=parser, source_content_hash=file_hash, extraction_content_hash=text_hash,
+            processing_version=version, config=config, chunks=[])
+        return cls(schema_version=SCHEMA_VERSION, job_id=command.job_id, workspace_id=command.workspace_id,
+            source_id=command.source_id, processing_version=command.requested_processing_version,
+            status='SUCCEEDED', parser_version=parser, retrieval=retrieval,
+            extraction_metadata=ExtractionMetadata(page_count=0, character_count=0, content_sha256=file_hash),
+            structure=DocumentStructure(pages=[], sections=[]), chunks=[], warnings=[], failure=None)
 
     def as_duplicate(self) -> SourceIngestResult:
         return self.model_copy(update={"duplicate_delivery": True})
@@ -240,4 +236,4 @@ def parse_source_ingest(value: object) -> SourceIngestCommand:
     try:
         return SourceIngestCommand.model_validate(value)
     except ValidationError as invalid:
-        raise ContractError("Request does not match source-ingest contract v2") from invalid
+        raise ContractError("Request does not match source-ingest contract v4") from invalid

@@ -6,8 +6,8 @@ HTTP contract carries trusted job/workspace/source identity and a short-lived, r
 cookie or authorization token.
 
 The first contract is `POST /internal/jobs/source-ingest`. It requires a backend service Bearer token and returns a
-strict result with extraction metadata, document structure, chunks, warnings, and a failure object. The production handler downloads the scoped input and extracts PDF, DOCX and XLSX content through
-`parsing/`. The active contract is v2; extraction and provenance stay outside the Java domain, while Spring stores
+strict result with extraction metadata, document structure, chunks, warnings, and a failure object. The production handler downloads the scoped input and extracts PDF, DOCX, CSV and XLSX content through
+`parsing/`. The active contract is v4; extraction and provenance stay outside the Java domain, while Spring stores
 validated output. Indexing remains later work.
 
 The only other route is the process probe `GET /health`. This is not a product API. Workspace membership,
@@ -54,8 +54,10 @@ product database. Spring owns workspace authorization and durable job state. Fut
 scoped internal contracts or storage access designed for the workload, but they must not bypass that boundary. The
 worker also does not execute generated user/AI code; such execution belongs in the separately isolated sandbox.
 
-The canonical v2 examples are in `../contracts/processing/v2/`; both Java and Python contract tests consume those
+The canonical v4 examples are in `../contracts/processing/v4/`; both Java and Python contract tests consume those
 same files. See `../docs/development/source-extraction.md` for the compatibility and limit policy.
 
 Parser behavior, cloud OCR evaluation, limits, Compose blob networking and E2E checks are documented in
 [Source extraction](../docs/development/source-extraction.md).
+
+Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](../docs/development/source-retrieval.md).

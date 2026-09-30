@@ -12,7 +12,7 @@ from researchhub_worker.server import create_app
 
 SERVICE_TOKEN = "unit-test-service-token-at-least-32-characters"
 AUTHORIZATION = {"Authorization": f"Bearer {SERVICE_TOKEN}"}
-FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v2"
+FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v4"
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def test_accepts_and_deduplicates_a_contract_command(client: TestClient) -> None
         "language": None,
         "pageCount": 0,
         "characterCount": 0,
-        "contentSha256": None,
+        "contentSha256": "a" * 64,
     }
     assert second.status_code == 200
     assert second.json()["duplicateDelivery"] is True
@@ -78,7 +78,7 @@ def test_rejects_bad_media_type_json_contract_and_body_size(client: TestClient) 
         "/internal/jobs/source-ingest", json=payload() | {"browserToken": "private"}, headers=AUTHORIZATION
     )
     assert invalid_contract.status_code == 400
-    assert invalid_contract.json() == {"error": "Request does not match source-ingest contract v2"}
+    assert invalid_contract.json() == {"error": "Request does not match source-ingest contract v4"}
     assert "private" not in invalid_contract.text
 
     oversized = client.post(

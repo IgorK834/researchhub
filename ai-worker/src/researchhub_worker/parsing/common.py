@@ -24,13 +24,14 @@ class ParserLimits:
     xlsx_rows: int = 1_000
     xlsx_columns: int = 64
     xlsx_samples: int = 10
+    preview_rows: int = 50
     max_sheets: int = 100
     max_zip_bytes: int = 104_857_600
 
     @classmethod
     def from_env(cls):
         values = {}
-        ceilings = {'xlsx_rows': 10000, 'xlsx_columns': 256, 'xlsx_samples': 100,
+        ceilings = {'xlsx_rows': 10000, 'xlsx_columns': 256, 'xlsx_samples': 100, 'preview_rows': 100,
                     'max_sheets': 100, 'max_pages': 10000, 'max_units': 10000,
                     'max_characters': 500000, 'max_file_bytes': 52428800,
                     'max_zip_bytes': 104857600}

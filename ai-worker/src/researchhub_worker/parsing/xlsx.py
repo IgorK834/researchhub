@@ -4,10 +4,10 @@ from itertools import islice
 from io import BytesIO
 from openpyxl import load_workbook
 from openpyxl.utils.cell import get_column_letter
-from ..contracts import ColumnSample, SheetMetadata, UnitLocation, WorkbookMetadata
+from ..contracts import ColumnSample, PreviewRow, SheetMetadata, UnitLocation, WorkbookMetadata
 from .common import ParseFailure, TextBuilder, check_office_archive
 
-PARSER_VERSION = 'openpyxl-3.1.5/rh-1'
+PARSER_VERSION = 'openpyxl-3.1.5/rh-2'
 
 
 def _value(cell):
@@ -48,7 +48,7 @@ def parse_xlsx(data, source_id, limits):
             header, header_row = [], None
             samples = [[] for _ in range(limits.xlsx_columns)]
             types = [set() for _ in range(limits.xlsx_columns)]
-            lines = []
+            lines, preview = [], []
             for row_number, row in enumerate(sampled, 1):
                 values = []
                 for index, cell in enumerate(row):
@@ -62,6 +62,8 @@ def parse_xlsx(data, source_id, limits):
                             samples[index].append(value)
                 while values and not values[-1]:
                     values.pop()
+                if row_number <= limits.preview_rows:
+                    preview.append(PreviewRow(row_number=row_number, cells=values.copy()))
                 if values:
                     if header_row is None:
                         header, header_row = values, row_number
@@ -70,7 +72,7 @@ def parse_xlsx(data, source_id, limits):
                               for index, values in enumerate(samples) if values]
             truncated = extra_row or (rows is not None and rows > limits.xlsx_rows) or (columns is None or columns > limits.xlsx_columns)
             complete = not truncated
-            sheets.append(SheetMetadata(name=sheet.title, state=sheet.sheet_state, used_range=used_range,
+            sheets.append(SheetMetadata(preview_rows=preview, name=sheet.title, state=sheet.sheet_state, used_range=used_range,
                 row_count_estimate=rows, column_count=columns, header_candidate=header, header_row=header_row,
                 columns=column_samples, sampled_rows=len(sampled), truncated=truncated,
                 formula_presence=True if found_formula else (False if complete else None), formula_scan_complete=complete))
@@ -80,6 +82,6 @@ def parse_xlsx(data, source_id, limits):
             warnings.append('WORKBOOK_SAMPLED: Row/column limits apply; dimensions are estimates and formula detection may be incomplete.')
     finally:
         workbook.close()
-    metadata = WorkbookMetadata(sheets=sheets, row_limit=limits.xlsx_rows, column_limit=limits.xlsx_columns,
+    metadata = WorkbookMetadata(preview_row_limit=limits.preview_rows, sheets=sheets, row_limit=limits.xlsx_rows, column_limit=limits.xlsx_columns,
                                 sample_limit=limits.xlsx_samples)
     return builder, [], [], metadata, warnings, None, None

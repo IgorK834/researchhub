@@ -20,7 +20,7 @@ from researchhub_worker.server import create_app
 
 
 def command(kind='PDF'):
-    data = json.loads((Path(__file__).resolve().parents[2] / 'contracts/processing/v2/source-ingest-request.json').read_text())
+    data = json.loads((Path(__file__).resolve().parents[2] / 'contracts/processing/v4/source-ingest-request.json').read_text())
     return SourceIngestCommand.model_validate(data | {'sourceType': kind, 'jobId': str(uuid4())})
 
 
@@ -180,10 +180,9 @@ def test_configured_limits_fail_safely(kind, data, limits):
     assert parse(kind, data, limits).failure.code == 'EXTRACTION_LIMIT_EXCEEDED'
 
 
-def test_utf8_text_and_csv_keep_identity():
-    for kind in ['TXT', 'CSV']:
-        result = parse(kind, 'λ,😀\nvalue,2'.encode('utf-8-sig'))
-        assert result.status == 'SUCCEEDED' and result.chunks[0].text == 'λ,😀\nvalue,2'
+def test_utf8_text_keeps_identity():
+    result = parse('TXT', 'λ,😀\nvalue,2'.encode('utf-8-sig'))
+    assert result.status == 'SUCCEEDED' and result.chunks[0].text == 'λ,😀\nvalue,2'
 
 
 def test_runtime_limits_are_validated(monkeypatch):
@@ -300,3 +299,37 @@ def test_docx_nested_table_keeps_cell_order_and_ignores_empty_blocks():
     assert result.status == 'SUCCEEDED'
     assert result.chunks[0].text == 'Before nested\nNested value'
     assert result.chunks[0].location.block_index == 1
+
+
+def test_csv_preserves_quoted_cells_unicode_newlines_and_preview_limits():
+    result = parse('CSV', 'name;note;formula\nλ;"line 1\nline 2";=2+2\nlast;"has;separator";😀'.encode('utf-8-sig'),
+                   ParserLimits(preview_rows=2, xlsx_rows=2, xlsx_columns=3))
+    assert result.status == 'SUCCEEDED'
+    sheet = result.workbook.sheets[0]
+    assert sheet.header_candidate == ['name', 'note', 'formula']
+    assert sheet.preview_rows[1].cells == ['λ', 'line 1\nline 2', '=2+2']
+    assert len(sheet.preview_rows) == 2 and sheet.truncated
+    assert sheet.row_count_estimate is None and result.warnings
+    assert 'text' in sheet.columns[2].data_types
+    assert parse('CSV', b'one').workbook.sheets[0].preview_rows[0].cells == ['one']
+    assert parse('CSV', b' ').failure.code == 'EMPTY_DOCUMENT'
+    assert parse('CSV', b'a,b\n"unterminated').failure.code == 'DOCUMENT_PARSE_FAILED'
+
+
+def test_xlsx_preview_is_bounded_keeps_formulas_as_data_and_row_numbers():
+    result = parse('XLSX', xlsx_bytes(10), ParserLimits(preview_rows=2, xlsx_rows=4))
+    sheet = result.workbook.sheets[0]
+    assert [row.row_number for row in sheet.preview_rows] == [1, 2]
+    assert sheet.preview_rows[1].cells[2] == '=B2*2'
+    assert len(sheet.preview_rows[1].cells) == 5
+    assert sheet.sampled_rows == 4 and sheet.truncated
+    assert result.workbook.preview_row_limit == 2
+
+
+def test_csv_header_candidate_skips_empty_records_without_reordering_preview():
+    result = parse('CSV', b',\nname,value\nAda,3\n')
+    assert result.status == 'SUCCEEDED'
+    sheet = result.workbook.sheets[0]
+    assert sheet.header_row == 2 and sheet.header_candidate == ['name', 'value']
+    assert sheet.preview_rows[0].row_number == 1 and sheet.preview_rows[0].cells == ['', '']
+    assert sheet.preview_rows[2].cells == ['Ada', '3']

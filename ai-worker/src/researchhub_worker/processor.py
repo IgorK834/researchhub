@@ -47,7 +47,7 @@ class IdempotentSourceIngestProcessor:
             # acknowledge before the first execution has produced a validated result.
             result = self._handler(command)
             if not isinstance(result, SourceIngestResult):
-                raise ContractError("Processor did not return contract v2")
+                raise ContractError("Processor did not return contract v4")
             result.validate_identity(command)
             self._completed[key] = (command, result)
             if len(self._completed) > 16:

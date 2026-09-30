@@ -11,6 +11,9 @@ from .common import ParserLimits, ParseFailure, TextBuilder
 from .pdf import parse_pdf
 from .docx import parse_docx
 from .xlsx import parse_xlsx
+from .csv import parse_csv
+from ..retrieval import chunk_extraction
+from ..retrieval.contracts import ChunkingConfig
 
 
 class DownloadFailure(RuntimeError):
@@ -58,6 +61,7 @@ class SourceParser:
     def __init__(self, limits=None, downloader=download):
         self.limits = limits or ParserLimits.from_env()
         self.downloader = downloader
+        self.chunking = ChunkingConfig.from_env()
 
     def __call__(self, command):
         base = dict(schema_version=command.schema_version, job_id=command.job_id,
@@ -65,21 +69,24 @@ class SourceParser:
                     processing_version=command.requested_processing_version)
         try:
             data = self.downloader(command, self.limits)
-            if command.source_type in ('TXT', 'CSV'):
+            if command.source_type == 'TXT':
                 builder = TextBuilder(command.source_id, 'utf8-stdlib/rh-1', self.limits)
                 builder.add(data.decode('utf-8-sig'), UnitLocation(kind='TEXT'))
                 if not builder.position:
                     raise ParseFailure('EMPTY_DOCUMENT', 'The source contains no extractable text.')
                 parsed = builder, [], [], None, [], None, None
             else:
-                parser = {'PDF': parse_pdf, 'DOCX': parse_docx, 'XLSX': parse_xlsx}[command.source_type]
+                parser = {'PDF': parse_pdf, 'DOCX': parse_docx, 'XLSX': parse_xlsx, 'CSV': parse_csv}[command.source_type]
                 parsed = parser(data, command.source_id, self.limits)
             builder, pages, sections, workbook, warnings, title, author = parsed
-            result = SourceIngestResult(**base, status='SUCCEEDED', parser_version=builder.version,
+            result = SourceIngestResult.model_construct(**base, status='SUCCEEDED', parser_version=builder.version,
                 extraction_metadata=ExtractionMetadata(title=title, author=author, page_count=len(pages),
                     character_count=builder.position, content_sha256=hashlib.sha256(data).hexdigest()),
                 structure=DocumentStructure(pages=pages, sections=sections), chunks=builder.chunks,
                 workbook=workbook, warnings=warnings, failure=None)
+            payload = result.model_dump()
+            payload['retrieval'] = chunk_extraction(result, self.chunking).model_dump()
+            result = SourceIngestResult.model_validate(payload)
             if len(result.model_dump_json(by_alias=True).encode('utf-8')) > 4 * 1024 * 1024:
                 raise ParseFailure('EXTRACTION_LIMIT_EXCEEDED', 'The extraction result exceeds the response limit.')
             return result

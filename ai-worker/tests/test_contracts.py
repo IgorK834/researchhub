@@ -12,7 +12,7 @@ from researchhub_worker.contracts import (
     parse_source_ingest,
 )
 
-FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v2"
+FIXTURES = Path(__file__).resolve().parents[2] / "contracts" / "processing" / "v4"
 
 
 def fixture(name: str) -> dict[str, object]:
@@ -27,7 +27,7 @@ def test_parses_and_round_trips_the_shared_request_fixture() -> None:
     assert str(command.job_id) == raw["jobId"]
     assert command.source_type == "PDF"
     assert command.file_access.kind == "SIGNED_URL"
-    assert command.requested_processing_version == "source-ingest-2"
+    assert command.requested_processing_version == "source-ingest-4"
     assert command.model_dump(mode="json", by_alias=True) == raw
 
 
@@ -47,7 +47,7 @@ def test_parses_and_round_trips_the_shared_request_fixture() -> None:
 def test_rejects_invalid_request_fields_without_echoing_values(change: dict[str, object]) -> None:
     raw = fixture("source-ingest-request.json") | change
 
-    with pytest.raises(ContractError, match="contract v2") as failure:
+    with pytest.raises(ContractError, match="contract v4") as failure:
         parse_source_ingest(raw)
 
     assert "bad" not in str(failure.value)
@@ -56,12 +56,12 @@ def test_rejects_invalid_request_fields_without_echoing_values(change: dict[str,
 
 def test_rejects_missing_unknown_and_unsafe_file_access() -> None:
     unknown = fixture("source-ingest-request.json") | {"authorization": "must-not-cross"}
-    with pytest.raises(ContractError, match="contract v2"):
+    with pytest.raises(ContractError, match="contract v4"):
         parse_source_ingest(unknown)
 
     missing = fixture("source-ingest-request.json")
     del missing["sourceId"]
-    with pytest.raises(ContractError, match="contract v2"):
+    with pytest.raises(ContractError, match="contract v4"):
         parse_source_ingest(missing)
 
     unsafe = fixture("source-ingest-request.json")
@@ -70,7 +70,7 @@ def test_rejects_missing_unknown_and_unsafe_file_access() -> None:
         "url": "file:///private/input.pdf",
         "expiresAt": "2030-01-02T03:04:05",
     }
-    with pytest.raises(ContractError, match="contract v2"):
+    with pytest.raises(ContractError, match="contract v4"):
         parse_source_ingest(unsafe)
 
 
