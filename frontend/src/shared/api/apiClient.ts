@@ -3,6 +3,7 @@ import { resolveApiUrl } from './config';
 import { apiCredentials } from './credentialsPolicy';
 import { CSRF_HEADER_NAME, readCsrfToken, requiresCsrfToken } from './csrf';
 import { decodeProblemDetail, synthesizeProblemDetail } from './parseProblemDetail';
+import { readEventStream, type ServerEvent } from './eventStream';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -16,6 +17,51 @@ export interface ApiRequestOptions {
   readonly headers?: Readonly<Record<string, string>>;
   /** Uses XMLHttpRequest for multipart requests, where the browser exposes upload byte progress. */
   readonly onUploadProgress?: (loaded: number, total: number) => void;
+}
+
+function requestHeaders(
+  method: HttpMethod,
+  body: unknown,
+  headers?: Readonly<Record<string, string>>,
+  accept = 'application/json',
+): Record<string, string> {
+  const result: Record<string, string> = { Accept: accept, ...headers };
+  if (body !== undefined) result['Content-Type'] = 'application/json';
+  if (requiresCsrfToken(method)) {
+    const csrfToken = readCsrfToken();
+    if (csrfToken !== null) result[CSRF_HEADER_NAME] = csrfToken;
+  }
+  return result;
+}
+
+async function fetchResponse(path: string, options: RequestInit): Promise<Response> {
+  try {
+    return await fetch(resolveApiUrl(path), { ...options, credentials: apiCredentials });
+  } catch (cause) {
+    if (isAbortError(cause)) throw cause;
+    throw new ApiTransportError(
+      'Could not reach the ResearchHub API. Check that the backend is running.',
+      { cause },
+    );
+  }
+}
+
+/** Shares URL, credentials, CSRF and ProblemDetail policy with ordinary requests. */
+export async function requestEventStream(
+  path: string,
+  options: ApiRequestOptions,
+  onEvent: (event: ServerEvent) => boolean,
+): Promise<void> {
+  if (options.formData !== undefined || options.onUploadProgress !== undefined)
+    throw new TypeError('Research streams require JSON input');
+  const response = await fetchResponse(path, {
+    method: 'POST',
+    headers: requestHeaders('POST', options.body, options.headers, 'text/event-stream'),
+    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
+  });
+  if (!response.ok) throw await toApiError(response);
+  await readEventStream(response, onEvent);
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -154,53 +200,26 @@ export async function request<TResponse>(
     throw new TypeError('Upload progress is supported only for multipart POST requests');
   }
 
-  const requestHeaders: Record<string, string> = {
-    Accept: 'application/json',
-    ...headers,
-  };
-  if (body !== undefined) {
-    requestHeaders['Content-Type'] = 'application/json';
-  }
-
-  // The session cookie is sent by the browser on its own, so a mutating request must also prove it
-  // originated from our page. Done here rather than at each call site so no endpoint can forget.
-  if (requiresCsrfToken(method)) {
-    const csrfToken = readCsrfToken();
-    if (csrfToken !== null) {
-      requestHeaders[CSRF_HEADER_NAME] = csrfToken;
-    }
-  }
+  const outgoingHeaders = requestHeaders(method, body, headers);
 
   if (formData !== undefined && onUploadProgress !== undefined) {
     return multipartWithProgress<TResponse>(
       path,
       formData,
-      requestHeaders,
+      outgoingHeaders,
       onUploadProgress,
       signal,
     );
   }
 
-  let response: Response;
-  try {
-    response = await fetch(resolveApiUrl(path), {
-      method,
-      credentials: apiCredentials,
-      headers: requestHeaders,
-      ...(body === undefined && formData === undefined
-        ? {}
-        : { body: formData ?? JSON.stringify(body) }),
-      ...(signal === undefined ? {} : { signal }),
-    });
-  } catch (cause) {
-    if (isAbortError(cause)) {
-      throw cause;
-    }
-    throw new ApiTransportError(
-      'Could not reach the ResearchHub API. Check that the backend is running.',
-      { cause },
-    );
-  }
+  const response = await fetchResponse(path, {
+    method,
+    headers: outgoingHeaders,
+    ...(body === undefined && formData === undefined
+      ? {}
+      : { body: formData ?? JSON.stringify(body) }),
+    ...(signal === undefined ? {} : { signal }),
+  });
 
   if (!response.ok) {
     throw await toApiError(response);

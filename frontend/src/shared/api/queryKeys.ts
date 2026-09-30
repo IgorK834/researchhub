@@ -19,6 +19,10 @@ export const queryKeys = {
    * docs/adr/ADR-001-authentication.md.
    */
   currentUser: () => ['auth', 'me'] as const,
+  aiConversations: (workspaceId: string) =>
+    ['workspaces', workspaceId, 'ai', 'conversations'] as const,
+  aiConversation: (workspaceId: string, conversationId: string) =>
+    ['workspaces', workspaceId, 'ai', 'conversations', conversationId] as const,
 
   workspaces: () => ['workspaces'] as const,
   workspace: (workspaceId: string) => ['workspaces', workspaceId] as const,

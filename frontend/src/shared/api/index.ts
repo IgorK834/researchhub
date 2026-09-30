@@ -1,5 +1,7 @@
 /** Public surface of the shared API layer. Import from `shared/api`, not from its modules. */
 export { apiClient, request, type ApiRequestOptions, type HttpMethod } from './apiClient';
+export { requestEventStream } from './apiClient';
+export type { ServerEvent } from './eventStream';
 export {
   API_ERROR_CODES,
   ApiError,
