@@ -7,6 +7,26 @@ researchhub:
   environment: local
   debug:
     sql: false
+  ai:
+    conversations:
+      stream:
+        max-concurrent: ${AI_CONVERSATION_STREAM_MAX_CONCURRENT:8}
+        timeout: ${AI_CONVERSATION_STREAM_TIMEOUT:PT90S}
+        heartbeat: ${AI_CONVERSATION_STREAM_HEARTBEAT:PT10S}
+    features:
+      workspace-question:
+        top-k: ${AI_WORKSPACE_QUESTION_TOP_K:6}
+        temperature: ${AI_WORKSPACE_QUESTION_TEMPERATURE:0}
+        max-output-tokens: ${AI_WORKSPACE_QUESTION_MAX_OUTPUT_TOKENS:1024}
+      grounded-response:
+        template-id: grounded-response:2
+        # Use "none" for deployments that do not support temperature.
+        temperature: ${AI_GROUNDED_RESPONSE_TEMPERATURE:0}
+        max-output-tokens: ${AI_GROUNDED_RESPONSE_MAX_OUTPUT_TOKENS:1024}
+        context:
+          max-tokens: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_TOKENS:32768}
+          max-bytes: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_BYTES:24576}
+          collapse-exact-duplicates: ${AI_GROUNDED_RESPONSE_CONTEXT_COLLAPSE_EXACT_DUPLICATES:true}
   sources:
     storage:
       adapter: azure-blob
