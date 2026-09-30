@@ -4,6 +4,8 @@ import dev.researchhub.auth.application.CurrentUserResolver;
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
 import dev.researchhub.source.application.SourceContent;
+import dev.researchhub.source.application.SourceExtractionService;
+import dev.researchhub.processing.application.SourceExtraction;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.source.application.UploadSourceCommand;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -36,10 +38,12 @@ import java.util.UUID;
 @ConditionalOnBean(SourceService.class)
 public class SourceController {
 
+    private final SourceExtractionService extractions;
     private final SourceService sources;
     private final CurrentUserResolver currentUserResolver;
 
-    public SourceController(SourceService sources, CurrentUserResolver currentUserResolver) {
+    public SourceController(SourceService sources, CurrentUserResolver currentUserResolver, SourceExtractionService extractions) {
+        this.extractions = extractions;
         this.sources = sources;
         this.currentUserResolver = currentUserResolver;
     }
@@ -69,6 +73,13 @@ public class SourceController {
     @GetMapping("/{sourceId}")
     SourceResponse get(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
         return SourceResponse.from(sources.findOne(workspaceId, currentUserId(), sourceId));
+    }
+
+    @GetMapping("/{sourceId}/extraction")
+    ResponseEntity<SourceExtraction> extraction(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
+        SourceExtraction extraction = extractions.find(workspaceId, sourceId, currentUserId());
+        return extraction == null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL, "private, no-store").build()
+                : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store").body(extraction);
     }
 
     @GetMapping("/{sourceId}/content")
