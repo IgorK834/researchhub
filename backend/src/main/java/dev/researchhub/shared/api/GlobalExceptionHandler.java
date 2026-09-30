@@ -144,6 +144,10 @@ public class GlobalExceptionHandler {
             case CONFLICT -> HttpStatus.CONFLICT;
             case PAYLOAD_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
             case UNSUPPORTED_FILE_TYPE, UNSUPPORTED_MEDIA_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+            case AI_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case AI_PROVIDER_ERROR, AI_OUTPUT_INVALID -> HttpStatus.BAD_GATEWAY;
+            case AI_REFUSED -> HttpStatus.UNPROCESSABLE_CONTENT;
+            case AI_CONTEXT_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
             case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
@@ -159,6 +163,11 @@ public class GlobalExceptionHandler {
             case PAYLOAD_TOO_LARGE -> "Payload too large";
             case UNSUPPORTED_FILE_TYPE -> "Unsupported file type";
             case UNSUPPORTED_MEDIA_TYPE -> "Unsupported media type";
+            case AI_UNAVAILABLE -> "Model unavailable";
+            case AI_PROVIDER_ERROR -> "Model provider error";
+            case AI_OUTPUT_INVALID -> "Invalid model response";
+            case AI_REFUSED -> "Model request declined";
+            case AI_CONTEXT_TOO_LARGE -> "Context budget exceeded";
             case INTERNAL_ERROR -> "Internal server error";
         };
     }

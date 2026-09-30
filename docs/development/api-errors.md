@@ -81,6 +81,11 @@ succeed. A client must treat the member as optional and fall back to `detail` wh
 | `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type: the extension is not supported, the declared media type contradicts it, or the content does not match it. The detail lists the supported types; see [sources.md](sources.md#types). |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |
 | `INTERNAL_ERROR` | 500 | Unexpected failure. |
+| `AI_UNAVAILABLE` | 503 | Model temporarily unavailable after bounded retries. |
+| `AI_PROVIDER_ERROR` | 502 | Provider failure; unsafe details discarded. |
+| `AI_OUTPUT_INVALID` | 502 | Invalid structured response, identity, metadata, usage or citations. |
+| `AI_REFUSED` | 422 | Model refused/filtered a request; no partial response. |
+| `AI_CONTEXT_TOO_LARGE` | 413 | Selected evidence exceeds the server context budget; no model call is made. |
 
 `detail` for `INTERNAL_ERROR` is always `An unexpected error occurred`. The server log has the stack trace. The body does not include the exception class name, the exception message, or the stack trace.
 
