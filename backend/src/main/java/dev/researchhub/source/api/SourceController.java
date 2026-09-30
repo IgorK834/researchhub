@@ -43,10 +43,13 @@ import java.util.UUID;
 public class SourceController {
 
     private final SourceExtractionService extractions;
+    private final dev.researchhub.source.application.SourceProcessingProgress progress;
     private final SourceService sources;
     private final CurrentUserResolver currentUserResolver;
 
-    public SourceController(SourceService sources, CurrentUserResolver currentUserResolver, SourceExtractionService extractions) {
+    public SourceController(SourceService sources, CurrentUserResolver currentUserResolver, SourceExtractionService extractions,
+                            dev.researchhub.source.application.SourceProcessingProgress progress) {
+        this.progress = progress;
         this.extractions = extractions;
         this.sources = sources;
         this.currentUserResolver = currentUserResolver;
@@ -84,6 +87,13 @@ public class SourceController {
         SourceExtraction extraction = extractions.find(workspaceId, sourceId, currentUserId());
         return extraction == null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL, "private, no-store").build()
                 : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store").body(extraction);
+    }
+
+    @GetMapping("/{sourceId}/processing")
+    ResponseEntity<dev.researchhub.source.application.SourceProcessingProgress.Progress> processing(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
+        var result = progress.find(workspaceId, sourceId, currentUserId());
+        return result == null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL, "private, no-store").build()
+            : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store").body(result);
     }
 
     @PostMapping("/{sourceId}/reprocess")

@@ -1,5 +1,11 @@
 package dev.researchhub.source.application;
 
+import dev.researchhub.ai.application.EmbeddingBatch;
+import dev.researchhub.ai.application.EmbeddingProvider;
+import dev.researchhub.ai.application.RetrievalChunk;
+import dev.researchhub.ai.application.RetrievalChunkSet;
+import dev.researchhub.ai.application.RetrievalIndex;
+import dev.researchhub.ai.application.RetrievalStore;
 import dev.researchhub.processing.application.ProcessingJobNotification;
 import dev.researchhub.processing.application.SourceExtraction;
 import dev.researchhub.processing.application.SourceIngestResultSink;
@@ -11,26 +17,62 @@ import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.util.UUID;
 
 @Service
 @Profile("local")
-public class SourceExtractionService implements SourceIngestResultSink {
+public class SourceExtractionService implements SourceIngestResultSink, SourceReadScope {
     private final SourceRepository sources;
     private final SourceExtractionRepository extractions;
     private final WorkspaceAuthorizationService authorization;
     private final Clock clock;
-    private final dev.researchhub.ai.application.RetrievalStore retrieval;
+    private final RetrievalStore retrieval;
+    private final EmbeddingProvider embeddings;
+    private final RetrievalIndex index;
+    private final SourceProcessingProgress progress;
+    private final TransactionTemplate transactions;
     public SourceExtractionService(SourceRepository sources, SourceExtractionRepository extractions,
-                                   WorkspaceAuthorizationService authorization, Clock clock, dev.researchhub.ai.application.RetrievalStore retrieval) {
-        this.retrieval = retrieval; this.sources = sources; this.extractions = extractions; this.authorization = authorization; this.clock = clock;
+                                   WorkspaceAuthorizationService authorization, Clock clock, RetrievalStore retrieval,
+                                   EmbeddingProvider embeddings, RetrievalIndex index,
+                                   SourceProcessingProgress progress, PlatformTransactionManager transactionManager) {
+        this.embeddings = embeddings;
+        this.index = index;
+        this.progress = progress;
+        this.transactions = new TransactionTemplate(transactionManager);
+        this.retrieval = retrieval;
+        this.sources = sources;
+        this.extractions = extractions;
+        this.authorization = authorization;
+        this.clock = clock;
     }
     @Override
-    @Transactional
-    public void store(ProcessingJobNotification job, SourceExtraction extraction, dev.researchhub.ai.application.RetrievalChunkSet chunks) {
+    public void extracting(ProcessingJobNotification job) { progress.update(job, SourceProcessingProgress.Stage.EXTRACT); }
+    @Override
+    public void store(ProcessingJobNotification job, SourceExtraction extraction, RetrievalChunkSet chunks) {
         extraction.validate(job.resourceId());
+        transactions.executeWithoutResult(_status -> requireCurrentInput(job, extraction));
+        progress.update(job, SourceProcessingProgress.Stage.CHUNK);
+        if (chunks == null) throw new IllegalArgumentException("Missing retrieval chunks");
+        chunks.validate(job.workspaceId(), job.resourceId(), extraction);
+        progress.update(job, SourceProcessingProgress.Stage.EMBED);
+        // Provider requests happen outside the database transaction and resource locks.
+        var batch = embeddings.embedDocuments(chunks.chunks().stream().map(RetrievalChunk::content).toList());
+        progress.update(job, SourceProcessingProgress.Stage.INDEX);
+        transactions.executeWithoutResult(_status -> persist(job, extraction, chunks, batch));
+        progress.update(job, SourceProcessingProgress.Stage.FINALIZE);
+    }
+    private void persist(ProcessingJobNotification job, SourceExtraction extraction, RetrievalChunkSet chunks,
+                         EmbeddingBatch batch) {
+        requireCurrentInput(job, extraction);
+        extractions.save(job.workspaceId(), job.resourceId(), job.jobId(), extraction, clock.instant());
+        retrieval.save(job.jobId(), chunks, clock.instant());
+        index.upsert(job.jobId(), chunks, batch);
+    }
+    private void requireCurrentInput(ProcessingJobNotification job, SourceExtraction extraction) {
         if (!extractions.lockCurrentAttempt(job.jobId(), job.workspaceId(), job.resourceId(), job.attemptCount())) {
             throw new IllegalStateException("Obsolete source extraction attempt");
         }
@@ -39,10 +81,16 @@ public class SourceExtractionService implements SourceIngestResultSink {
         if (!source.contentSha256().equals(extraction.extractionMetadata().contentSha256())) {
             throw new IllegalArgumentException("Extracted content hash differs from the uploaded source");
         }
-        if (chunks == null) throw new IllegalArgumentException("Missing retrieval chunks");
-        chunks.validate(job.workspaceId(), job.resourceId(), extraction);
-        extractions.save(job.workspaceId(), job.resourceId(), job.jobId(), extraction, clock.instant());
-        retrieval.save(job.jobId(), chunks, clock.instant());
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public void requireSources(UUID workspaceId, UUID callerId, java.util.List<UUID> sourceIds) {
+        authorization.requireContentReader(workspaceId, callerId);
+        for (UUID sourceId : sourceIds) {
+            if (sourceId == null || sources.findByWorkspaceIdAndId(workspaceId, sourceId).isEmpty()) {
+                throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+            }
+        }
     }
     @Transactional(readOnly = true)
     public java.util.List<ExtractionRun> runs(UUID workspaceId, UUID sourceId, UUID callerId) {

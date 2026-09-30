@@ -1,5 +1,7 @@
 package dev.researchhub.source.application;
 
+import dev.researchhub.ai.application.RetrievalIndex;
+import dev.researchhub.ai.application.RetrievalStore;
 import dev.researchhub.processing.application.ProcessingFailure;
 import dev.researchhub.processing.application.ProcessingJobNotification;
 import dev.researchhub.processing.application.ProcessingJobStateListener;
@@ -29,9 +31,11 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
     private final Clock clock;
     private final SourceExtractionRepository extractions;
     private final ProcessingJobQueue queue;
-    private final dev.researchhub.ai.application.RetrievalStore retrieval;
+    private final RetrievalStore retrieval;
+    private final RetrievalIndex index;
 
-    public SourceIngestJobStateListener(SourceRepository sources, Clock clock, SourceExtractionRepository extractions, ProcessingJobQueue queue, dev.researchhub.ai.application.RetrievalStore retrieval) {
+    public SourceIngestJobStateListener(SourceRepository sources, Clock clock, SourceExtractionRepository extractions, ProcessingJobQueue queue, RetrievalStore retrieval, RetrievalIndex index) {
+        this.index = index;
         this.retrieval = retrieval;
         this.extractions = extractions;
         this.queue = queue;
@@ -61,7 +65,8 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
         if (!current(job)) return;
         if (source.status() == SourceStatus.PROCESSING) {
             if (!extractions.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())
-                    || !retrieval.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())) {
+                    || !retrieval.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())
+                    || !index.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())) {
                 throw new IllegalStateException("A source cannot be READY without its persisted processing result");
             }
             save(source.moveTo(SourceStatus.READY, clock.instant()));

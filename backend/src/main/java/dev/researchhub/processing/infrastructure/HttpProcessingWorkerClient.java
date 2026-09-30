@@ -65,6 +65,7 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
         try {
             SourceIngestInput input = inputs.resolve(job.workspaceId(), job.resourceId(), policy.getSourceAccessTtl());
             WorkerJobRequest request = WorkerJobRequest.from(job, input);
+            results.extracting(ProcessingJobNotification.from(job));
             WorkerJobResult result = client.post()
                     .uri("/internal/jobs/source-ingest")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + policy.getServiceToken())
@@ -83,6 +84,8 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
             results.store(ProcessingJobNotification.from(job), result.extraction(), result.retrieval());
         } catch (WorkerDispatchException safe) {
             throw safe;
+        } catch (dev.researchhub.ai.application.EmbeddingFailure embedding) {
+            throw new WorkerDispatchException(new ProcessingJobError("EMBEDDING_FAILED", embedding.getMessage()), embedding, embedding.retryable());
         } catch (WorkerRejectedException rejected) {
             throw new WorkerDispatchException(REJECTED, rejected);
         } catch (InvalidWorkerContractException | IllegalArgumentException invalid) {
