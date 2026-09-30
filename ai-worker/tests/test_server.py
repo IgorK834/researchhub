@@ -115,5 +115,5 @@ def test_app_refuses_to_start_without_a_strong_service_token(monkeypatch: pytest
 def test_exposes_only_health_and_internal_job_routes() -> None:
     paths = {route.path for route in create_app(service_token=SERVICE_TOKEN).routes}
 
-    assert paths == {"/health", "/internal/jobs/source-ingest"}
+    assert paths == {"/health", "/internal/jobs/source-ingest", "/internal/embeddings/model", "/internal/embeddings/{operation}"}
     assert all(not path.startswith("/api/") for path in paths)

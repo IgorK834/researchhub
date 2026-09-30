@@ -8,9 +8,10 @@ cookie or authorization token.
 The first contract is `POST /internal/jobs/source-ingest`. It requires a backend service Bearer token and returns a
 strict result with extraction metadata, document structure, chunks, warnings, and a failure object. The production handler downloads the scoped input and extracts PDF, DOCX, CSV and XLSX content through
 `parsing/`. The active contract is v4; extraction and provenance stay outside the Java domain, while Spring stores
-validated output. Indexing remains later work.
+validated output. Embedding providers now serve the internal `/internal/embeddings` boundary; Spring owns the
+pgvector index. See [ADR-002](../docs/adr/ADR-002-retrieval.md).
 
-The only other route is the process probe `GET /health`. This is not a product API. Workspace membership,
+Embedding metadata/documents/query endpoints and the process probe `GET /health` complete the internal surface. This is not a product API. Workspace membership,
 authorization, job durability, source metadata, and every product/business endpoint remain in Spring Boot.
 
 ## Dependency management

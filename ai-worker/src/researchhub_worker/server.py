@@ -15,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHttpException
 
 from .contracts import ContractError, parse_source_ingest
 from .processor import IdempotencyConflict, IdempotentSourceIngestProcessor
+from .retrieval.embeddings import configured_provider, EmbeddingError
 
 LOGGER = logging.getLogger(__name__)
 MAX_REQUEST_BYTES = 16 * 1024
@@ -25,6 +26,7 @@ SOURCE_INGEST_PATH = "/internal/jobs/source-ingest"
 def create_app(
     processor: IdempotentSourceIngestProcessor | None = None,
     service_token: str | None = None,
+    embedding_provider=None,
 ) -> FastAPI:
     """Build the internal worker API; fail closed when no service credential exists."""
     expected_token = _service_token(service_token)
@@ -35,6 +37,33 @@ def create_app(
         openapi_url=None,
     )
     worker = processor or IdempotentSourceIngestProcessor()
+    embeddings = embedding_provider or configured_provider()
+
+    @app.get("/internal/embeddings/model", include_in_schema=False)
+    async def embedding_model(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        return embeddings.model_metadata().model_dump(by_alias=True)
+
+    @app.post("/internal/embeddings/{operation}", include_in_schema=False)
+    async def embed(operation: str, request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        try:
+            payload = await _request_json(request, limit=1024 * 1024)
+            if not isinstance(payload, dict) or set(payload) != {'texts'} or not isinstance(payload['texts'], list) or not 1 <= len(payload['texts']) <= 32:
+                raise ValueError('Invalid embedding request')
+            if operation == 'documents':
+                result = await run_in_threadpool(embeddings.embed_documents, payload['texts'])
+            elif operation == 'query' and len(payload['texts']) == 1:
+                result = await run_in_threadpool(embeddings.embed_query, payload['texts'][0])
+            else:
+                raise ValueError('Invalid embedding operation')
+            return result.model_dump(by_alias=True)
+        except (ContractError, ValueError):
+            return JSONResponse(status_code=400, content={"error": "Invalid embedding request"})
+        except EmbeddingError as error:
+            return JSONResponse(status_code=503 if error.transient else 422, content={"error": "Embedding failed"})
 
     @app.middleware("http")
     async def prevent_response_caching(request: Request, call_next: Any) -> JSONResponse:
@@ -97,7 +126,7 @@ def _authorized(request: Request, expected_token: str) -> bool:
     )
 
 
-async def _request_json(request: Request) -> Any:
+async def _request_json(request: Request, limit: int = MAX_REQUEST_BYTES) -> Any:
     content_type = request.headers.get("Content-Type", "").partition(";")[0].strip().lower()
     if content_type != "application/json":
         raise ContractError("Content-Type must be application/json")
@@ -107,11 +136,11 @@ async def _request_json(request: Request) -> Any:
         declared_length = int(raw_length or "")
     except ValueError as invalid:
         raise ContractError("Content-Length is required") from invalid
-    if declared_length < 1 or declared_length > MAX_REQUEST_BYTES:
+    if declared_length < 1 or declared_length > limit:
         raise ContractError("Request body size is invalid")
 
     body = await request.body()
-    if len(body) != declared_length or len(body) > MAX_REQUEST_BYTES:
+    if len(body) != declared_length or len(body) > limit:
         raise ContractError("Request body size is invalid")
     try:
         return json.loads(body)
