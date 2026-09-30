@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. Indexing, RAG, AI writing, analysis, and realtime collaborative editing are still plans, not code. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Search indexing, RAG generation, AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
 
 ---
 
@@ -536,7 +536,7 @@ TXT, with a closed mapping to one canonical media type each. Unsupported files a
 `415 UNSUPPORTED_FILE_TYPE`. File names are metadata only, storage keys are opaque and never authorize, and the
 original input is immutable, so a replacement will be a version. Each upload atomically creates a durable
 `SOURCE_INGEST` job (V10); Spring claims it safely and invokes the internal Python worker with no end-user token.
-Parsing, chunks, embeddings, and indexing remain future work. References: [development/sources.md](development/sources.md)
+Parsing and provenance-rich retrieval chunks are implemented; embeddings and search indexing remain future work. References: [development/sources.md](development/sources.md)
 and [development/processing.md](development/processing.md).
 
 ---

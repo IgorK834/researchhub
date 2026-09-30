@@ -94,7 +94,7 @@ uv run --frozen pytest
 
 The worker's process probe is `GET http://127.0.0.1:8090/health`. Its execution endpoint accepts only the versioned,
 service-token-authenticated source-ingest contract and carries no browser session or end-user token. It has no product
-PostgreSQL dependency or business API routes. Canonical Java/Python fixtures live in `contracts/processing/v2`.
+PostgreSQL dependency or business API routes. Canonical Java/Python fixtures live in `contracts/processing/v4`.
 `pytest` enforces at least 80% coverage. Durable state, authorization, retry policy, and idempotent job identity remain
 in Spring/PostgreSQL; see [docs/development/processing.md](docs/development/processing.md).
 
@@ -147,3 +147,5 @@ Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Everything under `/ap
 
 RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
 [Source extraction](docs/development/source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
+
+Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](docs/development/source-retrieval.md).

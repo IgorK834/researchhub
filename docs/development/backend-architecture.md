@@ -35,6 +35,10 @@ dev.researchhub
 │   ├── application     SourceService, processing listener, the SourceStorage port, limits and quota
 │   ├── domain          Source, SourceType, SourceStatus, SourceFilename, StorageKey
 │   └── infrastructure  SourceEntity, SourceRepository, AzureBlobSourceStorage and its configuration
+├── ai              Retrieval substrate
+│   ├── api             Workspace-authorized current source chunk reads
+│   ├── application     Chunk/config/provenance contracts, validation, retrieval read service and storage port
+│   └── infrastructure  PostgreSQL span storage and canonical search projection
 ├── processing      Durable asynchronous work
 │   ├── application     enqueue service, dispatcher, worker/listener ports and cross-module notifications
 │   ├── domain          ProcessingJob, ProcessingJobStatus, job/resource types, safe error

@@ -4,6 +4,9 @@ Uploaded research material: the files a workspace's documents, retrieval, and an
 reference for how a file becomes a source. Product context: [../context.md](../context.md) section 10. Schema:
 [persistence.md](persistence.md#sources).
 
+Extraction persistence and previews are documented in [source-extraction.md](source-extraction.md). The authorized,
+versioned retrieval chunk contract and structure-aware chunking are documented in [source-retrieval.md](source-retrieval.md).
+
 The domain model, `sources` table (V8 and V9), application service, durable `SOURCE_INGEST` enqueue, HTTP API, React
 browse/upload UI, and Azure Blob adapter are implemented. Locally the adapter talks to Azurite through the same Azure
 SDK client used for Azure Blob Storage.
@@ -60,9 +63,10 @@ frontend mirror.
 | `UPLOADED` | `PROCESSING` | Stored and recorded; nothing has read it yet. Every new source starts here. |
 | `PROCESSING` | `READY`, `FAILED` | Ingestion is reading it. |
 | `FAILED` | `PROCESSING` | Processing failed. The original is kept and may be processed again. |
-| `READY` | — | Final. Processing a changed file is a new version, not a re-run that changes what citations point at. |
+| `READY` | `PROCESSING` (explicit reprocess) | Complete for one run. Reprocessing uses the same immutable bytes with a fresh versioned job. |
 
-Any other move is refused by the domain lifecycle. `Source.processingFailed` requires a non-blank, user-safe summary
+READY reprocessing uses the explicit `Source.reprocess` operation, not the generic status transition. Changed input
+requires a new source. Any other move is refused by the domain lifecycle. `Source.processingFailed` requires a non-blank, user-safe summary
 of at most 1000 characters. `ck_sources_failure_summary_matches_status` guarantees that `failure_summary` is present
 exactly for `FAILED`; retrying processing clears the previous attempt's summary. It is intended for a concise
 explanation such as an encrypted workbook, never a stack trace or raw document content.
@@ -172,6 +176,11 @@ All routes require a session. Mutating requests also require the normal CSRF hea
 | `POST /api/workspaces/{workspaceId}/sources` | Multipart part `file`; editors/owners get `201` with source metadata. |
 | `GET /api/workspaces/{workspaceId}/sources` | Metadata list, newest first. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}` | One source's metadata. |
+| `POST /api/workspaces/{workspaceId}/sources/{sourceId}/reprocess` | Owner/editor on an active workspace; READY/FAILED only; returns `202 PROCESSING`. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/preview` | Safe inline PDF original, including before processing completes. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/extraction` | Typed current extraction when READY, otherwise `204`. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/extraction/runs` | Small version/digest journal of successful result persistence. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/locations/{unitId}` | Current provenance and source/PDF page links; also `locations?pageNumber=N`. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}/content` | Streams the original bytes with canonical content type and an encoded attachment filename. |
 
 Metadata responses contain `status` and nullable `failureSummary`, so the list can explain a processing failure
@@ -193,7 +202,9 @@ Access to sources follows the workspace, exactly as for documents:
 
 | Operation | Requires | Non-member |
 | --- | --- | --- |
-| Upload | `EDIT_CONTENT` on an active workspace. A viewer gets `403`, an archived workspace `409`. | `404 Source was not found` |
-| List, read metadata, open content | `VIEW_CONTENT`, archived workspaces included | `404 Source was not found` |
+| Upload, reprocess | `EDIT_CONTENT` on an active workspace. A viewer gets `403`, an archived workspace `409`. | `404 Source was not found` |
+| List, metadata, content, preview, extraction, history, locations | `VIEW_CONTENT`, archived workspaces included | `404 Source was not found` |
 
 A source id from another workspace is `404` even for somebody who belongs to both.
+
+Extraction persistence, reprocessing and UI preview details: [source-extraction.md](source-extraction.md).

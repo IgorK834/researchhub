@@ -12,8 +12,9 @@ upload compensation removes the blob. The source therefore becomes visible as `U
 `PENDING` job, never as `READY` without work.
 
 `processing_jobs` is created by `V10__create_processing_jobs.sql`. Its unique key is
-`(job_type, resource_type, resource_id)`, so duplicate enqueue requests for the same immutable source converge on one
-job. The job UUID is also the delivery idempotency key sent to Python. Identity fields and `created_at` are immutable.
+`(job_type, resource_type, resource_id, generation)` after V12. Initial enqueue converges on generation 0. Explicit
+reprocessing locks the source, refuses a pending/running job, and inserts the next generation with a new UUID. The
+job UUID is also the delivery idempotency key sent to Python. Identity, generation and `created_at` are immutable.
 
 Initial vocabulary:
 
@@ -53,13 +54,13 @@ Content-Type: application/json
 Authorization: Bearer <service credential>
 
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "4.0",
   "jobId": "uuid",
   "workspaceId": "uuid",
   "sourceId": "uuid",
   "sourceType": "PDF",
   "fileAccess": {"kind": "SIGNED_URL", "url": "https://...", "expiresAt": "..."},
-  "requestedProcessingVersion": "source-ingest-2",
+  "requestedProcessingVersion": "source-ingest-4",
   "attempt": 1
 }
 ```
@@ -73,7 +74,7 @@ clears its process-local delivery cache.
 
 The synchronous response separates extraction metadata, page/section structure, chunks with provenance, warnings,
 and a safe failure. Canonical examples, compatibility rules, size/count limits, and credential behavior are in
-[source-extraction.md](source-extraction.md). The handler extracts PDF/DOCX/XLSX content with source provenance;
+[source-extraction.md](source-extraction.md). The handler extracts PDF/DOCX/CSV/XLSX content with source provenance;
 Spring persists the validated output before publishing READY. Index writes remain later work.
 
 ## Local operation
@@ -122,3 +123,5 @@ processing module separately from source; `uv run --frozen pytest` enforces at l
 
 RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
 [Source extraction](source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
+
+Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](source-retrieval.md).

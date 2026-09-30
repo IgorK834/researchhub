@@ -1,7 +1,7 @@
 # Source ingest contract v1
 
-Historical contract. RH-090/RH-091/RH-093 use v2; see [Source extraction](source-extraction.md).
-Deploy the backend and worker together when moving to v2.
+Historical contract. The active contract is v4 (`source-ingest-4`); see [Source extraction](source-extraction.md)
+and [Retrieval chunks](source-retrieval.md). Deploy the backend and worker together when changing contract versions.
 
 RH-083/RH-084 define the authenticated boundary between the Spring modular monolith and the Python data worker.
 The canonical, executable examples are:
