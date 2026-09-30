@@ -16,6 +16,9 @@ from starlette.exceptions import HTTPException as StarletteHttpException
 from .contracts import ContractError, parse_source_ingest
 from .processor import IdempotencyConflict, IdempotentSourceIngestProcessor
 from .retrieval.embeddings import configured_provider, EmbeddingError
+from .ai.contracts import GenerationRequest
+from .ai.context import ContextualRequest
+from .ai.providers import configured_gateway, ProviderError
 
 LOGGER = logging.getLogger(__name__)
 MAX_REQUEST_BYTES = 16 * 1024
@@ -27,6 +30,7 @@ def create_app(
     processor: IdempotentSourceIngestProcessor | None = None,
     service_token: str | None = None,
     embedding_provider=None,
+    model_gateway=None,
 ) -> FastAPI:
     """Build the internal worker API; fail closed when no service credential exists."""
     expected_token = _service_token(service_token)
@@ -38,6 +42,38 @@ def create_app(
     )
     worker = processor or IdempotentSourceIngestProcessor()
     embeddings = embedding_provider or configured_provider()
+    models = model_gateway or configured_gateway()
+
+    @app.get("/internal/ai/model", include_in_schema=False)
+    async def model_metadata(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        try:
+            return models.model_metadata().model_dump(by_alias=True)
+        except ProviderError as failure:
+            return JSONResponse(status_code=503 if failure.retryable else 502, content={"code": failure.code})
+        except Exception:
+            return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
+
+    @app.post("/internal/ai/generate", include_in_schema=False)
+    async def generate(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        try:
+            payload = await _request_json(request, limit=512 * 1024)
+            command = (ContextualRequest if isinstance(payload, dict) and payload.get('schemaVersion') == '2.0'
+                else GenerationRequest).model_validate(payload)
+        except (ContractError, ValueError):
+            return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
+        try:
+            result = await run_in_threadpool(models.generate_structured, command)
+            return result.model_dump(mode='json', by_alias=True)
+        except ProviderError as error:
+            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+                                content={"code": error.code})
+        except Exception:
+            # Do not log provider bodies, prompt/source text or credentials.
+            return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
 
     @app.get("/internal/embeddings/model", include_in_schema=False)
     async def embedding_model(request: Request):
