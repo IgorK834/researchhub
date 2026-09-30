@@ -6,6 +6,14 @@ This repository is in active development and is not production-ready.
 
 Architecture and product context: [docs/context.md](docs/context.md).
 
+RH-112 adds source-grounded questions on the workspace page, authorized selected-source retrieval,
+traceable citations and explicit no-evidence results. API/configuration/testing:
+[Workspace questions](docs/development/workspace-questions.md).
+
+RH-113–RH-115 add durable workspace research conversations, a panel beside the document editor,
+versioned citation links and SSE progress with complete-answer persistence:
+[Research conversations](docs/development/research-conversations.md).
+
 Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
 
 Backend module rules: [docs/development/backend-architecture.md](docs/development/backend-architecture.md). REST error contract: [docs/development/api-errors.md](docs/development/api-errors.md). Request validation rules and shared length limits: [docs/development/validation.md](docs/development/validation.md). Health probes: [docs/development/health.md](docs/development/health.md).
@@ -93,8 +101,8 @@ uv run --frozen researchhub-worker
 uv run --frozen pytest
 ```
 
-The worker's process probe is `GET http://127.0.0.1:8090/health`. Its execution endpoint accepts only the versioned,
-service-token-authenticated source-ingest contract and carries no browser session or end-user token. It has no product
+The worker's process probe is `GET http://127.0.0.1:8090/health`. Its internal execution endpoints accept versioned,
+service-token-authenticated source-ingest, embedding and model contracts and carry no browser session or end-user token. It has no product
 PostgreSQL dependency or business API routes. Canonical Java/Python fixtures live in `contracts/processing/v4`.
 `pytest` enforces at least 80% coverage. Durable state, authorization, retry policy, and idempotent job identity remain
 in Spring/PostgreSQL; see [docs/development/processing.md](docs/development/processing.md).
@@ -160,3 +168,13 @@ Azure model selection is configured solely in the Python worker. Recreate the lo
 PostgreSQL 17 container with the new Compose image (preserve the named volume) and rebuild
 the worker together with the backend. Previously READY sources need explicit reprocessing
 before search. No Azure AI Search service is provisioned by this change.
+
+RH-110: the central structured model gateway is implemented with workspace-scoped evidence,
+versioned templates, model/usage metadata, Flyway-owned call audit, deterministic test provider
+and a selectable Foundry-compatible adapter. [Model gateway](docs/development/model-gateway.md)
+documents contracts, configuration and E2E checks; [ADR-003](docs/adr/ADR-003-model-gateway.md)
+records the boundary and deferred product workflows.
+
+RH-111: [grounded context](docs/development/grounded-context.md) now assigns local citation keys,
+packs escaped source titles/locations/text, shares exact duplicate text and rejects budget overflow
+before inference. Its mapping is preserved in audited responses and rendered by the frontend.
