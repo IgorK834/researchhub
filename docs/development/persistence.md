@@ -32,8 +32,15 @@ Applied migrations:
 | 12 | `V12__version_source_processing.sql` | Processing generations and immutable successful extraction-run journal. |
 | 13 | `V13__create_source_retrieval_chunks.sql` | Current versioned retrieval manifests and grounded source spans. |
 | 14 | `V14__index_source_embeddings.sql` | pgvector extension, versioned embedding namespaces, scoped search projection and job stage. |
+| 15 | `V15__audit_model_generations.sql` | Workspace-scoped model call trace, versioned template/parameter/input hash, bounded provenance, successful structured output and safe failure code. |
+| 16 | `V16__create_ai_conversations.sql` | Workspace research conversations, visible questions and complete answers with citations/model/template/usage; idempotent request identities and attempt leases. |
 
-The next migration is `V15__<description>.sql`.
+The next migration is `V17__<description>.sql`.
+
+Research history is created only by Flyway. Assistant messages must be complete; partial streaming
+fragments are never persisted. Composite workspace ownership, unique turn identities and bounded
+JSON checks complement server authorization. Lifecycle/retention and upgrade strategy:
+[research-conversations.md](research-conversations.md).
 
 `workspaces` and `workspace_members` are two migrations rather than one because they are two tables with
 two owners of meaning: one is the boundary, the other is who may cross it. Splitting them also keeps each

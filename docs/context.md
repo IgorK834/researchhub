@@ -215,7 +215,31 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. RAG generation, AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+
+RH-110 now provides a central structured model gateway: versioned templates and feature parameters,
+workspace-authorized current chunk evidence, model/usage metadata, call audit, deterministic offline
+provider and configurable Foundry adapter. Contracts and verification are in
+[development/model-gateway.md](development/model-gateway.md). Workspace questions use this gateway through RH-112; AI writing remains planned.
+
+RH-111 adds deterministic local citation keys, escaped source metadata/text, configurable context
+budgets checked before inference, exact-text sharing without losing source locations, and saved
+context audit summaries. The Foundry adapter translates validated local keys to public chunk IDs;
+the source preview displays the response's citation mapping. See
+[development/grounded-context.md](development/grounded-context.md).
+
+RH-112 now connects authorized workspace/source selection, ranked retrieval, grounded context and
+structured generation into a question endpoint and workspace UI. Empty/unanswerable evidence produces
+explicit insufficiency; citations and saved generation metadata refer only to retrieved source chunks.
+See [development/workspace-questions.md](development/workspace-questions.md). AI writing, analysis and
+realtime collaborative editing remain planned.
+
+RH-113–RH-115 add shared authorized conversation history with model/template/usage provenance, an AI
+panel beside the document editor, and independent POST SSE progress. Only complete validated answers
+are persisted; the current synchronous adapter emits answer deltas after validation, with live provider
+token streaming deferred. Revocation, bounded cancellation, retry identity and migration details:
+[development/research-conversations.md](development/research-conversations.md),
+[ADR-004](adr/ADR-004-research-event-streaming.md).
 
 ---
 
@@ -926,7 +950,7 @@ Membership management is implemented on the same footing. An owner adds an exist
 
 There is no email delivery, no pending-invite table, and no endpoint that lists or searches users. An address with no active account is `404` with one stable detail, identical for an unknown address and a disabled account, so adding a member cannot be used to find out who has an account here.
 
-Documents and sources use that same capability check: `VIEW_CONTENT` to read, and `EDIT_CONTENT` to create or upload. Source downloads resolve both the workspace and source id, so a cross-workspace lookup returns the same `404` as a missing resource. What is not implemented yet: per-resource checks for analyses and AI conversations. Each will hang off a workspace and reuse the same capability check rather than inventing its own. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
+Documents and sources use that same capability check: `VIEW_CONTENT` to read, and `EDIT_CONTENT` to create or upload. Source downloads resolve both the workspace and source id, so a cross-workspace lookup returns the same `404` as a missing resource. Research conversation history and SSE use the same workspace content-reader check, including revocation on fresh reads and during active streams. Per-resource checks for analyses remain planned and will reuse this capability check. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
 
 Initial mechanism:
 

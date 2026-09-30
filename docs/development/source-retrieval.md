@@ -4,7 +4,8 @@ Implemented in the existing source ingestion pipeline: authenticated Python work
 structure-aware chunking, then returns both outputs in processing contract **v4** (`source-ingest-4`). Spring validates
 source identity, workspace, original hash, every content span, hashes and versions before atomic persistence. This
 is the retrieval substrate. Spring then obtains batched embeddings from the worker and atomically stores the
-pgvector search projection. Azure AI Search provisioning and generation remain later backlog work.
+pgvector search projection. Azure AI Search provisioning remains deferred. RH-112 composes this retrieval
+with the shared model gateway for [workspace questions](workspace-questions.md).
 
 ## Canonical chunk and search contracts
 

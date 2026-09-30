@@ -175,7 +175,7 @@ Create the package when the first type for that module is added. Do not add empt
 | `document` | Collaborative report content owned by a workspace |
 | `source` | Workspace source metadata and ingestion status |
 | `processing` | Durable job identity/state, safe claim/retry/recovery, and worker delivery ports |
-| `ai` | AI request orchestration. Model calls and data processing stay outside this Java module when they belong in `ai-worker/` |
+| `ai` | Authorized retrieval/model orchestration and durable research conversations with SSE events. Model calls and data processing stay in `ai-worker/`. |
 | `analysis` | Analysis artifacts, execution status, and provenance of computed results |
 | `audit` | Audit events |
 
@@ -223,8 +223,8 @@ prohibition of the normal case.
 | `document.api` | `dev.researchhub.auth.application` | Every document route acts on behalf of the signed-in user, and `auth` owns the session. As in `workspace.api`, the caller comes from `CurrentUserResolver` rather than the body, and only `id()` is read. |
 | `source.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Exactly as for documents: a source's access rule is its workspace's. `SourceService` calls the two `void` guards and never learns what a role is. `source` must not import `workspace.domain`, `workspace.infrastructure`, `user.domain`, or `user.infrastructure`, and nothing in `source.domain` or `source.application` may import a cloud SDK. |
 | `source.application` | `dev.researchhub.processing.application` | `SourceService` enqueues the durable job in its database transaction; `SourceIngestJobStateListener` implements the narrow notification interface to mirror status. It imports no processing domain or infrastructure type. |
-| `ai.application` | `dev.researchhub.source.application.SourceReadScope` and `SourceExtractionService` | Selected-source ownership and grounded chunk reads go through public source contracts; no source repository/domain import. |
-| `ai.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Retrieval authorizes the workspace before embedding; its adapter also applies workspace filtering inside SQL. |
+| `ai.application` | `dev.researchhub.source.application.SourceReadScope`, `SourceExtractionService`, `SourceService` and `SourceSummary` | Selected-source ownership, grounded chunk reads and context title snapshots go through public source contracts; no source repository/domain import. |
+| `ai.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Retrieval authorizes before embedding and filters inside SQL. The model gateway authorizes before resolving evidence, rechecks after inference and scopes persisted responses to the workspace. |
 | `ai.api` | `dev.researchhub.auth.application.CurrentUserResolver` | The caller comes from the authenticated session, never a request field. |
 | `source.application` | `dev.researchhub.ai.application` | Ingestion uses embedding/index/chunk ports and requires complete indexed publication before READY. No vendor dependency. |
 | `processing.infrastructure` | `dev.researchhub.ai.application` | The worker transport validates retrieval outputs and maps vendor-neutral embedding failures to durable job retry/error policy. |

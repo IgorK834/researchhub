@@ -2,6 +2,19 @@
 
 How ResearchHub separates local development, automated tests, and a future cloud deployment. Follow this document instead of inventing a new place for secrets.
 
+Generation provider settings, versioned feature templates and model parameters (RH-110):
+[model-gateway.md](model-gateway.md). Foundry credentials belong only to the worker; the frontend
+uses the authenticated Spring gateway. `.env.example` and Compose contain all setting names.
+
+RH-111 adds server feature budgets for total context reservation and packed UTF-8 size, plus exact
+text sharing. Defaults, ranges and overflow behavior: [grounded-context.md](grounded-context.md).
+
+RH-112 adds question retrieval limits, temperature and completion limits under
+`researchhub.ai.features.workspace-question`: [workspace-questions.md](workspace-questions.md).
+
+RH-113–RH-115 add bounded SSE concurrency, timeout and heartbeat under
+`researchhub.ai.conversations.stream`: [research-conversations.md](research-conversations.md).
+
 Security rules in [docs/context.md](../context.md) still apply, including “Never commit secrets” (section 32).
 
 ## Profiles
