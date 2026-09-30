@@ -38,6 +38,7 @@ class SourceIngestJobStateListenerTest {
     private dev.researchhub.source.infrastructure.SourceExtractionRepository extractions;
     private dev.researchhub.processing.application.ProcessingJobQueue queue;
     private dev.researchhub.ai.application.RetrievalStore retrieval;
+    private dev.researchhub.ai.application.RetrievalIndex index;
     private SourceIngestJobStateListener listener;
     private UUID workspaceId;
     private UUID sourceId;
@@ -49,7 +50,8 @@ class SourceIngestJobStateListenerTest {
         extractions = mock(dev.researchhub.source.infrastructure.SourceExtractionRepository.class);
         queue = mock(dev.researchhub.processing.application.ProcessingJobQueue.class);
         retrieval = mock(dev.researchhub.ai.application.RetrievalStore.class);
-        listener = new SourceIngestJobStateListener(repository, Clock.fixed(NOW, ZoneOffset.UTC), extractions, queue, retrieval);
+        index = mock(dev.researchhub.ai.application.RetrievalIndex.class);
+        listener = new SourceIngestJobStateListener(repository, Clock.fixed(NOW, ZoneOffset.UTC), extractions, queue, retrieval, index);
         workspaceId = UUID.randomUUID();
         sourceId = UUID.randomUUID();
         job = new ProcessingJobNotification(UUID.randomUUID(), workspaceId, "SOURCE_INGEST", "SOURCE", sourceId, 1);
@@ -60,6 +62,7 @@ class SourceIngestJobStateListenerTest {
         when(queue.findByResource(any(), any(), any())).thenReturn(Optional.of(running));
         when(extractions.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
         when(retrieval.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
+        when(index.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
     }
 
     @Test
