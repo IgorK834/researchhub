@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { SourceExtractionPreview } from '../features/sources/components/SourceExtractionPreview';
 import { sourceContentPath } from '../features/sources/api/sourceApi';
 import { SOURCE_STATUS_LABELS } from '../features/sources/api/sourceTypes';
 import { useSourceQuery } from '../features/sources/api/useSources';
@@ -103,6 +104,9 @@ function SourceDetail({
           Download source
         </a>
       </p>
+      {source.status === 'READY' ? (
+        <SourceExtractionPreview workspaceId={workspaceId} sourceId={sourceId} />
+      ) : null}
       <button
         type="button"
         onClick={() => {

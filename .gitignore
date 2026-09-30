@@ -40,3 +40,6 @@ logs/
 # Local sandbox execution artifacts
 sandbox/tmp/
 sandbox/output/
+
+# Frontend coverage reports
+/frontend/coverage/

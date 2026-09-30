@@ -19,9 +19,11 @@ function response(body: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
-function renderPage(sourceResponse: Response): void {
+function renderPage(sourceResponse: Response, extraction?: unknown): void {
   globalThis.fetch = jest.fn((url: unknown) => {
     if (String(url) === sourcePath) return Promise.resolve(sourceResponse);
+    if (String(url) === `${sourcePath}/extraction`)
+      return Promise.resolve(response(extraction));
     if (String(url) === '/api/workspaces/w-1/members') {
       return Promise.resolve(
         response([
@@ -90,4 +92,41 @@ it('does not reveal whether a missing source exists in another workspace', async
 
   expect(await screen.findByRole('heading', { name: 'Source not found' })).not.toBeNull();
   expect(screen.queryByRole('link', { name: 'Download source' })).toBeNull();
+});
+
+it('opens the extracted lecture text once the source is ready', async () => {
+  renderPage(
+    response({
+      id: 's-1',
+      workspaceId: 'w-1',
+      displayName: 'Lecture.pdf',
+      sourceType: 'PDF',
+      sizeBytes: 1000,
+      status: 'READY',
+      failureSummary: null,
+      uploadedBy: 'u-1',
+      createdAt: '2026-09-23T10:15:30Z',
+    }),
+    {
+      parserVersion: 'pypdf-6.14.2/rh-1',
+      workbook: null,
+      warnings: [],
+      chunks: [
+        {
+          sourceId: 's-1',
+          parserVersion: 'pypdf-6.14.2/rh-1',
+          chunkId: 'unit-0',
+          ordinal: 0,
+          text: 'Lecture text',
+          pageNumber: 1,
+          location: null,
+        },
+      ],
+    },
+  );
+  expect(
+    await screen.findByRole('heading', { name: 'Extracted content' }),
+  ).not.toBeNull();
+  expect(screen.getByText('Page 1')).not.toBeNull();
+  expect(screen.getByText('Lecture text')).not.toBeNull();
 });
