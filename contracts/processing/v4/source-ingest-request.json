@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "4.0",
+  "jobId": "018f1f7a-6c20-7c2f-9d3f-4cda0ca3b8bd",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "sourceType": "PDF",
+  "fileAccess": {
+    "kind": "SIGNED_URL",
+    "url": "http://127.0.0.1:10000/devstoreaccount1/researchhub-sources/01/sample.pdf?sv=fixture&sp=r&sig=fixture",
+    "expiresAt": "2030-01-02T03:04:05Z"
+  },
+  "requestedProcessingVersion": "source-ingest-4",
+  "attempt": 1
+}

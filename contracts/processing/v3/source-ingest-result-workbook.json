@@ -1,0 +1,359 @@
+{
+  "schemaVersion": "3.0",
+  "jobId": "2a63a668-5f29-43df-96f1-d5d2338031f8",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "processingVersion": "source-ingest-3",
+  "status": "SUCCEEDED",
+  "duplicateDelivery": false,
+  "parserVersion": "openpyxl-3.1.5/rh-2",
+  "workbook": {
+    "previewRowLimit": 50,
+    "sheets": [
+      {
+        "previewRows": [
+          {
+            "rowNumber": 1,
+            "cells": [
+              "name",
+              "value",
+              "formula",
+              "flag",
+              "date"
+            ]
+          },
+          {
+            "rowNumber": 2,
+            "cells": [
+              "row-0",
+              "0",
+              "=B2*2",
+              "true",
+              "2026-09-29T00:00:00"
+            ]
+          },
+          {
+            "rowNumber": 3,
+            "cells": [
+              "row-1",
+              "1",
+              "=B2*2",
+              "true",
+              "2026-09-29T00:00:00"
+            ]
+          },
+          {
+            "rowNumber": 4,
+            "cells": [
+              "row-2",
+              "2",
+              "=B2*2",
+              "true",
+              "2026-09-29T00:00:00"
+            ]
+          },
+          {
+            "rowNumber": 5,
+            "cells": [
+              "row-3",
+              "3",
+              "=B2*2",
+              "true",
+              "2026-09-29T00:00:00"
+            ]
+          },
+          {
+            "rowNumber": 6,
+            "cells": [
+              "row-4",
+              "4",
+              "=B2*2",
+              "true",
+              "2026-09-29T00:00:00"
+            ]
+          }
+        ],
+        "name": "Measurements",
+        "state": "visible",
+        "usedRange": "A1:E6",
+        "rowCountEstimate": 6,
+        "columnCount": 5,
+        "headerCandidate": [
+          "name",
+          "value",
+          "formula",
+          "flag",
+          "date"
+        ],
+        "headerRow": 1,
+        "columns": [
+          {
+            "columnNumber": 1,
+            "values": [
+              "name",
+              "row-0",
+              "row-1",
+              "row-2",
+              "row-3",
+              "row-4"
+            ],
+            "dataTypes": [
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 2,
+            "values": [
+              "value",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "dataTypes": [
+              "number",
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 3,
+            "values": [
+              "formula",
+              "=B2*2",
+              "=B2*2",
+              "=B2*2",
+              "=B2*2",
+              "=B2*2"
+            ],
+            "dataTypes": [
+              "formula",
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 4,
+            "values": [
+              "flag",
+              "true",
+              "true",
+              "true",
+              "true",
+              "true"
+            ],
+            "dataTypes": [
+              "boolean",
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 5,
+            "values": [
+              "date",
+              "2026-09-29T00:00:00",
+              "2026-09-29T00:00:00",
+              "2026-09-29T00:00:00",
+              "2026-09-29T00:00:00",
+              "2026-09-29T00:00:00"
+            ],
+            "dataTypes": [
+              "date",
+              "text"
+            ]
+          }
+        ],
+        "sampledRows": 6,
+        "truncated": false,
+        "formulaPresence": true,
+        "formulaScanComplete": true
+      },
+      {
+        "previewRows": [
+          {
+            "rowNumber": 1,
+            "cells": [
+              "secret",
+              "#DIV/0!"
+            ]
+          }
+        ],
+        "name": "Hidden",
+        "state": "hidden",
+        "usedRange": "A1:B1",
+        "rowCountEstimate": 1,
+        "columnCount": 2,
+        "headerCandidate": [
+          "secret",
+          "#DIV/0!"
+        ],
+        "headerRow": 1,
+        "columns": [
+          {
+            "columnNumber": 1,
+            "values": [
+              "secret"
+            ],
+            "dataTypes": [
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 2,
+            "values": [
+              "#DIV/0!"
+            ],
+            "dataTypes": [
+              "error"
+            ]
+          }
+        ],
+        "sampledRows": 1,
+        "truncated": false,
+        "formulaPresence": false,
+        "formulaScanComplete": true
+      },
+      {
+        "previewRows": [
+          {
+            "rowNumber": 1,
+            "cells": [
+              "",
+              "x"
+            ]
+          }
+        ],
+        "name": "Internal",
+        "state": "veryHidden",
+        "usedRange": "A1:B1",
+        "rowCountEstimate": 1,
+        "columnCount": 2,
+        "headerCandidate": [
+          "",
+          "x"
+        ],
+        "headerRow": 1,
+        "columns": [
+          {
+            "columnNumber": 2,
+            "values": [
+              "x"
+            ],
+            "dataTypes": [
+              "text"
+            ]
+          }
+        ],
+        "sampledRows": 1,
+        "truncated": false,
+        "formulaPresence": false,
+        "formulaScanComplete": true
+      },
+      {
+        "previewRows": [],
+        "name": "Empty",
+        "state": "visible",
+        "usedRange": "A1:A1",
+        "rowCountEstimate": 1,
+        "columnCount": 1,
+        "headerCandidate": [],
+        "headerRow": null,
+        "columns": [],
+        "sampledRows": 0,
+        "truncated": false,
+        "formulaPresence": false,
+        "formulaScanComplete": true
+      }
+    ],
+    "rowLimit": 1000,
+    "columnLimit": 64,
+    "sampleLimit": 10
+  },
+  "extractionMetadata": {
+    "title": null,
+    "author": null,
+    "language": null,
+    "pageCount": 0,
+    "characterCount": 263,
+    "contentSha256": "f7ae61b27a566f086df1775db7cff49733bf4d154725e55294c9c4a25e4ef77a"
+  },
+  "structure": {
+    "pages": [],
+    "sections": []
+  },
+  "chunks": [
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "openpyxl-3.1.5/rh-2",
+      "location": {
+        "kind": "SHEET",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": "Measurements",
+        "cellRange": "A1:BL6"
+      },
+      "chunkId": "unit-0",
+      "ordinal": 0,
+      "text": "1: name\tvalue\tformula\tflag\tdate\n2: row-0\t0\t=B2*2\ttrue\t2026-09-29T00:00:00\n3: row-1\t1\t=B2*2\ttrue\t2026-09-29T00:00:00\n4: row-2\t2\t=B2*2\ttrue\t2026-09-29T00:00:00\n5: row-3\t3\t=B2*2\ttrue\t2026-09-29T00:00:00\n6: row-4\t4\t=B2*2\ttrue\t2026-09-29T00:00:00",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 0,
+      "characterEnd": 241
+    },
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "openpyxl-3.1.5/rh-2",
+      "location": {
+        "kind": "SHEET",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": "Hidden",
+        "cellRange": "A1:BL1"
+      },
+      "chunkId": "unit-1",
+      "ordinal": 1,
+      "text": "1: secret\t#DIV/0!",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 241,
+      "characterEnd": 258
+    },
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "openpyxl-3.1.5/rh-2",
+      "location": {
+        "kind": "SHEET",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": "Internal",
+        "cellRange": "A1:BL1"
+      },
+      "chunkId": "unit-2",
+      "ordinal": 2,
+      "text": "1: \tx",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 258,
+      "characterEnd": 263
+    },
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "openpyxl-3.1.5/rh-2",
+      "location": {
+        "kind": "SHEET",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": "Empty",
+        "cellRange": "A1:BL1"
+      },
+      "chunkId": "unit-3",
+      "ordinal": 3,
+      "text": "",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 263,
+      "characterEnd": 263
+    }
+  ],
+  "warnings": [],
+  "failure": null
+}

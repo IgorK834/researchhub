@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "3.0",
+  "jobId": "018f1f7a-6c20-7c2f-9d3f-4cda0ca3b8bd",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "processingVersion": "source-ingest-3",
+  "status": "FAILED",
+  "duplicateDelivery": false,
+  "extractionMetadata": null,
+  "structure": {
+    "pages": [],
+    "sections": []
+  },
+  "chunks": [],
+  "warnings": [],
+  "failure": {
+    "code": "DOCUMENT_PARSE_FAILED",
+    "message": "The document could not be read."
+  },
+  "parserVersion": null,
+  "workbook": null
+}
