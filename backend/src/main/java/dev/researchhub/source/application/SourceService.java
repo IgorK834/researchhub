@@ -60,7 +60,7 @@ public class SourceService {
      * One detail for every 404 these operations produce: not a member, no such source, and a source in another
      * workspace all read the same.
      */
-    static final String SOURCE_NOT_FOUND = "Source was not found";
+    public static final String SOURCE_NOT_FOUND = "Source was not found";
 
     private static final Logger log = LoggerFactory.getLogger(SourceService.class);
 
@@ -181,6 +181,17 @@ public class SourceService {
         requireReader(workspaceId, callerId);
 
         return summaryOf(requireSource(workspaceId, sourceId));
+    }
+
+    @Transactional
+    public SourceSummary reprocess(UUID workspaceId, UUID callerId, UUID sourceId) {
+        requireEditor(workspaceId, callerId);
+        Source source = sources.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId)
+                .map(SourceEntity::toDomain).orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND));
+        Source processing = source.reprocess(clock.instant());
+        processingJobs.reprocessSource(workspaceId, sourceId);
+        sources.saveAndFlush(SourceEntity.fromDomain(processing));
+        return summaryOf(processing);
     }
 
     /**

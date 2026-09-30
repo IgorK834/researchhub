@@ -110,12 +110,19 @@ class SourceExtractionEndToEndTest {
         cleanupRows();
         FILES.clear(); ((InMemorySourceStorage) storage).clear();
 
-        owner = new ApiBrowser(port, mapper); owner.signUp("parser-owner@example.com", "Parser Owner");
+        owner = new ApiBrowser(port, mapper);
+        var csrfProbe = owner.get("/api/auth/csrf");
+        assertEquals(204, csrfProbe.statusCode(), "CSRF probe status; port=" + port);
+        assertTrue(csrfProbe.headers().firstValue("Set-Cookie").isPresent(), "CSRF cookie missing; header names=" + csrfProbe.headers().map().keySet());
+        owner.signUp("parser-owner@example.com", "Parser Owner");
         var response = owner.postJson("/api/workspaces", "{\"name\":\"Parsing\"}");
         assertEquals(201, response.statusCode(), response.body());
         workspaceId = owner.json(response).get("id").asString();
     }
     @AfterEach void cleanupRows() {
+        jdbc.execute("DELETE FROM source_retrieval_chunks");
+        jdbc.execute("DELETE FROM source_retrieval_sets");
+        jdbc.execute("DELETE FROM source_extraction_runs");
         jdbc.execute("DELETE FROM source_extractions");
         jdbc.execute("DELETE FROM processing_jobs"); jdbc.execute("DELETE FROM sources");
         jdbc.execute("DELETE FROM workspace_members"); jdbc.execute("DELETE FROM workspaces"); jdbc.execute("DELETE FROM users");
@@ -154,6 +161,9 @@ class SourceExtractionEndToEndTest {
         assertEquals(2, lecture.get("structure").get("pages").size());
         assertEquals("Lecture 2", lecture.get("chunks").get(1).get("text").asString());
         assertEquals(2, lecture.get("chunks").get(1).get("pageNumber").asInt());
+        var retrieval = mapper.readValue(owner.get(sourcePath(pdf) + "/retrieval").body(), dev.researchhub.ai.application.RetrievalChunkSet.class);
+        assertEquals(List.of(1,2), retrieval.chunks().stream().map(dev.researchhub.ai.application.RetrievalChunk::pageStart).toList());
+        assertEquals(retrieval.chunks().stream().map(dev.researchhub.ai.application.RetrievalChunk::pageStart).toList(), retrieval.chunks().stream().map(dev.researchhub.ai.application.RetrievalChunk::pageEnd).toList());
         var document = owner.json(owner.get(sourcePath(docx) + "/extraction"));
         assertEquals("TABLE", document.get("chunks").get(3).get("location").get("kind").asString());
         assertEquals("Name\tValue\nmass\t3", document.get("chunks").get(3).get("text").asString());
@@ -194,13 +204,227 @@ class SourceExtractionEndToEndTest {
         String id = upload("lecture.pdf", fixture("lecture.pdf"));
         var job = queue.claimNext(Instant.now(), 5).orElseThrow();
         var notification = ProcessingJobNotification.from(job);
-        var result = mapper.readValue(Files.readString(Path.of("../contracts/processing/v2/source-ingest-result-success.json")), dev.researchhub.processing.infrastructure.WorkerJobResult.class).extraction();
+        var result = mapper.readValue(Files.readString(Path.of("../contracts/processing/v4/source-ingest-result-success.json")), dev.researchhub.processing.infrastructure.WorkerJobResult.class).extraction();
         var chunk = result.chunks().get(0);
-        var adjusted = new SourceExtraction(result.parserVersion(), result.extractionMetadata(), result.structure(),
+        var adjusted = new SourceExtraction(result.processingVersion(), result.parserVersion(), result.extractionMetadata(), result.structure(),
                 List.of(new SourceExtraction.ExtractedChunk(UUID.fromString(id), chunk.parserVersion(), chunk.location(), chunk.chunkId(), 0, chunk.text(), chunk.pageNumber(), chunk.sectionId(), chunk.characterStart(), chunk.characterEnd())), null, result.warnings());
-        assertThrows(IllegalArgumentException.class, () -> extractionService.store(notification, adjusted));
+        assertThrows(IllegalArgumentException.class, () -> extractionService.store(notification, adjusted, null));
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM source_extractions", Integer.class));
         queue.updateState(job.id(), job.status(), job.attemptCount(), job.retry(new dev.researchhub.processing.domain.ProcessingJobError("RETRY", "Retry."), Instant.now()));
-        assertThrows(IllegalStateException.class, () -> extractionService.store(notification, adjusted));
+        assertThrows(IllegalStateException.class, () -> extractionService.store(notification, adjusted, null));
     }
+    @Test void previewAndCitationLocationsAreAuthorizedAndPageAware() throws Exception {
+        String id = upload("lecture.pdf", fixture("lecture.pdf"));
+        dispatch();
+        var preview = owner.get(sourcePath(id) + "/preview");
+        assertEquals(200, preview.statusCode());
+        assertEquals("application/pdf", preview.headers().firstValue("Content-Type").orElseThrow());
+        assertTrue(preview.headers().firstValue("Content-Disposition").orElseThrow().startsWith("inline;"));
+        assertEquals("nosniff", preview.headers().firstValue("X-Content-Type-Options").orElseThrow());
+        assertEquals("sandbox", preview.headers().firstValue("Content-Security-Policy").orElseThrow());
+        assertEquals("private, no-store", preview.headers().firstValue("Cache-Control").orElseThrow());
+        var output = owner.json(owner.get(sourcePath(id) + "/extraction"));
+        String unit = output.get("chunks").get(1).get("chunkId").asString();
+        var locationResponse = owner.get(sourcePath(id) + "/locations?pageNumber=2");
+        assertEquals(200, locationResponse.statusCode(), locationResponse.body());
+        var location = owner.json(locationResponse);
+        assertEquals(unit, location.get("unitId").asString());
+        assertEquals(2, location.get("pageNumber").asInt());
+        assertEquals(sourcePath(id) + "/preview#page=2", location.get("previewUrl").asString());
+        assertTrue(location.get("sourceUrl").asString().contains("&page=2"));
+        assertEquals("source-ingest-4", location.get("processingVersion").asString());
+        assertEquals(location, owner.json(owner.get(sourcePath(id) + "/locations/" + unit)));
+        assertEquals(404, owner.get(sourcePath(id) + "/locations?pageNumber=999").statusCode());
+        assertEquals(404, owner.get(sourcePath(id) + "/locations/missing").statusCode());
+        String csv = upload("data.csv", "name,value\nAda,3\nBob,5\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        dispatch();
+        assertEquals(415, owner.get(sourcePath(csv) + "/preview").statusCode());
+        var sheet = owner.json(owner.get(sourcePath(csv) + "/extraction")).get("workbook").get("sheets").get(0);
+        assertEquals(3, sheet.get("previewRows").size());
+        assertEquals("Bob", sheet.get("previewRows").get(2).get("cells").get(0).asString());
+        var csvLocation = owner.json(owner.get(sourcePath(csv) + "/locations/unit-0"));
+        assertTrue(csvLocation.get("sourceUrl").asString().contains("&sheet=CSV"));
+        assertTrue(csvLocation.get("previewUrl").isNull());
+        var outsider = new ApiBrowser(port, mapper); outsider.signUp("outside@example.com", "Outsider");
+        for (String suffix : List.of("/preview", "/extraction/runs", "/locations/" + unit)) {
+            assertEquals(404, outsider.get(sourcePath(id) + suffix).statusCode());
+        }
+    }
+
+    @Test void reprocessingUsesFreshIdentityAndKeepsOnePayloadWithVersionHistory() throws Exception {
+        String id = upload("lecture.pdf", fixture("lecture.pdf"));
+        assertEquals(409, owner.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+        dispatch();
+        UUID sourceId = UUID.fromString(id);
+        UUID firstJob = jdbc.queryForObject("SELECT job_id FROM source_extractions WHERE source_id = ?", UUID.class, sourceId);
+        String firstHash = jdbc.queryForObject("SELECT payload_sha256 FROM source_extractions WHERE source_id = ?", String.class, sourceId);
+        var original = owner.json(owner.get(sourcePath(id)));
+        var viewer = new ApiBrowser(port, mapper); viewer.signUp("rerun-viewer@example.com", "Viewer");
+        owner.postJson("/api/workspaces/" + workspaceId + "/members", "{\"email\":\"rerun-viewer@example.com\",\"role\":\"VIEWER\"}");
+        assertEquals(403, viewer.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+        assertEquals(200, viewer.get(sourcePath(id) + "/preview").statusCode());
+        assertEquals(200, viewer.get(sourcePath(id) + "/extraction/runs").statusCode());
+        var rerun = owner.postJson(sourcePath(id) + "/reprocess", "{}");
+        assertEquals(202, rerun.statusCode(), rerun.body());
+        assertEquals("PROCESSING", owner.json(rerun).get("status").asString());
+        assertEquals(204, owner.get(sourcePath(id) + "/extraction").statusCode());
+        assertEquals(409, owner.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+        var oldNotification = ProcessingJobNotification.from(queue.find(firstJob).orElseThrow());
+        listeners.stream().filter(listener -> listener.supports(oldNotification)).forEach(listener -> {
+            listener.succeeded(oldNotification);
+            listener.failed(oldNotification, new ProcessingFailure("LATE", "Late result."));
+        });
+        assertEquals("PROCESSING", owner.json(owner.get(sourcePath(id))).get("status").asString());
+        dispatch();
+        assertEquals("READY", owner.json(owner.get(sourcePath(id))).get("status").asString());
+        assertEquals(original.get("contentSha256"), owner.json(owner.get(sourcePath(id))).get("contentSha256"));
+        UUID secondJob = jdbc.queryForObject("SELECT job_id FROM source_extractions WHERE source_id = ?", UUID.class, sourceId);
+        assertNotEquals(firstJob, secondJob);
+        assertEquals(firstHash, jdbc.queryForObject("SELECT payload_sha256 FROM source_extractions WHERE source_id = ?", String.class, sourceId));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM source_extractions WHERE source_id = ?", Integer.class, sourceId));
+        var history = owner.json(owner.get(sourcePath(id) + "/extraction/runs"));
+        assertEquals(2, history.size());
+        assertEquals(secondJob.toString(), history.get(0).get("jobId").asString());
+        assertEquals("source-ingest-4", history.get(0).get("processingVersion").asString());
+        assertEquals("4.0", history.get(0).get("schemaVersion").asString());
+        assertEquals("SUCCEEDED", history.get(0).get("jobStatus").asString());
+        assertThrows(org.springframework.dao.DataAccessException.class,
+                () -> jdbc.update("UPDATE processing_jobs SET generation=42 WHERE id=?", secondJob));
+    }
+
+    @Test void persistenceFailureRollsBackOutputAndNeverPublishesReady() throws Exception {
+        String id = upload("lecture.pdf", fixture("lecture.pdf"));
+        jdbc.execute("CREATE FUNCTION reject_extraction_run() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'private database failure'; END; $$");
+        jdbc.execute("CREATE TRIGGER reject_extraction_run BEFORE INSERT ON source_extraction_runs FOR EACH ROW EXECUTE FUNCTION reject_extraction_run()");
+        try {
+            var policy = new ProcessingProperties(); policy.getDispatcher().setMaxAttempts(1);
+            new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager).dispatchAvailable();
+            var source = owner.json(owner.get(sourcePath(id)));
+            assertEquals("FAILED", source.get("status").asString());
+            assertEquals("The processing worker could not complete the job.", source.get("failureSummary").asString());
+            assertFalse(source.toString().contains("private database"));
+            assertEquals("FAILED", jdbc.queryForObject("SELECT status FROM processing_jobs WHERE resource_id=?", String.class, UUID.fromString(id)));
+            assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM source_extractions", Integer.class));
+            assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM source_extraction_runs", Integer.class));
+            assertEquals(204, owner.get(sourcePath(id) + "/extraction").statusCode());
+        } finally {
+            jdbc.execute("DROP TRIGGER reject_extraction_run ON source_extraction_runs");
+            jdbc.execute("DROP FUNCTION reject_extraction_run()");
+        }
+        assertEquals(202, owner.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+        dispatch();
+        assertEquals("READY", owner.json(owner.get(sourcePath(id))).get("status").asString());
+    }
+
+    @Test void repeatedResultDeliveryIsIdempotentAndRequiresExplicitCompletion() throws Exception {
+        String id = upload("lecture.pdf", fixture("lecture.pdf"));
+        var job = queue.claimNext(Instant.now(), 5).orElseThrow();
+        var notification = ProcessingJobNotification.from(job);
+        listeners.stream().filter(listener -> listener.supports(notification)).forEach(listener -> listener.running(notification));
+        worker.execute(job);
+        var before = extractionRepository.runs(UUID.fromString(workspaceId), UUID.fromString(id));
+        assertEquals(1, before.size());
+        assertEquals("PROCESSING", owner.json(owner.get(sourcePath(id))).get("status").asString());
+        assertEquals(204, owner.get(sourcePath(id) + "/extraction").statusCode());
+        worker.execute(job);
+        assertEquals(before, extractionRepository.runs(UUID.fromString(workspaceId), UUID.fromString(id)));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM source_extractions", Integer.class));
+        var completed = job.succeed(Instant.now());
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(_status -> {
+            assertTrue(queue.updateState(job.id(), job.status(), job.attemptCount(), completed));
+            var success = ProcessingJobNotification.from(completed);
+            listeners.stream().filter(listener -> listener.supports(success)).forEach(listener -> listener.succeeded(success));
+        });
+        assertEquals("READY", owner.json(owner.get(sourcePath(id))).get("status").asString());
+    }
+
+    private static void restartWorker(int max, int overlap, int min) throws Exception {
+        workerProcess.destroy();
+        if (!workerProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) workerProcess.destroyForcibly().waitFor();
+        var process = new ProcessBuilder(workerDirectory.resolve(".venv/bin/python").toString(), "-m", "researchhub_worker")
+                .directory(workerDirectory.toFile()).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD);
+        process.environment().put("AI_WORKER_HOST", "127.0.0.1");
+        process.environment().put("AI_WORKER_PORT", Integer.toString(workerPort));
+        process.environment().put("AI_WORKER_SERVICE_TOKEN", TOKEN);
+        process.environment().put("AI_WORKER_XLSX_ROWS", "3");
+        process.environment().put("AI_WORKER_CHUNK_MAX_CHARACTERS", Integer.toString(max));
+        process.environment().put("AI_WORKER_CHUNK_OVERLAP_CHARACTERS", Integer.toString(overlap));
+        process.environment().put("AI_WORKER_CHUNK_MIN_CHARACTERS", Integer.toString(min));
+        workerProcess = process.start();
+        var http = HttpClient.newHttpClient();
+        for (int attempt = 0; attempt < 100; attempt++) {
+            try {
+                if (http.send(HttpRequest.newBuilder(URI.create(workerUrl() + "/health")).timeout(Duration.ofSeconds(1)).GET().build(), HttpResponse.BodyHandlers.discarding()).statusCode() == 200) return;
+            } catch (java.io.IOException startup) { /* wait for binding */ }
+            Thread.sleep(100);
+        }
+        fail("Restarted worker must be healthy");
+    }
+
+    @Test void retrievalIsAuthorizedVersionedAndReprocessingReplacesTheWholeSet() throws Exception {
+        String id = upload("notes.txt", ("λ😀 quoted text and evidence.\n\n".repeat(180)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(204, owner.get(sourcePath(id) + "/retrieval").statusCode());
+        dispatch();
+        var response = owner.get(sourcePath(id) + "/retrieval");
+        assertEquals(200, response.statusCode(), response.body());
+        assertEquals("private, no-store", response.headers().firstValue("Cache-Control").orElseThrow());
+        var first = mapper.readValue(response.body(), dev.researchhub.ai.application.RetrievalChunkSet.class);
+        assertTrue(first.chunks().size() > 1);
+        assertTrue(first.chunks().stream().allMatch(chunk -> chunk.workspaceId().toString().equals(workspaceId)
+                && chunk.sourceId().toString().equals(id) && chunk.sourceVersionId() == null));
+        assertEquals(first.chunks().getFirst(), mapper.readValue(owner.get(sourcePath(id) + "/retrieval/chunks/" + first.chunks().getFirst().chunkId()).body(), dev.researchhub.ai.application.RetrievalChunk.class));
+        var viewer = new ApiBrowser(port, mapper); viewer.signUp("retrieval-viewer@example.com", "Viewer");
+        owner.postJson("/api/workspaces/" + workspaceId + "/members", "{\"email\":\"retrieval-viewer@example.com\",\"role\":\"VIEWER\"}");
+        assertEquals(200, viewer.get(sourcePath(id) + "/retrieval").statusCode());
+        var outsider = new ApiBrowser(port, mapper); outsider.signUp("retrieval-outsider@example.com", "Outsider");
+        for (String suffix : List.of("/retrieval", "/retrieval/chunks/" + first.chunks().getFirst().chunkId())) {
+            assertEquals(404, outsider.get(sourcePath(id) + suffix).statusCode());
+            assertEquals(404, owner.get(sourcePath(UUID.randomUUID().toString()) + suffix).statusCode());
+        }
+        assertEquals(404, owner.get(sourcePath(id) + "/retrieval/chunks/missing").statusCode());
+        try {
+            restartWorker(96,12,20);
+            assertEquals(202, owner.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+            assertEquals(204, owner.get(sourcePath(id) + "/retrieval").statusCode());
+            assertEquals(404, owner.get(sourcePath(id) + "/retrieval/chunks/" + first.chunks().getFirst().chunkId()).statusCode());
+            dispatch();
+            var nextResponse = owner.get(sourcePath(id) + "/retrieval");
+            assertEquals(200, nextResponse.statusCode(), nextResponse.body());
+            var next = mapper.readValue(nextResponse.body(), dev.researchhub.ai.application.RetrievalChunkSet.class);
+            assertNotEquals(first.processingVersion(), next.processingVersion());
+            assertEquals(96, next.config().maxCharacters());
+            assertTrue(next.chunks().size() > first.chunks().size());
+            assertTrue(Collections.disjoint(first.chunks().stream().map(dev.researchhub.ai.application.RetrievalChunk::chunkId).toList(),
+                    next.chunks().stream().map(dev.researchhub.ai.application.RetrievalChunk::chunkId).toList()));
+            assertEquals(409, owner.get(sourcePath(id) + "/retrieval?processingVersion=" + first.processingVersion()).statusCode());
+            assertEquals(404, owner.get(sourcePath(id) + "/retrieval/chunks/" + first.chunks().getFirst().chunkId()).statusCode());
+            assertEquals(next.chunks().size(), jdbc.queryForObject("SELECT count(*) FROM source_retrieval_chunks WHERE source_id=?", Integer.class, UUID.fromString(id)));
+            assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM information_schema.columns WHERE table_name='source_retrieval_chunks' AND column_name='content'", Integer.class));
+            var history = owner.json(owner.get(sourcePath(id) + "/extraction/runs"));
+            assertEquals(next.processingVersion(), history.get(0).get("retrievalProcessingVersion").asString());
+            assertEquals(96, history.get(0).get("chunkingConfig").get("maxCharacters").asInt());
+            assertEquals(202, owner.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+            dispatch();
+            assertEquals(next, mapper.readValue(owner.get(sourcePath(id) + "/retrieval").body(), dev.researchhub.ai.application.RetrievalChunkSet.class));
+        } finally { restartWorker(1600,150,200); }
+    }
+
+    @Test void retrievalWriteFailureRollsBackExtractionAndPreventsReady() throws Exception {
+        String id = upload("lecture.pdf", fixture("lecture.pdf"));
+        jdbc.execute("CREATE FUNCTION drop_retrieval_chunk() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END; $$");
+        jdbc.execute("CREATE TRIGGER drop_retrieval_chunk BEFORE INSERT ON source_retrieval_chunks FOR EACH ROW EXECUTE FUNCTION drop_retrieval_chunk()");
+        try {
+            var policy = new ProcessingProperties(); policy.getDispatcher().setMaxAttempts(1);
+            new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager).dispatchAvailable();
+            assertEquals("FAILED", owner.json(owner.get(sourcePath(id))).get("status").asString());
+            for (String table : List.of("source_extractions", "source_extraction_runs", "source_retrieval_sets", "source_retrieval_chunks")) {
+                assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM " + table, Integer.class));
+            }
+            assertEquals(204, owner.get(sourcePath(id) + "/retrieval").statusCode());
+        } finally {
+            jdbc.execute("DROP TRIGGER drop_retrieval_chunk ON source_retrieval_chunks");
+            jdbc.execute("DROP FUNCTION drop_retrieval_chunk()");
+        }
+    }
+
 }

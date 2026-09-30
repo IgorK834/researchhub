@@ -21,6 +21,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
+import dev.researchhub.source.application.ExtractionRun;
+import dev.researchhub.source.application.SourceLocation;
+import dev.researchhub.shared.error.UnsupportedFileTypeException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -80,6 +84,42 @@ public class SourceController {
         SourceExtraction extraction = extractions.find(workspaceId, sourceId, currentUserId());
         return extraction == null ? ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL, "private, no-store").build()
                 : ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store").body(extraction);
+    }
+
+    @PostMapping("/{sourceId}/reprocess")
+    ResponseEntity<SourceResponse> reprocess(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
+        return ResponseEntity.accepted().body(SourceResponse.from(sources.reprocess(workspaceId, currentUserId(), sourceId)));
+    }
+
+    @GetMapping("/{sourceId}/extraction/runs")
+    ResponseEntity<List<ExtractionRun>> runs(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(extractions.runs(workspaceId, sourceId, currentUserId()));
+    }
+
+    @GetMapping("/{sourceId}/locations/{unitId}")
+    ResponseEntity<SourceLocation> location(@PathVariable UUID workspaceId, @PathVariable UUID sourceId, @PathVariable String unitId) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(extractions.location(workspaceId, sourceId, currentUserId(), unitId, null));
+    }
+
+    @GetMapping("/{sourceId}/locations")
+    ResponseEntity<SourceLocation> pageLocation(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
+                                              @RequestParam Integer pageNumber) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(extractions.location(workspaceId, sourceId, currentUserId(), null, pageNumber));
+    }
+
+    @GetMapping("/{sourceId}/preview")
+    ResponseEntity<InputStreamResource> preview(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
+        var source = sources.findOne(workspaceId, currentUserId(), sourceId);
+        if (!"PDF".equals(source.sourceType())) throw new UnsupportedFileTypeException("Browser preview is available for PDF sources");
+        SourceContent opened = sources.openContent(workspaceId, currentUserId(), sourceId);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).contentLength(opened.source().sizeBytes())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().filename(opened.source().displayName(), StandardCharsets.UTF_8).build().toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store").header("X-Content-Type-Options", "nosniff")
+                .header("Content-Security-Policy", "sandbox")
+                .body(new InputStreamResource(opened.content()));
     }
 
     @GetMapping("/{sourceId}/content")

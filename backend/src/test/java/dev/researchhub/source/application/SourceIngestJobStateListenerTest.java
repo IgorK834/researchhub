@@ -35,6 +35,9 @@ class SourceIngestJobStateListenerTest {
     private static final Instant NOW = Instant.parse("2026-09-29T09:00:00Z");
 
     private SourceRepository repository;
+    private dev.researchhub.source.infrastructure.SourceExtractionRepository extractions;
+    private dev.researchhub.processing.application.ProcessingJobQueue queue;
+    private dev.researchhub.ai.application.RetrievalStore retrieval;
     private SourceIngestJobStateListener listener;
     private UUID workspaceId;
     private UUID sourceId;
@@ -43,10 +46,20 @@ class SourceIngestJobStateListenerTest {
     @BeforeEach
     void setUp() {
         repository = mock(SourceRepository.class);
-        listener = new SourceIngestJobStateListener(repository, Clock.fixed(NOW, ZoneOffset.UTC));
+        extractions = mock(dev.researchhub.source.infrastructure.SourceExtractionRepository.class);
+        queue = mock(dev.researchhub.processing.application.ProcessingJobQueue.class);
+        retrieval = mock(dev.researchhub.ai.application.RetrievalStore.class);
+        listener = new SourceIngestJobStateListener(repository, Clock.fixed(NOW, ZoneOffset.UTC), extractions, queue, retrieval);
         workspaceId = UUID.randomUUID();
         sourceId = UUID.randomUUID();
         job = new ProcessingJobNotification(UUID.randomUUID(), workspaceId, "SOURCE_INGEST", "SOURCE", sourceId, 1);
+        var running = new dev.researchhub.processing.domain.ProcessingJob(job.jobId(), workspaceId,
+                dev.researchhub.processing.domain.ProcessingJobType.SOURCE_INGEST,
+                dev.researchhub.processing.domain.ProcessingResourceType.SOURCE, sourceId,
+                dev.researchhub.processing.domain.ProcessingJobStatus.RUNNING, 1, CREATED, NOW, null, null, null);
+        when(queue.findByResource(any(), any(), any())).thenReturn(Optional.of(running));
+        when(extractions.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
+        when(retrieval.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
     }
 
     @Test
@@ -102,6 +115,19 @@ class SourceIngestJobStateListenerTest {
         ProcessingJobNotification other = new ProcessingJobNotification(UUID.randomUUID(), workspaceId,
                 "SOURCE_INGEST", "DOCUMENT", sourceId, 1);
         assertFalse(listener.supports(other));
+    }
+
+    @Test
+    void refusesReadyWithoutPersistedResultAndIgnoresOldRunNotifications() {
+        when(repository.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId))
+                .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.PROCESSING))));
+        when(extractions.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(false);
+        assertThrows(IllegalStateException.class, () -> listener.succeeded(job));
+        verify(repository, never()).saveAndFlush(any());
+        when(queue.findByResource(any(), any(), any())).thenReturn(Optional.empty());
+        listener.running(job); listener.succeeded(job);
+        listener.failed(job, new ProcessingFailure("STALE", "Old run."));
+        verify(repository, never()).saveAndFlush(any());
     }
 
     private Source source(SourceStatus status) {

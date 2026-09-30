@@ -130,6 +130,15 @@ public record Source(
                 contentSha256, next, null, uploadedBy, createdAt, now);
     }
 
+    /** Explicitly reprocesses the same immutable bytes after a terminal run. */
+    public Source reprocess(Instant now) {
+        if (status != SourceStatus.READY && status != SourceStatus.FAILED) {
+            throw new ConflictException("Source processing is already in progress");
+        }
+        return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
+                contentSha256, SourceStatus.PROCESSING, null, uploadedBy, createdAt, now);
+    }
+
     /** Moves a processing source to {@link SourceStatus#FAILED} with the safe explanation shown to members. */
     public Source processingFailed(String summary, Instant now) {
         if (!status.canMoveTo(SourceStatus.FAILED)) {

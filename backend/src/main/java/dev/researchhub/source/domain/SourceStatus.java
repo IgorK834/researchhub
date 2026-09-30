@@ -14,8 +14,8 @@ import java.util.Set;
  *
  * <p>A new source is {@link #UPLOADED}: its bytes are stored and its metadata recorded, and nothing has read it yet.
  * Ingestion moves it to {@link #PROCESSING} and then to {@link #READY} or {@link #FAILED}. A failed source may be
- * processed again. A ready one is final: processing a changed file is a new version of the source, not a re-run
- * that silently changes what earlier citations point at.
+ * processed again. READY is final within a run. Explicit reprocessing creates another job for the same immutable
+ * file and retains parser/processing provenance. Changed input must be uploaded as a new source.
  */
 public enum SourceStatus {
 

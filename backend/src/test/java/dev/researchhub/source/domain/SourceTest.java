@@ -114,6 +114,22 @@ class SourceTest {
     }
 
     @Test
+    void explicitReprocessingKeepsOriginalBytesAndClearsFailure() {
+        Source processing = uploaded().moveTo(SourceStatus.PROCESSING, LATER);
+        for (Source completed : java.util.List.of(processing.moveTo(SourceStatus.READY, LATER),
+                processing.processingFailed("Safe error", LATER))) {
+            Source again = completed.reprocess(LATER);
+            assertEquals(SourceStatus.PROCESSING, again.status());
+            assertNull(again.failureSummary());
+            assertEquals(completed.storageKey(), again.storageKey());
+            assertEquals(completed.contentSha256(), again.contentSha256());
+            assertEquals(completed.createdAt(), again.createdAt());
+        }
+        assertThrows(ConflictException.class, () -> uploaded().reprocess(LATER));
+        assertThrows(ConflictException.class, () -> processing.reprocess(LATER));
+    }
+
+    @Test
     void skippingProcessingIsRefused() {
         assertThrows(ConflictException.class, () -> uploaded().moveTo(SourceStatus.READY, LATER));
         assertThrows(ConflictException.class, () -> uploaded().processingFailed("Failed", LATER));
