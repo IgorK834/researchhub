@@ -74,11 +74,16 @@ class FlywayMigrationIntegrationTest {
                 Integer.class);
         assertEquals(1, processingJobsMigrationRows, "Flyway should record V10__create_processing_jobs.sql");
 
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '11'", Integer.class));
+        assertEquals("jsonb", jdbcTemplate.queryForObject(
+                "SELECT data_type FROM information_schema.columns WHERE table_name = 'source_extractions' AND column_name = 'payload'", String.class));
+
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(10, appliedVersions,
-                "A fresh database should have exactly versions 1 through 10 applied");
+        assertEquals(11, appliedVersions,
+                "A fresh database should have exactly versions 1 through 11 applied");
     }
 
     /**
