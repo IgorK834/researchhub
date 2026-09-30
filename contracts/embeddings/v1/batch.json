@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "provider": "test",
+    "name": "model",
+    "version": "1",
+    "dimension": 2
+  },
+  "vectors": [
+    [
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0
+    ]
+  ]
+}
