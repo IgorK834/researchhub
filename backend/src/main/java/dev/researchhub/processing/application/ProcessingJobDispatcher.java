@@ -10,6 +10,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -32,10 +34,12 @@ public class ProcessingJobDispatcher {
     private final List<ProcessingJobStateListener> listeners;
     private final ProcessingProperties properties;
     private final Clock clock;
+    private final TransactionTemplate transactions;
 
     public ProcessingJobDispatcher(ProcessingJobQueue queue, ProcessingWorkerClient worker,
                                    List<ProcessingJobStateListener> listeners, ProcessingProperties properties,
-                                   Clock clock) {
+                                   Clock clock, PlatformTransactionManager transactionManager) {
+        this.transactions = new TransactionTemplate(transactionManager);
         this.queue = queue;
         this.worker = worker;
         this.listeners = List.copyOf(listeners);
@@ -71,8 +75,12 @@ public class ProcessingJobDispatcher {
             worker.execute(job);
             ProcessingJob succeeded = job.succeed(clock.instant());
             ProcessingJobNotification succeededNotification = ProcessingJobNotification.from(succeeded);
-            listenersFor(succeededNotification).forEach(listener -> listener.succeeded(succeededNotification));
-            if (queue.updateState(job.id(), ProcessingJobStatus.RUNNING, job.attemptCount(), succeeded)) {
+            boolean completed = Boolean.TRUE.equals(transactions.execute(_status -> {
+                if (!queue.updateState(job.id(), ProcessingJobStatus.RUNNING, job.attemptCount(), succeeded)) return false;
+                listenersFor(succeededNotification).forEach(listener -> listener.succeeded(succeededNotification));
+                return true;
+            }));
+            if (completed) {
                 log.info("event=processing.succeeded jobId={} jobType={} resourceType={} resourceId={} attempt={}",
                         job.id(), job.jobType(), job.resourceType(), job.resourceId(), job.attemptCount());
             }
@@ -81,16 +89,19 @@ public class ProcessingJobDispatcher {
                     ? dispatchFailure.safeError() : UNEXPECTED;
             log.error("event=processing.attempt_failed jobId={} jobType={} resourceType={} resourceId={} attempt={}",
                     job.id(), job.jobType(), job.resourceType(), job.resourceId(), job.attemptCount(), failure);
-            recordFailure(job, safe);
+            recordFailure(job, safe, !(failure instanceof WorkerDispatchException dispatchFailure) || dispatchFailure.retryable());
         }
     }
 
-    private void recordFailure(ProcessingJob job, ProcessingJobError error) {
+    private void recordFailure(ProcessingJob job, ProcessingJobError error, boolean retryable) {
         ProcessingProperties.Dispatcher policy = properties.getDispatcher();
-        if (job.attemptCount() >= policy.getMaxAttempts()) {
+        if (!retryable || job.attemptCount() >= policy.getMaxAttempts()) {
             ProcessingJob failed = job.fail(error, clock.instant());
-            notifyFailed(failed, error);
-            queue.updateState(job.id(), ProcessingJobStatus.RUNNING, job.attemptCount(), failed);
+            transactions.executeWithoutResult(_status -> {
+                if (queue.updateState(job.id(), ProcessingJobStatus.RUNNING, job.attemptCount(), failed)) {
+                    notifyFailed(failed, error);
+                }
+            });
             return;
         }
         Instant retryAt = clock.instant().plus(backoff(job.attemptCount(), policy));

@@ -1,6 +1,8 @@
 package dev.researchhub.processing.infrastructure;
 
 import dev.researchhub.processing.domain.ProcessingJob;
+import dev.researchhub.processing.application.SourceExtraction;
+import dev.researchhub.processing.application.SourceExtraction.*;
 import dev.researchhub.processing.domain.ProcessingJobError;
 
 import java.util.List;
@@ -15,6 +17,8 @@ public record WorkerJobResult(
         String processingVersion,
         String status,
         boolean duplicateDelivery,
+        String parserVersion,
+        WorkbookMetadata workbook,
         ExtractionMetadata extractionMetadata,
         DocumentStructure structure,
         List<ExtractedChunk> chunks,
@@ -45,6 +49,7 @@ public record WorkerJobResult(
 
         if ("SUCCEEDED".equals(status)) {
             require(extractionMetadata != null && failure == null, "successful result state");
+            extraction().validate(sourceId);
         } else if ("FAILED".equals(status)) {
             require(failure != null, "failed result state");
         } else {
@@ -73,22 +78,8 @@ public record WorkerJobResult(
         return new IllegalArgumentException("Worker result has an invalid " + field);
     }
 
-    public record ExtractionMetadata(String title, String author, String language, long pageCount,
-                                     long characterCount, String contentSha256) {
-    }
-
-    public record DocumentStructure(List<PageStructure> pages, List<SectionStructure> sections) {
-    }
-
-    public record PageStructure(int pageNumber, long characterStart, long characterEnd) {
-    }
-
-    public record SectionStructure(String sectionId, String heading, int level, String parentSectionId,
-                                   long characterStart, long characterEnd) {
-    }
-
-    public record ExtractedChunk(String chunkId, int ordinal, String text, Integer pageNumber, String sectionId,
-                                 long characterStart, long characterEnd) {
+    public SourceExtraction extraction() {
+        return new SourceExtraction(parserVersion, extractionMetadata, structure, chunks, workbook, warnings);
     }
 
     public record Failure(String code, String message) {

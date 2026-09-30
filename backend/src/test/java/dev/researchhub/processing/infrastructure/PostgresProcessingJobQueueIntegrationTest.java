@@ -55,6 +55,9 @@ class PostgresProcessingJobQueueIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
     private UUID workspaceId;
 
     @BeforeEach
@@ -146,7 +149,7 @@ class PostgresProcessingJobQueueIntegrationTest {
             throw new WorkerDispatchException(new ProcessingJobError("WORKER_UNAVAILABLE",
                     "The processing worker is temporarily unavailable."),
                     new IOExceptionWithoutSecrets());
-        }, List.of(), properties, Clock.fixed(dispatchTime, ZoneOffset.UTC));
+        }, List.of(), properties, Clock.fixed(dispatchTime, ZoneOffset.UTC), transactionManager);
 
         dispatcher.dispatchAvailable();
 

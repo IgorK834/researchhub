@@ -48,7 +48,7 @@ class ProcessingJobDispatcherTest {
         when(queue.updateState(any(), any(), anyInt(), any())).thenReturn(true);
         properties = new ProcessingProperties();
         dispatcher = new ProcessingJobDispatcher(queue, worker, List.of(listener), properties,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC), mock(org.springframework.transaction.PlatformTransactionManager.class));
     }
 
     @Test
@@ -131,6 +131,30 @@ class ProcessingJobDispatcherTest {
         assertEquals(Duration.ofSeconds(6), ProcessingJobDispatcher.backoff(2, policy));
         assertEquals(Duration.ofSeconds(10), ProcessingJobDispatcher.backoff(3, policy));
         assertEquals(Duration.ofSeconds(10), ProcessingJobDispatcher.backoff(20, policy));
+    }
+
+    @Test
+    void obsoleteCompletionDoesNotPublishSuccessOrFailure() {
+        when(queue.updateState(any(), any(), anyInt(), any())).thenReturn(false);
+        dispatcher.dispatch(running(1));
+        verify(listener, never()).succeeded(any());
+        properties.getDispatcher().setMaxAttempts(3);
+        var last = running(3);
+        doThrow(new IllegalStateException("late response")).when(worker).execute(last);
+        dispatcher.dispatch(last);
+        verify(listener, never()).failed(any(), any());
+    }
+
+    @Test
+    void malformedDocumentFailureIsTerminalOnItsFirstAttempt() {
+        var job = running(1);
+        var failure = new ProcessingJobError("DOCUMENT_PARSE_FAILED", "The document could not be read.");
+        doThrow(new WorkerDispatchException(failure, null, false)).when(worker).execute(job);
+        dispatcher.dispatch(job);
+        var changed = ArgumentCaptor.forClass(ProcessingJob.class);
+        verify(queue).updateState(eq(job.id()), eq(ProcessingJobStatus.RUNNING), eq(1), changed.capture());
+        assertEquals(ProcessingJobStatus.FAILED, changed.getValue().status());
+        verify(listener).failed(ProcessingJobNotification.from(changed.getValue()), ProcessingFailure.from(failure));
     }
 
     private static ProcessingJob running(int attempt) {

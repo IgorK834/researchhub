@@ -1,6 +1,8 @@
 package dev.researchhub.processing.infrastructure;
 
 import dev.researchhub.processing.application.ProcessingWorkerClient;
+import dev.researchhub.processing.application.SourceIngestResultSink;
+import dev.researchhub.processing.application.ProcessingJobNotification;
 import dev.researchhub.processing.application.SourceIngestInput;
 import dev.researchhub.processing.application.SourceIngestInputProvider;
 import dev.researchhub.processing.application.WorkerDispatchException;
@@ -8,6 +10,7 @@ import dev.researchhub.processing.domain.ProcessingJob;
 import dev.researchhub.processing.domain.ProcessingJobError;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
@@ -34,13 +37,15 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
     private static final ProcessingJobError WORKER_ERROR = new ProcessingJobError("WORKER_ERROR",
             "The processing worker could not complete the job.");
 
+    private final SourceIngestResultSink results;
     private final RestClient client;
     private final ObjectMapper objectMapper;
     private final SourceIngestInputProvider inputs;
     private final ProcessingProperties.Worker policy;
 
     public HttpProcessingWorkerClient(ProcessingProperties properties, ObjectMapper objectMapper,
-                                      SourceIngestInputProvider inputs) {
+                                      SourceIngestInputProvider inputs, SourceIngestResultSink results) {
+        this.results = results;
         this.policy = properties.getWorker();
         this.objectMapper = objectMapper;
         this.inputs = inputs;
@@ -63,7 +68,8 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
             WorkerJobResult result = client.post()
                     .uri("/internal/jobs/source-ingest")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + policy.getServiceToken())
-                    .body(request)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(objectMapper.writeValueAsBytes(request))
                     .exchange((_sent, response) -> readResult(response.getStatusCode().is2xxSuccessful(),
                             response.getBody()));
             if (result == null) {
@@ -72,8 +78,9 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
             result.validateFor(job);
             ProcessingJobError failure = result.safeFailure();
             if (failure != null) {
-                throw new WorkerDispatchException(failure, null);
+                throw new WorkerDispatchException(failure, null, false);
             }
+            results.store(ProcessingJobNotification.from(job), result.extraction());
         } catch (WorkerDispatchException safe) {
             throw safe;
         } catch (WorkerRejectedException rejected) {

@@ -6,11 +6,19 @@ import dev.researchhub.processing.domain.ProcessingJobError;
 public class WorkerDispatchException extends RuntimeException {
 
     private final ProcessingJobError safeError;
+    private final boolean retryable;
 
     public WorkerDispatchException(ProcessingJobError safeError, Throwable cause) {
+        this(safeError, cause, true);
+    }
+
+    public WorkerDispatchException(ProcessingJobError safeError, Throwable cause, boolean retryable) {
         super("Processing worker dispatch failed", cause);
         this.safeError = safeError;
+        this.retryable = retryable;
     }
+
+    public boolean retryable() { return retryable; }
 
     public ProcessingJobError safeError() {
         return safeError;
