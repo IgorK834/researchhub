@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceVersionId": null,
+  "ingestionVersion": "source-ingest-4",
+  "parserVersion": "pypdf-6.14.2/rh-1",
+  "sourceContentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "extractionContentHash": "215274dbfbf364705189fb3776f0f685ba960fc35752a8a0eae3fb99b39b7f42",
+  "processingVersion": "retrieval-1:7e3977dd2302746fba943cf2bea5f9c5dbbc550edf683af71221b2aa83cf9ff5",
+  "config": {
+    "version": "hierarchical-char-1",
+    "maxCharacters": 1600,
+    "overlapCharacters": 150,
+    "minCharacters": 200
+  },
+  "chunks": [
+    {
+      "chunkId": "ad4eeda8ca8fc7894bfeee4987c5cc31f6524e9e768a07d1e2b58949dc30f9f2",
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+      "sourceVersionId": null,
+      "chunkIndex": 0,
+      "content": "Representative extracted text",
+      "pageStart": 1,
+      "pageEnd": 1,
+      "sectionTitle": "Introduction",
+      "contentHash": "215274dbfbf364705189fb3776f0f685ba960fc35752a8a0eae3fb99b39b7f42",
+      "processingVersion": "retrieval-1:7e3977dd2302746fba943cf2bea5f9c5dbbc550edf683af71221b2aa83cf9ff5",
+      "spans": [
+        {
+          "unitId": "chunk-0",
+          "characterStart": 0,
+          "characterEnd": 29
+        }
+      ]
+    }
+  ]
+}

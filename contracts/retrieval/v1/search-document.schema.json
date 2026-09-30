@@ -1,0 +1,170 @@
+{
+  "$defs": {
+    "SourceSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "unitId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Unitid",
+          "type": "string"
+        },
+        "characterStart": {
+          "minimum": 0,
+          "title": "Characterstart",
+          "type": "integer"
+        },
+        "characterEnd": {
+          "minimum": 1,
+          "title": "Characterend",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unitId",
+        "characterStart",
+        "characterEnd"
+      ],
+      "title": "SourceSpan",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "chunkId": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Chunkid",
+      "type": "string"
+    },
+    "sourceId": {
+      "format": "uuid",
+      "title": "Sourceid",
+      "type": "string"
+    },
+    "workspaceId": {
+      "format": "uuid",
+      "title": "Workspaceid",
+      "type": "string"
+    },
+    "sourceVersionId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Sourceversionid"
+    },
+    "chunkIndex": {
+      "minimum": 0,
+      "title": "Chunkindex",
+      "type": "integer"
+    },
+    "content": {
+      "maxLength": 8000,
+      "minLength": 1,
+      "title": "Content",
+      "type": "string"
+    },
+    "pageStart": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Pagestart"
+    },
+    "pageEnd": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Pageend"
+    },
+    "sectionTitle": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Sectiontitle"
+    },
+    "contentHash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Contenthash",
+      "type": "string"
+    },
+    "processingVersion": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Processingversion",
+      "type": "string"
+    },
+    "spans": {
+      "items": {
+        "$ref": "#/$defs/SourceSpan"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Spans",
+      "type": "array"
+    }
+  },
+  "required": [
+    "chunkId",
+    "sourceId",
+    "workspaceId",
+    "sourceVersionId",
+    "chunkIndex",
+    "content",
+    "pageStart",
+    "pageEnd",
+    "sectionTitle",
+    "contentHash",
+    "processingVersion",
+    "spans"
+  ],
+  "title": "RetrievalChunk",
+  "type": "object",
+  "$id": "urn:researchhub:retrieval:v1:search-document",
+  "x-researchhub-search": {
+    "key": "chunkId",
+    "searchable": [
+      "content"
+    ],
+    "mandatorySecurityFilters": [
+      "workspaceId"
+    ],
+    "mandatoryVersionFilters": [
+      "sourceId",
+      "processingVersion"
+    ],
+    "filterable": [
+      "workspaceId",
+      "sourceId",
+      "sourceVersionId",
+      "processingVersion",
+      "pageStart",
+      "pageEnd"
+    ],
+    "sortable": [
+      "chunkIndex"
+    ]
+  }
+}

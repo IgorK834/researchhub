@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "4.0",
+  "jobId": "018f1f7a-6c20-7c2f-9d3f-4cda0ca3b8bd",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "processingVersion": "source-ingest-4",
+  "status": "SUCCEEDED",
+  "duplicateDelivery": false,
+  "retrieval": {
+    "schemaVersion": "1.0",
+    "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+    "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+    "sourceVersionId": null,
+    "ingestionVersion": "source-ingest-4",
+    "parserVersion": "utf8-stdlib/rh-1",
+    "sourceContentHash": "256707bc2765b3e7f27401fc578d931f07623ca4dce41d85e5bd99ddbd636221",
+    "extractionContentHash": "0fde38a7bbc436d754a0b4a1f28c717104d1f8c69b570fcea937d53b1bf38571",
+    "processingVersion": "retrieval-1:bbad59ae569c48162e0dd186e9f322f244687b4ab90bed443d15768a84181a50",
+    "config": {
+      "version": "hierarchical-char-1",
+      "maxCharacters": 1600,
+      "overlapCharacters": 150,
+      "minCharacters": 200
+    },
+    "chunks": [
+      {
+        "chunkId": "8849eba91486b3d825adf52ab46842fbfd7293728dc243f3f7fa717c409c605b",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 0,
+        "content": "λ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "219e52aad672060f91f756ec4c403cac841fd0da230642191479a40e61ab855a",
+        "processingVersion": "retrieval-1:bbad59ae569c48162e0dd186e9f322f244687b4ab90bed443d15768a84181a50",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 0,
+            "characterEnd": 1597
+          }
+        ]
+      },
+      {
+        "chunkId": "b2fddf78c77002a0f2f42e9d207d7052911eca3c2ec3b78e84dccb338089d8b7",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 1,
+        "content": "quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "7196cb97a95d172440898609ea84b89c65bcd7b1e36bd8bf7288d2a21ffe37bf",
+        "processingVersion": "retrieval-1:bbad59ae569c48162e0dd186e9f322f244687b4ab90bed443d15768a84181a50",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1448,
+            "characterEnd": 3008
+          }
+        ]
+      },
+      {
+        "chunkId": "419d23a314ce374270ad70f4db5d25824612059d25a7b90a4c05d5e579b2a61f",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 2,
+        "content": "quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "3098a719a31a556edf8a5db4b196a36bdec2f6fd2c9a855e5a09f06b57014943",
+        "processingVersion": "retrieval-1:bbad59ae569c48162e0dd186e9f322f244687b4ab90bed443d15768a84181a50",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 2859,
+            "characterEnd": 3059
+          }
+        ]
+      }
+    ]
+  },
+  "parserVersion": "utf8-stdlib/rh-1",
+  "workbook": null,
+  "extractionMetadata": {
+    "title": null,
+    "author": null,
+    "language": null,
+    "pageCount": 0,
+    "characterCount": 3059,
+    "contentSha256": "256707bc2765b3e7f27401fc578d931f07623ca4dce41d85e5bd99ddbd636221"
+  },
+  "structure": {
+    "pages": [],
+    "sections": []
+  },
+  "chunks": [
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "utf8-stdlib/rh-1",
+      "location": {
+        "kind": "TEXT",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": null,
+        "cellRange": null
+      },
+      "chunkId": "unit-0",
+      "ordinal": 0,
+      "text": "λ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"\nλ😀 quoted \"text\"",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 0,
+      "characterEnd": 3059
+    }
+  ],
+  "warnings": [],
+  "failure": null
+}

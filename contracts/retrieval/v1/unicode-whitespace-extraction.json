@@ -1,0 +1,704 @@
+{
+  "schemaVersion": "4.0",
+  "jobId": "018f1f7a-6c20-7c2f-9d3f-4cda0ca3b8bd",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "processingVersion": "source-ingest-4",
+  "status": "SUCCEEDED",
+  "duplicateDelivery": false,
+  "retrieval": {
+    "schemaVersion": "1.0",
+    "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+    "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+    "sourceVersionId": null,
+    "ingestionVersion": "source-ingest-4",
+    "parserVersion": "utf8-stdlib/rh-1",
+    "sourceContentHash": "4283be45127387b2a1fef24e1649e069197a5914edae1704743ae9f86fb7e43d",
+    "extractionContentHash": "5a79d4264a7400108103cbdf88305b70e5e12907e82e432a0bd2bbc2b7391374",
+    "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+    "config": {
+      "version": "hierarchical-char-1",
+      "maxCharacters": 64,
+      "overlapCharacters": 0,
+      "minCharacters": 24
+    },
+    "chunks": [
+      {
+        "chunkId": "c299170760aa18eb14db517d104e70f496878d6bebf6c46d7e01cac39ad9ab7b",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 0,
+        "content": "word wordword wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "81722af2c4ba9bd05873fdbce2a7bdd675c5cc703d8e0638fa02745dc3dc3168",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 0,
+            "characterEnd": 64
+          }
+        ]
+      },
+      {
+        "chunkId": "fef87a3a8789a76fc5b0973f9937359de37af9c8843ab50689a78e9436791e1a",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 1,
+        "content": "wordword wordword wordword wordword wordword wordword wor",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "00f2113b98638053030ec5e843d3ca672c283c15487837ebdcf8343a97b5a4a7",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 65,
+            "characterEnd": 128
+          }
+        ]
+      },
+      {
+        "chunkId": "8c49062849b98d41765f5708306d628e929ea92cea24a44d44f52072cc2801f8",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 2,
+        "content": "dword wordword wordword wordword wordword wordword wordwo",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "14995388083897c38096a869e7a5c5ba6dfb828e3aad10f1c10bfe1a316e5410",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 128,
+            "characterEnd": 192
+          }
+        ]
+      },
+      {
+        "chunkId": "54bc5e14480916623934fc5a5203a04dcc0bca97827428e11217378daefa7001",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 3,
+        "content": "rd wordword wordword wordword wordword wordword wordword w",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "d88e6d44f1398817eeb869ef099362dc43f0df8e6eb02f4582a8d345935f401d",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 192,
+            "characterEnd": 256
+          }
+        ]
+      },
+      {
+        "chunkId": "7603a587c7062b7c628a674bc0b1b9a42ec973078b7d0841a3f6051b47a99624",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 4,
+        "content": "ordword wordword wordword wordword wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "012de83b56ed033fcf672078fb51354885502de9b3ca2609b56f00a99e43b8b9",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 256,
+            "characterEnd": 319
+          }
+        ]
+      },
+      {
+        "chunkId": "fb89dbc1114539fbcd2a1342a8c49892e2b1a719b9786dd0ebcff6fdff44c08b",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 5,
+        "content": "word wordword wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "81722af2c4ba9bd05873fdbce2a7bdd675c5cc703d8e0638fa02745dc3dc3168",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 320,
+            "characterEnd": 384
+          }
+        ]
+      },
+      {
+        "chunkId": "c95702e0973e57ecb7bde4fae8d2ba304cd72f54b5a4729d46d06034152f9566",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 6,
+        "content": "wordword wordword wordword wordword wordword wordword wor",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "00f2113b98638053030ec5e843d3ca672c283c15487837ebdcf8343a97b5a4a7",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 385,
+            "characterEnd": 448
+          }
+        ]
+      },
+      {
+        "chunkId": "8b552029d21c88092f478e805dab08e27602a0904c584387d80073a61105616a",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 7,
+        "content": "dword wordword wordword wordword wordword wordword wordwo",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "14995388083897c38096a869e7a5c5ba6dfb828e3aad10f1c10bfe1a316e5410",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 448,
+            "characterEnd": 512
+          }
+        ]
+      },
+      {
+        "chunkId": "d47200dc0dd6dcced1a069e2d9f1ce9b427724078d3cfda77e356723b343a737",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 8,
+        "content": "rd wordword wordword wordword wordword wordword wordword w",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "d88e6d44f1398817eeb869ef099362dc43f0df8e6eb02f4582a8d345935f401d",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 512,
+            "characterEnd": 576
+          }
+        ]
+      },
+      {
+        "chunkId": "6380e0d453cce28bc273fcec31ff2bedf6498b598a0b610f15fa795497bed7ba",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 9,
+        "content": "ordword wordword wordword wordword wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "012de83b56ed033fcf672078fb51354885502de9b3ca2609b56f00a99e43b8b9",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 576,
+            "characterEnd": 639
+          }
+        ]
+      },
+      {
+        "chunkId": "a726394260ce3d5db77426c9fb4066d33a8d8d0c3334c77df089ed3b8db10e1f",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 10,
+        "content": "word wordword wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "81722af2c4ba9bd05873fdbce2a7bdd675c5cc703d8e0638fa02745dc3dc3168",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 640,
+            "characterEnd": 704
+          }
+        ]
+      },
+      {
+        "chunkId": "e925d05f45766a250a8f53a21a83cd164bb8db5934c62c690ebd56260b14ebdd",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 11,
+        "content": "wordword wordword wordword wordword wordword wordword wor",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "00f2113b98638053030ec5e843d3ca672c283c15487837ebdcf8343a97b5a4a7",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 705,
+            "characterEnd": 768
+          }
+        ]
+      },
+      {
+        "chunkId": "966fdb3f6c8d18f1a1e9e2601db012d6dc874f715d5c1ed3e2627aca19b37df3",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 12,
+        "content": "dword wordword wordword wordword wordword wordword wordwo",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "14995388083897c38096a869e7a5c5ba6dfb828e3aad10f1c10bfe1a316e5410",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 768,
+            "characterEnd": 832
+          }
+        ]
+      },
+      {
+        "chunkId": "86ba8f684ea839a62cd5a5e15a723b4b59e579f33f12b16acc4598c4635fd5ab",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 13,
+        "content": "rd wordword wordword wordword wordword wordword wordword w",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "d88e6d44f1398817eeb869ef099362dc43f0df8e6eb02f4582a8d345935f401d",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 832,
+            "characterEnd": 896
+          }
+        ]
+      },
+      {
+        "chunkId": "67588bcdca89286f12eb73c7316730522d8f50958424318af8bde6dc109c4ace",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 14,
+        "content": "ordword wordword wordword wordword wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "012de83b56ed033fcf672078fb51354885502de9b3ca2609b56f00a99e43b8b9",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 896,
+            "characterEnd": 959
+          }
+        ]
+      },
+      {
+        "chunkId": "5d58a2618a2a9f69ef9c8b3652fba5f08854151fd22527b6894ed871915536f7",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 15,
+        "content": "word wordword wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "81722af2c4ba9bd05873fdbce2a7bdd675c5cc703d8e0638fa02745dc3dc3168",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 960,
+            "characterEnd": 1024
+          }
+        ]
+      },
+      {
+        "chunkId": "2026f7c730998453ef67c4ac0886ef3f478f0d4b8abfae20a444b52059866c78",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 16,
+        "content": "wordword wordword wordword wordword wordword wordword wor",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "00f2113b98638053030ec5e843d3ca672c283c15487837ebdcf8343a97b5a4a7",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1025,
+            "characterEnd": 1088
+          }
+        ]
+      },
+      {
+        "chunkId": "fe822b16ecffcd24fb9934366af56c4f2d95e233ec250ac58ce42864d8bd24a6",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 17,
+        "content": "dword wordword wordword wordword wordword wordword wordwo",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "14995388083897c38096a869e7a5c5ba6dfb828e3aad10f1c10bfe1a316e5410",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1088,
+            "characterEnd": 1152
+          }
+        ]
+      },
+      {
+        "chunkId": "5ec9a9fb84b33a1474b0a354d3249156c9ab7f21e1eedabb062131cbd2f881bc",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 18,
+        "content": "rd wordword wordword wordword wordword wordword wordword w",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "d88e6d44f1398817eeb869ef099362dc43f0df8e6eb02f4582a8d345935f401d",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1152,
+            "characterEnd": 1216
+          }
+        ]
+      },
+      {
+        "chunkId": "75c9ee3fe6a84f4793320cfbcb31c83cf0f45e13f95462fcc36f1c8dcfcc27a1",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 19,
+        "content": "ordword wordword wordword wordword wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "012de83b56ed033fcf672078fb51354885502de9b3ca2609b56f00a99e43b8b9",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1216,
+            "characterEnd": 1279
+          }
+        ]
+      },
+      {
+        "chunkId": "511967098fc154c381ec7f670a4b7fbd9a28494409f7feb5d4a58bff6c273c4e",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 20,
+        "content": "word wordword wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "81722af2c4ba9bd05873fdbce2a7bdd675c5cc703d8e0638fa02745dc3dc3168",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1280,
+            "characterEnd": 1344
+          }
+        ]
+      },
+      {
+        "chunkId": "f7e02389763ec60948f8b8414df3f7418cf2dbbeea69ab700856b5bdba2148e1",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 21,
+        "content": "wordword wordword wordword wordword wordword wordword wor",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "00f2113b98638053030ec5e843d3ca672c283c15487837ebdcf8343a97b5a4a7",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1345,
+            "characterEnd": 1408
+          }
+        ]
+      },
+      {
+        "chunkId": "c0e4eee8498d65057b4421f08120e159f295b26a9f2537e1beef6fa9d34c00fd",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 22,
+        "content": "dword wordword wordword wordword wordword wordword wordwo",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "14995388083897c38096a869e7a5c5ba6dfb828e3aad10f1c10bfe1a316e5410",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1408,
+            "characterEnd": 1472
+          }
+        ]
+      },
+      {
+        "chunkId": "e5b6efc881693d19efe255f67e57e0ffaeaa2c28430e34c8cbaa078136187c11",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 23,
+        "content": "rd wordword wordword wordword wordword wordword wordword w",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "d88e6d44f1398817eeb869ef099362dc43f0df8e6eb02f4582a8d345935f401d",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1472,
+            "characterEnd": 1536
+          }
+        ]
+      },
+      {
+        "chunkId": "5618c66439ec031cfb658691a18c276ccad6cc19fd75df7ea714ef17ecb3435b",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 24,
+        "content": "ordword wordword wordword wordword wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "012de83b56ed033fcf672078fb51354885502de9b3ca2609b56f00a99e43b8b9",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1536,
+            "characterEnd": 1599
+          }
+        ]
+      },
+      {
+        "chunkId": "2dbb794040dc6414aae63958dc1a7eefb4b3eaf1cb15c1b9bbb6d743cb996ace",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 25,
+        "content": "word wordword wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "81722af2c4ba9bd05873fdbce2a7bdd675c5cc703d8e0638fa02745dc3dc3168",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1600,
+            "characterEnd": 1664
+          }
+        ]
+      },
+      {
+        "chunkId": "57e045af9e3a3b6827fa31ddb3b75a3c13fd102f74b1b4f9169ec369de6e23ad",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 26,
+        "content": "wordword wordword wordword wordword wordword wordword wor",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "00f2113b98638053030ec5e843d3ca672c283c15487837ebdcf8343a97b5a4a7",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1665,
+            "characterEnd": 1728
+          }
+        ]
+      },
+      {
+        "chunkId": "2b4bc89a85565a44c7966f91afbefc4044d0574c5c0e608880d0a677b6f8fda1",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 27,
+        "content": "dword wordword wordword wordword wordword wordword wordwo",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "14995388083897c38096a869e7a5c5ba6dfb828e3aad10f1c10bfe1a316e5410",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1728,
+            "characterEnd": 1792
+          }
+        ]
+      },
+      {
+        "chunkId": "d4b7af4a81687cc0f4aac21d56281b152340ca96b525be930a1c3e0c147ab3e4",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 28,
+        "content": "rd wordword wordword wordword wordword wordword wordword w",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "d88e6d44f1398817eeb869ef099362dc43f0df8e6eb02f4582a8d345935f401d",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1792,
+            "characterEnd": 1856
+          }
+        ]
+      },
+      {
+        "chunkId": "f43001671961c958d56e92b76c7a6a8e6b31fa546f0830e939a8d84c5d602ae9",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 29,
+        "content": "ordword wordword wordword wordword wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "012de83b56ed033fcf672078fb51354885502de9b3ca2609b56f00a99e43b8b9",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1856,
+            "characterEnd": 1919
+          }
+        ]
+      },
+      {
+        "chunkId": "b6f0a5b2d61b0ad73d52f7ec1bbb43704eb0a36fcffe563032c08804abef139b",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 30,
+        "content": "word wordword wordword wordword wordword wordword",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "c04754193254fc5cb07764a2cf10e52968a2ca9394fc9762fa3ab5ae113528cc",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1920,
+            "characterEnd": 1974
+          }
+        ]
+      },
+      {
+        "chunkId": "73dd538b2812064627d7a4b06ba9e7ae4950c52157e2ba00ac0228ff9e1b2414",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 31,
+        "content": "wordword wordword word",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "f27c5c27d1f3a099371a0789a69b9bd521353c2c9e219e307ccaadd7a548b8a2",
+        "processingVersion": "retrieval-1:8351c72e4da77e4724f23638b38936d152f34ddc27513e543a560516a86d4089",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 1975,
+            "characterEnd": 1999
+          }
+        ]
+      }
+    ]
+  },
+  "parserVersion": "utf8-stdlib/rh-1",
+  "workbook": null,
+  "extractionMetadata": {
+    "title": null,
+    "author": null,
+    "language": null,
+    "pageCount": 0,
+    "characterCount": 1999,
+    "contentSha256": "4283be45127387b2a1fef24e1649e069197a5914edae1704743ae9f86fb7e43d"
+  },
+  "structure": {
+    "pages": [],
+    "sections": []
+  },
+  "chunks": [
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "utf8-stdlib/rh-1",
+      "location": {
+        "kind": "TEXT",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": null,
+        "cellRange": null
+      },
+      "chunkId": "unit-0",
+      "ordinal": 0,
+      "text": "word wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword wordword word",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 0,
+      "characterEnd": 1999
+    }
+  ],
+  "warnings": [],
+  "failure": null
+}
