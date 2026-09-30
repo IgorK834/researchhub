@@ -61,3 +61,13 @@ export async function uploadSource(
 export function sourceContentPath(workspaceId: string, sourceId: string): string {
   return resolveApiUrl(`${sourcesPath(workspaceId)}/${sourceId}/content`);
 }
+
+export async function reprocessSource(
+  workspaceId: string,
+  sourceId: string,
+): Promise<WorkspaceSource> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<WorkspaceSource>(
+    `${sourcesPath(workspaceId)}/${sourceId}/reprocess`,
+  );
+}

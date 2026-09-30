@@ -1,20 +1,47 @@
-import type { ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-import { describeError } from '../../../shared/api';
+import { sourceLocationPath } from '../api/sourceLocations';
+import { describeError, queryKeys } from '../../../shared/api';
 import { fetchSourceExtraction } from '../api/sourceExtraction';
 
 export function SourceExtractionPreview({
   workspaceId,
   sourceId,
+  revision,
+  selectedUnit,
+  selectedPage,
+  selectedSheet,
+  expectedParserVersion,
 }: {
   readonly workspaceId: string;
   readonly sourceId: string;
+  readonly revision?: string;
+  readonly selectedUnit?: string | null;
+  readonly selectedPage?: number | null;
+  readonly selectedSheet?: string | null;
+  readonly expectedParserVersion?: string | null;
 }): ReactElement {
   const { data, error, isPending, refetch } = useQuery({
-    queryKey: ['workspaces', workspaceId, 'sources', sourceId, 'extraction'],
+    queryKey: queryKeys.sourceExtraction(workspaceId, sourceId, revision),
     queryFn: ({ signal }) => fetchSourceExtraction(workspaceId, sourceId, signal),
   });
+  useEffect(() => {
+    if (!data) return;
+    const index = data.chunks.findIndex(
+      (unit) =>
+        unit.chunkId === selectedUnit ||
+        ((selectedUnit === null || selectedUnit === undefined) &&
+          (unit.pageNumber === selectedPage ||
+            (selectedSheet !== null &&
+              selectedSheet !== undefined &&
+              unit.location?.sheetName === selectedSheet))),
+    );
+    if (index >= 0)
+      document
+        .getElementById(`source-unit-${String(index)}`)
+        ?.scrollIntoView?.({ block: 'nearest' });
+  }, [data, selectedUnit, selectedPage, selectedSheet]);
   if (isPending) return <p role="status">Loading extracted content…</p>;
   if (error !== null) {
     return (
@@ -30,7 +57,15 @@ export function SourceExtractionPreview({
   return (
     <section aria-label="Extracted content">
       <h2>Extracted content</h2>
-      <p>Parser: {data.parserVersion}</p>
+      {expectedParserVersion && expectedParserVersion !== data.parserVersion ? (
+        <p role="alert">
+          This source was reprocessed with a different parser. Check the cited location
+          against the original file.
+        </p>
+      ) : null}
+      {selectedUnit && !data.chunks.some((unit) => unit.chunkId === selectedUnit) ? (
+        <p role="alert">The requested source location is no longer available.</p>
+      ) : null}
       {data.warnings.map((warning, index) => (
         <p role="status" key={index}>
           {warning}
@@ -69,10 +104,52 @@ export function SourceExtractionPreview({
               </p>
               <p>
                 Header candidate
-                {sheet.headerRow === null ? '' : ` (row ${String(sheet.headerRow)})`}:{' '}
+                {sheet.headerRow === null
+                  ? ''
+                  : ` (row ${String(sheet.headerRow)})`}:{' '}
                 {sheet.headerCandidate.join(' | ') || 'None'}
               </p>
-              <table>
+              <h5>First rows</h5>
+              {(sheet.previewRows ?? []).length === 0 ? (
+                <p>No row preview is available. Reprocess this source to create one.</p>
+              ) : (
+                <table aria-label={`${sheet.name} row preview`}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Row</th>
+                      {Array.from(
+                        {
+                          length: Math.max(
+                            sheet.headerCandidate.length,
+                            ...sheet.previewRows.map((row) => row.cells.length),
+                          ),
+                        },
+                        (_, index) => (
+                          <th scope="col" key={index}>
+                            {sheet.headerCandidate[index] ||
+                              `Column ${String(index + 1)}`}
+                          </th>
+                        ),
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sheet.previewRows.map((row) => (
+                      <tr key={row.rowNumber}>
+                        <th scope="row">{row.rowNumber}</th>
+                        {row.cells.map((cell, index) => (
+                          <td key={index}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <p>
+                Preview includes at most {data.workbook?.previewRowLimit ?? 50} rows per
+                sheet. Cell values may be shortened to 500 characters.
+              </p>
+              <table aria-label={`${sheet.name} schema`}>
                 <thead>
                   <tr>
                     <th>Column</th>
@@ -95,7 +172,22 @@ export function SourceExtractionPreview({
         </section>
       )}
       {data.chunks.map((unit) => (
-        <details key={unit.chunkId}>
+        <details
+          key={unit.chunkId}
+          id={`source-unit-${String(unit.ordinal)}`}
+          open={
+            unit.chunkId === selectedUnit ||
+            ((selectedUnit === null || selectedUnit === undefined) &&
+              ((selectedPage !== null &&
+                selectedPage !== undefined &&
+                unit.pageNumber === selectedPage) ||
+                (selectedSheet !== null &&
+                  selectedSheet !== undefined &&
+                  unit.location?.sheetName === selectedSheet)))
+              ? true
+              : undefined
+          }
+        >
           <summary>
             {unit.pageNumber !== null
               ? `Page ${String(unit.pageNumber)}`
@@ -107,6 +199,16 @@ export function SourceExtractionPreview({
                 ? ' — table'
                 : ''}
           </summary>
+          <p>
+            <a
+              href={sourceLocationPath(workspaceId, sourceId, {
+                ...unit,
+                parserVersion: unit.parserVersion ?? data.parserVersion,
+              })}
+            >
+              Link to this location
+            </a>
+          </p>
           <p>
             Source: {unit.sourceId}
             {unit.location?.cellRange ? ` · ${unit.location.cellRange}` : ''}

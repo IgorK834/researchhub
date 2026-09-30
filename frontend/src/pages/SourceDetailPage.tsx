@@ -1,6 +1,12 @@
 import type { ReactElement } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
+import { PdfSourcePreview } from '../features/sources/components/PdfSourcePreview';
+import { SourceProcessing } from '../features/sources/components/SourceProcessing';
+import { useCurrentUser } from '../features/auth/api/useAuth';
+import { parsePdfPage } from '../features/sources/api/sourceLocations';
+import { queryKeys } from '../shared/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { SourceExtractionPreview } from '../features/sources/components/SourceExtractionPreview';
 import { sourceContentPath } from '../features/sources/api/sourceApi';
 import { SOURCE_STATUS_LABELS } from '../features/sources/api/sourceTypes';
@@ -56,6 +62,16 @@ function SourceDetail({
     refetch,
   } = useSourceQuery(workspaceId, sourceId);
   const { data: members } = useWorkspaceMembersQuery(workspaceId);
+  const { data: currentUser } = useCurrentUser();
+  const [search, setSearch] = useSearchParams();
+  const client = useQueryClient();
+  const role = members?.find((member) => member.userId === currentUser?.id)?.role;
+  const onNavigate = (page: number): void => {
+    const next = new URLSearchParams(search);
+    next.set('page', String(page));
+    next.delete('unit');
+    setSearch(next);
+  };
 
   if (error !== null && hasApiErrorCode(error, 'RESOURCE_NOT_FOUND')) {
     return <SourceNotFound workspaceId={workspaceId} />;
@@ -104,13 +120,40 @@ function SourceDetail({
           Download source
         </a>
       </p>
+      <SourceProcessing
+        workspaceId={workspaceId}
+        sourceId={sourceId}
+        status={source.status}
+        canEdit={role === 'OWNER' || role === 'EDITOR'}
+      />
+      {source.sourceType === 'PDF' ? (
+        <PdfSourcePreview
+          workspaceId={workspaceId}
+          sourceId={sourceId}
+          revision={source.updatedAt}
+          ready={source.status === 'READY'}
+          requestedPage={search.get('page')}
+          onNavigate={onNavigate}
+        />
+      ) : null}
       {source.status === 'READY' ? (
-        <SourceExtractionPreview workspaceId={workspaceId} sourceId={sourceId} />
+        <SourceExtractionPreview
+          workspaceId={workspaceId}
+          sourceId={sourceId}
+          revision={source.updatedAt}
+          selectedUnit={search.get('unit')}
+          selectedPage={parsePdfPage(search.get('page'))}
+          selectedSheet={search.get('sheet')}
+          expectedParserVersion={search.get('parserVersion')}
+        />
       ) : null}
       <button
         type="button"
         onClick={() => {
           void refetch();
+          void client.invalidateQueries({
+            queryKey: queryKeys.sourceExtraction(workspaceId, sourceId),
+          });
         }}
       >
         Refresh status

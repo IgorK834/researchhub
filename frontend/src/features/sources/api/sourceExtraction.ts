@@ -20,6 +20,10 @@ export interface ExtractedUnit {
 }
 
 export interface SheetMetadata {
+  readonly previewRows: readonly {
+    readonly rowNumber: number;
+    readonly cells: readonly string[];
+  }[];
   readonly name: string;
   readonly state: 'visible' | 'hidden' | 'veryHidden';
   readonly usedRange: string | null;
@@ -39,6 +43,7 @@ export interface SheetMetadata {
 }
 
 export interface SourceExtraction {
+  readonly processingVersion: string;
   readonly parserVersion: string;
   readonly extractionMetadata: {
     readonly title: string | null;
@@ -66,6 +71,7 @@ export interface SourceExtraction {
   readonly chunks: readonly ExtractedUnit[];
   readonly warnings: readonly string[];
   readonly workbook: {
+    readonly previewRowLimit: number;
     readonly sheets: readonly SheetMetadata[];
     readonly rowLimit: number;
     readonly columnLimit: number;
@@ -83,4 +89,24 @@ export async function fetchSourceExtraction(
     { ...(signal === undefined ? {} : { signal }) },
   );
   return result ?? null;
+}
+
+export interface ExtractionRun {
+  readonly jobId: string;
+  readonly parserVersion: string;
+  readonly processingVersion: string;
+  readonly schemaVersion: string;
+  readonly persistedAt: string;
+  readonly jobStatus: string;
+}
+
+export function fetchExtractionRuns(
+  workspaceId: string,
+  sourceId: string,
+  signal?: AbortSignal,
+): Promise<readonly ExtractionRun[]> {
+  return apiClient.get<readonly ExtractionRun[]>(
+    `/api/workspaces/${workspaceId}/sources/${sourceId}/extraction/runs`,
+    { ...(signal === undefined ? {} : { signal }) },
+  );
 }

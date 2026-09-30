@@ -36,12 +36,21 @@ function response(body: unknown, status = 200): Response {
     text: () => Promise.resolve(JSON.stringify(body)),
   } as unknown as Response;
 }
-function show(body: unknown, status = 200): void {
+function show(
+  body: unknown,
+  status = 200,
+  selection: {
+    selectedUnit?: string;
+    selectedPage?: number;
+    selectedSheet?: string;
+    expectedParserVersion?: string;
+  } = {},
+): void {
   globalThis.fetch = jest.fn(() => Promise.resolve(response(body, status)));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <SourceExtractionPreview workspaceId="w1" sourceId="s1" />
+      <SourceExtractionPreview workspaceId="w1" sourceId="s1" {...selection} />
     </QueryClientProvider>,
   );
 }
@@ -181,4 +190,73 @@ it('retries a failed preview request', async () => {
   expect(
     await screen.findByRole('heading', { name: 'Extracted content' }),
   ).not.toBeNull();
+});
+
+it('opens a cited page and reports changed or missing citation locations', async () => {
+  show(extraction, 200, {
+    selectedPage: 2,
+    selectedUnit: 'p2',
+    expectedParserVersion: 'old-parser',
+  });
+  await screen.findByRole('heading', { name: 'Extracted content' });
+  expect(document.getElementById('source-unit-1')?.hasAttribute('open')).toBe(true);
+  expect(screen.getByRole('alert').textContent).toContain('different parser');
+  expect(
+    screen
+      .getAllByRole('link', { name: 'Link to this location' })[1]
+      ?.getAttribute('href'),
+  ).toContain('&page=2');
+});
+it('warns when a cited unit was removed during reprocessing', async () => {
+  show(extraction, 200, { selectedUnit: 'missing' });
+  expect(await screen.findByRole('alert')).not.toBeNull();
+});
+it('renders first rows in source order and preserves literal formula and HTML cells', async () => {
+  show(
+    {
+      ...extraction,
+      warnings: [],
+      chunks: [
+        {
+          ...extraction.chunks[0],
+          pageNumber: null,
+          location: { kind: 'SHEET', sheetName: 'CSV' },
+        },
+      ],
+      workbook: {
+        previewRowLimit: 2,
+        rowLimit: 10,
+        columnLimit: 2,
+        sampleLimit: 1,
+        sheets: [
+          {
+            name: 'CSV',
+            state: 'visible',
+            usedRange: null,
+            rowCountEstimate: 2,
+            columnCount: 2,
+            headerCandidate: ['Name', ''],
+            headerRow: 1,
+            columns: [],
+            sampledRows: 2,
+            truncated: false,
+            formulaPresence: false,
+            formulaScanComplete: true,
+            previewRows: [
+              { rowNumber: 1, cells: ['Name', 'Value'] },
+              { rowNumber: 2, cells: ['<img src=x>', '=1+1'] },
+            ],
+          },
+        ],
+      },
+    },
+    200,
+    { selectedSheet: 'CSV' },
+  );
+  expect(await screen.findByRole('table', { name: 'CSV row preview' })).not.toBeNull();
+  expect(screen.getByRole('columnheader', { name: 'Column 2' })).not.toBeNull();
+  expect(screen.getByText('=1+1')).not.toBeNull();
+  expect(screen.getByText('<img src=x>')).not.toBeNull();
+  expect(document.querySelector('img')).toBeNull();
+  expect(document.getElementById('source-unit-0')?.hasAttribute('open')).toBe(true);
 });

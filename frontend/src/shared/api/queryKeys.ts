@@ -50,5 +50,12 @@ export const queryKeys = {
   source: (workspaceId: string, sourceId: string) =>
     ['sources', workspaceId, sourceId] as const,
 
+  sourceExtraction: (workspaceId: string, sourceId: string, revision?: string) =>
+    (revision === undefined
+      ? ['sources', workspaceId, sourceId, 'extraction']
+      : ['sources', workspaceId, sourceId, 'extraction', revision]) as readonly string[],
+  extractionRuns: (workspaceId: string, sourceId: string) =>
+    ['sources', workspaceId, sourceId, 'extraction', 'runs'] as const,
+
   job: (jobId: string) => ['jobs', jobId] as const,
 } as const;

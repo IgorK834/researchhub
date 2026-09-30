@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import type { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { SourceDetailPage } from './SourceDetailPage';
@@ -19,8 +19,23 @@ function response(body: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
-function renderPage(sourceResponse: Response, extraction?: unknown): void {
+function renderPage(
+  sourceResponse: Response,
+  extraction?: unknown,
+  entry = '/app/workspaces/w-1/sources/s-1',
+): void {
   globalThis.fetch = jest.fn((url: unknown) => {
+    if (String(url) === '/api/me')
+      return Promise.resolve(
+        response({
+          id: 'u-1',
+          email: 'ada@example.com',
+          displayName: 'Ada',
+          status: 'ACTIVE',
+        }),
+      );
+    if (String(url) === `${sourcePath}/extraction/runs`)
+      return Promise.resolve(response([]));
     if (String(url) === sourcePath) return Promise.resolve(sourceResponse);
     if (String(url) === `${sourcePath}/extraction`)
       return Promise.resolve(response(extraction));
@@ -36,7 +51,7 @@ function renderPage(sourceResponse: Response, extraction?: unknown): void {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/app/workspaces/w-1/sources/s-1']}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route
             path="/app/workspaces/:workspaceId/sources/:sourceId"
@@ -127,6 +142,46 @@ it('opens the extracted lecture text once the source is ready', async () => {
   expect(
     await screen.findByRole('heading', { name: 'Extracted content' }),
   ).not.toBeNull();
-  expect(screen.getByText('Page 1')).not.toBeNull();
+  expect(screen.getAllByText('Page 1')).toHaveLength(2);
   expect(screen.getByText('Lecture text')).not.toBeNull();
+});
+
+it('restores a cited PDF page from the URL and updates its source link when navigating', async () => {
+  renderPage(
+    response({
+      id: 's-1',
+      workspaceId: 'w-1',
+      displayName: 'Lecture.pdf',
+      sourceType: 'PDF',
+      sizeBytes: 1000,
+      status: 'READY',
+      failureSummary: null,
+      uploadedBy: 'u-1',
+      createdAt: '2026-09-23T10:15:30Z',
+    }),
+    {
+      parserVersion: 'parser-1',
+      workbook: null,
+      warnings: [],
+      extractionMetadata: { pageCount: 2 },
+      chunks: [1, 2].map((page) => ({
+        sourceId: 's-1',
+        parserVersion: 'parser-1',
+        chunkId: `page-${String(page)}`,
+        ordinal: page - 1,
+        text: `Lecture ${String(page)}`,
+        pageNumber: page,
+        location: null,
+      })),
+    },
+    '/app/workspaces/w-1/sources/s-1?unit=page-2&page=2&parserVersion=parser-1',
+  );
+  expect(await screen.findByText('Page 2 of 2')).not.toBeNull();
+  expect(document.getElementById('source-unit-1')?.hasAttribute('open')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Previous PDF page' }));
+  expect(
+    screen.getByRole('link', { name: 'Open PDF at page 1' }).getAttribute('href'),
+  ).toContain('#page=1');
+  expect(document.getElementById('source-unit-0')?.hasAttribute('open')).toBe(true);
+  expect(document.getElementById('source-unit-1')?.hasAttribute('open')).toBe(false);
 });

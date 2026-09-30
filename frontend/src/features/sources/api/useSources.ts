@@ -9,6 +9,7 @@ import {
 import { queryKeys, type ApiError } from '../../../shared/api';
 import {
   fetchSource,
+  reprocessSource,
   fetchSources,
   uploadSource,
   type WorkspaceSource,
@@ -30,6 +31,10 @@ export function useSourceQuery(
   return useQuery({
     queryKey: queryKeys.source(workspaceId, sourceId),
     queryFn: ({ signal }) => fetchSource(workspaceId, sourceId, signal),
+    refetchInterval: (query) =>
+      query.state.data?.status === 'UPLOADED' || query.state.data?.status === 'PROCESSING'
+        ? 2000
+        : false,
   });
 }
 
@@ -47,6 +52,24 @@ export function useUploadSource(
     onSuccess: (source) => {
       queryClient.setQueryData(queryKeys.source(workspaceId, source.id), source);
       void queryClient.invalidateQueries({ queryKey: queryKeys.sources(workspaceId) });
+    },
+  });
+}
+
+export function useReprocessSource(
+  workspaceId: string,
+  sourceId: string,
+): UseMutationResult<WorkspaceSource, ApiError, void> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => reprocessSource(workspaceId, sourceId),
+    onSuccess: (source) => {
+      client.setQueryData(queryKeys.source(workspaceId, sourceId), source);
+      void client.invalidateQueries({
+        queryKey: queryKeys.sourceExtraction(workspaceId, sourceId),
+        refetchType: 'none',
+      });
+      void client.invalidateQueries({ queryKey: queryKeys.sources(workspaceId) });
     },
   });
 }
