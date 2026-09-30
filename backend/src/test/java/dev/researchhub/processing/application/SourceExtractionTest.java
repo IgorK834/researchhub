@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SourceExtractionTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private WorkerJobResult result(String file) throws Exception {
-        return mapper.readValue(Files.readString(Path.of("../contracts/processing/v2", file)), WorkerJobResult.class);
+        return mapper.readValue(Files.readString(Path.of("../contracts/processing/v4", file)), WorkerJobResult.class);
     }
     @Test void validatesSharedPdfAndWorkbookContracts() throws Exception {
         for (String file : new String[]{"source-ingest-result-success.json", "source-ingest-result-workbook.json"}) {
@@ -27,7 +27,7 @@ class SourceExtractionTest {
         var extraction = fixture.extraction();
         assertThrows(IllegalArgumentException.class, () -> extraction.validate(UUID.randomUUID()));
         var tree = (ObjectNode) mapper.valueToTree(extraction);
-        for (String field : new String[]{"parserVersion", "extractionMetadata", "structure", "chunks", "warnings"}) {
+        for (String field : new String[]{"processingVersion", "parserVersion", "extractionMetadata", "structure", "chunks", "warnings"}) {
             var changed = tree.deepCopy(); changed.putNull(field);
             assertThrows(IllegalArgumentException.class, () -> mapper.treeToValue(changed, SourceExtraction.class).validate(fixture.sourceId()));
         }
@@ -48,9 +48,26 @@ class SourceExtractionTest {
     }
     @Test void acceptsUnicodeCodePointRangesWithoutLosingProvenance() {
         var sourceId = UUID.randomUUID();
-        var extraction = new SourceExtraction("unicode-1", new SourceExtraction.ExtractionMetadata(null, null, null, 0, 2, "a".repeat(64)),
+        var extraction = new SourceExtraction("source-ingest-4", "unicode-1", new SourceExtraction.ExtractionMetadata(null, null, null, 0, 2, "a".repeat(64)),
                 new SourceExtraction.DocumentStructure(java.util.List.of(), java.util.List.of()),
                 java.util.List.of(new SourceExtraction.ExtractedChunk(sourceId, "unicode-1", null, "unit-0", 0, "λ😀", null, null, 0, 2)), null, java.util.List.of());
         extraction.validate(sourceId);
     }
+    @Test void rejectsUntrustedRowPreviewLimitsCellsAndLocations() throws Exception {
+        var fixture = result("source-ingest-result-workbook.json");
+        var tree = (ObjectNode) mapper.valueToTree(fixture.extraction());
+        java.util.List<java.util.function.Consumer<ObjectNode>> mutations = java.util.List.of(
+            workbook -> workbook.put("previewRowLimit", 101),
+            workbook -> ((ObjectNode) workbook.get("sheets").get(0)).putNull("previewRows"),
+            workbook -> ((ObjectNode) workbook.get("sheets").get(0).get("previewRows").get(0)).put("rowNumber", 0),
+            workbook -> ((ObjectNode) workbook.get("sheets").get(0).get("previewRows").get(0)).put("rowNumber", 10000),
+            workbook -> ((ObjectNode) workbook.get("sheets").get(0).get("previewRows").get(0)).putArray("cells").add("x".repeat(501)),
+            workbook -> ((ObjectNode) workbook.get("sheets").get(0).get("previewRows").get(0)).putArray("cells").addNull()
+        );
+        for (var mutate : mutations) {
+            var changed = tree.deepCopy(); mutate.accept((ObjectNode) changed.get("workbook"));
+            assertThrows(IllegalArgumentException.class, () -> mapper.treeToValue(changed, SourceExtraction.class).validate(fixture.sourceId()));
+        }
+    }
+
 }

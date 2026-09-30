@@ -18,8 +18,8 @@ public record WorkerJobRequest(
         String requestedProcessingVersion,
         int attempt
 ) {
-    static final String SCHEMA_VERSION = "2.0";
-    static final String PROCESSING_VERSION = "source-ingest-2";
+    static final String SCHEMA_VERSION = "4.0";
+    static final String PROCESSING_VERSION = "source-ingest-4";
 
     static WorkerJobRequest from(ProcessingJob job, SourceIngestInput input) {
         return new WorkerJobRequest(SCHEMA_VERSION, job.id(), job.workspaceId(), job.resourceId(), input.sourceType(),

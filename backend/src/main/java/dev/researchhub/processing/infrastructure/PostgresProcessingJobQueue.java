@@ -45,13 +45,30 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
                     id, workspace_id, job_type, resource_type, resource_id, status, attempt_count, created_at,
                     started_at, finished_at, last_error_code, last_error_message, next_attempt_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (job_type, resource_type, resource_id) DO NOTHING
+                ON CONFLICT (job_type, resource_type, resource_id, generation) DO NOTHING
                 """, job.id(), job.workspaceId(), job.jobType().name(), job.resourceType().name(), job.resourceId(),
                 job.status().name(), job.attemptCount(), timestamp(job.createdAt()), timestamp(job.startedAt()),
                 timestamp(job.finishedAt()), errorCode(job), errorMessage(job), timestamp(job.nextAttemptAt()));
 
         return findByResource(job.jobType(), job.resourceType(), job.resourceId()).orElseThrow(() ->
                 new IllegalStateException("processing job insert did not create or find its idempotent row"));
+    }
+
+    @Override
+    public ProcessingJob insertNextRun(ProcessingJob job) {
+        var previous = findByResource(job.jobType(), job.resourceType(), job.resourceId()).orElse(null);
+        if (previous != null && (previous.status() == ProcessingJobStatus.PENDING || previous.status() == ProcessingJobStatus.RUNNING)) {
+            throw new dev.researchhub.shared.error.ConflictException("Source processing is already in progress");
+        }
+        jdbc.update("""
+                INSERT INTO processing_jobs(id, workspace_id, job_type, resource_type, resource_id, status,
+                    attempt_count, created_at, next_attempt_at, generation)
+                VALUES (?, ?, ?, ?, ?, 'PENDING', 0, ?, ?,
+                    (SELECT COALESCE(MAX(generation), -1) + 1 FROM processing_jobs
+                     WHERE job_type = ? AND resource_type = ? AND resource_id = ?))
+                """, job.id(), job.workspaceId(), job.jobType().name(), job.resourceType().name(), job.resourceId(),
+                timestamp(job.createdAt()), timestamp(job.nextAttemptAt()), job.jobType().name(), job.resourceType().name(), job.resourceId());
+        return find(job.id()).orElseThrow();
     }
 
     @Override
@@ -63,7 +80,7 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
     public Optional<ProcessingJob> findByResource(ProcessingJobType jobType, ProcessingResourceType resourceType,
                                                   UUID resourceId) {
         return first("SELECT " + COLUMNS + " FROM processing_jobs "
-                        + "WHERE job_type = ? AND resource_type = ? AND resource_id = ?",
+                        + "WHERE job_type = ? AND resource_type = ? AND resource_id = ? ORDER BY generation DESC LIMIT 1",
                 jobType.name(), resourceType.name(), resourceId);
     }
 

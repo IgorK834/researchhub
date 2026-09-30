@@ -8,7 +8,7 @@ import dev.researchhub.processing.domain.ProcessingJobError;
 import java.util.List;
 import java.util.UUID;
 
-/** Untrusted worker result v1. Identity and collection limits are checked before a job can succeed. */
+/** Untrusted worker result v4. Identity and collection limits are checked before a job can succeed. */
 public record WorkerJobResult(
         String schemaVersion,
         UUID jobId,
@@ -19,6 +19,7 @@ public record WorkerJobResult(
         boolean duplicateDelivery,
         String parserVersion,
         WorkbookMetadata workbook,
+        dev.researchhub.ai.application.RetrievalChunkSet retrieval,
         ExtractionMetadata extractionMetadata,
         DocumentStructure structure,
         List<ExtractedChunk> chunks,
@@ -50,8 +51,10 @@ public record WorkerJobResult(
         if ("SUCCEEDED".equals(status)) {
             require(extractionMetadata != null && failure == null, "successful result state");
             extraction().validate(sourceId);
+            require(retrieval != null, "retrieval output");
+            retrieval.validate(workspaceId, sourceId, extraction());
         } else if ("FAILED".equals(status)) {
-            require(failure != null, "failed result state");
+            require(failure != null && retrieval == null, "failed result state");
         } else {
             throw invalid("result status");
         }
@@ -79,7 +82,7 @@ public record WorkerJobResult(
     }
 
     public SourceExtraction extraction() {
-        return new SourceExtraction(parserVersion, extractionMetadata, structure, chunks, workbook, warnings);
+        return new SourceExtraction(processingVersion, parserVersion, extractionMetadata, structure, chunks, workbook, warnings);
     }
 
     public record Failure(String code, String message) {

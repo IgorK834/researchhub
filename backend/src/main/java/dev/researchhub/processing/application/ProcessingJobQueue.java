@@ -14,6 +14,9 @@ public interface ProcessingJobQueue {
 
     ProcessingJob insertIfAbsent(ProcessingJob job);
 
+    /** Caller holds the source row lock. Creates a new run after a terminal generation. */
+    ProcessingJob insertNextRun(ProcessingJob job);
+
     Optional<ProcessingJob> find(UUID jobId);
 
     Optional<ProcessingJob> findByResource(ProcessingJobType jobType, ProcessingResourceType resourceType,

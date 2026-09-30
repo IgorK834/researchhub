@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 /** Explicit parser output shared through application ports. Offsets count Unicode code points. */
-public record SourceExtraction(String parserVersion, ExtractionMetadata extractionMetadata,
+public record SourceExtraction(String processingVersion, String parserVersion, ExtractionMetadata extractionMetadata,
                                DocumentStructure structure, List<ExtractedChunk> chunks,
                                WorkbookMetadata workbook, List<String> warnings) {
     public void validate(UUID sourceId) {
+        require(identifier(processingVersion));
         require(parserVersion != null && !parserVersion.isBlank() && parserVersion.length() <= 128);
         require(extractionMetadata != null && structure != null && chunks != null && warnings != null);
         var metadata = extractionMetadata;
@@ -91,11 +92,20 @@ public record SourceExtraction(String parserVersion, ExtractionMetadata extracti
             require(dataTypes.stream().allMatch(type -> type != null && List.of("empty", "formula", "error", "boolean", "date", "number", "text").contains(type)));
         }
     }
-    public record SheetMetadata(String name, String state, String usedRange, Long rowCountEstimate,
+    public record PreviewRow(int rowNumber, List<String> cells) {}
+    public record SheetMetadata(List<PreviewRow> previewRows, String name, String state, String usedRange, Long rowCountEstimate,
                                 Integer columnCount, List<String> headerCandidate, Integer headerRow,
                                 List<ColumnSample> columns, int sampledRows, boolean truncated,
                                 Boolean formulaPresence, boolean formulaScanComplete) {
-        void validate(int rowLimit, int columnLimit, int sampleLimit) {
+        void validate(int rowLimit, int columnLimit, int sampleLimit, int previewRowLimit) {
+            require(previewRows != null && previewRows.size() <= previewRowLimit);
+            int previousRow = 0;
+            for (var row : previewRows) {
+                require(row != null && row.rowNumber() > previousRow && row.rowNumber() <= sampledRows
+                        && row.cells() != null && row.cells().size() <= columnLimit);
+                require(row.cells().stream().allMatch(value -> value != null && value.length() <= 500));
+                previousRow = row.rowNumber();
+            }
             require(identifier(name) && state != null && List.of("visible", "hidden", "veryHidden").contains(state));
             require(optionalText(usedRange, 64) && (rowCountEstimate == null || (rowCountEstimate >= 0 && rowCountEstimate <= 1048576)));
             require(columnCount == null || (columnCount >= 0 && columnCount <= 16384));
@@ -112,14 +122,15 @@ public record SourceExtraction(String parserVersion, ExtractionMetadata extracti
             require(formulaPresence == null || formulaPresence || formulaScanComplete);
         }
     }
-    public record WorkbookMetadata(List<SheetMetadata> sheets, int rowLimit, int columnLimit, int sampleLimit) {
+    public record WorkbookMetadata(int previewRowLimit, List<SheetMetadata> sheets, int rowLimit, int columnLimit, int sampleLimit) {
         void validate() {
+            require(previewRowLimit >= 1 && previewRowLimit <= 100);
             require(rowLimit >= 1 && rowLimit <= 10000 && columnLimit >= 1 && columnLimit <= 256 && sampleLimit >= 1 && sampleLimit <= 100);
             require(sheets != null && sheets.size() <= 100);
             var names = new HashSet<String>();
             for (var sheet : sheets) {
                 require(sheet != null && names.add(sheet.name()));
-                sheet.validate(rowLimit, columnLimit, sampleLimit);
+                sheet.validate(rowLimit, columnLimit, sampleLimit, previewRowLimit);
             }
         }
     }

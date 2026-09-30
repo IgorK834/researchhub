@@ -70,7 +70,7 @@ class WorkerJobRequestTest {
     }
 
     private static Path fixture(String name) {
-        Path fromModule = Path.of("..", "contracts", "processing", "v2", name);
-        return Files.exists(fromModule) ? fromModule : Path.of("contracts", "processing", "v2", name);
+        Path fromModule = Path.of("..", "contracts", "processing", "v4", name);
+        return Files.exists(fromModule) ? fromModule : Path.of("contracts", "processing", "v4", name);
     }
 }

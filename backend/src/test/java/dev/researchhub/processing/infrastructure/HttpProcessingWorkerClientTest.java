@@ -58,13 +58,13 @@ class HttpProcessingWorkerClientTest {
         assertEquals("Bearer " + SERVICE_TOKEN,
                 request.get().getRequestHeaders().getFirst("Authorization"));
         assertFalse(request.get().getRequestHeaders().containsKey("Cookie"));
-        assertTrue(body.get().contains("\"schemaVersion\":\"2.0\""), body.get());
+        assertTrue(body.get().contains("\"schemaVersion\":\"4.0\""), body.get());
         assertTrue(body.get().contains("\"jobId\":\"" + job.id() + "\""), body.get());
         assertTrue(body.get().contains("\"workspaceId\":\"" + job.workspaceId() + "\""), body.get());
         assertTrue(body.get().contains("\"sourceId\":\"" + job.resourceId() + "\""), body.get());
         assertTrue(body.get().contains("\"sourceType\":\"PDF\""), body.get());
         assertTrue(body.get().contains("\"kind\":\"SIGNED_URL\""), body.get());
-        assertTrue(body.get().contains("\"requestedProcessingVersion\":\"source-ingest-2\""), body.get());
+        assertTrue(body.get().contains("\"requestedProcessingVersion\":\"source-ingest-4\""), body.get());
         assertTrue(body.get().contains("\"attempt\":1"), body.get());
         assertFalse(body.get().contains(SERVICE_TOKEN), body.get());
     }
@@ -125,7 +125,7 @@ class HttpProcessingWorkerClientTest {
         SourceIngestInputProvider inputs = (_workspaceId, _sourceId, _ttl) -> new SourceIngestInput("PDF",
                 URI.create("http://127.0.0.1:10000/container/blob.pdf?sp=r&sig=temporary"),
                 Instant.parse("2030-01-02T03:04:05Z"));
-        return new HttpProcessingWorkerClient(properties, new ObjectMapper(), inputs, (_job, _extraction) -> {});
+        return new HttpProcessingWorkerClient(properties, new ObjectMapper(), inputs, (_job, _extraction, _retrieval) -> {});
     }
 
     private static ProcessingJob runningJob() {
@@ -136,18 +136,27 @@ class HttpProcessingWorkerClientTest {
 
     private static String successResult(ProcessingJob job) {
         return """
-                {"schemaVersion":"2.0","jobId":"%s","workspaceId":"%s","sourceId":"%s",
-                "processingVersion":"source-ingest-2","status":"SUCCEEDED","duplicateDelivery":false,
+                {"schemaVersion":"4.0","jobId":"%s","workspaceId":"%s","sourceId":"%s",
+                "processingVersion":"source-ingest-4","status":"SUCCEEDED","duplicateDelivery":false,
                 "extractionMetadata":{"title":null,"author":null,"language":null,"pageCount":0,
                 "characterCount":0,"contentSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"structure":{"pages":[],"sections":[]},
-                "chunks":[],"parserVersion":"test/rh-1","workbook":null,"warnings":[],"failure":null}
-                """.formatted(job.id(), job.workspaceId(), job.resourceId());
+                "chunks":[],"parserVersion":"test/rh-1","workbook":null,"warnings":[],"retrieval":%s,"failure":null}
+                """.formatted(job.id(), job.workspaceId(), job.resourceId(), emptyRetrieval(job));
+    }
+
+    private static String emptyRetrieval(ProcessingJob job) {
+        var config = new dev.researchhub.ai.application.ChunkingConfig("hierarchical-char-1",1600,150,200);
+        String textHash = dev.researchhub.ai.application.RetrievalIdentity.hash("");
+        String version = "retrieval-1:" + dev.researchhub.ai.application.RetrievalIdentity.digest(
+                "source-ingest-4", "test/rh-1", "a".repeat(64), textHash, config.version(),1600,150,200);
+        return new ObjectMapper().writeValueAsString(new dev.researchhub.ai.application.RetrievalChunkSet(
+                "1.0",job.resourceId(),job.workspaceId(),null,"source-ingest-4","test/rh-1","a".repeat(64),textHash,version,config,java.util.List.of()));
     }
 
     private static String failedResult(ProcessingJob job) {
         return """
-                {"schemaVersion":"2.0","jobId":"%s","workspaceId":"%s","sourceId":"%s",
-                "processingVersion":"source-ingest-2","status":"FAILED","duplicateDelivery":false,
+                {"schemaVersion":"4.0","jobId":"%s","workspaceId":"%s","sourceId":"%s",
+                "processingVersion":"source-ingest-4","status":"FAILED","duplicateDelivery":false,
                 "extractionMetadata":null,"structure":{"pages":[],"sections":[]},"chunks":[],"warnings":[],
                 "failure":{"code":"DOCUMENT_PARSE_FAILED","message":"The document could not be read."}}
                 """.formatted(job.id(), job.workspaceId(), job.resourceId());

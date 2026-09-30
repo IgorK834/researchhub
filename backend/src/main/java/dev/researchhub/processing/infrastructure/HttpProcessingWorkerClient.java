@@ -80,7 +80,7 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
             if (failure != null) {
                 throw new WorkerDispatchException(failure, null, false);
             }
-            results.store(ProcessingJobNotification.from(job), result.extraction());
+            results.store(ProcessingJobNotification.from(job), result.extraction(), result.retrieval());
         } catch (WorkerDispatchException safe) {
             throw safe;
         } catch (WorkerRejectedException rejected) {
@@ -110,6 +110,8 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
             }
             return objectMapper.readerFor(WorkerJobResult.class)
                     .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .without(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                    .with(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                     .readValue(bytes);
         } catch (IOException invalid) {
             throw new InvalidWorkerContractException("Worker response is not valid JSON", invalid);

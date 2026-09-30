@@ -23,8 +23,14 @@ public class ProcessingJobService {
         this.clock = clock;
     }
 
+    @Transactional
+    public ProcessingJob reprocessSource(UUID workspaceId, UUID sourceId) {
+        return queue.insertNextRun(ProcessingJob.pending(workspaceId, ProcessingJobType.SOURCE_INGEST,
+                ProcessingResourceType.SOURCE, sourceId, clock.instant()));
+    }
+
     /**
-     * Returns the one SOURCE_INGEST job for this immutable source, creating it if necessary.
+     * Returns the initial SOURCE_INGEST job for this immutable source, creating it if necessary.
      * The database unique key makes concurrent duplicate enqueue requests converge on the same row.
      */
     @Transactional
