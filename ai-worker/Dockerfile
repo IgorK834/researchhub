@@ -1,8 +1,7 @@
-FROM ghcr.io/astral-sh/uv:0.12.20 AS uv
-
 FROM python:3.13.3-slim
 
-COPY --from=uv /uv /uvx /bin/
+# Install the same pinned tool from PyPI; no second image registry is needed for the build.
+RUN python -m pip install --no-cache-dir uv==0.12.20
 
 WORKDIR /app
 ENV PATH="/app/.venv/bin:${PATH}" \
