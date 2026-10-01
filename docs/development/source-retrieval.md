@@ -57,6 +57,11 @@ This is a character strategy, not a model-specific tokenizer. Whitespace around 
 adjusting spans. Tables and sheets retain their original unit locations through span IDs. No spreadsheet formula,
 macro, generated code or source markup executes.
 
+[RH-092 CSV data assets](csv-data-assets.md) produce schema metadata as the CSV extraction unit. New CSV
+retrieval includes column names, inferred types, missing counts and scan limits; sampled data-row values remain
+only in structured previews. Reprocess older CSV sources to replace their historical row-text index with this
+schema-only projection. Parser revision changes automatically version chunk identities.
+
 | Environment variable | Default | Bounds |
 | --- | --- | --- |
 | AI_WORKER_CHUNK_MAX_CHARACTERS | 1600 | 32–8000 |

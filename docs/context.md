@@ -217,6 +217,11 @@ frontend/dist/
 
 The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
 
+RH-092 recognizes CSV as a data asset with bounded primitive-type/missing-value profiles, structured
+row previews and schema-only retrieval. Inference can be wrong; original values remain strings and
+large-file totals remain unknown when the row scan is incomplete. Compatibility, reprocessing and limits:
+[development/csv-data-assets.md](development/csv-data-assets.md).
+
 RH-110 now provides a central structured model gateway: versioned templates and feature parameters,
 workspace-authorized current chunk evidence, model/usage metadata, call audit, deterministic offline
 provider and configurable Foundry adapter. Contracts and verification are in
@@ -1513,5 +1518,5 @@ Epic 11 — Azure deployment
 
 > ResearchHub is a React + Spring Boot collaborative research workspace where Java owns the core domain and security, Python handles AI/data workloads, workspace sources are indexed for grounded RAG, spreadsheet analysis executes in a separate sandbox, and every generated claim or result should preserve provenance back to its source or computation.
 
-RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
+RH-090–RH-093: PDF/DOCX/CSV/XLSX extraction is implemented end to end. See
 [Source extraction](development/source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.

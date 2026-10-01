@@ -154,8 +154,12 @@ Routing uses `react-router-dom` (`src/app/AppRouter.tsx`). Everything under `/ap
 *                                                        (Not Found page)
 ```
 
-RH-090/RH-091/RH-093: PDF/DOCX/XLSX extraction is implemented end to end. See
+RH-090–RH-093: PDF/DOCX/CSV/XLSX extraction is implemented end to end. See
 [Source extraction](docs/development/source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
+
+RH-092 [CSV data assets](docs/development/csv-data-assets.md) add encoding/delimiter handling,
+inferred types, bounded samples, row-count completeness and missing-value summaries. CSV RAG indexes
+only schema metadata; older CSV sources need authorized reprocessing to adopt the new profile/index.
 
 Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](docs/development/source-retrieval.md).
 

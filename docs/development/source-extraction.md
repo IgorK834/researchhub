@@ -1,9 +1,12 @@
-# Source extraction and preview (RH-090, RH-091, RH-093, RH-094, RH-095)
+# Source extraction and preview (RH-090–RH-095)
 
 Implemented on the existing upload → PostgreSQL SOURCE_INGEST job → internal HTTP Python worker → source result
 flow. The worker boundary (the prerequisite processing work) already existed; it previously acknowledged empty
 results. Extraction is now performed before a source becomes READY. [RH-102–RH-105](source-retrieval.md) now add embedding and retrieval indexing. No macro execution,
 formula engine, or new infrastructure service is introduced.
+
+[RH-092 CSV data assets](csv-data-assets.md) add a typed bounded profile, inferred primitive types,
+missing-value counts and schema-only retrieval. Sampled CSV records stay in the structured preview.
 
 ## Output and provenance
 
@@ -84,13 +87,14 @@ pretend to reproduce old extracted text. These location APIs retain exact citati
 | --- | --- | --- |
 | PDF | pypdf 6.14.2 | One text unit per page, including empty pages, in original page order. Content-stream text order is deterministic; complex columns may need the cloud layout parser. No bounding boxes are invented. |
 | DOCX | python-docx 1.2.0 | Paragraphs, headings and tables traversed together in body order; heading hierarchy and logical block index retained. Tables are linearized with tabs between cells and newlines between rows, including nested tables. No Microsoft Office required. Headers, footers, drawings and tracked revisions are outside this body-text parser. |
-| CSV | Python CSV reader | UTF-8 (optional BOM), inferred comma/semicolon/tab/pipe delimiters, quoted separators and multiline fields. Ordered first rows and column samples; values remain text, including formula-looking cells. CSV has logical row locations, no PDF pages. |
+| CSV | Python CSV reader (`csv-stdlib/rh-2`) | UTF-8 (optional BOM), comma/semicolon/tab/pipe delimiters, quoted separators and multiline fields. Versioned profile with assumed header, inferred primitive types, data-row count/completeness and per-column missing counts. Ordered bounded previews/samples remain strings, including formula-looking cells. Retrieval contains only a derived schema summary with a CSV sheet location; no PDF pages are invented. |
 | XLSX | openpyxl 3.1.5 | Read-only, `data_only=False`, `keep_vba=False`, `keep_links=False`. Ordered sheets including hidden/veryHidden, producer-reported used range/dimensions, first nonempty row as header candidate, samples/types, row estimate and formula detection. Formulas remain strings. |
 
 Image-only PDF pages are detected by their image resources and absence of extracted text. A fully scanned PDF
 returns safe `OCR_REQUIRED`; a mixed PDF succeeds with an OCR warning and empty units preserving affected page
 numbers. Password-protected PDFs return `PDF_ENCRYPTED`. Malformed inputs return `DOCUMENT_PARSE_FAILED`, with no
-partial result. These structured parsing failures terminate the durable job immediately. Transient download/HTTP
+partial result. CSV additionally returns safe `CSV_ENCODING_INVALID`, `CSV_DELIMITER_INVALID` and `CSV_MALFORMED`
+errors as described in [CSV data assets](csv-data-assets.md). These structured parsing failures terminate the durable job immediately. Transient download/HTTP
 failures remain retryable, and expired access is refreshed by the backend. The worker does not cache download failures.
 
 XLSX dimensions are estimates supplied by the producer, including formatted cells. Iteration resets those
@@ -104,7 +108,9 @@ heuristics, not a schema inference. Missing dimensions remain unknown rather tha
 also rejected even if renamed `.xlsx`/`.docx`. Macros and formulas are never executed. OOXML archive entry and
 uncompressed-size limits are checked before library parsing. The pinned defusedxml dependency hardens openpyxl XML
 handling. TXT retains bounded UTF-8 text extraction. CSV uses the same row, column and preview limits as XLSX;
-row counts are exact only when the complete file fits the scan limit. Preview cells are capped at 500 characters.
+data-row counts are exact only when the complete file fits the scan limit. `csvProfile.rowCount` excludes the assumed
+header and blank prefix; sheet `rowCountEstimate` includes those logical records. CSV previews/names are capped at
+500 UTF-16 units without splitting Unicode characters, matching the existing Java sheet metadata limit.
 
 ## Limits and local networking
 
@@ -158,6 +164,7 @@ From `ai-worker`, after installing the pinned uv 0.12.20:
 uv sync --frozen
 uv run --frozen pytest
 uv run --frozen coverage report --include='*/parsing/*' --fail-under=80
+uv run --frozen coverage report --include='*/parsing/csv.py,*/tabular_contracts.py' --fail-under=80
 ```
 
 With Docker available, from `backend` run `./mvnw verify`. This builds the backend, enforces existing 80% source and

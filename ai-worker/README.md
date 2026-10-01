@@ -65,6 +65,11 @@ same files. See `../docs/development/source-extraction.md` for the compatibility
 Parser behavior, cloud OCR evaluation, limits, Compose blob networking and E2E checks are documented in
 [Source extraction](../docs/development/source-extraction.md).
 
+RH-092 [CSV data assets](../docs/development/csv-data-assets.md) provide delimiter/UTF-8 validation,
+bounded primitive-type and missing-value profiles, and schema-only retrieval. Original cell values remain
+strings in previews. Existing row/column/sample limits apply; `sh scripts/check.sh` also enforces a dedicated
+80% CSV/profile coverage gate.
+
 Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](../docs/development/source-retrieval.md).
 
 RH-110 adds `ai/`, the central model gateway with deterministic and Foundry adapters. The model receives

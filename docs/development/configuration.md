@@ -15,6 +15,10 @@ RH-112 adds question retrieval limits, temperature and completion limits under
 RH-113–RH-115 add bounded SSE concurrency, timeout and heartbeat under
 `researchhub.ai.conversations.stream`: [research-conversations.md](research-conversations.md).
 
+RH-092 CSV profiles reuse `AI_WORKER_XLSX_ROWS`, `AI_WORKER_XLSX_COLUMNS`,
+`AI_WORKER_XLSX_SAMPLES` and `AI_WORKER_PREVIEW_ROWS`; no new runtime setting or package is required.
+Count/completeness and schema-only indexing policy: [csv-data-assets.md](csv-data-assets.md).
+
 Security rules in [docs/context.md](../context.md) still apply, including “Never commit secrets” (section 32).
 
 ## Profiles
