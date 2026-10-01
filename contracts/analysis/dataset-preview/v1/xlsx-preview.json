@@ -1,0 +1,237 @@
+{
+  "schemaVersion": "1.0",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "sourceVersionId": "00000000-0000-4000-8000-0000000000a1",
+  "versionNumber": 2,
+  "originalFilename": "measurements.xlsx",
+  "sizeBytes": 2048,
+  "contentSha256": "abababababababababababababababababababababababababababababababab",
+  "format": "XLSX",
+  "formulasEvaluated": false,
+  "truncated": false,
+  "limits": {
+    "maxResponseBytes": 65536,
+    "maxSheets": 10,
+    "maxColumns": 100,
+    "maxSampleRows": 10,
+    "maxCells": 300,
+    "maxCellBytes": 96
+  },
+  "warnings": [
+    {
+      "code": "FORMULAS_NOT_EVALUATED",
+      "sheet": null,
+      "message": "Formulas are shown as text and are never calculated."
+    },
+    {
+      "code": "TYPES_INFERRED",
+      "sheet": null,
+      "message": "Column types are inferred from a bounded sample and may be wrong."
+    }
+  ],
+  "sheets": [
+    {
+      "name": "Measurements",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": true,
+      "dimensions": {
+        "usedRange": "A1:E6",
+        "rowCount": 6,
+        "dataRowCount": 5,
+        "rowCountEstimated": false,
+        "scannedRows": 6,
+        "columnCount": 5
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "name",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 5,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "value",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 5,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "formula",
+          "inferredType": "FORMULA",
+          "missingValues": 0,
+          "profiledValues": 5,
+          "missingValuesExact": true
+        },
+        {
+          "index": 4,
+          "name": "flag",
+          "inferredType": "BOOLEAN",
+          "missingValues": 0,
+          "profiledValues": 5,
+          "missingValuesExact": true
+        },
+        {
+          "index": 5,
+          "name": "date",
+          "inferredType": "DATE",
+          "missingValues": 0,
+          "profiledValues": 5,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "row-0",
+            "0",
+            "=B2*2",
+            "true",
+            "2026-09-29T00:00:00"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "row-1",
+            "1",
+            "=B2*2",
+            "true",
+            "2026-09-29T00:00:00"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "row-2",
+            "2",
+            "=B2*2",
+            "true",
+            "2026-09-29T00:00:00"
+          ]
+        },
+        {
+          "rowNumber": 5,
+          "cells": [
+            "row-3",
+            "3",
+            "=B2*2",
+            "true",
+            "2026-09-29T00:00:00"
+          ]
+        },
+        {
+          "rowNumber": 6,
+          "cells": [
+            "row-4",
+            "4",
+            "=B2*2",
+            "true",
+            "2026-09-29T00:00:00"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "Hidden",
+      "state": "hidden",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": "A1:B1",
+        "rowCount": 1,
+        "dataRowCount": 0,
+        "rowCountEstimated": false,
+        "scannedRows": 1,
+        "columnCount": 2
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "secret",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 0,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "#DIV/0!",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 0,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [],
+      "truncated": false
+    },
+    {
+      "name": "Internal",
+      "state": "veryHidden",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": "A1:B1",
+        "rowCount": 1,
+        "dataRowCount": 0,
+        "rowCountEstimated": false,
+        "scannedRows": 1,
+        "columnCount": 2
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "Column 1",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 0,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "x",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 0,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [],
+      "truncated": false
+    },
+    {
+      "name": "Empty",
+      "state": "visible",
+      "headerRow": null,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": "A1:A1",
+        "rowCount": 0,
+        "dataRowCount": 0,
+        "rowCountEstimated": false,
+        "scannedRows": 0,
+        "columnCount": 1
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "Column 1",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 0,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [],
+      "truncated": false
+    }
+  ]
+}

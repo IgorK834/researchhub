@@ -1,0 +1,422 @@
+{
+  "$defs": {
+    "Dimensions": {
+      "additionalProperties": false,
+      "properties": {
+        "usedRange": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Usedrange"
+        },
+        "rowCount": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rowcount"
+        },
+        "dataRowCount": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Datarowcount"
+        },
+        "rowCountEstimated": {
+          "title": "Rowcountestimated",
+          "type": "boolean"
+        },
+        "scannedRows": {
+          "minimum": 0,
+          "title": "Scannedrows",
+          "type": "integer"
+        },
+        "columnCount": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Columncount"
+        }
+      },
+      "required": [
+        "usedRange",
+        "rowCount",
+        "dataRowCount",
+        "rowCountEstimated",
+        "scannedRows",
+        "columnCount"
+      ],
+      "title": "Dimensions",
+      "type": "object"
+    },
+    "PreviewColumn": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Index",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 96,
+          "title": "Name",
+          "type": "string"
+        },
+        "inferredType": {
+          "enum": [
+            "INTEGER",
+            "NUMBER",
+            "BOOLEAN",
+            "DATE",
+            "TEXT",
+            "UNKNOWN",
+            "MIXED",
+            "FORMULA",
+            "ERROR"
+          ],
+          "title": "Inferredtype",
+          "type": "string"
+        },
+        "missingValues": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Missingvalues",
+          "type": "integer"
+        },
+        "profiledValues": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Profiledvalues",
+          "type": "integer"
+        },
+        "missingValuesExact": {
+          "title": "Missingvaluesexact",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "index",
+        "name",
+        "inferredType",
+        "missingValues",
+        "profiledValues",
+        "missingValuesExact"
+      ],
+      "title": "PreviewColumn",
+      "type": "object"
+    },
+    "PreviewLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "maxResponseBytes": {
+          "const": 65536,
+          "default": 65536,
+          "title": "Maxresponsebytes",
+          "type": "integer"
+        },
+        "maxSheets": {
+          "const": 10,
+          "default": 10,
+          "title": "Maxsheets",
+          "type": "integer"
+        },
+        "maxColumns": {
+          "const": 100,
+          "default": 100,
+          "title": "Maxcolumns",
+          "type": "integer"
+        },
+        "maxSampleRows": {
+          "const": 10,
+          "default": 10,
+          "title": "Maxsamplerows",
+          "type": "integer"
+        },
+        "maxCells": {
+          "const": 300,
+          "default": 300,
+          "title": "Maxcells",
+          "type": "integer"
+        },
+        "maxCellBytes": {
+          "const": 96,
+          "default": 96,
+          "title": "Maxcellbytes",
+          "type": "integer"
+        }
+      },
+      "title": "PreviewLimits",
+      "type": "object"
+    },
+    "PreviewRow": {
+      "additionalProperties": false,
+      "properties": {
+        "rowNumber": {
+          "maximum": 1048576,
+          "minimum": 1,
+          "title": "Rownumber",
+          "type": "integer"
+        },
+        "cells": {
+          "items": {
+            "maxLength": 96,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rowNumber",
+        "cells"
+      ],
+      "title": "PreviewRow",
+      "type": "object"
+    },
+    "PreviewSheet": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 96,
+          "title": "Name",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "visible",
+            "hidden",
+            "veryHidden"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "headerRow": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Headerrow"
+        },
+        "formulaPresence": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Formulapresence"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/Dimensions"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/PreviewColumn"
+          },
+          "maxItems": 100,
+          "title": "Columns",
+          "type": "array"
+        },
+        "sampleRows": {
+          "items": {
+            "$ref": "#/$defs/PreviewRow"
+          },
+          "maxItems": 10,
+          "title": "Samplerows",
+          "type": "array"
+        },
+        "truncated": {
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "state",
+        "headerRow",
+        "formulaPresence",
+        "dimensions",
+        "columns",
+        "sampleRows",
+        "truncated"
+      ],
+      "title": "PreviewSheet",
+      "type": "object"
+    },
+    "PreviewWarning": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "SHEETS_OMITTED",
+            "ROWS_TRUNCATED",
+            "COLUMNS_TRUNCATED",
+            "ROW_COUNT_ESTIMATED",
+            "MISSING_VALUES_PARTIAL",
+            "VALUES_SHORTENED",
+            "FORMULAS_NOT_EVALUATED",
+            "TYPES_INFERRED",
+            "RESPONSE_SIZE_CAPPED"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "sheet": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sheet"
+        },
+        "message": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "sheet",
+        "message"
+      ],
+      "title": "PreviewWarning",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "sourceId": {
+      "format": "uuid",
+      "title": "Sourceid",
+      "type": "string"
+    },
+    "sourceVersionId": {
+      "format": "uuid",
+      "title": "Sourceversionid",
+      "type": "string"
+    },
+    "versionNumber": {
+      "minimum": 1,
+      "title": "Versionnumber",
+      "type": "integer"
+    },
+    "originalFilename": {
+      "maxLength": 96,
+      "title": "Originalfilename",
+      "type": "string"
+    },
+    "sizeBytes": {
+      "minimum": 1,
+      "title": "Sizebytes",
+      "type": "integer"
+    },
+    "contentSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Contentsha256",
+      "type": "string"
+    },
+    "format": {
+      "enum": [
+        "CSV",
+        "XLSX"
+      ],
+      "title": "Format",
+      "type": "string"
+    },
+    "formulasEvaluated": {
+      "const": false,
+      "default": false,
+      "title": "Formulasevaluated",
+      "type": "boolean"
+    },
+    "truncated": {
+      "title": "Truncated",
+      "type": "boolean"
+    },
+    "limits": {
+      "$ref": "#/$defs/PreviewLimits",
+      "default": {
+        "maxResponseBytes": 65536,
+        "maxSheets": 10,
+        "maxColumns": 100,
+        "maxSampleRows": 10,
+        "maxCells": 300,
+        "maxCellBytes": 96
+      }
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/PreviewWarning"
+      },
+      "maxItems": 100,
+      "title": "Warnings",
+      "type": "array"
+    },
+    "sheets": {
+      "items": {
+        "$ref": "#/$defs/PreviewSheet"
+      },
+      "maxItems": 10,
+      "title": "Sheets",
+      "type": "array"
+    }
+  },
+  "required": [
+    "sourceId",
+    "sourceVersionId",
+    "versionNumber",
+    "originalFilename",
+    "sizeBytes",
+    "contentSha256",
+    "format",
+    "truncated",
+    "warnings",
+    "sheets"
+  ],
+  "title": "DatasetPreview",
+  "type": "object"
+}

@@ -1,0 +1,1966 @@
+{
+  "csvProfile": null,
+  "previewRowLimit": 50,
+  "sheets": [
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3",
+            "r1c4",
+            "r1c5",
+            "r1c6",
+            "r1c7",
+            "r1c8",
+            "r1c9",
+            "r1c10",
+            "r1c11",
+            "r1c12",
+            "r1c13",
+            "r1c14",
+            "r1c15",
+            "r1c16",
+            "r1c17",
+            "r1c18",
+            "r1c19",
+            "r1c20",
+            "r1c21",
+            "r1c22",
+            "r1c23",
+            "r1c24",
+            "r1c25",
+            "r1c26",
+            "r1c27",
+            "r1c28",
+            "r1c29",
+            "r1c30",
+            "r1c31",
+            "r1c32",
+            "r1c33",
+            "r1c34",
+            "r1c35",
+            "r1c36",
+            "r1c37",
+            "r1c38",
+            "r1c39",
+            "r1c40",
+            "r1c41",
+            "r1c42",
+            "r1c43",
+            "r1c44",
+            "r1c45",
+            "r1c46",
+            "r1c47",
+            "r1c48",
+            "r1c49",
+            "r1c50",
+            "r1c51",
+            "r1c52",
+            "r1c53",
+            "r1c54",
+            "r1c55",
+            "r1c56",
+            "r1c57",
+            "r1c58",
+            "r1c59",
+            "r1c60",
+            "r1c61",
+            "r1c62",
+            "r1c63",
+            "r1c64"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3",
+            "r2c4",
+            "r2c5",
+            "r2c6",
+            "r2c7",
+            "r2c8",
+            "r2c9",
+            "r2c10",
+            "r2c11",
+            "r2c12",
+            "r2c13",
+            "r2c14",
+            "r2c15",
+            "r2c16",
+            "r2c17",
+            "r2c18",
+            "r2c19",
+            "r2c20",
+            "r2c21",
+            "r2c22",
+            "r2c23",
+            "r2c24",
+            "r2c25",
+            "r2c26",
+            "r2c27",
+            "r2c28",
+            "r2c29",
+            "r2c30",
+            "r2c31",
+            "r2c32",
+            "r2c33",
+            "r2c34",
+            "r2c35",
+            "r2c36",
+            "r2c37",
+            "r2c38",
+            "r2c39",
+            "r2c40",
+            "r2c41",
+            "r2c42",
+            "r2c43",
+            "r2c44",
+            "r2c45",
+            "r2c46",
+            "r2c47",
+            "r2c48",
+            "r2c49",
+            "r2c50",
+            "r2c51",
+            "r2c52",
+            "r2c53",
+            "r2c54",
+            "r2c55",
+            "r2c56",
+            "r2c57",
+            "r2c58",
+            "r2c59",
+            "r2c60",
+            "r2c61",
+            "r2c62",
+            "r2c63",
+            "r2c64"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3",
+            "r3c4",
+            "r3c5",
+            "r3c6",
+            "r3c7",
+            "r3c8",
+            "r3c9",
+            "r3c10",
+            "r3c11",
+            "r3c12",
+            "r3c13",
+            "r3c14",
+            "r3c15",
+            "r3c16",
+            "r3c17",
+            "r3c18",
+            "r3c19",
+            "r3c20",
+            "r3c21",
+            "r3c22",
+            "r3c23",
+            "r3c24",
+            "r3c25",
+            "r3c26",
+            "r3c27",
+            "r3c28",
+            "r3c29",
+            "r3c30",
+            "r3c31",
+            "r3c32",
+            "r3c33",
+            "r3c34",
+            "r3c35",
+            "r3c36",
+            "r3c37",
+            "r3c38",
+            "r3c39",
+            "r3c40",
+            "r3c41",
+            "r3c42",
+            "r3c43",
+            "r3c44",
+            "r3c45",
+            "r3c46",
+            "r3c47",
+            "r3c48",
+            "r3c49",
+            "r3c50",
+            "r3c51",
+            "r3c52",
+            "r3c53",
+            "r3c54",
+            "r3c55",
+            "r3c56",
+            "r3c57",
+            "r3c58",
+            "r3c59",
+            "r3c60",
+            "r3c61",
+            "r3c62",
+            "r3c63",
+            "r3c64"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3",
+            "r4c4",
+            "r4c5",
+            "r4c6",
+            "r4c7",
+            "r4c8",
+            "r4c9",
+            "r4c10",
+            "r4c11",
+            "r4c12",
+            "r4c13",
+            "r4c14",
+            "r4c15",
+            "r4c16",
+            "r4c17",
+            "r4c18",
+            "r4c19",
+            "r4c20",
+            "r4c21",
+            "r4c22",
+            "r4c23",
+            "r4c24",
+            "r4c25",
+            "r4c26",
+            "r4c27",
+            "r4c28",
+            "r4c29",
+            "r4c30",
+            "r4c31",
+            "r4c32",
+            "r4c33",
+            "r4c34",
+            "r4c35",
+            "r4c36",
+            "r4c37",
+            "r4c38",
+            "r4c39",
+            "r4c40",
+            "r4c41",
+            "r4c42",
+            "r4c43",
+            "r4c44",
+            "r4c45",
+            "r4c46",
+            "r4c47",
+            "r4c48",
+            "r4c49",
+            "r4c50",
+            "r4c51",
+            "r4c52",
+            "r4c53",
+            "r4c54",
+            "r4c55",
+            "r4c56",
+            "r4c57",
+            "r4c58",
+            "r4c59",
+            "r4c60",
+            "r4c61",
+            "r4c62",
+            "r4c63",
+            "r4c64"
+          ]
+        },
+        {
+          "rowNumber": 5,
+          "cells": [
+            "r5c1",
+            "r5c2",
+            "r5c3",
+            "r5c4",
+            "r5c5",
+            "r5c6",
+            "r5c7",
+            "r5c8",
+            "r5c9",
+            "r5c10",
+            "r5c11",
+            "r5c12",
+            "r5c13",
+            "r5c14",
+            "r5c15",
+            "r5c16",
+            "r5c17",
+            "r5c18",
+            "r5c19",
+            "r5c20",
+            "r5c21",
+            "r5c22",
+            "r5c23",
+            "r5c24",
+            "r5c25",
+            "r5c26",
+            "r5c27",
+            "r5c28",
+            "r5c29",
+            "r5c30",
+            "r5c31",
+            "r5c32",
+            "r5c33",
+            "r5c34",
+            "r5c35",
+            "r5c36",
+            "r5c37",
+            "r5c38",
+            "r5c39",
+            "r5c40",
+            "r5c41",
+            "r5c42",
+            "r5c43",
+            "r5c44",
+            "r5c45",
+            "r5c46",
+            "r5c47",
+            "r5c48",
+            "r5c49",
+            "r5c50",
+            "r5c51",
+            "r5c52",
+            "r5c53",
+            "r5c54",
+            "r5c55",
+            "r5c56",
+            "r5c57",
+            "r5c58",
+            "r5c59",
+            "r5c60",
+            "r5c61",
+            "r5c62",
+            "r5c63",
+            "r5c64"
+          ]
+        },
+        {
+          "rowNumber": 6,
+          "cells": [
+            "r6c1",
+            "r6c2",
+            "r6c3",
+            "r6c4",
+            "r6c5",
+            "r6c6",
+            "r6c7",
+            "r6c8",
+            "r6c9",
+            "r6c10",
+            "r6c11",
+            "r6c12",
+            "r6c13",
+            "r6c14",
+            "r6c15",
+            "r6c16",
+            "r6c17",
+            "r6c18",
+            "r6c19",
+            "r6c20",
+            "r6c21",
+            "r6c22",
+            "r6c23",
+            "r6c24",
+            "r6c25",
+            "r6c26",
+            "r6c27",
+            "r6c28",
+            "r6c29",
+            "r6c30",
+            "r6c31",
+            "r6c32",
+            "r6c33",
+            "r6c34",
+            "r6c35",
+            "r6c36",
+            "r6c37",
+            "r6c38",
+            "r6c39",
+            "r6c40",
+            "r6c41",
+            "r6c42",
+            "r6c43",
+            "r6c44",
+            "r6c45",
+            "r6c46",
+            "r6c47",
+            "r6c48",
+            "r6c49",
+            "r6c50",
+            "r6c51",
+            "r6c52",
+            "r6c53",
+            "r6c54",
+            "r6c55",
+            "r6c56",
+            "r6c57",
+            "r6c58",
+            "r6c59",
+            "r6c60",
+            "r6c61",
+            "r6c62",
+            "r6c63",
+            "r6c64"
+          ]
+        },
+        {
+          "rowNumber": 7,
+          "cells": [
+            "r7c1",
+            "r7c2",
+            "r7c3",
+            "r7c4",
+            "r7c5",
+            "r7c6",
+            "r7c7",
+            "r7c8",
+            "r7c9",
+            "r7c10",
+            "r7c11",
+            "r7c12",
+            "r7c13",
+            "r7c14",
+            "r7c15",
+            "r7c16",
+            "r7c17",
+            "r7c18",
+            "r7c19",
+            "r7c20",
+            "r7c21",
+            "r7c22",
+            "r7c23",
+            "r7c24",
+            "r7c25",
+            "r7c26",
+            "r7c27",
+            "r7c28",
+            "r7c29",
+            "r7c30",
+            "r7c31",
+            "r7c32",
+            "r7c33",
+            "r7c34",
+            "r7c35",
+            "r7c36",
+            "r7c37",
+            "r7c38",
+            "r7c39",
+            "r7c40",
+            "r7c41",
+            "r7c42",
+            "r7c43",
+            "r7c44",
+            "r7c45",
+            "r7c46",
+            "r7c47",
+            "r7c48",
+            "r7c49",
+            "r7c50",
+            "r7c51",
+            "r7c52",
+            "r7c53",
+            "r7c54",
+            "r7c55",
+            "r7c56",
+            "r7c57",
+            "r7c58",
+            "r7c59",
+            "r7c60",
+            "r7c61",
+            "r7c62",
+            "r7c63",
+            "r7c64"
+          ]
+        },
+        {
+          "rowNumber": 8,
+          "cells": [
+            "r8c1",
+            "r8c2",
+            "r8c3",
+            "r8c4",
+            "r8c5",
+            "r8c6",
+            "r8c7",
+            "r8c8",
+            "r8c9",
+            "r8c10",
+            "r8c11",
+            "r8c12",
+            "r8c13",
+            "r8c14",
+            "r8c15",
+            "r8c16",
+            "r8c17",
+            "r8c18",
+            "r8c19",
+            "r8c20",
+            "r8c21",
+            "r8c22",
+            "r8c23",
+            "r8c24",
+            "r8c25",
+            "r8c26",
+            "r8c27",
+            "r8c28",
+            "r8c29",
+            "r8c30",
+            "r8c31",
+            "r8c32",
+            "r8c33",
+            "r8c34",
+            "r8c35",
+            "r8c36",
+            "r8c37",
+            "r8c38",
+            "r8c39",
+            "r8c40",
+            "r8c41",
+            "r8c42",
+            "r8c43",
+            "r8c44",
+            "r8c45",
+            "r8c46",
+            "r8c47",
+            "r8c48",
+            "r8c49",
+            "r8c50",
+            "r8c51",
+            "r8c52",
+            "r8c53",
+            "r8c54",
+            "r8c55",
+            "r8c56",
+            "r8c57",
+            "r8c58",
+            "r8c59",
+            "r8c60",
+            "r8c61",
+            "r8c62",
+            "r8c63",
+            "r8c64"
+          ]
+        },
+        {
+          "rowNumber": 9,
+          "cells": [
+            "r9c1",
+            "r9c2",
+            "r9c3",
+            "r9c4",
+            "r9c5",
+            "r9c6",
+            "r9c7",
+            "r9c8",
+            "r9c9",
+            "r9c10",
+            "r9c11",
+            "r9c12",
+            "r9c13",
+            "r9c14",
+            "r9c15",
+            "r9c16",
+            "r9c17",
+            "r9c18",
+            "r9c19",
+            "r9c20",
+            "r9c21",
+            "r9c22",
+            "r9c23",
+            "r9c24",
+            "r9c25",
+            "r9c26",
+            "r9c27",
+            "r9c28",
+            "r9c29",
+            "r9c30",
+            "r9c31",
+            "r9c32",
+            "r9c33",
+            "r9c34",
+            "r9c35",
+            "r9c36",
+            "r9c37",
+            "r9c38",
+            "r9c39",
+            "r9c40",
+            "r9c41",
+            "r9c42",
+            "r9c43",
+            "r9c44",
+            "r9c45",
+            "r9c46",
+            "r9c47",
+            "r9c48",
+            "r9c49",
+            "r9c50",
+            "r9c51",
+            "r9c52",
+            "r9c53",
+            "r9c54",
+            "r9c55",
+            "r9c56",
+            "r9c57",
+            "r9c58",
+            "r9c59",
+            "r9c60",
+            "r9c61",
+            "r9c62",
+            "r9c63",
+            "r9c64"
+          ]
+        },
+        {
+          "rowNumber": 10,
+          "cells": [
+            "r10c1",
+            "r10c2",
+            "r10c3",
+            "r10c4",
+            "r10c5",
+            "r10c6",
+            "r10c7",
+            "r10c8",
+            "r10c9",
+            "r10c10",
+            "r10c11",
+            "r10c12",
+            "r10c13",
+            "r10c14",
+            "r10c15",
+            "r10c16",
+            "r10c17",
+            "r10c18",
+            "r10c19",
+            "r10c20",
+            "r10c21",
+            "r10c22",
+            "r10c23",
+            "r10c24",
+            "r10c25",
+            "r10c26",
+            "r10c27",
+            "r10c28",
+            "r10c29",
+            "r10c30",
+            "r10c31",
+            "r10c32",
+            "r10c33",
+            "r10c34",
+            "r10c35",
+            "r10c36",
+            "r10c37",
+            "r10c38",
+            "r10c39",
+            "r10c40",
+            "r10c41",
+            "r10c42",
+            "r10c43",
+            "r10c44",
+            "r10c45",
+            "r10c46",
+            "r10c47",
+            "r10c48",
+            "r10c49",
+            "r10c50",
+            "r10c51",
+            "r10c52",
+            "r10c53",
+            "r10c54",
+            "r10c55",
+            "r10c56",
+            "r10c57",
+            "r10c58",
+            "r10c59",
+            "r10c60",
+            "r10c61",
+            "r10c62",
+            "r10c63",
+            "r10c64"
+          ]
+        },
+        {
+          "rowNumber": 11,
+          "cells": [
+            "r11c1",
+            "r11c2",
+            "r11c3",
+            "r11c4",
+            "r11c5",
+            "r11c6",
+            "r11c7",
+            "r11c8",
+            "r11c9",
+            "r11c10",
+            "r11c11",
+            "r11c12",
+            "r11c13",
+            "r11c14",
+            "r11c15",
+            "r11c16",
+            "r11c17",
+            "r11c18",
+            "r11c19",
+            "r11c20",
+            "r11c21",
+            "r11c22",
+            "r11c23",
+            "r11c24",
+            "r11c25",
+            "r11c26",
+            "r11c27",
+            "r11c28",
+            "r11c29",
+            "r11c30",
+            "r11c31",
+            "r11c32",
+            "r11c33",
+            "r11c34",
+            "r11c35",
+            "r11c36",
+            "r11c37",
+            "r11c38",
+            "r11c39",
+            "r11c40",
+            "r11c41",
+            "r11c42",
+            "r11c43",
+            "r11c44",
+            "r11c45",
+            "r11c46",
+            "r11c47",
+            "r11c48",
+            "r11c49",
+            "r11c50",
+            "r11c51",
+            "r11c52",
+            "r11c53",
+            "r11c54",
+            "r11c55",
+            "r11c56",
+            "r11c57",
+            "r11c58",
+            "r11c59",
+            "r11c60",
+            "r11c61",
+            "r11c62",
+            "r11c63",
+            "r11c64"
+          ]
+        },
+        {
+          "rowNumber": 12,
+          "cells": [
+            "r12c1",
+            "r12c2",
+            "r12c3",
+            "r12c4",
+            "r12c5",
+            "r12c6",
+            "r12c7",
+            "r12c8",
+            "r12c9",
+            "r12c10",
+            "r12c11",
+            "r12c12",
+            "r12c13",
+            "r12c14",
+            "r12c15",
+            "r12c16",
+            "r12c17",
+            "r12c18",
+            "r12c19",
+            "r12c20",
+            "r12c21",
+            "r12c22",
+            "r12c23",
+            "r12c24",
+            "r12c25",
+            "r12c26",
+            "r12c27",
+            "r12c28",
+            "r12c29",
+            "r12c30",
+            "r12c31",
+            "r12c32",
+            "r12c33",
+            "r12c34",
+            "r12c35",
+            "r12c36",
+            "r12c37",
+            "r12c38",
+            "r12c39",
+            "r12c40",
+            "r12c41",
+            "r12c42",
+            "r12c43",
+            "r12c44",
+            "r12c45",
+            "r12c46",
+            "r12c47",
+            "r12c48",
+            "r12c49",
+            "r12c50",
+            "r12c51",
+            "r12c52",
+            "r12c53",
+            "r12c54",
+            "r12c55",
+            "r12c56",
+            "r12c57",
+            "r12c58",
+            "r12c59",
+            "r12c60",
+            "r12c61",
+            "r12c62",
+            "r12c63",
+            "r12c64"
+          ]
+        }
+      ],
+      "name": "Wide",
+      "state": "visible",
+      "usedRange": "A1:DP5000",
+      "rowCountEstimate": 5000,
+      "columnCount": 120,
+      "headerCandidate": [
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "h7",
+        "h8",
+        "h9",
+        "h10",
+        "h11",
+        "h12",
+        "h13",
+        "h14",
+        "h15",
+        "h16",
+        "h17",
+        "h18",
+        "h19",
+        "h20",
+        "h21",
+        "h22",
+        "h23",
+        "h24",
+        "h25",
+        "h26",
+        "h27",
+        "h28",
+        "h29",
+        "h30",
+        "h31",
+        "h32",
+        "h33",
+        "h34",
+        "h35",
+        "h36",
+        "h37",
+        "h38",
+        "h39",
+        "h40",
+        "h41",
+        "h42",
+        "h43",
+        "h44",
+        "h45",
+        "h46",
+        "h47",
+        "h48",
+        "h49",
+        "h50",
+        "h51",
+        "h52",
+        "h53",
+        "h54",
+        "h55",
+        "h56",
+        "h57",
+        "h58",
+        "h59",
+        "h60",
+        "h61",
+        "h62",
+        "h63",
+        "h64"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "h1",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "h2",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "h3",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 12,
+      "truncated": true,
+      "formulaPresence": null,
+      "formulaScanComplete": false
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "a",
+            "b",
+            "c"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊",
+            "tab\there\nnewline",
+            "=SUM(A1:A9)"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "x",
+            "",
+            ""
+          ]
+        }
+      ],
+      "name": "Messy",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 3,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 3,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        },
+        {
+          "rowNumber": 5,
+          "cells": [
+            "r5c1",
+            "r5c2",
+            "r5c3"
+          ]
+        },
+        {
+          "rowNumber": 6,
+          "cells": [
+            "r6c1",
+            "r6c2",
+            "r6c3"
+          ]
+        },
+        {
+          "rowNumber": 7,
+          "cells": [
+            "r7c1",
+            "r7c2",
+            "r7c3"
+          ]
+        },
+        {
+          "rowNumber": 8,
+          "cells": [
+            "r8c1",
+            "r8c2",
+            "r8c3"
+          ]
+        },
+        {
+          "rowNumber": 9,
+          "cells": [
+            "r9c1",
+            "r9c2",
+            "r9c3"
+          ]
+        },
+        {
+          "rowNumber": 10,
+          "cells": [
+            "r10c1",
+            "r10c2",
+            "r10c3"
+          ]
+        },
+        {
+          "rowNumber": 11,
+          "cells": [
+            "r11c1",
+            "r11c2",
+            "r11c3"
+          ]
+        },
+        {
+          "rowNumber": 12,
+          "cells": [
+            "r12c1",
+            "r12c2",
+            "r12c3"
+          ]
+        }
+      ],
+      "name": "Unknown",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": null,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 12,
+      "truncated": true,
+      "formulaPresence": null,
+      "formulaScanComplete": false
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S4",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S5",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S6",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S7",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S8",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S9",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S10",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S11",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    },
+    {
+      "previewRows": [
+        {
+          "rowNumber": 1,
+          "cells": [
+            "r1c1",
+            "r1c2",
+            "r1c3"
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "name": "S12",
+      "state": "visible",
+      "usedRange": null,
+      "rowCountEstimate": 4,
+      "columnCount": 3,
+      "headerCandidate": [
+        "a",
+        "b",
+        "c"
+      ],
+      "headerRow": 1,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "values": [
+            "a",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 2,
+          "values": [
+            "b",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "number",
+            "text"
+          ]
+        },
+        {
+          "columnNumber": 3,
+          "values": [
+            "c",
+            "1",
+            "2"
+          ],
+          "dataTypes": [
+            "text"
+          ]
+        }
+      ],
+      "sampledRows": 4,
+      "truncated": false,
+      "formulaPresence": false,
+      "formulaScanComplete": true
+    }
+  ],
+  "rowLimit": 1000,
+  "columnLimit": 64,
+  "sampleLimit": 10
+}

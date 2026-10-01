@@ -1,0 +1,869 @@
+{
+  "schemaVersion": "1.0",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "sourceVersionId": "00000000-0000-4000-8000-0000000000a1",
+  "versionNumber": 2,
+  "originalFilename": "large.xlsx",
+  "sizeBytes": 2048,
+  "contentSha256": "abababababababababababababababababababababababababababababababab",
+  "format": "XLSX",
+  "formulasEvaluated": false,
+  "truncated": true,
+  "limits": {
+    "maxResponseBytes": 65536,
+    "maxSheets": 10,
+    "maxColumns": 100,
+    "maxSampleRows": 10,
+    "maxCells": 300,
+    "maxCellBytes": 96
+  },
+  "warnings": [
+    {
+      "code": "SHEETS_OMITTED",
+      "sheet": null,
+      "message": "The workbook has 12 sheets; only the first 10 are listed."
+    },
+    {
+      "code": "ROWS_TRUNCATED",
+      "sheet": "Wide",
+      "message": "Showing the first 3 of 4999 data rows."
+    },
+    {
+      "code": "COLUMNS_TRUNCATED",
+      "sheet": "Wide",
+      "message": "Showing the first 10 of 120 columns."
+    },
+    {
+      "code": "ROW_COUNT_ESTIMATED",
+      "sheet": "Wide",
+      "message": "The row count is an estimate from the file's declared dimensions."
+    },
+    {
+      "code": "MISSING_VALUES_PARTIAL",
+      "sheet": "Wide",
+      "message": "Missing-value counts cover only the first 11 data rows."
+    },
+    {
+      "code": "ROWS_TRUNCATED",
+      "sheet": "Unknown",
+      "message": "Showing the first 10 data rows; the sheet has more."
+    },
+    {
+      "code": "ROW_COUNT_ESTIMATED",
+      "sheet": "Unknown",
+      "message": "The total row count is unknown; at least 12 rows were scanned."
+    },
+    {
+      "code": "MISSING_VALUES_PARTIAL",
+      "sheet": "Unknown",
+      "message": "Missing-value counts cover only the first 11 data rows."
+    },
+    {
+      "code": "VALUES_SHORTENED",
+      "sheet": null,
+      "message": "Values longer than 96 bytes were shortened."
+    },
+    {
+      "code": "TYPES_INFERRED",
+      "sheet": null,
+      "message": "Column types are inferred from a bounded sample and may be wrong."
+    }
+  ],
+  "sheets": [
+    {
+      "name": "Wide",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": null,
+      "dimensions": {
+        "usedRange": "A1:DP5000",
+        "rowCount": 5000,
+        "dataRowCount": 4999,
+        "rowCountEstimated": true,
+        "scannedRows": 12,
+        "columnCount": 120
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "h1",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 2,
+          "name": "h2",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 3,
+          "name": "h3",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 4,
+          "name": "h4",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 5,
+          "name": "h5",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 6,
+          "name": "h6",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 7,
+          "name": "h7",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 8,
+          "name": "h8",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 9,
+          "name": "h9",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 10,
+          "name": "h10",
+          "inferredType": "UNKNOWN",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3",
+            "r2c4",
+            "r2c5",
+            "r2c6",
+            "r2c7",
+            "r2c8",
+            "r2c9",
+            "r2c10"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3",
+            "r3c4",
+            "r3c5",
+            "r3c6",
+            "r3c7",
+            "r3c8",
+            "r3c9",
+            "r3c10"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3",
+            "r4c4",
+            "r4c5",
+            "r4c6",
+            "r4c7",
+            "r4c8",
+            "r4c9",
+            "r4c10"
+          ]
+        }
+      ],
+      "truncated": true
+    },
+    {
+      "name": "Messy",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 3,
+        "dataRowCount": 2,
+        "rowCountEstimated": false,
+        "scannedRows": 3,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 2,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 1,
+          "profiledValues": 2,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 1,
+          "profiledValues": 2,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊📊",
+            "tab here newline",
+            "=SUM(A1:A9)"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "x",
+            "",
+            ""
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "Unknown",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": null,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": null,
+        "dataRowCount": null,
+        "rowCountEstimated": true,
+        "scannedRows": 12,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 11,
+          "missingValuesExact": false
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        },
+        {
+          "rowNumber": 5,
+          "cells": [
+            "r5c1",
+            "r5c2",
+            "r5c3"
+          ]
+        },
+        {
+          "rowNumber": 6,
+          "cells": [
+            "r6c1",
+            "r6c2",
+            "r6c3"
+          ]
+        },
+        {
+          "rowNumber": 7,
+          "cells": [
+            "r7c1",
+            "r7c2",
+            "r7c3"
+          ]
+        },
+        {
+          "rowNumber": 8,
+          "cells": [
+            "r8c1",
+            "r8c2",
+            "r8c3"
+          ]
+        },
+        {
+          "rowNumber": 9,
+          "cells": [
+            "r9c1",
+            "r9c2",
+            "r9c3"
+          ]
+        },
+        {
+          "rowNumber": 10,
+          "cells": [
+            "r10c1",
+            "r10c2",
+            "r10c3"
+          ]
+        },
+        {
+          "rowNumber": 11,
+          "cells": [
+            "r11c1",
+            "r11c2",
+            "r11c3"
+          ]
+        }
+      ],
+      "truncated": true
+    },
+    {
+      "name": "S4",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "S5",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "S6",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "S7",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "S8",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "S9",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "S10",
+      "state": "visible",
+      "headerRow": 1,
+      "formulaPresence": false,
+      "dimensions": {
+        "usedRange": null,
+        "rowCount": 4,
+        "dataRowCount": 3,
+        "rowCountEstimated": false,
+        "scannedRows": 4,
+        "columnCount": 3
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "a",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 2,
+          "name": "b",
+          "inferredType": "NUMBER",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        },
+        {
+          "index": 3,
+          "name": "c",
+          "inferredType": "TEXT",
+          "missingValues": 0,
+          "profiledValues": 3,
+          "missingValuesExact": true
+        }
+      ],
+      "sampleRows": [
+        {
+          "rowNumber": 2,
+          "cells": [
+            "r2c1",
+            "r2c2",
+            "r2c3"
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "cells": [
+            "r3c1",
+            "r3c2",
+            "r3c3"
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "cells": [
+            "r4c1",
+            "r4c2",
+            "r4c3"
+          ]
+        }
+      ],
+      "truncated": false
+    }
+  ]
+}
