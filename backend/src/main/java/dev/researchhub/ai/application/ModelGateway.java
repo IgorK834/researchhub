@@ -13,6 +13,7 @@ import java.util.*;
 public class ModelGateway {
     private final ModelProvider provider;
     private final AuthoringModelProvider authoringProvider;
+    private final SourceAnalysisModelProvider analysisProvider;
     private final SourceRetrievalService retrieval;
     private final WorkspaceAuthorizationService authorization;
     private final GenerationFeature feature;
@@ -22,7 +23,9 @@ public class ModelGateway {
     private final dev.researchhub.source.application.SourceService sources;
     public ModelGateway(ModelProvider provider, SourceRetrievalService retrieval, WorkspaceAuthorizationService authorization,
                         GenerationFeature feature, GenerationStore store, GroundedContextBuilder contexts, ContextProperties contextProperties,
-                        dev.researchhub.source.application.SourceService sources, AuthoringModelProvider authoringProvider) {
+                        dev.researchhub.source.application.SourceService sources, AuthoringModelProvider authoringProvider,
+                        SourceAnalysisModelProvider analysisProvider) {
+        this.analysisProvider = analysisProvider;
         this.authoringProvider = authoringProvider;
         this.provider = provider; this.retrieval = retrieval; this.authorization = authorization; this.feature = feature; this.store = store;
         this.contexts = contexts; this.contextProperties = contextProperties; this.sources = sources;
@@ -70,6 +73,18 @@ public class ModelGateway {
         catch (ModelFailure safe) { throw safe; }
         catch (RuntimeException unsafe) { throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR); }
         try { Objects.requireNonNull(result).validateFor(request.request(), kind, citationRequired); }
+        catch (IllegalArgumentException | NullPointerException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
+        authorization.requireContentReader(workspaceId, callerId);
+        return result;
+    }
+    SourceAnalysisContracts.Result analyze(UUID workspaceId, UUID callerId, ContextContracts.ContextualRequest request,
+        SourceAnalysisContracts.Kind kind, List<UUID> sourceIds, List<String> criteria, Map<String,UUID> evidence) {
+        authorization.requireContentReader(workspaceId, callerId);
+        SourceAnalysisContracts.Result result;
+        try { result = analysisProvider.analyze(request); }
+        catch (ModelFailure safe) { throw safe; }
+        catch (RuntimeException unsafe) { throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR); }
+        try { Objects.requireNonNull(result).validateFor(request.request(),kind,sourceIds,criteria,evidence); }
         catch (IllegalArgumentException | NullPointerException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
         authorization.requireContentReader(workspaceId, callerId);
         return result;

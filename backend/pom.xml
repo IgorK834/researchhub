@@ -163,6 +163,22 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>source-analysis-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes>
+                                <include>dev/researchhub/ai/application/SourceAnalysis*</include>
+                                <include>dev/researchhub/ai/infrastructure/PostgresSourceAnalysis*</include>
+                                <include>dev/researchhub/ai/api/SourceAnalysis*</include>
+                            </includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-source-analysis</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>authoring-coverage-report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>

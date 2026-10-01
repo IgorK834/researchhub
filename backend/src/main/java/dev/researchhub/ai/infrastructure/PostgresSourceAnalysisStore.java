@@ -1,0 +1,26 @@
+package dev.researchhub.ai.infrastructure;
+
+import dev.researchhub.ai.application.SourceAnalysisContracts.Analysis;
+import dev.researchhub.ai.application.SourceAnalysisStore;
+import dev.researchhub.shared.error.ResourceNotFoundException;
+import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import tools.jackson.databind.ObjectMapper;
+import java.util.UUID;
+
+@Repository
+@Profile("local")
+public class PostgresSourceAnalysisStore implements SourceAnalysisStore {
+    private final JdbcTemplate jdbc; private final ObjectMapper json;
+    public PostgresSourceAnalysisStore(JdbcTemplate jdbc,ObjectMapper json) { this.jdbc=jdbc; this.json=json; }
+    public Analysis save(Analysis a) {
+        jdbc.update("INSERT INTO ai_source_analyses(id,workspace_id,created_by,kind,parent_comparison_id,payload,created_at) VALUES (?,?,?,?,?,?::jsonb,?)",
+            a.id(),a.workspaceId(),a.createdBy(),a.kind().name(),a.parentComparisonId(),json.writeValueAsString(a),java.sql.Timestamp.from(a.createdAt()));
+        return a;
+    }
+    public Analysis find(UUID workspaceId,UUID id) {
+        return jdbc.query("SELECT payload FROM ai_source_analyses WHERE workspace_id=? AND id=?",(row,index) -> json.readValue(row.getString("payload"),Analysis.class),workspaceId,id)
+            .stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Source analysis was not found"));
+    }
+}

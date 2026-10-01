@@ -17,7 +17,7 @@ import java.util.Set;
 /** Internal service HTTP adapter. Only the Python provider adapter knows Foundry's protocol. */
 @Component
 @Profile("local")
-public class HttpModelProvider implements ModelProvider, AuthoringModelProvider {
+public class HttpModelProvider implements ModelProvider, AuthoringModelProvider, SourceAnalysisModelProvider {
     private final RestClient client;
     private final String token;
     private final ObjectMapper mapper;
@@ -44,6 +44,10 @@ public class HttpModelProvider implements ModelProvider, AuthoringModelProvider 
     @Override public AuthoringContracts.Result author(ContextContracts.ContextualRequest request) {
         return call(client.post().uri("/internal/ai/author").header("Authorization", "Bearer " + token)
             .contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(mapper.writeValueAsBytes(request)), AuthoringContracts.Result.class);
+    }
+    @Override public SourceAnalysisContracts.Result analyze(ContextContracts.ContextualRequest request) {
+        return call(client.post().uri("/internal/ai/analyze").header("Authorization", "Bearer " + token)
+            .contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(mapper.writeValueAsBytes(request)), SourceAnalysisContracts.Result.class);
     }
     @Override public Result generateStructured(Request request) {
         Result result = call(client.post().uri("/internal/ai/generate").header("Authorization", "Bearer " + token)

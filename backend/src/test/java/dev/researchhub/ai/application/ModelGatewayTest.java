@@ -25,7 +25,7 @@ class ModelGatewayTest {
 
     @BeforeEach void prepare() throws Exception {
         feature = new GenerationFeature("grounded-response:2", "0", 1024);
-        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources, mock(AuthoringModelProvider.class));
+        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class));
         chunk = new RetrievalChunk("a".repeat(64), source, workspace, null, 0, "Supported fact.", 2, 2, "Theory",
             RetrievalIdentity.hash("Supported fact."), "retrieval-1:test", List.of(new SourceSpan("unit-2", 0, 15)));
         when(sources.findOne(workspace, caller, source)).thenReturn(new dev.researchhub.source.application.SourceSummary(source, workspace, "lecture.pdf", "Lecture", "application/pdf", "PDF", 20, "hash", "READY", null, caller, java.time.Instant.now(), java.time.Instant.now()));
@@ -78,7 +78,7 @@ class ModelGatewayTest {
         assertEquals(ApiErrorCode.AI_OUTPUT_INVALID, assertThrows(ModelFailure.class, () -> gateway.generate(workspace, caller, command)).code());
     }
     @Test void contextOverflowStopsBeforeProviderAndAuditAndMetadataCalls() {
-        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,64,true), sources, mock(AuthoringModelProvider.class));
+        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,64,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class));
         assertEquals(ApiErrorCode.AI_CONTEXT_TOO_LARGE, assertThrows(ApiException.class, () -> gateway.generate(workspace, caller, command)).code());
         verifyNoInteractions(provider, store);
     }
@@ -126,4 +126,32 @@ class ModelGatewayTest {
         doThrow(new IllegalStateException("secret")).when(provider).modelMetadata();
         assertEquals(ApiErrorCode.AI_PROVIDER_ERROR, assertThrows(ModelFailure.class, () -> gateway.modelMetadata(workspace, caller)).code());
     }
+    @Test void analysisBoundaryRejectsInvalidIdentityAndReturnsOnlySafeProviderFailures() throws Exception {
+        var json=new tools.jackson.databind.ObjectMapper();
+        var folder=java.nio.file.Path.of("../contracts/ai/source-analysis/v1");
+        var request=json.readValue(java.nio.file.Files.readString(folder.resolve("comparison-model-request.json")),ContextualRequest.class);
+        var result=json.readValue(java.nio.file.Files.readString(folder.resolve("comparison-model-result.json")),SourceAnalysisContracts.Result.class);
+        var ids=result.answer().rows().stream().map(SourceAnalysisContracts.Row::sourceId).toList();
+        var criteria=result.answer().rows().getFirst().cells().stream().map(SourceAnalysisContracts.Cell::criterion).toList();
+        var mapping=Map.of("a".repeat(64),ids.getFirst(),"b".repeat(64),ids.getLast());
+        var analyses=mock(SourceAnalysisModelProvider.class);
+        gateway=new ModelGateway(provider,retrieval,auth,feature,store,new GroundedContextBuilder(),new ContextProperties(32768,24576,true),sources,mock(AuthoringModelProvider.class),analyses);
+        when(analyses.analyze(request)).thenReturn(result);
+        assertEquals(result,gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping));
+        when(analyses.analyze(request)).thenReturn(null);
+        assertEquals(ApiErrorCode.AI_OUTPUT_INVALID,assertThrows(ModelFailure.class,() -> gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping)).code());
+        doThrow(new ModelFailure(ApiErrorCode.AI_UNAVAILABLE)).when(analyses).analyze(request);
+        assertEquals(ApiErrorCode.AI_UNAVAILABLE,assertThrows(ModelFailure.class,() -> gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping)).code());
+        doThrow(new IllegalStateException("private prompt")).when(analyses).analyze(request);
+        var safe=assertThrows(ModelFailure.class,() -> gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping));
+        assertEquals(ApiErrorCode.AI_PROVIDER_ERROR,safe.code());assertFalse(safe.getMessage().contains("private"));
+        doReturn(result).when(analyses).analyze(request);
+        var wrong=new SourceAnalysisContracts.Result(result.schemaVersion(),UUID.randomUUID(),result.templateId(),result.templateHash(),result.model(),result.usage(),result.providerRequestId(),result.answer());
+        doReturn(wrong).when(analyses).analyze(request);
+        assertEquals(ApiErrorCode.AI_OUTPUT_INVALID,assertThrows(ModelFailure.class,() -> gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping)).code());
+        doReturn(result).when(analyses).analyze(request);
+        doNothing().doThrow(new ResourceNotFoundException("revoked")).when(auth).requireContentReader(workspace,caller);
+        assertThrows(ResourceNotFoundException.class,() -> gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping));
+    }
+
 }
