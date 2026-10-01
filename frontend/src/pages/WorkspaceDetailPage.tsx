@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { SourceComparisonPanel } from '../features/ai/components/SourceComparisonPanel';
 import { WorkspaceQuestions } from '../features/ai/components/WorkspaceQuestions';
 
 import { CreateDocumentForm } from '../features/documents/components/CreateDocumentForm';
@@ -138,6 +139,7 @@ function WorkspaceDetail({
       />
       {canEditContent ? <SourceUploadForm workspaceId={workspace.id} /> : null}
       <WorkspaceQuestions workspaceId={workspace.id} />
+      <SourceComparisonPanel workspaceId={workspace.id} />
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}

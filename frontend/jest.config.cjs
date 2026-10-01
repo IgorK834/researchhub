@@ -19,6 +19,17 @@ module.exports = {
     'src/features/documents/api/researchCitation.ts',
   ],
   coverageThreshold: {
+    'src/features/ai/api/sourceAnalysisApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/ai/components/SourceComparisonPanel.tsx': {
+      lines: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/documents/api/researchCitation.ts': {
       lines: 80,
       functions: 80,
