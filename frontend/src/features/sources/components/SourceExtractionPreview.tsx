@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { sourceLocationPath } from '../api/sourceLocations';
 import { describeError, queryKeys } from '../../../shared/api';
 import { fetchSourceExtraction } from '../api/sourceExtraction';
+import { CsvAssetProfile } from './CsvAssetProfile';
 
 export function SourceExtractionPreview({
   workspaceId,
@@ -73,6 +74,10 @@ export function SourceExtractionPreview({
       ))}
       {data.workbook === null ? null : (
         <section aria-label="Workbook metadata">
+          {data.workbook.csvProfile === undefined ||
+          data.workbook.csvProfile === null ? null : (
+            <CsvAssetProfile profile={data.workbook.csvProfile} />
+          )}
           <h3>Workbook metadata</h3>
           <p>
             Limits: {data.workbook.rowLimit} rows, {data.workbook.columnLimit} columns,{' '}

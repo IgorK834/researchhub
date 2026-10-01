@@ -42,6 +42,24 @@ export interface SheetMetadata {
   readonly formulaScanComplete: boolean;
 }
 
+export interface CsvProfile {
+  readonly schemaVersion: '1.0';
+  readonly encoding: 'UTF-8' | 'UTF-8-BOM';
+  readonly delimiter: ',' | ';' | '\t' | '|' | null;
+  readonly headerPolicy: 'FIRST_NONEMPTY_RECORD';
+  readonly missingValuePolicy: 'EMPTY_OR_WHITESPACE';
+  readonly indexPolicy: 'SCHEMA_ONLY';
+  readonly rowCount: number | null;
+  readonly profiledRowCount: number;
+  readonly rowScanComplete: boolean;
+  readonly columns: readonly {
+    readonly columnNumber: number;
+    readonly name: string;
+    readonly inferredType: 'integer' | 'number' | 'boolean' | 'date' | 'text' | 'unknown';
+    readonly missingCount: number;
+  }[];
+}
+
 export interface SourceExtraction {
   readonly processingVersion: string;
   readonly parserVersion: string;
@@ -71,6 +89,7 @@ export interface SourceExtraction {
   readonly chunks: readonly ExtractedUnit[];
   readonly warnings: readonly string[];
   readonly workbook: {
+    readonly csvProfile?: CsvProfile | null;
     readonly previewRowLimit: number;
     readonly sheets: readonly SheetMetadata[];
     readonly rowLimit: number;

@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { SourceExtractionPreview } from './SourceExtractionPreview';
 
+import csvFixture from '../../../../../contracts/processing/v4/source-ingest-result-csv.json';
+
 const originalFetch = globalThis.fetch;
 const extraction = {
   parserVersion: 'pypdf-6.14.2/rh-1',
@@ -259,4 +261,17 @@ it('renders first rows in source order and preserves literal formula and HTML ce
   expect(screen.getByText('<img src=x>')).not.toBeNull();
   expect(document.querySelector('img')).toBeNull();
   expect(document.getElementById('source-unit-0')?.hasAttribute('open')).toBe(true);
+});
+
+it('loads the CSV data profile and inert row samples through the authorized extraction contract', async () => {
+  show(csvFixture);
+  expect(await screen.findByRole('heading', { name: 'CSV data asset' })).not.toBeNull();
+  expect(screen.getByText('Encoding: UTF-8. Separator: Semicolon.')).not.toBeNull();
+  expect(screen.getByRole('table', { name: 'CSV inferred schema' })).not.toBeNull();
+  expect(screen.getByRole('table', { name: 'CSV row preview' })).not.toBeNull();
+  expect(screen.getAllByText('Ada').length).toBeGreaterThan(0);
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    '/api/workspaces/w1/sources/s1/extraction',
+    expect.objectContaining({ method: 'GET' }),
+  );
 });
