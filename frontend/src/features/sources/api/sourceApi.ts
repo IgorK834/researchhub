@@ -21,6 +21,26 @@ export interface WorkspaceSource {
   readonly uploadedBy: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly activeVersionId: string;
+  readonly activeVersionNumber: number;
+}
+
+export interface SourceVersion {
+  readonly id: string;
+  readonly sourceId: string;
+  readonly workspaceId: string;
+  readonly versionNumber: number;
+  readonly originalFilename: string;
+  readonly mediaType: string;
+  readonly sourceType: SourceType;
+  readonly sizeBytes: number;
+  readonly contentSha256: string;
+  readonly status: SourceStatus;
+  readonly failureSummary: string | null;
+  readonly uploadedBy: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly active: boolean;
 }
 
 export function fetchSources(
@@ -56,6 +76,42 @@ export async function uploadSource(
     formData,
     ...(onProgress === undefined ? {} : { onUploadProgress: onProgress }),
   });
+}
+
+/** Replaces the active bytes while retaining every previous immutable version. */
+export async function replaceSource(
+  workspaceId: string,
+  sourceId: string,
+  file: File,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<WorkspaceSource> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+  return apiClient.post<WorkspaceSource>(
+    `${sourcesPath(workspaceId)}/${sourceId}/versions`,
+    { formData, ...(onProgress === undefined ? {} : { onUploadProgress: onProgress }) },
+  );
+}
+
+export function fetchSourceVersions(
+  workspaceId: string,
+  sourceId: string,
+  signal?: AbortSignal,
+): Promise<readonly SourceVersion[]> {
+  return apiClient.get(`${sourcesPath(workspaceId)}/${sourceId}/versions`, {
+    ...(signal === undefined ? {} : { signal }),
+  });
+}
+
+export function sourceVersionContentPath(
+  workspaceId: string,
+  sourceId: string,
+  versionId: string,
+): string {
+  return resolveApiUrl(
+    `${sourcesPath(workspaceId)}/${sourceId}/versions/${versionId}/content`,
+  );
 }
 
 export function sourceContentPath(workspaceId: string, sourceId: string): string {

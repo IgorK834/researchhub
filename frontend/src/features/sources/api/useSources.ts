@@ -11,7 +11,10 @@ import {
   fetchSource,
   reprocessSource,
   fetchSources,
+  fetchSourceVersions,
   uploadSource,
+  replaceSource,
+  type SourceVersion,
   type WorkspaceSource,
 } from './sourceApi';
 
@@ -33,6 +36,23 @@ export function useSourceQuery(
     queryFn: ({ signal }) => fetchSource(workspaceId, sourceId, signal),
     refetchInterval: (query) =>
       query.state.data?.status === 'UPLOADED' || query.state.data?.status === 'PROCESSING'
+        ? 2000
+        : false,
+  });
+}
+
+/** Every immutable upload of one source, newest first. */
+export function useSourceVersionsQuery(
+  workspaceId: string,
+  sourceId: string,
+): UseQueryResult<readonly SourceVersion[], Error> {
+  return useQuery({
+    queryKey: queryKeys.sourceVersions(workspaceId, sourceId),
+    queryFn: ({ signal }) => fetchSourceVersions(workspaceId, sourceId, signal),
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (version) => version.status === 'UPLOADED' || version.status === 'PROCESSING',
+      )
         ? 2000
         : false,
   });
@@ -70,6 +90,27 @@ export function useReprocessSource(
         refetchType: 'none',
       });
       void client.invalidateQueries({ queryKey: queryKeys.sources(workspaceId) });
+    },
+  });
+}
+
+export function useReplaceSource(
+  workspaceId: string,
+  sourceId: string,
+): UseMutationResult<WorkspaceSource, ApiError, UploadSourceInput> {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, onProgress }) =>
+      replaceSource(workspaceId, sourceId, file, onProgress),
+    onSuccess: (source) => {
+      client.setQueryData(queryKeys.source(workspaceId, sourceId), source);
+      void client.invalidateQueries({ queryKey: queryKeys.sources(workspaceId) });
+      void client.invalidateQueries({
+        queryKey: queryKeys.sourceVersions(workspaceId, sourceId),
+      });
+      void client.invalidateQueries({
+        queryKey: queryKeys.datasetPreview(workspaceId, sourceId),
+      });
     },
   });
 }
