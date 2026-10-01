@@ -150,7 +150,15 @@ public final class AuthoringDocument {
     }
     private ObjectNode citationNode(GenerationContracts.Citation citation) {
         var node = json.createObjectNode().put("type", "researchCitation");
-        node.putObject("attrs").set("citation", json.valueToTree(citation)); return node;
+        var metadata = (ObjectNode) json.valueToTree(citation);
+        metadata.put("schemaVersion", "1.0");
+        metadata.put("citationId", "c:" + citation.chunkId());
+        metadata.put("label", citation.title() == null || citation.title().isBlank() ? "Source" : citation.title().substring(0, Math.min(200, citation.title().length())));
+        metadata.put("displayStyle", "NUMERIC");
+        var locator = metadata.putObject("locator");
+        locator.set("pageStart", metadata.get("pageStart")); locator.set("pageEnd", metadata.get("pageEnd"));
+        locator.set("sectionTitle", metadata.get("sectionTitle"));
+        node.putObject("attrs").set("citation", metadata); return node;
     }
     private static int inlineSize(JsonNode node) { return "text".equals(node.path("type").asString()) ? node.path("text").asString().length() : 1; }
     private static String plain(JsonNode node) {

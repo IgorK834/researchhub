@@ -15,6 +15,7 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly onOpenCitation?: (path: string) => void;
   readonly onSelectionChange?: (selection: AuthoringSelection) => void;
   /**
    * The document to open. Read once, when the editor is created.
@@ -50,6 +51,7 @@ export function DocumentBodyEditor({
   editable,
   onChange,
   onSelectionChange,
+  onOpenCitation,
   labelId,
   label,
   errorId,
@@ -107,7 +109,19 @@ export function DocumentBodyEditor({
   }, [editor, editable]);
 
   return (
-    <div>
+    <div
+      onClick={(event) => {
+        const target = event.target;
+        const anchor =
+          target instanceof Element
+            ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
+            : null;
+        if (anchor !== null && onOpenCitation !== undefined) {
+          event.preventDefault();
+          onOpenCitation(anchor.getAttribute('href') ?? '');
+        }
+      }}
+    >
       {editable ? <DocumentToolbar editor={editor} /> : null}
       <EditorContent editor={editor} />
     </div>
@@ -129,6 +143,7 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
       bulletList: current.isActive('bulletList'),
       orderedList: current.isActive('orderedList'),
       inTable: current.isActive('table'),
+      citation: current.isActive('researchCitation'),
       canUndo: current.can().undo(),
       canRedo: current.can().redo(),
     }),
@@ -199,6 +214,35 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
       >
         Delete table
       </button>
+      {state.citation ? (
+        <label>
+          Citation display
+          <select
+            value={
+              (
+                editor.getAttributes('researchCitation')['citation'] as {
+                  displayStyle?: string;
+                }
+              ).displayStyle ?? 'SOURCE'
+            }
+            onChange={(event) => {
+              editor
+                .chain()
+                .focus()
+                .updateAttributes('researchCitation', {
+                  citation: {
+                    ...editor.getAttributes('researchCitation')['citation'],
+                    displayStyle: event.target.value,
+                  },
+                })
+                .run();
+            }}
+          >
+            <option value="NUMERIC">Number</option>
+            <option value="SOURCE">Source and location</option>
+          </select>
+        </label>
+      ) : null}
       <button
         type="button"
         disabled={!state.canUndo}

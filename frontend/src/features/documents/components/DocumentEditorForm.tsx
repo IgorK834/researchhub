@@ -1,4 +1,5 @@
 import { useState, type ReactElement } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
 import type { WorkspaceDocument } from '../api/documentApi';
@@ -54,6 +55,7 @@ export function DocumentEditorForm({
   onDiscardLocalChanges,
   onReplaced,
 }: DocumentEditorFormProps): ReactElement {
+  const navigate = useNavigate();
   const archive = useArchiveDocument(workspaceId, document.id);
 
   // Checked once, against the editor's schema. Null means the stored body is something this editor cannot open
@@ -143,6 +145,9 @@ export function DocumentEditorForm({
           <span id="document-editor-text-label">Text</span>
           {storedBody === null ? null : (
             <DocumentBodyEditor
+              onOpenCitation={(path) => {
+                void navigate(path);
+              }}
               initialContent={storedBody}
               editable={editable}
               onSelectionChange={setSelection}

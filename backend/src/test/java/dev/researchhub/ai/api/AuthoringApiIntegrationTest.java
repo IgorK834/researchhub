@@ -108,6 +108,16 @@ class AuthoringApiIntegrationTest {
         assertEquals(before,document()); assertEquals(409,accept(proposal,null,null).statusCode());
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ai_authoring_events",Integer.class));
     }
+    @Test void structuredCitationMetadataSurvivesAcceptedInsertManualSaveAndReload() throws Exception {
+        var proposal=suggest(Kind.EVIDENCE,null);var accepted=accept(proposal,null,chunk.chunkId()); assertEquals(200,accepted.statusCode());
+        var saved=document(); var metadata=saved.path("content").path("content").get(0).path("content").get(1).path("attrs").path("citation");
+        assertEquals("1.0",metadata.path("schemaVersion").asString()); assertEquals("c:"+chunk.chunkId(),metadata.path("citationId").asString());
+        assertEquals(source.toString(),metadata.path("sourceId").asString()); assertTrue(metadata.path("sourceVersionId").isNull());
+        assertEquals(7,metadata.path("locator").path("pageStart").asInt());assertEquals("Lecture",metadata.path("label").asString());assertEquals("NUMERIC",metadata.path("displayStyle").asString());
+        var request=json.createObjectNode().put("title","Report").put("revision",2).put("saveKind","MANUAL");request.set("content",saved.path("content"));
+        assertEquals(200,owner.patchJson(docPath,json.writeValueAsString(request)).statusCode());
+        assertEquals(saved.path("content"),document().path("content"));
+    }
     @Test void simultaneousAcceptAndRetryInsertExactlyOnceAndPersistProvenance() throws Exception {
         var proposal=suggest(Kind.DRAFT,List.of(source));
         try (var pool=Executors.newFixedThreadPool(2)) {

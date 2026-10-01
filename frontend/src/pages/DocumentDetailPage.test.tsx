@@ -480,6 +480,70 @@ describe('DocumentDetailPage', () => {
       expect(savedBodies(fetchMock)).toEqual([]);
     });
 
+    it('reloads saved structured citations, opens their source and saves display changes without rewriting the claim', async () => {
+      const citation = {
+        schemaVersion: '1.0',
+        citationId: 'c:stable',
+        workspaceId: WORKSPACE_ID,
+        sourceId: 's-1',
+        sourceVersionId: null,
+        chunkId: 'a'.repeat(64),
+        contentHash: 'b'.repeat(64),
+        processingVersion: 'retrieval-v1',
+        pageStart: 7,
+        pageEnd: 7,
+        sectionTitle: null,
+        spans: [{ unitId: 'page-7', characterStart: 0, characterEnd: 12 }],
+        title: 'Paper',
+        label: 'Paper',
+        displayStyle: 'NUMERIC',
+        locator: { pageStart: 7, pageEnd: 7, sectionTitle: null },
+      };
+      const stored = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Human claim.' },
+              { type: 'researchCitation', attrs: { citation } },
+            ],
+          },
+        ],
+      };
+      const fetchMock = stubDocumentApi({ document: documentRow({ content: stored }) });
+      renderDocumentDetailPage();
+      const body = await findBody();
+      expect(bodyEditor().getJSON()).toEqual(stored);
+      expect(body.querySelector('a')?.textContent).toBe(' [1]');
+      fireEvent.click(body.querySelector('a')!);
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/app/workspaces/w-1/sources/s-1?processingVersion=retrieval-v1&unit=page-7&page=7',
+      );
+      expect(savedBodies(fetchMock)).toEqual([]);
+      act(() => {
+        bodyEditor().commands.setNodeSelection(13);
+      });
+      fireEvent.change(screen.getByLabelText('Citation display'), {
+        target: { value: 'SOURCE' },
+      });
+      await waitFor(() => expect(savedBodies(fetchMock)).toHaveLength(1));
+      const saved = savedBodies(fetchMock)[0]!.content;
+      expect(JSON.parse(JSON.stringify(saved)).content[0].content[0].text).toBe(
+        'Human claim.',
+      );
+      expect(
+        JSON.parse(JSON.stringify(saved)).content[0].content[1].attrs.citation,
+      ).toEqual({ ...citation, displayStyle: 'SOURCE' });
+      cleanup();
+      stubDocumentApi({ document: documentRow({ revision: 2, content: saved }) });
+      renderDocumentDetailPage();
+      const reloaded = await findBody();
+      expect(reloaded.querySelector('a')?.textContent).toBe(' [Paper, p. 7]');
+      fireEvent.click(reloaded.querySelector('a')!);
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
+    });
+
     it('renders headings, marks, and lists from the stored JSON', async () => {
       stubDocumentApi({ document: documentRow({ content: STRUCTURED }) });
 

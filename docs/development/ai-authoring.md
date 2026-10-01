@@ -92,3 +92,8 @@ Java/Spring BOM, package-lock, Python 3.13.3 and uv.lock are unchanged.
 Backend integration tests use real session/CSRF HTTP, worker HTTP transport, migrations/PostgreSQL and
 concurrent approval transactions; retrieval/model fixtures provide deterministic evidence. Worker tests
 exercise both the offline fixture and Foundry wire/schema behavior without paid remote calls.
+
+
+RH-123 completes citation metadata, dynamic numbering, source navigation and display controls.
+RH-124–125 add workspace source comparisons and potential differences; see
+[structured citations and source analysis](source-analysis.md) for contracts and verification.
