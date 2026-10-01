@@ -1,0 +1,2119 @@
+[
+  {
+    "inventory_id": "UI-FND-07",
+    "inventory_ids": [
+      "UI-FND-07"
+    ],
+    "backlog_id": "BL-0-01",
+    "task": "Task 3.7",
+    "backlog_reference": "RH-264",
+    "title": "[Task 3.7] Define frontend styling approach and add CSS toolchain support",
+    "body": "### Objective\n\nChoose how ResearchHub UI is styled and make the Webpack, Jest, TypeScript and Prettier toolchain handle stylesheets and font/SVG assets accordingly. This work gives the frontend a predictable styling and asset contract before the design system and feature screens are built on it. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-264\n**Estimated size:** M\n**Primary implementation paths:** `frontend/webpack.config.cjs`, `frontend/jest.config.cjs`, `frontend/src/env.d.ts`, `frontend/src/styles/`, `docs/adr/`\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- ADR-006 resolving the \"UI component library\" item that `docs/context.md` section 37 intentionally leaves open; the recommended outcome is hand-built primitives on plain CSS custom properties with no component library;\n- a global `frontend/src/styles/` entry imported from `frontend/src/index.tsx`;\n- Webpack rules for CSS (global vs CSS Modules as decided in the ADR) and for font/SVG assets;\n- a Jest `moduleNameMapper` or transform so a component that imports CSS renders in component tests;\n- style-import type declarations in `frontend/src/env.d.ts`;\n- ESLint and Prettier cover the new files and `npm run build` still type-checks.\n\n**Out of scope:**\n- design tokens and typography (Task 3.8);\n- adopting a third-party component library unless the ADR chooses one;\n- dark mode and theming.\n\n### Acceptance Criteria\n\n- [ ] ADR-006 records the decision, the alternatives considered and the dependency consequences.\n- [ ] A component can import a `.css` file in both a Jest component test and the production Webpack build.\n- [ ] Coverage collection includes the new shared UI directories without lowering existing thresholds.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.1, Task 3.2\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "docs",
+      "testing",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [
+      14,
+      15
+    ],
+    "related_existing_issues": [
+      19
+    ],
+    "depends_on_proposed_tasks": [],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [],
+    "design_pages": [],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        14,
+        15,
+        19
+      ],
+      "search_terms": [
+        "frontend toolchain",
+        "CSS",
+        "styles",
+        "UI component library"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #14/#15/#19 (closed) delivered the build, `src/` layout and quality scripts and only reserve a `styles/` folder in docs; none covers CSS handling in Jest/Webpack or the open component-library decision."
+    }
+  },
+  {
+    "inventory_id": "UI-FND-01",
+    "inventory_ids": [
+      "UI-FND-01",
+      "UI-FND-02",
+      "UI-FND-04",
+      "UI-FND-05",
+      "UI-FND-13",
+      "UI-FND-14",
+      "UI-PRM-23"
+    ],
+    "backlog_id": "BL-0-02",
+    "task": "Task 3.8",
+    "backlog_reference": "RH-265",
+    "title": "[Task 3.8] Add design tokens and base typography styles",
+    "body": "### Objective\n\nAdd the ResearchHub design tokens (color roles, type scale, spacing, radii, elevation, focus and motion) as CSS custom properties with base element styles. This work gives every later component one visual source of truth, so screens are assembled from tokens instead of ad-hoc values. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-265\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/styles/`, `frontend/public/index.html`, `frontend/package.json`\n**Design reference:** `Brand&system.pdf` p.2,4; `Components&states.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- color tokens for the five brand hues (base, tint, mid-tint, ink), the neutrals and the status colors, following the design rule that accents are never body-text colors;\n- type scale tokens for Plus Jakarta Sans and Source Serif with the weights named in the design (Display 56 to Caption 12, paper title serif 28);\n- spacing (4 to 64), radius (6, 10, 16, 24, pill), elevation e0 to e3 and focus-ring tokens (2 px ink ring with 2 px gap, 3 px sky halo on text fields);\n- motion tokens with a `prefers-reduced-motion` fallback;\n- base element styles plus visually-hidden and focus-visible utilities;\n- fonts served from the app origin, with any font package pinned in `package-lock.json`.\n\n**Out of scope:**\n- dark-mode token map and theme switching (derived tokens and preference storage are undecided);\n- the monospace and handwritten faces, which the design does not name;\n- illustrations and component styles.\n\n### Acceptance Criteria\n\n- [ ] Every token in the design exists as a documented CSS custom property and hex values are defined only in the token files.\n- [ ] Body text and controls meet the 4.5:1 contrast minimum stated in the design.\n- [ ] Existing pages render with the base styles and all existing tests still pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.7\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.7"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Brand&system.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Brand&system.pdf p.2,4",
+      "Components&states.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [],
+      "search_terms": [
+        "design tokens",
+        "design system",
+        "typography",
+        "tokens",
+        "stylesheet"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): No issue (open or closed) mentions design tokens, typography or a stylesheet."
+    }
+  },
+  {
+    "inventory_id": "UI-FND-08",
+    "inventory_ids": [
+      "UI-FND-08"
+    ],
+    "backlog_id": "BL-0-03",
+    "task": "Task 3.9",
+    "backlog_reference": "RH-266",
+    "title": "[Task 3.9] Add the ResearchHub icon set",
+    "body": "### Objective\n\nAdd the ResearchHub icon set as typed React components on a 24 px grid with a 1.75 px rounded stroke. This work gives navigation, buttons, chips and states one systematic icon vocabulary instead of text-only controls. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-266\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/shared/components/icons/`\n**Design reference:** `Reusable_parts.pdf` p.3; `Brand&system.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- the 80 icons named in the design (search, home, book, library, ... cursor), each inheriting `currentColor`;\n- icons are decorative by default (`aria-hidden`) with an accessible-label option;\n- a typed `IconName` registry so unknown names fail type-checking;\n- the artwork source and licence are recorded; the design is raster only, so the shapes are redrawn or taken from a licence-compatible open set, and any dependency is pinned in `package-lock.json`.\n\n**Out of scope:**\n- illustrations and the logo mark;\n- icon choices for individual screens beyond the names in the design.\n\n### Acceptance Criteria\n\n- [ ] All 80 icons render at 14 to 20 px without clipping and follow `currentColor`.\n- [ ] A unit test renders every registry entry.\n- [ ] Icons never carry meaning alone: consumers pass a text label or hide the icon.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.7\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.7"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Reusable_parts.pdf",
+      "Brand&system.pdf"
+    ],
+    "design_pages": [
+      "Reusable_parts.pdf p.3",
+      "Brand&system.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [],
+      "search_terms": [
+        "icons",
+        "icon set"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): No issue mentions icons."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-01",
+    "inventory_ids": [
+      "UI-PRM-01"
+    ],
+    "backlog_id": "BL-1-01",
+    "task": "Task 3.10",
+    "backlog_reference": "RH-267",
+    "title": "[Task 3.10] Build button primitives",
+    "body": "### Objective\n\nBuild the shared button primitives: primary, secondary, ghost, danger and danger-soft, with icon-only and busy variants. This work replaces roughly thirty raw `<button>` elements with one accessible and consistent control. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-267\n**Estimated size:** S\n**Primary implementation paths:** `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- variants with default, hover, focus-visible and disabled states;\n- sizes compact (34), default (36) and large (44);\n- optional leading icon and an icon-only variant that requires an accessible name;\n- busy state keeps the button width and exposes `aria-busy`;\n- renders a real `<button>`, or an `<a>` for link-style buttons.\n\n**Out of scope:**\n- migrating every existing call site, which happens in the feature tasks;\n- menu and dropdown buttons (Task 3.13).\n\n### Acceptance Criteria\n\n- [ ] Variants and focus ring match the design (2 px ink ring with 2 px gap).\n- [ ] An icon-only button without an accessible name fails type-checking.\n- [ ] One existing screen is migrated and its tests that query buttons by accessible name still pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.9\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.9"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "S",
+    "design_sources": [
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [],
+      "search_terms": [
+        "button"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): No issue covers shared UI controls."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-02",
+    "inventory_ids": [
+      "UI-PRM-02",
+      "UI-PRM-03",
+      "UI-PRM-04",
+      "UI-PRM-05",
+      "UI-PRM-06"
+    ],
+    "backlog_id": "BL-1-02",
+    "task": "Task 3.11",
+    "backlog_reference": "RH-268",
+    "title": "[Task 3.11] Build form field and selection control primitives",
+    "body": "### Objective\n\nBuild shared text field, textarea, select, checkbox, toggle, segmented control and choice-card primitives with label, hint and error wiring. This work consolidates the form markup that `features/auth` and `features/workspaces` duplicate today and keeps the existing `aria-describedby` and `aria-invalid` behavior. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-268\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/shared/components/`, `frontend/src/features/auth/components/FormField.tsx`, `frontend/src/features/workspaces/components/`\n**Design reference:** `Components&states.pdf` p.1; `Document_editor.pdf` p.3; `Results,provenance&insert.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- text field with label, hint, error (icon and message), disabled, read-only, password and search (leading icon, keycap) variants;\n- textarea and native-styled select with the same chrome;\n- checkbox (mint checked state), toggle switch, segmented control and radio choice cards;\n- server `ProblemDetail` field errors flow through unchanged.\n\n**Out of scope:**\n- combobox with chips (no screen uses it yet);\n- slider (a single consumer, Task 12.8);\n- file input and dropzone (Task 7.9).\n\n### Acceptance Criteria\n\n- [ ] Labels, hints and errors remain programmatically associated as in the current `FormField`.\n- [ ] Segmented control and radio cards are operable with arrow keys.\n- [ ] The auth `FormField` is replaced by the shared field without changing its tests' accessible queries.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.10\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.10"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Components&states.pdf",
+      "Document_editor.pdf",
+      "Results,provenance&insert.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1",
+      "Document_editor.pdf p.3",
+      "Results,provenance&insert.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [],
+      "search_terms": [
+        "form field",
+        "input",
+        "select"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): No issue covers shared form primitives; `FormField` exists but is auth-local."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-07",
+    "inventory_ids": [
+      "UI-PRM-07",
+      "UI-PRM-08",
+      "UI-SHR-14",
+      "UI-SHR-27"
+    ],
+    "backlog_id": "BL-1-03",
+    "task": "Task 3.12",
+    "backlog_reference": "RH-269",
+    "title": "[Task 3.12] Build badge, chip, avatar and sticker primitives",
+    "body": "### Objective\n\nBuild badge, chip, avatar, avatar stack and sticker primitives. This work provides the small status and identity elements that every list, card and header in the design depends on. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-269\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.1,2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- badge tones (neutral, blue, coral, lavender, mint, yellow, ink) with an icon and a word, in mid-tint and tint-with-border variants;\n- avatars in four sizes with initials and a deterministic color derived from the user id, plus a stack with +N overflow;\n- sticker: the rotated base-color callout used for \"Grounded in N sources\";\n- a badge never conveys state by color alone.\n\n**Out of scope:**\n- source, status and role specific wrappers (Task 7.7, Task 5.8);\n- photo avatars and user-chosen avatar colors (no profile storage exists);\n- live presence.\n\n### Acceptance Criteria\n\n- [ ] Badge, avatar and sticker visuals match the design at all documented sizes.\n- [ ] The avatar stack collapses to +N past the configured limit.\n- [ ] No badge is color-only.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.9"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1,2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [],
+      "search_terms": [
+        "badge",
+        "chip",
+        "avatar"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #97 (presence) is the only mention of avatars/cursors and covers realtime data, not the primitive."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-10",
+    "inventory_ids": [
+      "UI-PRM-10",
+      "UI-PRM-12",
+      "UI-PRM-13",
+      "UI-SHL-09"
+    ],
+    "backlog_id": "BL-1-04",
+    "task": "Task 3.13",
+    "backlog_reference": "RH-270",
+    "title": "[Task 3.13] Build overlay primitives: dialog, popover menu and slide-over",
+    "body": "### Objective\n\nBuild dialog, popover, menu and slide-over primitives with focus management. This work gives confirmations, menus and side panels one accessible implementation and removes the need for inline two-step workarounds. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-270\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.1; `Access&home.pdf` p.5; `Responsive.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- modal dialog (radius 24, elevation e3, scrim at about 42 percent) with focus trap, Esc, return-focus and `aria-modal`;\n- popover and menu with roving focus, right-aligned shortcut hints and a destructive item style;\n- slide-over anchored right (about 420 px) for context panels that stop docking on narrower screens;\n- defined layering: content, popover, slide-over, modal, toast.\n\n**Out of scope:**\n- tooltip (not present in the design);\n- the specific dialogs (Create workspace, Upload sources, Insert result).\n\n### Acceptance Criteria\n\n- [ ] Tab stays inside an open dialog and focus returns to the trigger on close.\n- [ ] Esc closes non-destructive overlays.\n- [ ] Menus are fully operable by keyboard.\n- [ ] Behavior is covered by component tests.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.10\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.10"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Components&states.pdf",
+      "Access&home.pdf",
+      "Responsive.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1",
+      "Access&home.pdf p.5",
+      "Responsive.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [],
+      "search_terms": [
+        "modal",
+        "dialog",
+        "popover"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #33 mentions a create-workspace dialog only as a screen option."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-14",
+    "inventory_ids": [
+      "UI-PRM-14",
+      "UI-PRM-15",
+      "UI-PRM-16",
+      "UI-PRM-17",
+      "UI-STA-01",
+      "UI-STA-03",
+      "UI-STA-06",
+      "UI-STA-08"
+    ],
+    "backlog_id": "BL-1-05",
+    "task": "Task 3.14",
+    "backlog_reference": "RH-271",
+    "title": "[Task 3.14] Build feedback primitives: banner, toast, progress, spinner and skeleton",
+    "body": "### Objective\n\nBuild banner, toast, progress, spinner and skeleton primitives. This work gives the four-part system feedback pattern (what is happening, why, what is safe, what next) one shared implementation. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-271\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/shared/components/`, `frontend/src/shared/components/ApiStatusBanner.tsx`\n**Design reference:** `Components&states.pdf` p.1,3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- inline banner tones (info, warning, error, success, dashed note) with icon, bold lead and optional action, keeping the `role=\"alert\"` and `role=\"status\"` semantics used today;\n- toast host with a live region, covering a success toast and a blocking toast with an action;\n- linear and stepped progress and a spinner;\n- skeleton blocks that keep the real layout and never replace text that is already known.\n\n**Out of scope:**\n- the offline bar and conflict banner semantics, which need design decisions;\n- a notification center.\n\n### Acceptance Criteria\n\n- [ ] Banners, toasts and skeletons match the design.\n- [ ] Existing alert and status announcements are preserved when a first consumer migrates.\n- [ ] Status is always conveyed by an icon and a word.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.9, Task 3.10\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.9",
+      "Task 3.10"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1,3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        17,
+        18
+      ],
+      "search_terms": [
+        "loading state",
+        "skeleton",
+        "toast",
+        "notification"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #25 mentions loading states for auth bootstrap; none covers shared feedback components."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-18",
+    "inventory_ids": [
+      "UI-PRM-18",
+      "UI-PRM-19",
+      "UI-PRM-20",
+      "UI-PRM-21",
+      "UI-STA-02"
+    ],
+    "backlog_id": "BL-1-06",
+    "task": "Task 3.15",
+    "backlog_reference": "RH-272",
+    "title": "[Task 3.15] Build surface primitives: card, list row, data table and empty state",
+    "body": "### Objective\n\nBuild card, panel, list row, icon tile, data table and empty-state primitives. This work gives lists, tables and empty areas one structure so feature screens differ in content rather than in markup. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-272\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.1,2,4; `Sources.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- card (radius 16, 1 px border, elevation e0) and panel with header and footer slots, plus the dashed note;\n- list row with icon tile, title, meta, trailing chips or actions, hover actions and a selected bar;\n- data table with header row, hover and selected rows, footer and a scroll container, usable by the dataset, comparison and library tables;\n- empty-state component with an optional art slot, a title, one sentence and up to two actions, using the copy in the design;\n- keycap and keyboard-hint bar.\n\n**Out of scope:**\n- list virtualization;\n- table sorting and filtering logic;\n- illustrations.\n\n### Acceptance Criteria\n\n- [ ] Tables keep semantic `<table>` markup and accessible headers.\n- [ ] The empty states in the design (workspaces, documents, sources, analyses, search, evidence) are expressible without feature-specific markup.\n- [ ] One existing table is migrated and its tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.12\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.12"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Components&states.pdf",
+      "Sources.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1,2,4",
+      "Sources.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        46,
+        33
+      ],
+      "search_terms": [
+        "empty state",
+        "table",
+        "card"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #33 and #46 require loading/empty/error states functionally; they do not define shared surfaces."
+    }
+  },
+  {
+    "inventory_id": "UI-PRM-09",
+    "inventory_ids": [
+      "UI-PRM-09"
+    ],
+    "backlog_id": "BL-1-07",
+    "task": "Task 3.16",
+    "backlog_reference": "RH-273",
+    "title": "[Task 3.16] Build navigation primitives: tabs, filter chips and breadcrumbs",
+    "body": "### Objective\n\nBuild tabs, filter chips and breadcrumb primitives. This work provides the in-page and top-bar navigation elements that the shell and several screens share. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-273\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.1; `Reusable_parts.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- underline tabs with muted counts using `role=\"tablist\"` semantics;\n- filter chips where the active chip uses the ink fill;\n- breadcrumb with `aria-current=\"page\"` on the last segment and truncation for long names.\n\n**Out of scope:**\n- wiring to routes (Task 3.17, Task 3.18).\n\n### Acceptance Criteria\n\n- [ ] Tabs are operable with arrow keys and expose selected state.\n- [ ] The breadcrumb is a labelled `nav` landmark.\n- [ ] Visuals match the design.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.8, Task 3.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.9"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Components&states.pdf",
+      "Reusable_parts.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1",
+      "Reusable_parts.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        16
+      ],
+      "search_terms": [
+        "breadcrumb",
+        "tabs"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #16 added routing only."
+    }
+  },
+  {
+    "inventory_id": "UI-SHL-01",
+    "inventory_ids": [
+      "UI-SHL-01",
+      "UI-SHL-02",
+      "UI-SHL-03",
+      "UI-SHL-08",
+      "UI-FND-10",
+      "UI-ACC-13",
+      "UI-SCH-08",
+      "UI-STA-07"
+    ],
+    "backlog_id": "BL-3-01",
+    "task": "Task 3.17",
+    "backlog_reference": "RH-274",
+    "title": "[Task 3.17] Build the authenticated app shell with sidebar and top bar",
+    "body": "### Objective\n\nBuild the authenticated app shell: sidebar, workspace switcher and top bar. This work replaces the scaffold header in `AppLayoutPage` with the product's navigation frame so later pages mount into it. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-274\n**Estimated size:** XL\n**Primary implementation paths:** `frontend/src/pages/AppLayoutPage.tsx`, `frontend/src/app/`, `frontend/src/shared/components/`\n**Design reference:** `Reusable_parts.pdf` p.1,2; `Access&home.pdf` p.3; `Workspace.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- sidebar (264 px): logo mark and wordmark, workspace switcher with current role and member count, Search, Home, Workspaces, the workspace section group with counts, the \"Grounded in N sources\" sticker, Settings and a user row with sign-out;\n- top bar (56 px): breadcrumb, member avatar stack and a primary-action slot;\n- Documents and Sources counts come from the existing list queries;\n- the API health banner leaves the page header.\n\n**Out of scope:**\n- Analyses, Help, the notifications bell and Search destinations, which have no route or backend yet;\n- the sidebar collapse toggle (undecided);\n- responsive behavior (Task 3.20).\n\n### Acceptance Criteria\n\n- [ ] Every `/app` page renders inside the shell with correct `nav` and `main` landmarks.\n- [ ] Entries without a destination are hidden rather than rendered dead.\n- [ ] Existing page tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.3, Task 5.7, Task 3.10, Task 3.12, Task 3.13, Task 3.16\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [
+      16,
+      33
+    ],
+    "related_existing_issues": [
+      26
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.10",
+      "Task 3.12",
+      "Task 3.13",
+      "Task 3.16"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "XL",
+    "design_sources": [
+      "Reusable_parts.pdf",
+      "Access&home.pdf",
+      "Workspace.pdf"
+    ],
+    "design_pages": [
+      "Reusable_parts.pdf p.1,2",
+      "Access&home.pdf p.3",
+      "Workspace.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        16
+      ],
+      "search_terms": [
+        "sidebar",
+        "app shell",
+        "navigation"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #16 (closed) only promised that the shell \"can later host sidebar/header/workspace navigation\"; it delivered a scaffold. #68 is the Ask sidebar, unrelated."
+    }
+  },
+  {
+    "inventory_id": "UI-SHL-04",
+    "inventory_ids": [
+      "UI-SHL-04",
+      "UI-FLW-01"
+    ],
+    "backlog_id": "BL-3-02",
+    "task": "Task 3.18",
+    "backlog_reference": "RH-275",
+    "title": "[Task 3.18] Add workspace section routes and navigation structure",
+    "body": "### Objective\n\nAdd workspace section routes (Overview, Documents, Sources, Ask AI, Members, Settings) and wire them to the sidebar. This work splits the single workspace detail page into the sections defined by the design's information architecture without breaking existing deep links. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-275\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/app/AppRouter.tsx`, `frontend/src/pages/`\n**Design reference:** `Brand&system.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- routes under `/app/workspaces/:workspaceId` for Overview, `documents`, `sources`, `ask`, `members` and `settings`;\n- existing URLs and query contracts keep working (`?page=`, `?unit=`, `?version=`, `?processingVersion=`, `?analyzeSource=`);\n- sections reuse the existing feature components until their redesign tasks land;\n- unknown sections show the Not Found page.\n\n**Out of scope:**\n- Analyses and Activity (no backend);\n- redesigning the content of each section.\n\n### Acceptance Criteria\n\n- [ ] Each section is reachable from the sidebar and by direct URL refresh.\n- [ ] Citation and dataset deep links still resolve.\n- [ ] The page tests are migrated with equivalent assertions.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 5.7, Task 6.7, Task 7.6, Task 3.17\n",
+    "labels": [
+      "high-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [
+      33,
+      40,
+      46
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.17"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Brand&system.pdf"
+    ],
+    "design_pages": [
+      "Brand&system.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        16,
+        33
+      ],
+      "search_terms": [
+        "routes",
+        "router"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #16 defined the initial routes; #33 and #40 built screens inside them. Section routing is new."
+    }
+  },
+  {
+    "inventory_id": "UI-SHL-05",
+    "inventory_ids": [
+      "UI-SHL-05"
+    ],
+    "backlog_id": "BL-3-03",
+    "task": "Task 3.19",
+    "backlog_reference": "RH-276",
+    "title": "[Task 3.19] Build the workspace tool shell with rail, secondary column and context panel",
+    "body": "### Objective\n\nBuild the workspace tool shell: a 64 px rail, an optional secondary column and a docked 340 px context panel. This work provides the layout shared by the editor, the source reader and the Ask AI screens and replaces the inline flex layout in `DocumentDetailPage`. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-276\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/pages/DocumentDetailPage.tsx`, `frontend/src/shared/components/`\n**Design reference:** `Document_editor.pdf` p.1; `Sources.pdf` p.3; `Ask,evidence&comparison.pdf` p.1; `Reusable_parts.pdf` p.5\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- rail with logo mark, workspace tile, global and section icons and a bottom group;\n- secondary column slot (240 to 280 px) and a main area;\n- context panel slot (340 px) with a pinned footer area;\n- the context panel can be rendered as a slide-over.\n\n**Out of scope:**\n- the contents of each tool's panels;\n- breakpoint behavior (Task 3.20).\n\n### Acceptance Criteria\n\n- [ ] The editor page renders in the new shell without behavior changes.\n- [ ] Landmarks and focus order are correct for rail, column, main and panel.\n- [ ] The context panel works as docked and as slide-over.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.13, Task 3.17\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [
+      40
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.13",
+      "Task 3.17"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Document_editor.pdf",
+      "Sources.pdf",
+      "Ask,evidence&comparison.pdf",
+      "Reusable_parts.pdf"
+    ],
+    "design_pages": [
+      "Document_editor.pdf p.1",
+      "Sources.pdf p.3",
+      "Ask,evidence&comparison.pdf p.1",
+      "Reusable_parts.pdf p.5"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        40
+      ],
+      "search_terms": [
+        "layout",
+        "editor shell"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #40 built the editor flow with a temporary inline layout."
+    }
+  },
+  {
+    "inventory_id": "UI-RSP-01",
+    "inventory_ids": [
+      "UI-RSP-01",
+      "UI-RSP-02",
+      "UI-RSP-03",
+      "UI-RSP-07"
+    ],
+    "backlog_id": "BL-3-04",
+    "task": "Task 3.20",
+    "backlog_reference": "RH-277",
+    "title": "[Task 3.20] Add responsive shell behavior for narrower desktop widths",
+    "body": "### Objective\n\nAdd the responsive shell behavior defined for 1280 px: rail instead of sidebar, slide-over context panels and reduced table columns. This work keeps the shell usable on narrower desktop windows as specified by the responsive design. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-277\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/shared/components/`, `frontend/src/styles/`\n**Design reference:** `Responsive.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- at 1280 px and below the sidebar collapses to the 64 px rail;\n- docked context panels become slide-overs;\n- tables drop the \"Uploaded by\" and \"Date\" columns first and filters collapse into a single Filters button;\n- source detail opens as a slide-over from the library.\n\n**Out of scope:**\n- the below-1024 px top menu and tablet or mobile layouts (not designed);\n- a manual collapse toggle.\n\n### Acceptance Criteria\n\n- [ ] Layouts match `Responsive.pdf` at 1280 px with no horizontal page scroll.\n- [ ] The column-priority rule is unit tested.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.13, Task 3.17, Task 3.19\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:frontend-foundation"
+    ],
+    "milestone": "Epic 3: Frontend Foundation",
+    "existing_dependencies": [],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.13",
+      "Task 3.17",
+      "Task 3.19"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Responsive.pdf"
+    ],
+    "design_pages": [
+      "Responsive.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        78
+      ],
+      "search_terms": [
+        "responsive",
+        "breakpoint"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #78 uses the word \"responsive\" for preview performance, not breakpoints."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-26",
+    "inventory_ids": [
+      "UI-SHR-26",
+      "UI-WSP-22"
+    ],
+    "backlog_id": "BL-2-01",
+    "task": "Task 5.8",
+    "backlog_reference": "RH-278",
+    "title": "[Task 5.8] Add workspace capability helper and role badge",
+    "body": "### Objective\n\nAdd one shared helper that turns a workspace role and archived state into UI capabilities, and a role badge. This work removes the role checks that three pages currently re-implement and applies the rule that controls a role cannot use are absent rather than disabled. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-278\n**Estimated size:** S\n**Primary implementation paths:** `frontend/src/shared/components/`, `frontend/src/pages/WorkspaceDetailPage.tsx`, `frontend/src/pages/DocumentDetailPage.tsx`, `frontend/src/pages/SourceDetailPage.tsx`\n**Design reference:** `Components&states.pdf` p.1; `Brand&system.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- a typed helper returning whether the caller can read, edit content and manage the workspace, with archived workspaces never editable;\n- a role badge (Owner ink, Editor lavender, Viewer neutral);\n- unknown role strings render as an unfamiliar label instead of failing.\n\n**Out of scope:**\n- authorization decisions, which stay on the server.\n\n### Acceptance Criteria\n\n- [ ] The workspace, document and source pages use the helper with unchanged behavior.\n- [ ] The helper is unit tested for each role and for archived workspaces.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 5.2, Task 3.12\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:workspaces-rbac"
+    ],
+    "milestone": "Epic 5: Workspaces and RBAC",
+    "existing_dependencies": [
+      28
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.12"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "S",
+    "design_sources": [
+      "Components&states.pdf",
+      "Brand&system.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1",
+      "Brand&system.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        28,
+        33
+      ],
+      "search_terms": [
+        "role",
+        "capability"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #28 is the backend role model; #33 uses it inline."
+    }
+  },
+  {
+    "inventory_id": "UI-FND-11",
+    "inventory_ids": [
+      "UI-FND-11",
+      "UI-SHR-01",
+      "UI-SHR-02"
+    ],
+    "backlog_id": "BL-2-02",
+    "task": "Task 7.7",
+    "backlog_reference": "RH-279",
+    "title": "[Task 7.7] Add source type and processing status components",
+    "body": "### Objective\n\nAdd typed source-type badge and tile and source-status chip components for the supported source types. This work gives every source list, card and picker one visual language for type and processing state. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-279\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/sources/`, `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.1; `Brand&system.pdf` p.2; `Sources.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- `SourceTypeBadge` and `SourceTypeTile` for PDF, DOCX, XLSX, CSV and TXT with the icon and tint from the design;\n- `SourceStatusChip` for Uploaded, Processing, Ready and Failed, always pairing an icon with a word;\n- typed maps colocated with `SOURCE_TYPES` and `SOURCE_STATUS_LABELS`.\n\n**Out of scope:**\n- Image, Paper, Web and Note types (the backend does not support them);\n- list and page layouts.\n\n### Acceptance Criteria\n\n- [ ] Every `SourceType` and `SourceStatus` value has a visual and a unit test.\n- [ ] An unknown future value falls back to a neutral badge instead of crashing.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 7.6, Task 3.9, Task 3.12\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "data",
+      "epic:source-storage"
+    ],
+    "milestone": "Epic 7: Object Storage and Source Metadata",
+    "existing_dependencies": [
+      46
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.9",
+      "Task 3.12"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Components&states.pdf",
+      "Brand&system.pdf",
+      "Sources.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.1",
+      "Brand&system.pdf p.2",
+      "Sources.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        46
+      ],
+      "search_terms": [
+        "source type",
+        "status chips",
+        "source library"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #46 required status chips functionally (text); the visual component is new."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-09",
+    "inventory_ids": [
+      "UI-SHR-09",
+      "UI-ASK-04"
+    ],
+    "backlog_id": "BL-2-03",
+    "task": "Task 11.7",
+    "backlog_reference": "RH-280",
+    "title": "[Task 11.7] Build AI scope selector and source picker",
+    "body": "### Objective\n\nBuild one shared scope chip and source picker for AI questions, authoring and comparison. This work replaces four near-identical source-selection fieldsets and keeps the AI scope visible wherever an answer is requested. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-280\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/shared/components/`, `frontend/src/features/ai/components/`\n**Design reference:** `Ask,evidence&comparison.pdf` p.1,2; `Components&states.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- scope chip showing the current scope (for example \"Ask across 12 sources\");\n- source picker with type tile, status and checkbox per source, Select all ready and Clear;\n- sources that are still processing are listed but not selectable, with an explanation;\n- `null` means all authorized sources and `[]` means none, with the existing \"No sources selected. The answer will have no evidence.\" warning preserved.\n\n**Out of scope:**\n- the question, authoring and comparison forms themselves.\n\n### Acceptance Criteria\n\n- [ ] `WorkspaceQuestions`, `ResearchPanel`, `AuthoringPanel` and `SourceComparisonPanel` use the shared picker.\n- [ ] The existing AI component tests pass without weakening assertions.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 11.5, Task 3.11, Task 3.12\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:rag-citations"
+    ],
+    "milestone": "Epic 11: LLM Orchestration and Citations",
+    "existing_dependencies": [
+      68
+    ],
+    "related_existing_issues": [
+      66
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.11",
+      "Task 3.12"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Ask,evidence&comparison.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Ask,evidence&comparison.pdf p.1,2",
+      "Components&states.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        68
+      ],
+      "search_terms": [
+        "source selection",
+        "scope"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #68 delivered scope selection functionally inside the Ask panel; this extracts and restyles it."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-06",
+    "inventory_ids": [
+      "UI-SHR-06",
+      "UI-DOC-14"
+    ],
+    "backlog_id": "BL-2-04",
+    "task": "Task 11.8",
+    "backlog_reference": "RH-281",
+    "title": "[Task 11.8] Build citation chip and citation popover",
+    "body": "### Objective\n\nBuild the numbered citation chip and the citation popover used in documents, answers and evidence lists. This work makes every citation open the same quote, page and source preview, which is how the product shows where a claim came from. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-281\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/documents/api/researchCitation.ts`, `frontend/src/features/ai/components/`, `frontend/src/shared/components/`\n**Design reference:** `Components&states.pdf` p.2; `Document_editor.pdf` p.4\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- chip variants for documents (blue), datasets (mint) and analyses (yellow), numbered from the structured citation entity;\n- popover with title, file and page, quote in serif italic, and the actions Open source and View context;\n- Open source and View context deep-link through the existing `?page=` and `?unit=` source contract;\n- keyboard and focus operable, not hover-only.\n\n**Out of scope:**\n- the Replace action (no defined behavior);\n- provenance data for paragraphs (Task 17.5).\n\n### Acceptance Criteria\n\n- [ ] A citation in the editor and in an AI answer opens the same popover.\n- [ ] Citation numbering and clipboard behavior from Task 12.4 are unchanged.\n- [ ] Popover content comes from existing citation data only.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 12.4, Task 11.2, Task 3.13, Task 3.12\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:rag-citations"
+    ],
+    "milestone": "Epic 11: LLM Orchestration and Citations",
+    "existing_dependencies": [
+      65,
+      73
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.13",
+      "Task 3.12"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Components&states.pdf",
+      "Document_editor.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.2",
+      "Document_editor.pdf p.4"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        73,
+        65,
+        68
+      ],
+      "search_terms": [
+        "citation chip",
+        "citation popover"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #73 added the citation mark and numbering; #68 renders citation links. The popover and shared chip are new."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-10",
+    "inventory_ids": [
+      "UI-SHR-10",
+      "UI-SHR-11",
+      "UI-ASK-05",
+      "UI-ASK-07",
+      "UI-ASK-10"
+    ],
+    "backlog_id": "BL-2-05",
+    "task": "Task 11.9",
+    "backlog_reference": "RH-282",
+    "title": "[Task 11.9] Build grounded answer block and evidence list components",
+    "body": "### Objective\n\nBuild the grounded answer block, answer state set and evidence list shared by the question, conversation and structured-response views. This work gives every AI answer the same attributable layout and the same honest states. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-282\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/ai/components/`, `frontend/src/shared/components/`\n**Design reference:** `Ask,evidence&comparison.pdf` p.1; `Components&states.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- answer block with inline citation chips and an explicit insufficient-evidence state;\n- thinking, streaming (with Stop), no-evidence and failed (with Try again) states using the existing statuses;\n- evidence item with source, location, quote and an Inspect action that opens the source at the cited location;\n- used by `WorkspaceQuestions`, `ResearchPanel` and `StructuredResponse`.\n\n**Out of scope:**\n- key findings, evidence-quality chips, uncertainty and contradictory-evidence callouts, suggested next questions and the \"partly supported\" state, none of which the answer contract provides.\n\n### Acceptance Criteria\n\n- [ ] The three existing consumers render through the shared components.\n- [ ] No state invents evidence: INSUFFICIENT_EVIDENCE always shows its reason.\n- [ ] Existing tests for streaming, cancellation and insufficient evidence pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 11.3, Task 11.6, Task 3.14, Task 11.7, Task 11.8\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:rag-citations"
+    ],
+    "milestone": "Epic 11: LLM Orchestration and Citations",
+    "existing_dependencies": [
+      66,
+      69
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.14",
+      "Task 11.7",
+      "Task 11.8"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Ask,evidence&comparison.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Ask,evidence&comparison.pdf p.1",
+      "Components&states.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        68,
+        69
+      ],
+      "search_terms": [
+        "answer",
+        "streaming",
+        "evidence"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #68/#69 deliver the behavior; this restyles and consolidates it."
+    }
+  },
+  {
+    "inventory_id": "UI-SHL-06",
+    "inventory_ids": [
+      "UI-SHL-06",
+      "UI-ACC-01",
+      "UI-ACC-03",
+      "UI-ACC-04",
+      "UI-ACC-05"
+    ],
+    "backlog_id": "BL-4-01",
+    "task": "Task 4.8",
+    "backlog_reference": "RH-283",
+    "title": "[Task 4.8] Restyle login and register screens with the auth split layout",
+    "body": "### Objective\n\nRestyle the login and register screens with the split layout from the design. This work brings the first screens users see in line with the design while keeping the existing session, CSRF and error behavior. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-283\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/pages/LoginPage.tsx`, `frontend/src/pages/RegisterPage.tsx`, `frontend/src/features/auth/components/`\n**Design reference:** `Access&home.pdf` p.1,2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- split layout with the form on one half and a tinted panel with stickers on the other (art slot until illustrations exist);\n- login: email, password, Log in, an \"or\" divider, a disabled \"Continue with Google\" marked Soon, a Create account link and the legal footer;\n- register: name, email, password, confirm password (client-side), Create account, a Log in link and the legal line.\n\n**Out of scope:**\n- Forgot password (no endpoint or issue);\n- the password strength meter (scoring rules undefined);\n- illustrations and any Google sign-in behavior.\n\n### Acceptance Criteria\n\n- [ ] Login and register behavior and copy, including \"Invalid email or password.\", are unchanged.\n- [ ] A password mismatch is shown before submit.\n- [ ] `LoginPage` and `RegisterPage` tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 4.3, Task 4.4, Task 3.8, Task 3.11, Task 3.14\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:authentication"
+    ],
+    "milestone": "Epic 4: Authentication Architecture",
+    "existing_dependencies": [
+      22,
+      23
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.11",
+      "Task 3.14"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Access&home.pdf"
+    ],
+    "design_pages": [
+      "Access&home.pdf p.1,2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        22,
+        23
+      ],
+      "search_terms": [
+        "login",
+        "register"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #22/#23 implemented the flows; scope here is layout and styling plus a client-only confirm field."
+    }
+  },
+  {
+    "inventory_id": "UI-ACC-07",
+    "inventory_ids": [
+      "UI-ACC-07",
+      "UI-ACC-10",
+      "UI-SHR-05"
+    ],
+    "backlog_id": "BL-4-02",
+    "task": "Task 5.9",
+    "backlog_reference": "RH-284",
+    "title": "[Task 5.9] Build workspace home with workspace cards and first-run empty state",
+    "body": "### Objective\n\nBuild the workspace home: greeting header, recent workspaces grid and the first-run empty state. This work gives users a recognizable starting point and replaces the plain workspace list. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-284\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/pages/WorkspaceListPage.tsx`, `frontend/src/features/workspaces/components/WorkspaceList.tsx`\n**Design reference:** `Access&home.pdf` p.3,4\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- greeting header and a New workspace action;\n- workspace cards showing name, description, role badge and last-updated time;\n- empty state with title, sentence, a Create workspace action and the three onboarding step cards;\n- loading and error states using the shared primitives.\n\n**Out of scope:**\n- the digest sentence and stickers, and the recent documents, recent sources and activity cards (no cross-workspace endpoint or event stream);\n- accent, icon, counts and member avatars on cards (not part of the `Workspace` contract);\n- the \"Learn how ResearchHub works\" link and illustrations.\n\n### Acceptance Criteria\n\n- [ ] A new account sees the empty state and an existing account sees its workspaces.\n- [ ] No extra requests are issued per card.\n- [ ] `WorkspaceListPage` tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 5.7, Task 3.15, Task 3.12, Task 3.17\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:workspaces-rbac"
+    ],
+    "milestone": "Epic 5: Workspaces and RBAC",
+    "existing_dependencies": [
+      33
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.15",
+      "Task 3.12",
+      "Task 3.17"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Access&home.pdf"
+    ],
+    "design_pages": [
+      "Access&home.pdf p.3,4"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        33
+      ],
+      "search_terms": [
+        "workspace list",
+        "home"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #33 built the list and create flow; the card, header and empty-state design are new."
+    }
+  },
+  {
+    "inventory_id": "UI-ACC-11",
+    "inventory_ids": [
+      "UI-ACC-11"
+    ],
+    "backlog_id": "BL-4-03",
+    "task": "Task 5.10",
+    "backlog_reference": "RH-285",
+    "title": "[Task 5.10] Build the create workspace dialog",
+    "body": "### Objective\n\nBuild the create workspace dialog with a live preview. This work turns the inline creation form into the guided two-pane dialog from the design. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-285\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/workspaces/components/CreateWorkspaceForm.tsx`\n**Design reference:** `Access&home.pdf` p.5; `Key_user_flows.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- dialog with name, optional description, Cancel and Create workspace;\n- preview pane showing the workspace card as it will appear (name, description, \"You · Owner\");\n- server validation errors shown beside the fields;\n- opened from the home page and the sidebar.\n\n**Out of scope:**\n- the accent and icon pickers and the accent-tinted preview (there is no stored property);\n- inviting people (members are added after creation).\n\n### Acceptance Criteria\n\n- [ ] Creating a workspace works as today and the new workspace appears without a full reload.\n- [ ] Focus returns to the opener on close.\n- [ ] Tests cover validation and success.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 5.3, Task 3.11, Task 3.13, Task 5.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:workspaces-rbac"
+    ],
+    "milestone": "Epic 5: Workspaces and RBAC",
+    "existing_dependencies": [
+      29
+    ],
+    "related_existing_issues": [
+      33
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.11",
+      "Task 3.13",
+      "Task 5.9"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Access&home.pdf",
+      "Key_user_flows.pdf"
+    ],
+    "design_pages": [
+      "Access&home.pdf p.5",
+      "Key_user_flows.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        33
+      ],
+      "search_terms": [
+        "create workspace dialog"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #33 listed a create dialog or page as an option and shipped an inline form."
+    }
+  },
+  {
+    "inventory_id": "UI-WSP-01",
+    "inventory_ids": [
+      "UI-WSP-01",
+      "UI-WSP-02",
+      "UI-WSP-04",
+      "UI-WSP-05",
+      "UI-WSP-07"
+    ],
+    "backlog_id": "BL-4-04",
+    "task": "Task 5.11",
+    "backlog_reference": "RH-286",
+    "title": "[Task 5.11] Build workspace overview page from existing data",
+    "body": "### Objective\n\nBuild the workspace overview page: hero, ask box and recent documents, sources and AI activity cards. This work gives each workspace a landing page built only from data the application already serves. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-286\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/pages/WorkspaceDetailPage.tsx`, `frontend/src/features/ai/components/WorkspaceQuestions.tsx`\n**Design reference:** `Workspace.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- hero with role badge, name, description, member avatar stack and the \"Grounded in N sources\" sticker;\n- ask box that submits to the existing question flow with a visible scope chip;\n- Recent documents (most recently updated first), Recent sources (with status chips) and Recent AI activity (conversation titles and times) cards.\n\n**Out of scope:**\n- Continue working cards, Recent analyses and Workspace activity (no tracking, analyses or events);\n- the due-date and subtitle line and suggestion chips (no source of truth);\n- the hero illustration.\n\n### Acceptance Criteria\n\n- [ ] The overview renders from the existing documents, sources, members and conversations queries.\n- [ ] Viewers see no create or upload controls.\n- [ ] Existing workspace page tests are migrated with equivalent assertions.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.15, Task 5.8, Task 7.7, Task 3.18\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:workspaces-rbac"
+    ],
+    "milestone": "Epic 5: Workspaces and RBAC",
+    "existing_dependencies": [],
+    "related_existing_issues": [
+      33,
+      68
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.15",
+      "Task 5.8",
+      "Task 7.7",
+      "Task 3.18"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Workspace.pdf"
+    ],
+    "design_pages": [
+      "Workspace.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        33
+      ],
+      "search_terms": [
+        "workspace overview",
+        "recent documents"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #33 shipped a detail page with lists; the overview composition is new."
+    }
+  },
+  {
+    "inventory_id": "UI-WSP-15",
+    "inventory_ids": [
+      "UI-WSP-15",
+      "UI-WSP-16",
+      "UI-WSP-17",
+      "UI-WSP-19",
+      "UI-REV-07",
+      "UI-REV-08"
+    ],
+    "backlog_id": "BL-4-05",
+    "task": "Task 5.12",
+    "backlog_reference": "RH-287",
+    "title": "[Task 5.12] Build members page and role management UI",
+    "body": "### Objective\n\nBuild the members page with the role chips, role menu, add-member card and role information from the design. This work gives workspace owners a clear view of who has access and what each role can do. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-287\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/workspaces/components/MemberList.tsx`, `frontend/src/features/workspaces/components/AddMemberForm.tsx`\n**Design reference:** `Workspace.pdf` p.4; `Components&states.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- members table with avatar, name, email and role chip;\n- owner-only role menu (Editor, Viewer, Make owner) and remove with a confirmation that uses neutral wording because member pronouns are unknown;\n- add-member card with an email field and Editor or Viewer choice cards;\n- role-information card (what each role can do).\n\n**Out of scope:**\n- the Joined column (not in the member response);\n- pending invites and Resend (there is no invitation feature);\n- the \"They'll get an email\" copy, since no email is sent.\n\n### Acceptance Criteria\n\n- [ ] Role changes, removal and add-by-email behave as today.\n- [ ] Non-owners see no management controls.\n- [ ] Member list and add-member tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 5.5, Task 5.6, Task 3.11, Task 3.13, Task 5.8\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:workspaces-rbac"
+    ],
+    "milestone": "Epic 5: Workspaces and RBAC",
+    "existing_dependencies": [
+      31,
+      32
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.11",
+      "Task 3.13",
+      "Task 5.8"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Workspace.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Workspace.pdf p.4",
+      "Components&states.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        32,
+        33
+      ],
+      "search_terms": [
+        "members"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #31/#32 delivered the behavior; this is the redesigned page."
+    }
+  },
+  {
+    "inventory_id": "UI-WSP-20",
+    "inventory_ids": [
+      "UI-WSP-20",
+      "UI-WSP-21"
+    ],
+    "backlog_id": "BL-4-06",
+    "task": "Task 5.13",
+    "backlog_reference": "RH-288",
+    "title": "[Task 5.13] Build workspace settings page and archive confirmation dialog",
+    "body": "### Objective\n\nBuild the workspace settings page and the archive confirmation dialog. This work separates workspace administration from the working views and states clearly what archiving does. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-288\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/workspaces/components/EditWorkspaceForm.tsx`, `frontend/src/features/workspaces/components/ArchiveWorkspaceButton.tsx`\n**Design reference:** `Search,settings&internal_tools.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- settings sub-navigation (General, Members) and a General card with name and description;\n- owners can edit with Discard and Save; editors see read-only text; viewers do not see Settings;\n- an Archive card marked Owner only that opens a dialog stating that no files or documents are deleted.\n\n**Out of scope:**\n- the Accent field (no stored property);\n- Archived items and restoring a workspace (no restore endpoint).\n\n### Acceptance Criteria\n\n- [ ] The archive wording matches the current behavior and does not promise restoring.\n- [ ] Owner, editor and viewer variants are covered by tests.\n- [ ] Archiving still returns the user to the workspace list.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 5.4, Task 3.11, Task 3.13, Task 5.8\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:workspaces-rbac"
+    ],
+    "milestone": "Epic 5: Workspaces and RBAC",
+    "existing_dependencies": [
+      30
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.11",
+      "Task 3.13",
+      "Task 5.8"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Search,settings&internal_tools.pdf"
+    ],
+    "design_pages": [
+      "Search,settings&internal_tools.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        30,
+        33
+      ],
+      "search_terms": [
+        "workspace settings",
+        "archive"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #30 implemented update and archive; the page and dialog design are new."
+    }
+  },
+  {
+    "inventory_id": "UI-WSP-11",
+    "inventory_ids": [
+      "UI-WSP-11",
+      "UI-WSP-13",
+      "UI-SHR-04"
+    ],
+    "backlog_id": "BL-4-07",
+    "task": "Task 6.8",
+    "backlog_reference": "RH-289",
+    "title": "[Task 6.8] Build documents list page",
+    "body": "### Objective\n\nBuild the documents list page with the table, row actions and empty state from the design. This work gives documents a dedicated entry point instead of a list on the workspace page. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-289\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/documents/components/DocumentList.tsx`, `frontend/src/features/documents/components/CreateDocumentForm.tsx`\n**Design reference:** `Workspace.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- header with the document count and a New document action;\n- table with serif title, revision and updated time, a search by title and sorting;\n- row actions on hover: Open, Rename and Archive;\n- empty state \"Nothing written yet\" with a Create first document action.\n\n**Out of scope:**\n- the Last edited by, Status and Evidence columns, and the Mine and Archived tabs (not in the document summary);\n- templates (\"Start from a structure\").\n\n### Acceptance Criteria\n\n- [ ] Rename and Archive use the existing update and archive endpoints and respect roles.\n- [ ] Viewers see no create, rename or archive controls.\n- [ ] `DocumentList` tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 6.7, Task 3.15, Task 3.16, Task 3.18\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:documents"
+    ],
+    "milestone": "Epic 6: Persistent Documents Before Realtime Collaboration",
+    "existing_dependencies": [
+      40
+    ],
+    "related_existing_issues": [
+      35
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.15",
+      "Task 3.16",
+      "Task 3.18"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Workspace.pdf"
+    ],
+    "design_pages": [
+      "Workspace.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        40
+      ],
+      "search_terms": [
+        "document list"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #40 built a title-only list; the table page is new."
+    }
+  },
+  {
+    "inventory_id": "UI-DOC-01",
+    "inventory_ids": [
+      "UI-DOC-01",
+      "UI-DOC-02",
+      "UI-DOC-03",
+      "UI-DOC-04",
+      "UI-DOC-08",
+      "UI-FND-12",
+      "UI-SHR-07"
+    ],
+    "backlog_id": "BL-4-08",
+    "task": "Task 6.9",
+    "backlog_reference": "RH-290",
+    "title": "[Task 6.9] Build document editor frame with documents column and outline",
+    "body": "### Objective\n\nBuild the document editor frame: documents column, outline, top bar and context panel slot. This work gives the editor the writing layout from the design while reusing the existing editor and AI panels. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-290\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/pages/DocumentDetailPage.tsx`, `frontend/src/features/documents/components/`\n**Design reference:** `Document_editor.pdf` p.1; `Reusable_parts.pdf` p.5\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- documents column with the open document marked and a New document action;\n- outline generated from the document headings with the current section highlighted;\n- top bar with breadcrumb, member avatar stack, History and Ask AI;\n- the existing research and authoring panels mount in the context panel slot;\n- cited and not-cited source lists derived from the document's citation entities;\n- a static content-origin legend card pinned to the bottom of the documents column.\n\n**Out of scope:**\n- per-paragraph origin bars and outline origin ticks, which need origin data (Task 17.5);\n- the Draft chip (no document status), presence and comments.\n\n### Acceptance Criteria\n\n- [ ] The editor opens, edits and autosaves exactly as before in the new frame.\n- [ ] `DocumentDetailPage` and `DocumentWorkspaceFlow` tests pass.\n- [ ] The outline updates as headings change.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 6.7, Task 3.19\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:documents"
+    ],
+    "milestone": "Epic 6: Persistent Documents Before Realtime Collaboration",
+    "existing_dependencies": [
+      40
+    ],
+    "related_existing_issues": [
+      103
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.19"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Document_editor.pdf",
+      "Reusable_parts.pdf"
+    ],
+    "design_pages": [
+      "Document_editor.pdf p.1",
+      "Reusable_parts.pdf p.5"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        40
+      ],
+      "search_terms": [
+        "editor frame",
+        "outline"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #40 shipped the editor flow with a temporary layout."
+    }
+  },
+  {
+    "inventory_id": "UI-DOC-05",
+    "inventory_ids": [
+      "UI-DOC-05",
+      "UI-DOC-06",
+      "UI-DOC-07"
+    ],
+    "backlog_id": "BL-4-09",
+    "task": "Task 6.10",
+    "backlog_reference": "RH-291",
+    "title": "[Task 6.10] Style document paper, formatting toolbar and content blocks",
+    "body": "### Objective\n\nStyle the document paper, the formatting toolbar and the content blocks. This work makes the editing surface look and read like the design (serif title, readable body, tables and figures). The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-291\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/documents/components/DocumentBodyEditor.tsx`, `frontend/src/styles/`\n**Design reference:** `Document_editor.pdf` p.1; `Reusable_parts.pdf` p.5; `Components&states.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- paper (about 760 px wide) with a serif title, headings, lists, quote, table with a header row and a figure block;\n- formatting toolbar with undo, redo, heading, bold, italic, list, table and quote and active states;\n- citation chip styling inside text.\n\n**Out of scope:**\n- the link and comment buttons (links are disabled in the editor extensions; comments are Task 17.2);\n- the authors line (not in the document contract).\n\n### Acceptance Criteria\n\n- [ ] Stored ProseMirror content is unchanged.\n- [ ] Toolbar buttons keep their accessible names.\n- [ ] Editor tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 6.4, Task 3.8, Task 3.9, Task 3.10, Task 6.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:documents"
+    ],
+    "milestone": "Epic 6: Persistent Documents Before Realtime Collaboration",
+    "existing_dependencies": [
+      37
+    ],
+    "related_existing_issues": [
+      40
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.8",
+      "Task 3.9",
+      "Task 3.10",
+      "Task 6.9"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Document_editor.pdf",
+      "Reusable_parts.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Document_editor.pdf p.1",
+      "Reusable_parts.pdf p.5",
+      "Components&states.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        37,
+        40
+      ],
+      "search_terms": [
+        "editor toolbar",
+        "paper"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #37 integrated the editor with a minimal toolbar; styling is new."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-28",
+    "inventory_ids": [
+      "UI-SHR-28",
+      "UI-DOC-16",
+      "UI-REV-06"
+    ],
+    "backlog_id": "BL-4-10",
+    "task": "Task 6.11",
+    "backlog_reference": "RH-292",
+    "title": "[Task 6.11] Build save status, conflict and read-only document states",
+    "body": "### Objective\n\nBuild the save status chip, conflict banner and read-only viewer states. This work makes it obvious to the writer whether text is stored and what happens when it is not. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-292\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/documents/components/SaveStatus.tsx`, `frontend/src/features/documents/components/DocumentEditorForm.tsx`\n**Design reference:** `Components&states.pdf` p.3; `Document_editor.pdf` p.1; `Review,history&roles.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- chip cycle Saving, Saved with time, Save failed and Conflict, each with an icon and a word;\n- failure and conflict alerts keep the current wording about the user's text and the existing \"load the latest version\" action;\n- viewer experience: Read-only chip, an information bar and a toast explaining that only editors can change the document; edit controls are absent.\n\n**Out of scope:**\n- Compare, Keep mine and Take theirs (merge semantics undefined);\n- the offline bar and \"kept on this device\" copy (no local persistence exists);\n- Request edit access.\n\n### Acceptance Criteria\n\n- [ ] Autosave, conflict and restore behavior is unchanged.\n- [ ] No copy claims that text is stored locally.\n- [ ] `SaveStatus` and viewer tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 6.5, Task 6.3, Task 3.14, Task 6.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:documents"
+    ],
+    "milestone": "Epic 6: Persistent Documents Before Realtime Collaboration",
+    "existing_dependencies": [
+      36,
+      38
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.14",
+      "Task 6.9"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Components&states.pdf",
+      "Document_editor.pdf",
+      "Review,history&roles.pdf"
+    ],
+    "design_pages": [
+      "Components&states.pdf p.3",
+      "Document_editor.pdf p.1",
+      "Review,history&roles.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        36,
+        38
+      ],
+      "search_terms": [
+        "save status",
+        "autosave",
+        "read-only"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #36/#38 implemented the mechanics."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-24",
+    "inventory_ids": [
+      "UI-SHR-24",
+      "UI-DOC-17",
+      "UI-REV-03"
+    ],
+    "backlog_id": "BL-4-11",
+    "task": "Task 6.12",
+    "backlog_reference": "RH-293",
+    "title": "[Task 6.12] Build document version history panel",
+    "body": "### Objective\n\nBuild the version history panel from the design on top of the existing history, preview and restore behavior. This work presents the document history as a clear, safe list of restore points. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-293\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/documents/components/DocumentHistory.tsx`\n**Design reference:** `Review,history&roles.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- panel listing versions with reason label, time, author name and revision, with the selected version highlighted;\n- preview of the selected version and a confirmed Restore that keeps the existing safety copy;\n- restore stays unavailable while there are unsaved edits, with the current explanation.\n\n**Out of scope:**\n- diff highlighting (separate task);\n- named or manual version labels and scheduled snapshots (Task 17.6);\n- the Copy action (undefined).\n\n### Acceptance Criteria\n\n- [ ] Restoring creates a new revision and never removes later versions.\n- [ ] History, preview and restore tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 6.6, Task 3.13, Task 6.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:documents"
+    ],
+    "milestone": "Epic 6: Persistent Documents Before Realtime Collaboration",
+    "existing_dependencies": [
+      39
+    ],
+    "related_existing_issues": [
+      104
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.13",
+      "Task 6.9"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Review,history&roles.pdf"
+    ],
+    "design_pages": [
+      "Review,history&roles.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        39,
+        104
+      ],
+      "search_terms": [
+        "version history",
+        "snapshot",
+        "restore"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #39 delivered history and restore; #104 (open) adds named snapshots. The panel design is new."
+    }
+  },
+  {
+    "inventory_id": "UI-REV-04",
+    "inventory_ids": [
+      "UI-REV-04"
+    ],
+    "backlog_id": "BL-4-22",
+    "task": "Task 6.13",
+    "backlog_reference": "RH-294",
+    "title": "[Task 6.13] Build version diff preview for document history",
+    "body": "### Objective\n\nBuild the version diff preview that compares a stored version with the current document. This work lets writers see what changed before they restore anything. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-294\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/documents/components/DocumentHistory.tsx`, `frontend/src/features/documents/api/`\n**Design reference:** `Review,history&roles.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- banner \"Previewing vN, compared with current (vM)\" with an added and a removed legend;\n- added text in mint with underline and removed text in coral with strikethrough, computed on the client from the two stored documents;\n- works for paragraphs, lists and tables.\n\n**Out of scope:**\n- named versions and merge or three-way compare.\n\n### Acceptance Criteria\n\n- [ ] A diff never mutates the open document.\n- [ ] Identical versions show an explicit \"no differences\" state.\n- [ ] The diff algorithm is unit tested.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 6.11, Task 6.12\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "epic:documents"
+    ],
+    "milestone": "Epic 6: Persistent Documents Before Realtime Collaboration",
+    "existing_dependencies": [],
+    "related_existing_issues": [
+      39
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 6.11",
+      "Task 6.12"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Review,history&roles.pdf"
+    ],
+    "design_pages": [
+      "Review,history&roles.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        39
+      ],
+      "search_terms": [
+        "diff",
+        "compare versions"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #39 has no diff; none of #104's bullets describes one."
+    }
+  },
+  {
+    "inventory_id": "UI-SRC-01",
+    "inventory_ids": [
+      "UI-SRC-01",
+      "UI-SRC-03",
+      "UI-SRC-05",
+      "UI-SRC-17",
+      "UI-SHR-03"
+    ],
+    "backlog_id": "BL-4-12",
+    "task": "Task 7.8",
+    "backlog_reference": "RH-295",
+    "title": "[Task 7.8] Build source library page",
+    "body": "### Objective\n\nBuild the source library page with type tabs, the sources table, status chips and row actions. This work gives the shared source library the layout and clarity of the design. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-295\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/sources/components/SourceList.tsx`, `frontend/src/pages/`\n**Design reference:** `Sources.pdf` p.1; `Components&states.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- header with the \"Grounded in N ready sources\" sticker and an Upload source action;\n- tabs with counts for the supported types;\n- table with type tile and name, type chip, uploader, date, status chip, and the row actions Open, Download and Ask source (Ready only);\n- failed rows show the failure sentence and a Retry that uses reprocess; processing rows show progress text;\n- empty state \"Bring in your research material\".\n\n**Out of scope:**\n- search and filters (Task 24.3), grid view, rename, archive and folders (Task 24.2);\n- the upload dialog (Task 7.9).\n\n### Acceptance Criteria\n\n- [ ] List, download and reprocess behavior is unchanged.\n- [ ] Viewers do not see upload or retry controls.\n- [ ] Source list tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 7.6, Task 3.15, Task 3.16, Task 7.7, Task 3.18\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "data",
+      "epic:source-storage"
+    ],
+    "milestone": "Epic 7: Object Storage and Source Metadata",
+    "existing_dependencies": [
+      46
+    ],
+    "related_existing_issues": [
+      139,
+      140
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.15",
+      "Task 3.16",
+      "Task 7.7",
+      "Task 3.18"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Sources.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Sources.pdf p.1",
+      "Components&states.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        46,
+        140
+      ],
+      "search_terms": [
+        "source library",
+        "source list"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #46 built the library; #140 (open) is search/filter. This restyles the page and excludes the toolbar filters."
+    }
+  },
+  {
+    "inventory_id": "UI-SRC-07",
+    "inventory_ids": [
+      "UI-SRC-07"
+    ],
+    "backlog_id": "BL-4-13",
+    "task": "Task 7.9",
+    "backlog_reference": "RH-296",
+    "title": "[Task 7.9] Build upload sources dialog",
+    "body": "### Objective\n\nBuild the upload sources dialog with a dropzone and a per-file queue. This work lets users add several files at once and watch each file move from uploaded to ready. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-296\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/sources/components/SourceUploadForm.tsx`\n**Design reference:** `Sources.pdf` p.2; `Key_user_flows.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- dropzone with drag and drop, Browse files, the size limit and supported type chips;\n- queue rows with name, size, progress, status chip and a bounded error sentence with Retry;\n- the existing client-side file checks and server messages are reused;\n- closing the dialog does not cancel processing.\n\n**Out of scope:**\n- OCR and scanned-PDF handling;\n- folders and tags.\n\n### Acceptance Criteria\n\n- [ ] Each file is uploaded with the existing endpoint and progress callback.\n- [ ] Rejected files show the same messages as today.\n- [ ] Upload form tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 7.4, Task 3.11, Task 3.13, Task 7.7\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "data",
+      "epic:source-storage"
+    ],
+    "milestone": "Epic 7: Object Storage and Source Metadata",
+    "existing_dependencies": [
+      44
+    ],
+    "related_existing_issues": [
+      46
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.11",
+      "Task 3.13",
+      "Task 7.7"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Sources.pdf",
+      "Key_user_flows.pdf"
+    ],
+    "design_pages": [
+      "Sources.pdf p.2",
+      "Key_user_flows.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        44,
+        46
+      ],
+      "search_terms": [
+        "upload",
+        "dropzone"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #46 required drag/drop or file picker; the form ships a picker. Queue and dialog are new."
+    }
+  },
+  {
+    "inventory_id": "UI-SRC-08",
+    "inventory_ids": [
+      "UI-SRC-08",
+      "UI-SRC-11",
+      "UI-SRC-15",
+      "UI-SRC-16",
+      "UI-SHR-13"
+    ],
+    "backlog_id": "BL-4-14",
+    "task": "Task 9.7",
+    "backlog_reference": "RH-297",
+    "title": "[Task 9.7] Build source detail page layout",
+    "body": "### Objective\n\nBuild the source detail page layout around the existing source features. This work presents source metadata, processing state and previews in the workspace tool layout. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-297\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/pages/SourceDetailPage.tsx`, `frontend/src/features/sources/components/`\n**Design reference:** `Sources.pdf` p.3,2; `Reusable_parts.pdf` p.5\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- header with type tile, name and status chips, and a metadata card (type, version, status, uploader, date, size);\n- processing indicator, failure sentence and retry;\n- extraction preview, dataset preview, version history and replace restyled with the shared primitives (no bespoke layout, the design does not cover them);\n- PDF page navigation keeps the `?page=` contract that citations use.\n\n**Out of scope:**\n- title, authors and year (Task 24.1);\n- Cite, Add to notes and Saved evidence;\n- rendered PDF pages, thumbnails and a selection toolbar.\n\n### Acceptance Criteria\n\n- [ ] All current source detail behavior and deep links keep working.\n- [ ] Tests for `SourceDetailPage` and version history pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 9.6, Task 7.7, Task 3.19, Task 3.15\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "data",
+      "epic:document-parsing"
+    ],
+    "milestone": "Epic 9: Document Parsing",
+    "existing_dependencies": [
+      57
+    ],
+    "related_existing_issues": [
+      76,
+      138
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 7.7",
+      "Task 3.19",
+      "Task 3.15"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Sources.pdf",
+      "Reusable_parts.pdf"
+    ],
+    "design_pages": [
+      "Sources.pdf p.3,2",
+      "Reusable_parts.pdf p.5"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        57,
+        138
+      ],
+      "search_terms": [
+        "source preview",
+        "source detail"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #57 delivered the preview UI; #138 is metadata. The layout and restyle are new."
+    }
+  },
+  {
+    "inventory_id": "UI-ASK-01",
+    "inventory_ids": [
+      "UI-ASK-01",
+      "UI-ASK-02",
+      "UI-ASK-04",
+      "UI-ASK-09",
+      "UI-ASK-12"
+    ],
+    "backlog_id": "BL-4-15",
+    "task": "Task 11.10",
+    "backlog_reference": "RH-298",
+    "title": "[Task 11.10] Build Ask AI page",
+    "body": "### Objective\n\nBuild the Ask AI page in the workspace tool shell using the existing research conversations. This work promotes the research conversation from a panel beside the editor to a full page with an investigations list and a citation panel. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-298\n**Estimated size:** XL\n**Primary implementation paths:** `frontend/src/features/ai/components/ResearchPanel.tsx`, `frontend/src/features/ai/components/WorkspaceQuestions.tsx`, `frontend/src/pages/`\n**Design reference:** `Ask,evidence&comparison.pdf` p.1; `Key_user_flows.pdf` p.1\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- investigations column with New question and the workspace's conversations grouped by recency;\n- main area with the scope chip, the question, the grounded answer block and evidence list, answer states, and a composer with streaming and Stop;\n- citation panel showing the selected citation's source, location and quote with an Open source action.\n\n**Out of scope:**\n- key findings, evidence-quality chips, uncertainty, contradictory evidence and suggested questions (no answer contract);\n- the Saved button and group, partly supported, View analysis and Insert evidence.\n\n### Acceptance Criteria\n\n- [ ] Asking, streaming, cancelling and reloading history behave as in the current panel.\n- [ ] Selecting a citation updates the panel and opens the source page at the cited location.\n- [ ] `ResearchPanel` tests are migrated with equivalent assertions.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 11.4, Task 11.6, Task 11.7, Task 11.8, Task 11.9, Task 3.19\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:rag-citations"
+    ],
+    "milestone": "Epic 11: LLM Orchestration and Citations",
+    "existing_dependencies": [
+      67,
+      69
+    ],
+    "related_existing_issues": [
+      68
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 11.7",
+      "Task 11.8",
+      "Task 11.9",
+      "Task 3.19"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "XL",
+    "design_sources": [
+      "Ask,evidence&comparison.pdf",
+      "Key_user_flows.pdf"
+    ],
+    "design_pages": [
+      "Ask,evidence&comparison.pdf p.1",
+      "Key_user_flows.pdf p.1"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        68,
+        67,
+        69
+      ],
+      "search_terms": [
+        "Ask AI page",
+        "conversations"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #68 built the panel beside the editor; a standalone page is new."
+    }
+  },
+  {
+    "inventory_id": "UI-ASK-14",
+    "inventory_ids": [
+      "UI-ASK-14"
+    ],
+    "backlog_id": "BL-4-16",
+    "task": "Task 11.11",
+    "backlog_reference": "RH-299",
+    "title": "[Task 11.11] Build scoped Ask this source view",
+    "body": "### Objective\n\nBuild the Ask this source view that scopes a question to one source and shows where it says so. This work lets a reader interrogate a single paper and see the cited page and quote. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-299\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/ai/components/`, `frontend/src/pages/SourceDetailPage.tsx`\n**Design reference:** `Ask,evidence&comparison.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- ASKING banner naming the source and the scope with Change scope;\n- answer plus \"Where it says so\" cards with page, quote and Open page;\n- when evidence is insufficient, a neutral callout with an Ask all sources instead action;\n- scope panel with This source, Selected and All; changing scope re-runs the question and the scope stays visible.\n\n**Out of scope:**\n- page thumbnails and the specific \"not found in this source\" detail (not returned by the contract).\n\n### Acceptance Criteria\n\n- [ ] A question is sent with `selectedSourceIds` set to the source.\n- [ ] Switching scope re-runs and keeps the scope visible above the answer.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 11.3, Task 11.10, Task 9.7\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:rag-citations"
+    ],
+    "milestone": "Epic 11: LLM Orchestration and Citations",
+    "existing_dependencies": [
+      66
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 11.10",
+      "Task 9.7"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Ask,evidence&comparison.pdf"
+    ],
+    "design_pages": [
+      "Ask,evidence&comparison.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        66,
+        68
+      ],
+      "search_terms": [
+        "ask this source",
+        "scoped question"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #66 supports source scoping; the dedicated view is new."
+    }
+  },
+  {
+    "inventory_id": "UI-DOC-09",
+    "inventory_ids": [
+      "UI-DOC-09"
+    ],
+    "backlog_id": "BL-4-17",
+    "task": "Task 12.7",
+    "backlog_reference": "RH-300",
+    "title": "[Task 12.7] Build document selection toolbar for AI rewrite actions",
+    "body": "### Objective\n\nBuild the floating selection toolbar that starts AI rewrite and evidence actions on selected text. This work puts the existing rewrite actions where the writer is looking, while the suggestion still needs explicit approval. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-300\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/documents/components/DocumentBodyEditor.tsx`, `frontend/src/features/ai/components/AuthoringPanel.tsx`\n**Design reference:** `Document_editor.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- floating toolbar over the selection with Improve writing, Shorten, Expand, Explain and Find evidence mapped to the existing actions;\n- choosing an action opens the suggestion flow with the selection and current revision;\n- hidden for viewers and when the document has unsaved changes, as the panel is today.\n\n**Out of scope:**\n- Check claim and Add citation (no backend action);\n- Clarify and Fix grammar, which stay in the panel.\n\n### Acceptance Criteria\n\n- [ ] The toolbar sends the same commands as the panel.\n- [ ] Keyboard users can reach the actions.\n- [ ] Authoring tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 12.2, Task 3.13, Task 6.10\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:ai-authoring"
+    ],
+    "milestone": "Epic 12: AI-Assisted Authoring",
+    "existing_dependencies": [
+      71
+    ],
+    "related_existing_issues": [
+      72
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.13",
+      "Task 6.10"
+    ],
+    "readiness": "READY_NOW",
+    "scope": "M",
+    "design_sources": [
+      "Document_editor.pdf"
+    ],
+    "design_pages": [
+      "Document_editor.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        71
+      ],
+      "search_terms": [
+        "selection toolbar",
+        "rewrite"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #71 delivered rewrite through a panel; a floating toolbar is new."
+    }
+  },
+  {
+    "inventory_id": "UI-DOC-12",
+    "inventory_ids": [
+      "UI-DOC-12",
+      "UI-DOC-13"
+    ],
+    "backlog_id": "BL-4-18",
+    "task": "Task 12.8",
+    "backlog_reference": "RH-301",
+    "title": "[Task 12.8] Build generate section panel",
+    "body": "### Objective\n\nBuild the Generate section panel and the in-document AI draft block. This work presents source-grounded drafting with clear controls and a draft that is clearly not in the document yet. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-301\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/ai/components/AuthoringPanel.tsx`\n**Design reference:** `Document_editor.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- panel with section or placement, sources to use (shared picker), length, tone presets and a citations-required control;\n- a dashed AI draft block in the document with a \"Grounded in N sources\" chip and the actions Insert draft, Insert and edit, Regenerate and Discard;\n- result note stating the draft is a suggestion and the document is unchanged;\n- states for generating, ready, insufficient evidence and error.\n\n**Out of scope:**\n- the Internet toggle (Task 24.4);\n- citation modes other than required;\n- regenerate variants beyond the existing style presets.\n\n### Acceptance Criteria\n\n- [ ] Insertion keeps explicit approval and idempotency.\n- [ ] The draft never changes the document until accepted.\n- [ ] `AuthoringPanel` tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 12.1, Task 11.7, Task 3.19, Task 6.10\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:ai-authoring"
+    ],
+    "milestone": "Epic 12: AI-Assisted Authoring",
+    "existing_dependencies": [
+      70
+    ],
+    "related_existing_issues": [
+      141
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 11.7",
+      "Task 3.19",
+      "Task 6.10"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Document_editor.pdf"
+    ],
+    "design_pages": [
+      "Document_editor.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        70
+      ],
+      "search_terms": [
+        "generate section",
+        "draft"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #70 delivered section generation behavior."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-12",
+    "inventory_ids": [
+      "UI-SHR-12",
+      "UI-DOC-10",
+      "UI-ASK-13",
+      "UI-FLW-03"
+    ],
+    "backlog_id": "BL-4-19",
+    "task": "Task 12.9",
+    "backlog_reference": "RH-302",
+    "title": "[Task 12.9] Build AI suggestion card and find evidence panel",
+    "body": "### Objective\n\nBuild the AI suggestion card and the find evidence panel for a selected claim. This work makes AI changes reviewable and puts supporting evidence next to the claim. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-302\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/ai/components/AuthoringPanel.tsx`\n**Design reference:** `Document_editor.pdf` p.2; `Ask,evidence&comparison.pdf` p.3; `Key_user_flows.pdf` p.3\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- suggestion card with the original text struck through in coral, the new text in mint, a note on what it used, and Accept, Reject and Edit;\n- find evidence panel with the claim, supporting evidence cards (source, page, quote, Open) and an Add citation action;\n- a no-evidence state that offers to keep the claim as it is.\n\n**Out of scope:**\n- the strength meter, a contradictory-evidence section, Insert quote and Add as note (no agreed mapping or concept);\n- \"What changed, and why\" (not in the suggestion contract).\n\n### Acceptance Criteria\n\n- [ ] Accept, reject and edit use the existing endpoints with the stale-revision guard.\n- [ ] Evidence cards show only data the candidate carries.\n- [ ] Tests pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 12.3, Task 12.7, Task 11.8, Task 11.9\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:ai-authoring"
+    ],
+    "milestone": "Epic 12: AI-Assisted Authoring",
+    "existing_dependencies": [
+      72
+    ],
+    "related_existing_issues": [
+      71
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 12.7",
+      "Task 11.8",
+      "Task 11.9"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Document_editor.pdf",
+      "Ask,evidence&comparison.pdf",
+      "Key_user_flows.pdf"
+    ],
+    "design_pages": [
+      "Document_editor.pdf p.2",
+      "Ask,evidence&comparison.pdf p.3",
+      "Key_user_flows.pdf p.3"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        71,
+        72
+      ],
+      "search_terms": [
+        "suggestion",
+        "find evidence"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #71/#72 delivered the behavior."
+    }
+  },
+  {
+    "inventory_id": "UI-ASK-15",
+    "inventory_ids": [
+      "UI-ASK-15",
+      "UI-ASK-16",
+      "UI-FLW-04"
+    ],
+    "backlog_id": "BL-4-20",
+    "task": "Task 12.10",
+    "backlog_reference": "RH-303",
+    "title": "[Task 12.10] Build compare sources view",
+    "body": "### Objective\n\nBuild the compare sources view with the grid, summary and disagreement card from the design. This work gives literature comparison a readable grid in which every cell is cited. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-303\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/ai/components/SourceComparisonPanel.tsx`\n**Design reference:** `Ask,evidence&comparison.pdf` p.4; `Key_user_flows.pdf` p.4\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- removable chips for the compared sources and an Add source action (2 to 5 sources);\n- grid with a sticky criteria column, one column per source, cells with citation chips and missing values shown explicitly;\n- summary card and a \"differences worth a look\" card that runs the disagreement analysis;\n- source version selection (original or latest) is preserved.\n\n**Out of scope:**\n- changing the criteria to the design's row names (needs a decision);\n- Export comparison and Insert summary into document;\n- the evidence-on-a-claim view.\n\n### Acceptance Criteria\n\n- [ ] Comparison and disagreement requests are unchanged.\n- [ ] Missing research fields stay missing.\n- [ ] `SourceComparisonPanel` tests and its coverage threshold hold.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 12.5, Task 12.6, Task 3.15, Task 11.7, Task 11.8\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:ai-authoring"
+    ],
+    "milestone": "Epic 12: AI-Assisted Authoring",
+    "existing_dependencies": [
+      74,
+      75
+    ],
+    "related_existing_issues": [],
+    "depends_on_proposed_tasks": [
+      "Task 3.15",
+      "Task 11.7",
+      "Task 11.8"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "L",
+    "design_sources": [
+      "Ask,evidence&comparison.pdf",
+      "Key_user_flows.pdf"
+    ],
+    "design_pages": [
+      "Ask,evidence&comparison.pdf p.4",
+      "Key_user_flows.pdf p.4"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        74,
+        75
+      ],
+      "search_terms": [
+        "compare sources",
+        "comparison"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #74/#75 delivered comparison and disagreement analysis."
+    }
+  },
+  {
+    "inventory_id": "UI-SRC-10",
+    "inventory_ids": [
+      "UI-SRC-10",
+      "UI-SHR-18"
+    ],
+    "backlog_id": "BL-4-21",
+    "task": "Task 13.4",
+    "backlog_reference": "RH-304",
+    "title": "[Task 13.4] Build spreadsheet viewer from the dataset preview",
+    "body": "### Objective\n\nBuild the spreadsheet viewer layout around the existing bounded dataset preview. This work presents the safe dataset preview with the clarity of the design while keeping its limits visible. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-304\n**Estimated size:** M\n**Primary implementation paths:** `frontend/src/features/analysis/components/DatasetPreviewPanel.tsx`\n**Design reference:** `Sources.pdf` p.4\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- header with type tile, name, sheet and version details, and the Analyze and Ask about data actions that exist today;\n- sheet tabs, a grid with typed column headers (numeric and text badges), sample rows, row and column counts;\n- truncation and estimate warnings shown as banners, never hidden;\n- a sheet details panel.\n\n**Out of scope:**\n- Load more rows, column histograms and statistics, the check-before-analysing validation, the Used in list and Create analysis (beyond the bounded preview or unbuilt);\n- any change to the preview size limits.\n\n### Acceptance Criteria\n\n- [ ] Every value is rendered as inert text.\n- [ ] The preview remains bounded and keeps its limit and warning notes.\n- [ ] `DatasetPreviewPanel` tests and the analysis coverage threshold pass.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 13.3, Task 3.15, Task 3.16, Task 7.7\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "data",
+      "epic:dataset-inspection"
+    ],
+    "milestone": "Epic 13: Dataset Inspection",
+    "existing_dependencies": [
+      78
+    ],
+    "related_existing_issues": [
+      77
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.15",
+      "Task 3.16",
+      "Task 7.7"
+    ],
+    "readiness": "EXISTS_NEEDS_POLISH",
+    "scope": "M",
+    "design_sources": [
+      "Sources.pdf"
+    ],
+    "design_pages": [
+      "Sources.pdf p.4"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        78
+      ],
+      "search_terms": [
+        "dataset preview",
+        "spreadsheet"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #78 (open) describes the functional preview UI, which already exists in the working tree; this issue is the visual redesign only."
+    }
+  },
+  {
+    "inventory_id": "UI-SHR-16",
+    "inventory_ids": [
+      "UI-SHR-16",
+      "UI-SHR-17",
+      "UI-SHR-19",
+      "UI-SHR-20",
+      "UI-SHR-21",
+      "UI-SHR-22",
+      "UI-ANA-02",
+      "UI-ANA-03",
+      "UI-PRM-22",
+      "UI-RES-08"
+    ],
+    "backlog_id": "BL-5-01",
+    "task": "Task 15.8",
+    "backlog_reference": "RH-305",
+    "title": "[Task 15.8] Build analysis status, pipeline and result presentation components",
+    "body": "### Objective\n\nBuild presentational analysis components with typed props: status chip, pipeline step cards, code panel, result table, chart card frame, freshness banner and analysis list item. This work lets the analysis screens be assembled quickly once the analysis contracts exist, without inventing backend semantics. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-305\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/analysis/components/`, `frontend/src/shared/components/`\n**Design reference:** `Analysis_studio.pdf` p.1,3; `Results,provenance&insert.pdf` p.1,3; `Components&states.pdf` p.2\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- status chip for Queued, Running, Completed and Failed with icon and word;\n- pipeline step cards (Done, In progress, Next) that take their steps as props;\n- read-only code panel with line numbers and a Hide or Show code toggle;\n- result table with a highlighted calculated column;\n- chart card frame (title, legend, caption, source footer) without a plotting layer;\n- \"Out of date\" freshness banner and an analysis list item.\n\n**Out of scope:**\n- data fetching, routes and plotting;\n- anything that depends on Epic 14 or Epic 15 contracts (Task 14.2, Task 15.2).\n\n### Acceptance Criteria\n\n- [ ] Components have no knowledge of the planner or the sandbox.\n- [ ] All text inputs render as inert text and code is never executed.\n- [ ] Each component has a unit test with typed fixtures.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 3.12, Task 3.14, Task 3.15\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "data",
+      "epic:analysis-provenance"
+    ],
+    "milestone": "Epic 15: Analysis Artifacts and Provenance",
+    "existing_dependencies": [],
+    "related_existing_issues": [
+      79,
+      86,
+      87
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.12",
+      "Task 3.14",
+      "Task 3.15"
+    ],
+    "readiness": "UI_ONLY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Analysis_studio.pdf",
+      "Results,provenance&insert.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Analysis_studio.pdf p.1,3",
+      "Results,provenance&insert.pdf p.1,3",
+      "Components&states.pdf p.2"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        87,
+        90
+      ],
+      "search_terms": [
+        "analysis result",
+        "code panel"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #87 is the full screen and is BLOCKED on #84/#85/#86; this issue covers only stateless presentational parts and does not overlap its integration scope."
+    }
+  },
+  {
+    "inventory_id": "UI-SCH-01",
+    "inventory_ids": [
+      "UI-SCH-01",
+      "UI-SCH-03",
+      "UI-SCH-04"
+    ],
+    "backlog_id": "BL-5-02",
+    "task": "Task 24.5",
+    "backlog_reference": "RH-306",
+    "title": "[Task 24.5] Build command search dialog for workspace sources",
+    "body": "### Objective\n\nBuild the keyboard-driven search dialog (Cmd or Ctrl K) over the workspace's source text using the existing retrieval search. This work gives researchers the fast path to a passage in any source, with a preview and a link to the cited page. The implementation must stay within the agreed ResearchHub architecture and avoid unrelated infrastructure or feature expansion.\n\n### Technical Implementation Details\n\n**Backlog reference:** RH-306\n**Estimated size:** L\n**Primary implementation paths:** `frontend/src/features/sources/`, `frontend/src/shared/components/`\n**Design reference:** `Search,settings&internal_tools.pdf` p.1; `Components&states.pdf` p.4\n**Technology baseline:** Java 25 + Spring Boot 4.1.1 + Maven for the core backend; Spring-managed dependency versions should come from the Spring Boot BOM whenever possible; React + TypeScript on Node/npm with Webpack and Babel; frontend dependency versions must remain pinned by `package-lock.json`.\n**Architecture constraints:** Keep the Spring backend as a modular monolith; enforce workspace authorization on the server for workspace-owned resources; keep AI/data Python concerns outside core Java domain logic; preserve provenance for source- or analysis-derived outputs where applicable.\n**Implementation anchor:** Start from the paths above, keep public contracts explicit, and add/update configuration or migration files in the same change when the task introduces a runtime or schema dependency.\n\n**UX:**\n- search input with a visible Esc hint, a Sources result group with matched terms highlighted, document title and page or location;\n- selected row with a preview pane (passage and Open page);\n- keyboard hint bar: up and down move, Enter opens, Cmd or Ctrl Enter opens beside, Esc closes;\n- no-results state with Search sources only and Clear search.\n\n**Out of scope:**\n- Workspaces, Documents, AI conversations and Analyses groups (no search endpoints);\n- the Cite action (no target document defined);\n- source filters (Task 24.3).\n\n### Acceptance Criteria\n\n- [ ] Results come only from `GET /api/workspaces/{id}/retrieval/search` and respect workspace scope.\n- [ ] The dialog is fully keyboard operable and announces result counts.\n- [ ] Tests cover keyboard navigation and the empty state.\n- [ ] Relevant automated tests pass and the repository builds successfully for the affected component.\n- [ ] Minimum 80% test coverage for this module\n\n### Dependencies\n\nTask 10.5, Task 3.13, Task 3.11, Task 3.15\n",
+    "labels": [
+      "medium-priority",
+      "frontend",
+      "ai",
+      "epic:research-workflows"
+    ],
+    "milestone": "Epic 24: Advanced Source and Research Workflows",
+    "existing_dependencies": [
+      62
+    ],
+    "related_existing_issues": [
+      140
+    ],
+    "depends_on_proposed_tasks": [
+      "Task 3.13",
+      "Task 3.11",
+      "Task 3.15"
+    ],
+    "readiness": "UI_ONLY_NOW",
+    "scope": "L",
+    "design_sources": [
+      "Search,settings&internal_tools.pdf",
+      "Components&states.pdf"
+    ],
+    "design_pages": [
+      "Search,settings&internal_tools.pdf p.1",
+      "Components&states.pdf p.4"
+    ],
+    "duplicate_check": {
+      "closest_existing_issues": [
+        140,
+        62
+      ],
+      "search_terms": [
+        "search",
+        "command palette",
+        "retrieval"
+      ],
+      "conclusion": "scope differs from every existing issue (overlap well under 70%): #140 is source list search and filtering; #62 is the retrieval index. No issue covers a keyboard search surface."
+    }
+  }
+]
