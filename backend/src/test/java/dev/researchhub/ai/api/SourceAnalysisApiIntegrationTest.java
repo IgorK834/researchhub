@@ -7,6 +7,7 @@ import dev.researchhub.ai.application.GenerationContracts.Evidence;
 import dev.researchhub.ai.application.GenerationContracts.ModelMetadata;
 import dev.researchhub.ai.application.GenerationContracts.Usage;
 import dev.researchhub.shared.infrastructure.persistence.PostgresTestcontainersConfiguration;
+import dev.researchhub.source.SourceRowFixture;
 import dev.researchhub.support.ApiBrowser;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.*;
@@ -75,20 +76,20 @@ class SourceAnalysisApiIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @MockitoBean RetrievalSearchService search;
     @MockitoBean SourceRetrievalService retrieval;
-    ApiBrowser owner; UUID workspace,caller; List<UUID> sources; List<RetrievalChunk> chunks; String path;
+    ApiBrowser owner; UUID workspace,caller; List<UUID> sources,versions; List<RetrievalChunk> chunks; String path;
     @BeforeEach void setup() throws Exception {
         jdbc.execute("TRUNCATE users,workspaces CASCADE"); MODE.set("normal");CALLS.set(0);LAST.set(null);
         owner=new ApiBrowser(port,json);owner.signUp("owner@example.com","Owner"); workspace=UUID.fromString(owner.createdWorkspaceId("Research","Sources"));
         caller=jdbc.queryForObject("SELECT id FROM users WHERE email='owner@example.com'",UUID.class); path="/api/workspaces/"+workspace+"/ai/source-analyses";
-        sources=List.of(UUID.randomUUID(),UUID.randomUUID()); chunks=new ArrayList<>();
+        sources=List.of(UUID.randomUUID(),UUID.randomUUID()); versions=new ArrayList<>(); chunks=new ArrayList<>();
         for (int i=0;i<sources.size();i++) {
             var id=sources.get(i);
-            jdbc.update("INSERT INTO sources(id,workspace_id,original_filename,display_name,media_type,source_type,size_bytes,storage_key,content_sha256,status,uploaded_by,created_at,updated_at) VALUES (?,?,'paper.txt',?,'text/plain','TXT',20,?,?,'READY',?,now(),now())",id,workspace,"Paper "+i,"sources/"+id,"a".repeat(64),caller);
+            var version=SourceRowFixture.insertReadyText(jdbc,id,workspace,caller,"Paper "+i); versions.add(version);
             var text="Method: "+(i==0 ? "randomized" : "observational");
-            var chunk=new RetrievalChunk((i==0 ? "a" : "b").repeat(64),id,workspace,null,0,text,7,7,"Method",RetrievalIdentity.hash(text),"retrieval-1:test",List.of(new SourceSpan("p7",0,text.length())));
+            var chunk=new RetrievalChunk((i==0 ? "a" : "b").repeat(64),id,workspace,version,0,text,7,7,"Method",RetrievalIdentity.hash(text),"retrieval-1:test",List.of(new SourceSpan("p7",0,text.length())));
             chunks.add(chunk);
             when(search.search(anyString(),eq(workspace),eq(List.of(id)),eq(2),any())).thenReturn(List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4))));
-            when(retrieval.chunk(eq(workspace),eq(id),any(),eq(chunk.chunkId()),eq(chunk.processingVersion()))).thenReturn(chunk);
+            when(retrieval.chunk(eq(workspace),eq(id),eq(version),any(),eq(chunk.chunkId()),eq(chunk.processingVersion()))).thenReturn(chunk);
         }
     }
     String command(List<UUID> selected) { return json.writeValueAsString(new Compare(selected,null,null)); }
@@ -114,11 +115,11 @@ class SourceAnalysisApiIntegrationTest {
         var all=new ArrayList<>(sources);
         for (int i=2;i<5;i++) {
             var id=UUID.randomUUID();all.add(id);
-            jdbc.update("INSERT INTO sources(id,workspace_id,original_filename,display_name,media_type,source_type,size_bytes,storage_key,content_sha256,status,uploaded_by,created_at,updated_at) VALUES (?,?,'paper.txt',?,'text/plain','TXT',20,?,?,'READY',?,now(),now())",id,workspace,"Paper "+i,"sources/"+id,"a".repeat(64),caller);
+            var version=SourceRowFixture.insertReadyText(jdbc,id,workspace,caller,"Paper "+i);
             var text="Method: cohort "+i;
-            var chunk=new RetrievalChunk((char)('a'+i)+""+"c".repeat(63),id,workspace,null,0,text,7,7,"Method",RetrievalIdentity.hash(text),"retrieval-1:test",List.of(new SourceSpan("p7",0,text.length())));
+            var chunk=new RetrievalChunk((char)('a'+i)+""+"c".repeat(63),id,workspace,version,0,text,7,7,"Method",RetrievalIdentity.hash(text),"retrieval-1:test",List.of(new SourceSpan("p7",0,text.length())));
             when(search.search(anyString(),eq(workspace),eq(List.of(id)),eq(2),any())).thenReturn(List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4))));
-            when(retrieval.chunk(eq(workspace),eq(id),any(),eq(chunk.chunkId()),eq(chunk.processingVersion()))).thenReturn(chunk);
+            when(retrieval.chunk(eq(workspace),eq(id),eq(version),any(),eq(chunk.chunkId()),eq(chunk.processingVersion()))).thenReturn(chunk);
         }
         for (int count=2;count<=5;count++) {
             var response=owner.postJson(path+"/comparisons",command(all.subList(0,count))); assertEquals(200,response.statusCode(),response.body());
@@ -137,8 +138,10 @@ class SourceAnalysisApiIntegrationTest {
         assertEquals(404,outsider.get("/api/workspaces/"+other+"/ai/source-analyses/"+id).statusCode());
         assertEquals(201,owner.postJson("/api/workspaces/"+workspace+"/members","{\"email\":\"outsider@example.com\",\"role\":\"VIEWER\"}").statusCode());
         assertEquals(200,outsider.postJson(path+"/comparisons",command(sources)).statusCode());
-        jdbc.update("DELETE FROM sources WHERE id=?",sources.getLast());
-        assertEquals(404,owner.get(path+"/"+id).statusCode());
+        // A later upload replaces the active bytes; the saved analysis stays readable and keeps naming the version it used.
+        SourceRowFixture.addVersion(jdbc,sources.getLast(),2,"paper-2.txt","text/plain","TXT",21,"sources/"+UUID.randomUUID(),"b".repeat(64),"READY",java.time.Instant.now());
+        var reread=owner.get(path+"/"+id); assertEquals(200,reread.statusCode(),reread.body());
+        assertEquals(versions.getLast().toString(),owner.json(reread).path("sources").get(1).path("sourceVersionId").asString());
     }
     @Test void validatesBoundsAndRejectsInventedCrossSourceAndUnknownOutput() throws Exception {
         for (var ids:List.of(List.of(sources.getFirst()),List.of(sources.getFirst(),sources.getFirst()),Collections.nCopies(6,sources.getFirst())))
@@ -158,13 +161,13 @@ class SourceAnalysisApiIntegrationTest {
         comparison=compare();response=owner.postJson(path+"/"+comparison.path("id").asString()+"/disagreements","{}");assertEquals(200,response.statusCode());assertEquals("INSUFFICIENT_EVIDENCE",owner.json(response).path("answer").path("status").asString());assertEquals(1,CALLS.get());
     }
     @Test void untrustedRetrievalAndReprocessedEvidenceCannotPublishResults() throws Exception {
-        var c=chunks.getFirst(); var foreign=new RetrievalChunk(c.chunkId(),sources.getLast(),workspace,null,0,c.content(),7,7,null,c.contentHash(),c.processingVersion(),c.spans());
+        var c=chunks.getFirst(); var foreign=new RetrievalChunk(c.chunkId(),sources.getLast(),workspace,versions.getLast(),0,c.content(),7,7,null,c.contentHash(),c.processingVersion(),c.spans());
         when(search.search(anyString(),eq(workspace),eq(List.of(sources.getFirst())),eq(2),any())).thenReturn(List.of(new RetrievalHit(foreign,1,1,1,new EmbeddingModel("fixture","fixture","1",4))));
         assertEquals(502,owner.postJson(path+"/comparisons",command(sources)).statusCode());assertEquals(0,CALLS.get());
         when(search.search(anyString(),eq(workspace),eq(List.of(sources.getFirst())),eq(2),any())).thenReturn(List.of(new RetrievalHit(c,1,1,1,new EmbeddingModel("fixture","fixture","1",4))));
         var comparison=compare();
-        var changed=new RetrievalChunk(c.chunkId(),c.sourceId(),workspace,null,0,"Changed",7,7,null,RetrievalIdentity.hash("Changed"),c.processingVersion(),c.spans());
-        when(retrieval.chunk(eq(workspace),eq(c.sourceId()),any(),eq(c.chunkId()),eq(c.processingVersion()))).thenReturn(changed);
+        var changed=new RetrievalChunk(c.chunkId(),c.sourceId(),workspace,c.sourceVersionId(),0,"Changed",7,7,null,RetrievalIdentity.hash("Changed"),c.processingVersion(),c.spans());
+        when(retrieval.chunk(eq(workspace),eq(c.sourceId()),eq(c.sourceVersionId()),any(),eq(c.chunkId()),eq(c.processingVersion()))).thenReturn(changed);
         assertEquals(409,owner.postJson(path+"/"+comparison.path("id").asString()+"/disagreements","{}").statusCode());
         assertEquals(409,owner.postJson(path+"/comparisons",command(sources)).statusCode());
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ai_source_analyses",Integer.class));

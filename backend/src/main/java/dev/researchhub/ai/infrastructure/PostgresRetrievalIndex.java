@@ -72,7 +72,7 @@ public class PostgresRetrievalIndex implements RetrievalIndex {
                 JOIN source_retrieval_chunks c ON c.chunk_id=v.chunk_id AND c.workspace_id=v.workspace_id AND c.source_id=v.source_id
                 JOIN source_retrieval_sets r ON r.source_id=v.source_id AND r.workspace_id=v.workspace_id AND r.processing_version=v.processing_version
                 JOIN source_extractions e ON e.source_id=r.source_id AND e.workspace_id=r.workspace_id AND e.job_id=r.job_id
-                WHERE v.workspace_id=? AND s.status='READY'
+                WHERE v.workspace_id=? AND s.status='READY' AND c.source_version_id=s.active_version_id
             """ + filter + ")",Boolean.class,args.toArray()));
     }
     @Override @Transactional(readOnly = true)
@@ -96,6 +96,7 @@ public class PostgresRetrievalIndex implements RetrievalIndex {
                 JOIN source_retrieval_sets r ON r.source_id=v.source_id AND r.workspace_id=v.workspace_id AND r.processing_version=v.processing_version
                 JOIN source_extractions e ON e.source_id=r.source_id AND e.workspace_id=r.workspace_id AND e.job_id=r.job_id
                 WHERE v.workspace_id=? AND v.index_id=? AND s.status='READY'
+                  AND c.source_version_id=s.active_version_id
             """ + filter + """
             ),
             scored AS MATERIALIZED (SELECT s.*, 1-(s.embedding OPERATOR(public.<=>) p.vector) AS similarity,

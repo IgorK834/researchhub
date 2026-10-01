@@ -28,7 +28,7 @@ class ModelGatewayTest {
         gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class));
         chunk = new RetrievalChunk("a".repeat(64), source, workspace, null, 0, "Supported fact.", 2, 2, "Theory",
             RetrievalIdentity.hash("Supported fact."), "retrieval-1:test", List.of(new SourceSpan("unit-2", 0, 15)));
-        when(sources.findOne(workspace, caller, source)).thenReturn(new dev.researchhub.source.application.SourceSummary(source, workspace, "lecture.pdf", "Lecture", "application/pdf", "PDF", 20, "hash", "READY", null, caller, java.time.Instant.now(), java.time.Instant.now()));
+        when(sources.findOne(workspace, caller, source)).thenReturn(new dev.researchhub.source.application.SourceSummary(source, workspace, "lecture.pdf", "Lecture", "application/pdf", "PDF", 20, "hash", "READY", null, caller, java.time.Instant.now(), java.time.Instant.now(), UUID.randomUUID(), 1));
         command = new Command("Summarize this evidence", List.of(new EvidenceReference(source, chunk.chunkId(), chunk.processingVersion())));
         when(retrieval.chunk(workspace, source, caller, chunk.chunkId(), chunk.processingVersion())).thenReturn(chunk);
         when(provider.generateStructured(any(ContextualRequest.class))).thenAnswer(invocation -> result(((ContextualRequest) invocation.getArgument(0)).request(), chunk.chunkId()));

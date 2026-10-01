@@ -33,4 +33,19 @@ public class SourceRetrievalService {
         return set.chunks().stream().filter(chunk -> chunk.chunkId().equals(chunkId)).findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND));
     }
+
+    /** Resolves immutable historical evidence for an analysis that explicitly keeps its original inputs. */
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    public RetrievalChunk chunk(UUID workspaceId, UUID sourceId, UUID sourceVersionId, UUID callerId,
+                                String chunkId, String processingVersion) {
+        if (sourceVersionId == null) return chunk(workspaceId, sourceId, callerId, chunkId, processingVersion);
+        extractions.findVersion(workspaceId, sourceId, sourceVersionId, callerId);
+        var set = retrieval.findVersion(workspaceId, sourceId, sourceVersionId)
+                .orElseThrow(() -> new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND));
+        if (!processingVersion.equals(set.processingVersion())) {
+            throw new ConflictException("The requested source version has different retrieval provenance");
+        }
+        return set.chunks().stream().filter(value -> chunkId.equals(value.chunkId())).findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND));
+    }
 }

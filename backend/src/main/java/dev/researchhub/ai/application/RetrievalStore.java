@@ -10,4 +10,5 @@ public interface RetrievalStore {
     void save(UUID jobId, RetrievalChunkSet chunks, Instant now);
     boolean existsForJob(UUID workspaceId, UUID sourceId, UUID jobId);
     Optional<RetrievalChunkSet> find(UUID workspaceId, UUID sourceId, SourceExtraction extraction);
+    Optional<RetrievalChunkSet> findVersion(UUID workspaceId, UUID sourceId, UUID sourceVersionId);
 }

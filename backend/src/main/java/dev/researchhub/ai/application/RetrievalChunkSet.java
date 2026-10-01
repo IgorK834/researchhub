@@ -13,9 +13,18 @@ public record RetrievalChunkSet(String schemaVersion, UUID sourceId, UUID worksp
         return new RetrievalChunkSet(schemaVersion, sourceId, workspaceId, sourceVersionId, ingestionVersion,
                 parserVersion, sourceContentHash, extractionContentHash, processingVersion, config, value);
     }
+    /** Binds validated worker output to the server-owned immutable input version. */
+    public RetrievalChunkSet withSourceVersion(UUID versionId) {
+        Objects.requireNonNull(versionId);
+        return new RetrievalChunkSet(schemaVersion, sourceId, workspaceId, versionId, ingestionVersion,
+                parserVersion, sourceContentHash, extractionContentHash, processingVersion, config,
+                chunks.stream().map(chunk -> new RetrievalChunk(chunk.chunkId(), chunk.sourceId(), chunk.workspaceId(),
+                        versionId, chunk.chunkIndex(), chunk.content(), chunk.pageStart(), chunk.pageEnd(),
+                        chunk.sectionTitle(), chunk.contentHash(), chunk.processingVersion(), chunk.spans())).toList());
+    }
     public void validate(UUID expectedWorkspace, UUID expectedSource, SourceExtraction extraction) {
         require("1.0".equals(schemaVersion) && expectedWorkspace.equals(workspaceId) && expectedSource.equals(sourceId));
-        require(sourceVersionId == null && config != null && chunks != null && chunks.size() <= 10000);
+        require(config != null && chunks != null && chunks.size() <= 10000);
         config.validate();
         require(extraction.processingVersion().equals(ingestionVersion) && extraction.parserVersion().equals(parserVersion));
         require(extraction.extractionMetadata().contentSha256().equals(sourceContentHash));
@@ -33,7 +42,8 @@ public record RetrievalChunkSet(String schemaVersion, UUID sourceId, UUID worksp
         for (int index = 0; index < chunks.size(); index++) {
             var chunk = chunks.get(index);
             require(chunk != null && expectedWorkspace.equals(chunk.workspaceId()) && expectedSource.equals(chunk.sourceId())
-                    && chunk.sourceVersionId() == null && chunk.chunkIndex() == index && version.equals(chunk.processingVersion()));
+                    && Objects.equals(chunk.sourceVersionId(), sourceVersionId)
+                    && chunk.chunkIndex() == index && version.equals(chunk.processingVersion()));
             require(chunk.content() != null && !blank(chunk.content())
                     && chunk.content().codePointCount(0, chunk.content().length()) <= config.maxCharacters());
             require(chunk.spans() != null && !chunk.spans().isEmpty() && chunk.spans().size() <= 10000);

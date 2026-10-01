@@ -16,9 +16,15 @@ public final class RetrievalIdentity {
         catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
     public static String digest(Object... fields) { return hash(JSON.writeValueAsString(Arrays.asList(fields))); }
+    /**
+     * Content-addressed and deliberately independent of {@code sourceVersionId}. The worker computes the id before the
+     * server binds the chunk set to an immutable source version, and {@code processingVersion} already commits to the
+     * source and extraction content hashes, so different bytes never share an id. Keeping the version out of the digest
+     * also keeps every id minted before versioning (and every citation that stores one) valid; the version is recorded
+     * next to the id as provenance instead of inside it.
+     */
     public static String chunkId(RetrievalChunk chunk) {
-        return digest(chunk.workspaceId().toString(), chunk.sourceId().toString(),
-                chunk.sourceVersionId() == null ? null : chunk.sourceVersionId().toString(), chunk.processingVersion(),
+        return digest(chunk.workspaceId().toString(), chunk.sourceId().toString(), null, chunk.processingVersion(),
                 chunk.chunkIndex(), chunk.contentHash(), chunk.spans().stream()
                         .map(span -> Arrays.asList(span.unitId(), span.characterStart(), span.characterEnd())).toList());
     }

@@ -76,10 +76,7 @@ class AuthoringApiIntegrationTest {
         assertEquals(201,created.statusCode(),created.body()); document=UUID.fromString(owner.json(created).path("id").asString());
         docPath+="/"+document; path=docPath+"/ai/suggestions";
         source=UUID.randomUUID(); UUID userId=jdbc.queryForObject("SELECT id FROM users WHERE email='owner@example.com'",UUID.class);
-        jdbc.update("""
-            INSERT INTO sources(id,workspace_id,original_filename,display_name,media_type,source_type,size_bytes,storage_key,content_sha256,status,uploaded_by,created_at,updated_at)
-            VALUES (?,?,'lecture.txt','Lecture','text/plain','TXT',20,?,?,'READY',?,now(),now())
-            """,source,workspace,"sources/"+source,"a".repeat(64),userId);
+        dev.researchhub.source.SourceRowFixture.insertReadyText(jdbc,source,workspace,userId,"Lecture");
         chunk=new RetrievalChunk("b".repeat(64),source,workspace,null,0,"Human claim. Evidence.",7,7,"Theory",RetrievalIdentity.hash("Human claim. Evidence."),"retrieval-1:test",List.of(new SourceSpan("page-7",0,22)));
         when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenAnswer(invocation -> {
             List<UUID> selected=invocation.getArgument(2); return selected!=null && selected.isEmpty() ? List.of() : List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4)));

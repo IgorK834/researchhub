@@ -8,6 +8,7 @@ import static dev.researchhub.ai.application.GenerationContracts.*;
 public final class SourceAnalysisContracts {
     private SourceAnalysisContracts() {}
     public enum Kind { COMPARISON, DISAGREEMENTS }
+    public enum VersionSelection { ORIGINAL, LATEST }
     public enum Category { POTENTIAL_DISAGREEMENT, DIFFERENT_REPORTED_RESULT, DIFFERENT_EXPERIMENTAL_CONDITIONS }
     public static final List<String> DEFAULT_CRITERIA = List.of("method", "dataset", "metric", "main result", "limitations");
     public record Compare(List<UUID> selectedSourceIds, List<String> criteria, String instruction) {
@@ -21,9 +22,11 @@ public final class SourceAnalysisContracts {
             text(instruction, 1000);
         }
     }
-    public record FollowUp(String instruction) {
+    public record FollowUp(String instruction, VersionSelection versionSelection) {
+        public FollowUp(String instruction) { this(instruction, VersionSelection.ORIGINAL); }
         public FollowUp {
             instruction = instruction == null || instruction.isBlank() ? "Identify potential disagreements and methodological or contextual differences." : instruction;
+            versionSelection = versionSelection == null ? VersionSelection.ORIGINAL : versionSelection;
             text(instruction, 1000);
         }
     }
@@ -90,7 +93,9 @@ public final class SourceAnalysisContracts {
             answer.validateFor(kind, sourceIds, criteria, evidence);
         }
     }
-    public record Source(UUID id, String title) {}
+    public record Source(UUID id, String title, UUID sourceVersionId, int versionNumber, String contentSha256) {
+        public Source(UUID id, String title) { this(id, title, null, 0, null); }
+    }
     public record Analysis(UUID id, UUID workspaceId, UUID createdBy, Kind kind, UUID parentComparisonId,
                            Compare command, String analysisInstruction, List<Source> sources, Answer answer, List<Citation> evidence,
                            List<String> warnings, Result generation, ContextContracts.Summary context, Instant createdAt) {}
