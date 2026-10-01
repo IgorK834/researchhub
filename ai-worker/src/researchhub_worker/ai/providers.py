@@ -85,18 +85,17 @@ class FoundryModelProvider:
     def model_metadata(self):
         return self._metadata
 
-    def generate_structured(self, request):
-        contextual = request if isinstance(request, ContextualRequest) else None
-        if contextual is not None:
-            request = contextual.request
+    def complete(self, input_request, schema, schema_name):
+        contextual = input_request if isinstance(input_request, ContextualRequest) else None
+        request = contextual.request if contextual is not None else input_request
         body = {'model': self._deployment, 'stream': False, 'store': False,
             'messages': [{'role': 'system', 'content': request.system_instruction},
                          {'role': 'user', 'content': contextual.user_message() if contextual is not None else json.dumps({'instruction': request.instruction,
                              'evidence': [item.model_dump(by_alias=True) for item in request.evidence]}, ensure_ascii=False)}],
             'max_completion_tokens': request.parameters.max_output_tokens,
             'response_format': {'type': 'json_schema', 'json_schema': {
-                'name': 'researchhub_answer_v2' if contextual is not None else 'researchhub_answer_v1',
-                'strict': True, 'schema': LOCAL_ANSWER_SCHEMA if contextual is not None else ANSWER_SCHEMA}}}
+                'name': schema_name,
+                'strict': True, 'schema': schema}}}
         if request.parameters.temperature is not None:
             body['temperature'] = request.parameters.temperature
         http_request = Request(self._url, data=json.dumps(body).encode(), method='POST',
@@ -115,8 +114,26 @@ class FoundryModelProvider:
                 raise ProviderError('AI_REFUSED')
             if choice['finish_reason'] != 'stop' or message.get('tool_calls') or message.get('function_call'):
                 raise ValueError('Incomplete or tool-based answer')
-            answer = (LocalAnswer.model_validate_json(message['content']).to_structured(contextual.context) if contextual is not None
-                else StructuredAnswer.model_validate_json(message['content']))
+            return payload
+        except ProviderError:
+            raise
+        except HTTPError as error:
+            transient = error.code in (408, 429, 500, 502, 503, 504)
+            raise ProviderError('AI_UNAVAILABLE' if transient else 'AI_PROVIDER_ERROR', transient) from None
+        except (OSError, URLError):
+            raise ProviderError('AI_UNAVAILABLE', True) from None
+        except (ValueError, KeyError, TypeError, IndexError):
+            raise ProviderError('AI_OUTPUT_INVALID') from None
+
+    def generate_structured(self, request):
+        contextual = request if isinstance(request, ContextualRequest) else None
+        if contextual is not None:
+            request = contextual.request
+        try:
+            payload = self.complete(contextual or request, LOCAL_ANSWER_SCHEMA if contextual is not None else ANSWER_SCHEMA,
+                'researchhub_answer_v2' if contextual is not None else 'researchhub_answer_v1')
+            answer = (LocalAnswer.model_validate_json(payload['choices'][0]['message']['content']).to_structured(contextual.context) if contextual is not None
+                else StructuredAnswer.model_validate_json(payload['choices'][0]['message']['content']))
             answer.validate_evidence(request.evidence)
             usage = payload['usage']
             result = GenerationResult(schema_version='1.0', request_id=request.request_id,
@@ -172,6 +189,23 @@ class ModelGateway:
                     raise
                 self._sleep(0.2 * 2 ** attempt)
             except (ValueError, TypeError, AttributeError):
+                raise ProviderError('AI_OUTPUT_INVALID') from None
+
+    def generate_authoring(self, request):
+        from .authoring import generate_authoring, AuthoringResult
+        for attempt in range(3):
+            try:
+                request = ContextualRequest.model_validate(request.model_dump())
+                result = AuthoringResult.model_validate(generate_authoring(self._provider, request).model_dump())
+                result.validate_for(request)
+                if result.model != self.model_metadata():
+                    raise ValueError('Model metadata changed')
+                return result
+            except ProviderError as failure:
+                if not failure.retryable or attempt == 2:
+                    raise
+                self._sleep(0.2 * 2 ** attempt)
+            except (ValueError, KeyError, TypeError, AttributeError, IndexError):
                 raise ProviderError('AI_OUTPUT_INVALID') from None
 
 

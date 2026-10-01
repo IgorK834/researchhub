@@ -75,6 +75,26 @@ def create_app(
             # Do not log provider bodies, prompt/source text or credentials.
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
 
+    @app.post("/internal/ai/author", include_in_schema=False)
+    async def author(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        try:
+            payload = await _request_json(request, limit=512 * 1024)
+            command = ContextualRequest.model_validate(payload)
+            from .ai.authoring import instruction
+            instruction(command)
+        except (ContractError, ValueError, KeyError, TypeError):
+            return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
+        try:
+            result = await run_in_threadpool(models.generate_authoring, command)
+            return result.model_dump(mode='json', by_alias=True)
+        except ProviderError as error:
+            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+                                content={"code": error.code})
+        except Exception:
+            return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
+
     @app.get("/internal/embeddings/model", include_in_schema=False)
     async def embedding_model(request: Request):
         if not _authorized(request, expected_token):
