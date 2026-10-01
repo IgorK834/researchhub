@@ -63,7 +63,7 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
     @Override
     public void execute(ProcessingJob job) {
         try {
-            SourceIngestInput input = inputs.resolve(job.workspaceId(), job.resourceId(), policy.getSourceAccessTtl());
+            SourceIngestInput input = inputs.resolve(job.workspaceId(), job.resourceId(), job.id(), policy.getSourceAccessTtl());
             WorkerJobRequest request = WorkerJobRequest.from(job, input);
             results.extracting(ProcessingJobNotification.from(job));
             WorkerJobResult result = client.post()

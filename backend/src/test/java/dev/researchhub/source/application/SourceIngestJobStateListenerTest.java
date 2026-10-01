@@ -6,9 +6,13 @@ import dev.researchhub.source.domain.Source;
 import dev.researchhub.source.domain.SourceFilename;
 import dev.researchhub.source.domain.SourceStatus;
 import dev.researchhub.source.domain.SourceType;
+import dev.researchhub.source.domain.SourceVersion;
 import dev.researchhub.source.domain.StorageKey;
 import dev.researchhub.source.infrastructure.SourceEntity;
 import dev.researchhub.source.infrastructure.SourceRepository;
+import dev.researchhub.source.infrastructure.SourceVersionEntity;
+import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
+import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -39,7 +43,11 @@ class SourceIngestJobStateListenerTest {
     private dev.researchhub.processing.application.ProcessingJobQueue queue;
     private dev.researchhub.ai.application.RetrievalStore retrieval;
     private dev.researchhub.ai.application.RetrievalIndex index;
+    private SourceVersionRepository versions;
+    private SourceVersionJobRepository versionJobs;
     private SourceIngestJobStateListener listener;
+    private final UUID versionId = UUID.randomUUID();
+    private StorageKey storageKey;
     private UUID workspaceId;
     private UUID sourceId;
     private ProcessingJobNotification job;
@@ -51,15 +59,20 @@ class SourceIngestJobStateListenerTest {
         queue = mock(dev.researchhub.processing.application.ProcessingJobQueue.class);
         retrieval = mock(dev.researchhub.ai.application.RetrievalStore.class);
         index = mock(dev.researchhub.ai.application.RetrievalIndex.class);
-        listener = new SourceIngestJobStateListener(repository, Clock.fixed(NOW, ZoneOffset.UTC), extractions, queue, retrieval, index);
+        versions = mock(SourceVersionRepository.class);
+        versionJobs = mock(SourceVersionJobRepository.class);
+        listener = new SourceIngestJobStateListener(repository, Clock.fixed(NOW, ZoneOffset.UTC), extractions, queue,
+                retrieval, index, versions, versionJobs);
         workspaceId = UUID.randomUUID();
         sourceId = UUID.randomUUID();
+        storageKey = StorageKey.generate();
         job = new ProcessingJobNotification(UUID.randomUUID(), workspaceId, "SOURCE_INGEST", "SOURCE", sourceId, 1);
         var running = new dev.researchhub.processing.domain.ProcessingJob(job.jobId(), workspaceId,
                 dev.researchhub.processing.domain.ProcessingJobType.SOURCE_INGEST,
                 dev.researchhub.processing.domain.ProcessingResourceType.SOURCE, sourceId,
                 dev.researchhub.processing.domain.ProcessingJobStatus.RUNNING, 1, CREATED, NOW, null, null, null);
         when(queue.findByResource(any(), any(), any())).thenReturn(Optional.of(running));
+        when(versionJobs.findVersionId(job.jobId())).thenReturn(Optional.of(versionId));
         when(extractions.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
         when(retrieval.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
         when(index.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(true);
@@ -67,10 +80,7 @@ class SourceIngestJobStateListenerTest {
 
     @Test
     void mirrorsRunningSucceededAndFailedStatesWithSafeText() {
-        when(repository.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId))
-                .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.UPLOADED))))
-                .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.PROCESSING))))
-                .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.PROCESSING))));
+        givenStates(SourceStatus.UPLOADED, SourceStatus.PROCESSING, SourceStatus.PROCESSING);
 
         listener.running(job);
         listener.succeeded(job);
@@ -84,10 +94,36 @@ class SourceIngestJobStateListenerTest {
         assertEquals(SourceStatus.FAILED, saved.getAllValues().get(2).toDomain().status());
         assertEquals("This file could not be processed.",
                 saved.getAllValues().get(2).toDomain().failureSummary());
+
+        ArgumentCaptor<SourceVersionEntity> savedVersions = ArgumentCaptor.forClass(SourceVersionEntity.class);
+        verify(versions, org.mockito.Mockito.times(3)).saveAndFlush(savedVersions.capture());
+        assertEquals(SourceStatus.PROCESSING, savedVersions.getAllValues().get(0).toDomain().status());
+        assertEquals(SourceStatus.READY, savedVersions.getAllValues().get(1).toDomain().status());
+        assertEquals(SourceStatus.FAILED, savedVersions.getAllValues().get(2).toDomain().status());
+        assertEquals(versionId, savedVersions.getAllValues().get(2).toDomain().id());
+    }
+
+    @Test
+    void refusesAJobBoundToAnotherVersionOrToNoVersionBeforeChangingAnyState() {
+        givenStates(SourceStatus.PROCESSING);
+        when(versionJobs.findVersionId(job.jobId())).thenReturn(Optional.of(UUID.randomUUID()));
+        assertThrows(IllegalStateException.class, () -> listener.succeeded(job));
+
+        when(versionJobs.findVersionId(job.jobId())).thenReturn(Optional.empty());
+        assertThrows(IllegalStateException.class, () -> listener.running(job));
+
+        when(versionJobs.findVersionId(job.jobId())).thenReturn(Optional.of(versionId));
+        when(versions.findForUpdate(workspaceId, sourceId, versionId)).thenReturn(Optional.empty());
+        assertThrows(IllegalStateException.class, () -> listener.failed(job,
+                new ProcessingFailure("EXTRACTION_FAILED", "This file could not be processed.")));
+
+        verify(repository, never()).saveAndFlush(any());
+        verify(versions, never()).saveAndFlush(any());
     }
 
     @Test
     void ignoresAlreadyTerminalSourceStatesAndRejectsAMissingSource() {
+        givenStates(SourceStatus.READY);
         when(repository.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId))
                 .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.READY))))
                 .thenReturn(Optional.empty());
@@ -99,8 +135,7 @@ class SourceIngestJobStateListenerTest {
 
     @Test
     void staleTerminalFailureCanRecoverASourceStillMarkedUploaded() {
-        when(repository.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId))
-                .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.UPLOADED))));
+        givenStates(SourceStatus.UPLOADED);
         ProcessingFailure failure = new ProcessingFailure("WORKER_TIMEOUT",
                 "The processing worker did not finish before the timeout.");
 
@@ -122,8 +157,7 @@ class SourceIngestJobStateListenerTest {
 
     @Test
     void refusesReadyWithoutPersistedResultAndIgnoresOldRunNotifications() {
-        when(repository.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId))
-                .thenReturn(Optional.of(SourceEntity.fromDomain(source(SourceStatus.PROCESSING))));
+        givenStates(SourceStatus.PROCESSING);
         when(extractions.existsForJob(workspaceId, sourceId, job.jobId())).thenReturn(false);
         assertThrows(IllegalStateException.class, () -> listener.succeeded(job));
         verify(repository, never()).saveAndFlush(any());
@@ -133,10 +167,26 @@ class SourceIngestJobStateListenerTest {
         verify(repository, never()).saveAndFlush(any());
     }
 
+    private void givenStates(SourceStatus first, SourceStatus... rest) {
+        var sourceStub = when(repository.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId))
+                .thenReturn(Optional.of(SourceEntity.fromDomain(source(first))));
+        var versionStub = when(versions.findForUpdate(workspaceId, sourceId, versionId))
+                .thenReturn(Optional.of(SourceVersionEntity.fromDomain(version(first))));
+        for (SourceStatus status : rest) {
+            sourceStub = sourceStub.thenReturn(Optional.of(SourceEntity.fromDomain(source(status))));
+            versionStub = versionStub.thenReturn(Optional.of(SourceVersionEntity.fromDomain(version(status))));
+        }
+    }
+
+    private SourceVersion version(SourceStatus status) {
+        return SourceVersion.fromActiveSource(source(status));
+    }
+
+    /** The active source projects its version, so both always sit in the same lifecycle state. */
     private Source source(SourceStatus status) {
         Source uploaded = new Source(sourceId, workspaceId, new SourceFilename("paper.pdf"), "paper.pdf",
-                SourceType.PDF, 12, StorageKey.generate(), "a".repeat(64), SourceStatus.UPLOADED, null,
-                UUID.randomUUID(), CREATED, CREATED);
+                SourceType.PDF, 12, storageKey, "a".repeat(64), SourceStatus.UPLOADED, null,
+                UUID.randomUUID(), CREATED, CREATED, versionId, 1);
         if (status == SourceStatus.UPLOADED) {
             return uploaded;
         }

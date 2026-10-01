@@ -88,10 +88,12 @@ class SourceExtractionEndToEndTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class Configuration {
         @Bean SourceStorage sourceStorage() { return new InMemorySourceStorage(); }
-        @Bean @Primary SourceIngestInputProvider inputProvider(SourceRepository sources) {
-            return (workspaceId, sourceId, ttl) -> {
-                var source = sources.findByWorkspaceIdAndId(workspaceId, sourceId).orElseThrow().toDomain();
-                return new SourceIngestInput(source.sourceType().name(), URI.create("http://127.0.0.1:" + blobServer.getAddress().getPort() + "/" + sourceId), Instant.now().plusSeconds(600));
+        /** Resolves the bytes of the immutable version the job was created for, keyed by version id like production. */
+        @Bean @Primary SourceIngestInputProvider inputProvider(SourceVersionRepository versions, SourceVersionJobRepository jobs) {
+            return (workspaceId, sourceId, jobId, ttl) -> {
+                var versionId = jobs.findVersionId(jobId).orElseThrow();
+                var version = versions.findByWorkspaceIdAndSourceIdAndId(workspaceId, sourceId, versionId).orElseThrow().toDomain();
+                return new SourceIngestInput(version.sourceType().name(), URI.create("http://127.0.0.1:" + blobServer.getAddress().getPort() + "/" + versionId), Instant.now().plusSeconds(600));
             };
         }
     }
@@ -130,21 +132,16 @@ class SourceExtractionEndToEndTest {
         workspaceId = owner.json(response).get("id").asString();
     }
     @AfterEach void cleanupRows() {
-        jdbc.execute("DELETE FROM ai_generation_runs");
-        jdbc.execute("DELETE FROM source_retrieval_chunks");
-        jdbc.execute("DELETE FROM source_retrieval_sets");
+        // Source versions are immutable (rows cannot be deleted), so a test reset truncates the whole workspace tree.
+        jdbc.execute("TRUNCATE users, workspaces CASCADE");
         jdbc.execute("DELETE FROM retrieval_embedding_models");
-        jdbc.execute("DELETE FROM source_extraction_runs");
-        jdbc.execute("DELETE FROM source_extractions");
-        jdbc.execute("DELETE FROM processing_jobs"); jdbc.execute("DELETE FROM sources");
-        jdbc.execute("DELETE FROM workspace_members"); jdbc.execute("DELETE FROM workspaces"); jdbc.execute("DELETE FROM users");
     }
 
     private String sourcePath(String id) { return "/api/workspaces/" + workspaceId + "/sources/" + id; }
     private String upload(String name, byte[] data) throws Exception {
         var response = owner.postFile("/api/workspaces/" + workspaceId + "/sources", name, "application/octet-stream", data);
         assertEquals(201, response.statusCode(), response.body());
-        String id = owner.json(response).get("id").asString(); FILES.put(id, data); return id;
+        var body = owner.json(response); String id = body.get("id").asString(); FILES.put(body.get("activeVersionId").asString(), data); return id;
     }
     private void dispatch() {
         var policy = new ProcessingProperties();
@@ -449,8 +446,10 @@ class SourceExtractionEndToEndTest {
         assertEquals("private, no-store", response.headers().firstValue("Cache-Control").orElseThrow());
         var first = mapper.readValue(response.body(), dev.researchhub.ai.application.RetrievalChunkSet.class);
         assertTrue(first.chunks().size() > 1);
+        String activeVersion = owner.json(owner.get(sourcePath(id))).get("activeVersionId").asString();
         assertTrue(first.chunks().stream().allMatch(chunk -> chunk.workspaceId().toString().equals(workspaceId)
-                && chunk.sourceId().toString().equals(id) && chunk.sourceVersionId() == null));
+                && chunk.sourceId().toString().equals(id) && chunk.sourceVersionId().toString().equals(activeVersion)),
+                "every published chunk names the immutable version it was derived from");
         assertEquals(first.chunks().getFirst(), mapper.readValue(owner.get(sourcePath(id) + "/retrieval/chunks/" + first.chunks().getFirst().chunkId()).body(), dev.researchhub.ai.application.RetrievalChunk.class));
         var viewer = new ApiBrowser(port, mapper); viewer.signUp("retrieval-viewer@example.com", "Viewer");
         owner.postJson("/api/workspaces/" + workspaceId + "/members", "{\"email\":\"retrieval-viewer@example.com\",\"role\":\"VIEWER\"}");
@@ -515,7 +514,7 @@ class SourceExtractionEndToEndTest {
         String workspaceB = owner.json(owner.postJson("/api/workspaces", "{\"name\":\"Workspace B\"}")).get("id").asString();
         var uploadedB = owner.postFile("/api/workspaces/" + workspaceB + "/sources", "lecture.pdf", "application/pdf", fixture("lecture.pdf"));
         assertEquals(201, uploadedB.statusCode());
-        String pdfB = owner.json(uploadedB).get("id").asString(); FILES.put(pdfB,fixture("lecture.pdf"));
+        String pdfB = owner.json(uploadedB).get("id").asString(); FILES.put(owner.json(uploadedB).get("activeVersionId").asString(),fixture("lecture.pdf"));
         assertEquals(0, owner.json(owner.get(searchPath(workspaceId))).size());
         var queued = owner.json(owner.get(sourcePath(pdfA) + "/processing"));
         assertEquals(0, queued.get("progress").asInt());
@@ -916,7 +915,7 @@ class SourceExtractionEndToEndTest {
         upload("unrelated.txt","A zebra eats grass.".getBytes());
         String workspaceB = owner.json(owner.postJson("/api/workspaces","{\"name\":\"Private B\"}")).get("id").asString();
         var uploadedB = owner.postFile("/api/workspaces/" + workspaceB + "/sources","private.txt","text/plain","Lecture 2 contains private workspace B findings.".getBytes());
-        String sourceB = owner.json(uploadedB).get("id").asString(); FILES.put(sourceB,"Lecture 2 contains private workspace B findings.".getBytes());
+        String sourceB = owner.json(uploadedB).get("id").asString(); FILES.put(owner.json(uploadedB).get("activeVersionId").asString(),"Lecture 2 contains private workspace B findings.".getBytes());
         dispatch();
         String question = "What is in Lecture 2?";
         assertTrue(retrievalIndex.hasSearchableChunks(UUID.fromString(workspaceId),List.of(UUID.fromString(pdfA))));
@@ -1020,4 +1019,216 @@ class SourceExtractionEndToEndTest {
         }
     }
 
+    // --- RH-130 / RH-131: immutable source versions and the bounded dataset preview, against the real worker ---
+
+    private String activeVersion(String sourceId) throws Exception {
+        return owner.json(owner.get(sourcePath(sourceId))).get("activeVersionId").asString();
+    }
+    private String previewPath(String sourceId, String versionId) {
+        return "/api/workspaces/" + workspaceId + "/analysis/datasets/" + sourceId + "/versions/" + versionId + "/preview";
+    }
+    /** Replaces the source's file and registers the new version's bytes with the blob server, like an upload. */
+    private String replace(String sourceId, String name, byte[] data) throws Exception {
+        var response = owner.postFile(sourcePath(sourceId) + "/versions", name, "application/octet-stream", data);
+        assertEquals(201, response.statusCode(), response.body());
+        String versionId = owner.json(response).get("activeVersionId").asString();
+        FILES.put(versionId, data);
+        return versionId;
+    }
+
+    @Test void datasetPreviewIsAuthorizedBoundedAndPinnedToItsVersionAcrossReplacement() throws Exception {
+        byte[] first = "name,age\nAda,37\nBob,\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String id = upload("people.csv", first);
+        String v1 = activeVersion(id);
+        assertEquals(409, owner.get(previewPath(id, v1)).statusCode(), "structure appears only after processing");
+        dispatch();
+
+        var response = owner.get(previewPath(id, v1));
+        assertEquals(200, response.statusCode(), response.body());
+        assertEquals("no-store", response.headers().firstValue("Cache-Control").orElseThrow());
+        var preview1 = owner.json(response);
+        assertEquals("1.0", preview1.get("schemaVersion").asString());
+        assertEquals(v1, preview1.get("sourceVersionId").asString());
+        assertEquals(1, preview1.get("versionNumber").asInt());
+        assertEquals("people.csv", preview1.get("originalFilename").asString());
+        assertEquals("CSV", preview1.get("format").asString());
+        assertFalse(preview1.get("formulasEvaluated").asBoolean());
+        assertFalse(preview1.get("truncated").asBoolean());
+        var sheet = preview1.get("sheets").get(0);
+        assertEquals("TEXT", sheet.get("columns").get(0).get("inferredType").asString());
+        assertEquals("INTEGER", sheet.get("columns").get(1).get("inferredType").asString());
+        assertEquals(1, sheet.get("columns").get(1).get("missingValues").asInt());
+        assertEquals(2, sheet.get("dimensions").get("dataRowCount").asInt());
+        assertEquals(2, sheet.get("sampleRows").size());
+        assertEquals(2, sheet.get("sampleRows").get(0).get("rowNumber").asInt(), "the header is not a data row");
+
+        // Revision 2: new bytes, a formula-looking cell and another column.
+        byte[] second = "name,age,note\nAda,37,=1+1\nBob,41,x\nEve,29,y\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String v2 = replace(id, "people-rev2.csv", second);
+        assertNotEquals(v1, v2);
+        assertEquals(409, owner.get(previewPath(id, v2)).statusCode(), "the new version is not processed yet");
+        assertEquals(preview1, owner.json(owner.get(previewPath(id, v1))), "revision 2 does not touch revision 1");
+        dispatch();
+
+        var preview2 = owner.json(owner.get(previewPath(id, v2)));
+        assertEquals(2, preview2.get("versionNumber").asInt());
+        assertEquals(3, preview2.get("sheets").get(0).get("columns").size());
+        assertEquals("=1+1", preview2.get("sheets").get(0).get("sampleRows").get(0).get("cells").get(2).asString(),
+                "formulas are text and never calculated");
+        // The worker in this test scans three rows only, so revision 2 (one header + three data rows) is a bounded
+        // sample: the total is unknown and the preview says so, while revision 1 stayed complete and exact.
+        assertTrue(preview2.get("sheets").get(0).get("dimensions").get("dataRowCount").isNull());
+        assertTrue(preview2.get("sheets").get(0).get("dimensions").get("rowCountEstimated").asBoolean());
+        assertTrue(preview2.get("truncated").asBoolean());
+        assertEquals(2, preview2.get("sheets").get(0).get("sampleRows").size());
+        assertFalse(preview1.get("truncated").asBoolean());
+        assertEquals(preview1, owner.json(owner.get(previewPath(id, v1))), "version 1 is unchanged after version 2 is READY");
+
+        // Bytes: version 1 is still exactly what was uploaded; the active content is revision 2.
+        assertEquals(new String(first, java.nio.charset.StandardCharsets.UTF_8),
+                owner.get(sourcePath(id) + "/versions/" + v1 + "/content").body());
+        assertEquals(new String(second, java.nio.charset.StandardCharsets.UTF_8), owner.get(sourcePath(id) + "/content").body());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM source_version_extractions WHERE source_id = ?",
+                Integer.class, UUID.fromString(id)));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM source_extractions WHERE source_id = ?",
+                Integer.class, UUID.fromString(id)), "the legacy active projection holds only the latest version");
+        assertEquals(v2, owner.json(owner.get(sourcePath(id))).get("activeVersionId").asString());
+        var versions = owner.json(owner.get(sourcePath(id) + "/versions"));
+        assertEquals(List.of(v2, v1), List.of(versions.get(0).get("id").asString(), versions.get(1).get("id").asString()));
+        assertEquals("READY", versions.get(1).get("status").asString());
+    }
+
+    @Test void workbookPreviewListsHiddenSheetsReportsTruncationAndNeverEvaluatesFormulas() throws Exception {
+        String id = upload("workbook.xlsx", fixture("workbook.xlsx"));
+        String version = activeVersion(id);
+        dispatch();
+
+        var response = owner.get(previewPath(id, version));
+        assertEquals(200, response.statusCode(), response.body());
+        var preview = owner.json(response);
+        assertEquals("XLSX", preview.get("format").asString());
+        assertEquals(4, preview.get("sheets").size());
+        assertEquals("hidden", preview.get("sheets").get(1).get("state").asString());
+        assertEquals("veryHidden", preview.get("sheets").get(2).get("state").asString());
+        // The worker is configured for three rows, so the preview is a bounded sample and says so.
+        assertTrue(preview.get("truncated").asBoolean());
+        var codes = new java.util.ArrayList<String>();
+        for (var warning : preview.get("warnings")) codes.add(warning.get("code").asString());
+        assertTrue(codes.contains("ROWS_TRUNCATED"), codes.toString());
+        assertTrue(codes.contains("ROW_COUNT_ESTIMATED"), codes.toString());
+        assertTrue(codes.contains("TYPES_INFERRED"), codes.toString());
+        var measurements = preview.get("sheets").get(0);
+        assertEquals("Measurements", measurements.get("name").asString());
+        assertEquals(5, measurements.get("columns").size());
+        assertTrue(measurements.get("dimensions").get("rowCountEstimated").asBoolean());
+        assertEquals(6, measurements.get("dimensions").get("rowCount").asInt());
+        assertEquals("=B2*2", measurements.get("sampleRows").get(0).get("cells").get(2).asString());
+        assertTrue(measurements.get("sampleRows").size() <= 2);
+        assertTrue(response.body().getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 65_536);
+    }
+
+    @Test void datasetPreviewIsWorkspaceAuthorizedAndHidesForeignOrUnsupportedVersions() throws Exception {
+        String csv = upload("data.csv", "a,b\n1,2\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String pdf = upload("lecture.pdf", fixture("lecture.pdf"));
+        String csvVersion = activeVersion(csv), pdfVersion = activeVersion(pdf);
+        dispatch();
+        var viewer = new ApiBrowser(port, mapper); String viewerId = viewer.signUp("preview-viewer@example.com", "Viewer");
+        owner.postJson("/api/workspaces/" + workspaceId + "/members", "{\"email\":\"preview-viewer@example.com\",\"role\":\"VIEWER\"}");
+        var outsider = new ApiBrowser(port, mapper); outsider.signUp("preview-outsider@example.com", "Outsider");
+        String otherWorkspace = owner.createdWorkspaceId("Other", "isolated");
+
+        assertEquals(200, viewer.get(previewPath(csv, csvVersion)).statusCode());
+        var hidden = outsider.get(previewPath(csv, csvVersion));
+        var missing = outsider.get(previewPath(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
+        assertEquals(404, hidden.statusCode());
+        assertEquals(outsider.json(missing).get("detail"), outsider.json(hidden).get("detail"));
+        assertFalse(hidden.body().contains("data.csv"));
+        assertEquals(404, owner.get("/api/workspaces/" + otherWorkspace + "/analysis/datasets/" + csv + "/versions/" + csvVersion + "/preview").statusCode());
+        assertEquals(404, owner.get(previewPath(csv, pdfVersion)).statusCode(), "a version id belongs to exactly one source");
+        assertEquals(404, owner.get(previewPath(csv, UUID.randomUUID().toString())).statusCode());
+        var notTabular = owner.get(previewPath(pdf, pdfVersion));
+        assertEquals(400, notTabular.statusCode(), notTabular.body());
+        assertEquals("VALIDATION_FAILED", owner.json(notTabular).get("code").asString());
+        assertEquals(401, new ApiBrowser(port, mapper).get(previewPath(csv, csvVersion)).statusCode());
+
+        assertEquals(204, owner.delete("/api/workspaces/" + workspaceId + "/members/" + viewerId).statusCode());
+        assertEquals(404, viewer.get(previewPath(csv, csvVersion)).statusCode(), "revoked members lose access immediately");
+    }
+
+    @Test void aSourceCanBeReprocessedWithoutChangingItsVersionOrPreview() throws Exception {
+        String id = upload("data.csv", "a,b\n1,2\n3,4\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String version = activeVersion(id);
+        dispatch();
+        var before = owner.json(owner.get(previewPath(id, version)));
+
+        assertEquals(202, owner.postJson(sourcePath(id) + "/reprocess", "{}").statusCode());
+        assertEquals(409, owner.get(previewPath(id, version)).statusCode(), "being reprocessed, the preview waits for READY");
+        dispatch();
+
+        assertEquals(version, activeVersion(id));
+        assertEquals(before, owner.json(owner.get(previewPath(id, version))));
+        assertEquals(2, jdbc.queryForObject("""
+                SELECT count(*) FROM processing_job_source_versions b JOIN processing_jobs j ON j.id = b.job_id
+                WHERE j.resource_id = ? AND b.source_version_id = ?""", Integer.class, UUID.fromString(id), UUID.fromString(version)),
+                "both runs are bound to the same immutable version");
+    }
+
+    @Test void analysesKeepTheExactSourceVersionsTheyConsumedAndAFollowUpMayStayOrMigrate() throws Exception {
+        String a = upload("a.txt", "Method: randomized controlled trial\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String b = upload("b.txt", "Method: observational cohort\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        dispatch();
+        String a1 = activeVersion(a), b1 = activeVersion(b);
+        String path = "/api/workspaces/" + workspaceId + "/ai/source-analyses";
+        String selection = "{\"selectedSourceIds\":[\"" + a + "\",\"" + b + "\"]}";
+
+        var created = owner.postJson(path + "/comparisons", selection);
+        assertEquals(200, created.statusCode(), created.body());
+        var comparison = owner.json(created);
+        String comparisonId = comparison.get("id").asString();
+        assertEquals(a1, comparison.get("sources").get(0).get("sourceVersionId").asString());
+        assertEquals(1, comparison.get("sources").get(0).get("versionNumber").asInt());
+        assertEquals(b1, comparison.get("sources").get(1).get("sourceVersionId").asString());
+        assertTrue(comparison.get("evidence").size() >= 2);
+        for (var evidence : comparison.get("evidence")) assertFalse(evidence.get("sourceVersionId").isNull());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM ai_source_analysis_sources WHERE analysis_id = ?",
+                Integer.class, UUID.fromString(comparisonId)));
+        assertEquals(a1, jdbc.queryForObject("SELECT source_version_id::text FROM ai_source_analysis_sources "
+                + "WHERE analysis_id = ? AND source_id = ?", String.class, UUID.fromString(comparisonId), UUID.fromString(a)));
+
+        // Replace source A with a different study design; revision 2 becomes the searchable, active version.
+        String a2 = replace(a, "a-rev2.txt", "Method: crossover design\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        dispatch();
+        assertEquals(a2, activeVersion(a));
+        assertEquals(comparison, owner.json(owner.get(path + "/" + comparisonId)), "the saved analysis is immutable");
+
+        // Staying on the original version reproduces the analysis from the original evidence.
+        var original = owner.postJson(path + "/" + comparisonId + "/disagreements",
+                "{\"instruction\":\"Compare methods\",\"versionSelection\":\"ORIGINAL\"}");
+        assertEquals(200, original.statusCode(), original.body());
+        var originalAnalysis = owner.json(original);
+        assertEquals(a1, originalAnalysis.get("sources").get(0).get("sourceVersionId").asString());
+        assertEquals(comparison.get("evidence"), originalAnalysis.get("evidence"), "same chunks, same provenance");
+
+        // The default is also the original: nothing silently moves to newer data.
+        var byDefault = owner.postJson(path + "/" + comparisonId + "/disagreements", "{\"instruction\":\"Compare methods\"}");
+        assertEquals(200, byDefault.statusCode(), byDefault.body());
+        assertEquals(a1, owner.json(byDefault).get("sources").get(0).get("sourceVersionId").asString());
+
+        // Migrating is explicit and re-reads the latest versions.
+        var latest = owner.postJson(path + "/" + comparisonId + "/disagreements",
+                "{\"instruction\":\"Compare methods\",\"versionSelection\":\"LATEST\"}");
+        assertEquals(200, latest.statusCode(), latest.body());
+        var latestAnalysis = owner.json(latest);
+        assertEquals(a2, latestAnalysis.get("sources").get(0).get("sourceVersionId").asString());
+        assertEquals(2, latestAnalysis.get("sources").get(0).get("versionNumber").asInt());
+        assertEquals(b1, latestAnalysis.get("sources").get(1).get("sourceVersionId").asString());
+        assertNotEquals(comparison.get("evidence"), latestAnalysis.get("evidence"));
+
+        // A brand-new comparison uses the latest version and is recorded as such.
+        var fresh = owner.json(owner.postJson(path + "/comparisons", selection));
+        assertEquals(a2, fresh.get("sources").get(0).get("sourceVersionId").asString());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM ai_source_analysis_sources WHERE analysis_id = ?",
+                Integer.class, UUID.fromString(fresh.get("id").asString())));
+        assertEquals(a1, comparison.get("sources").get(0).get("sourceVersionId").asString());
+    }
 }

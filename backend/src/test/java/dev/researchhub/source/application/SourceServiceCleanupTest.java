@@ -3,6 +3,8 @@ package dev.researchhub.source.application;
 import dev.researchhub.processing.application.ProcessingJobService;
 import dev.researchhub.source.infrastructure.SourceEntity;
 import dev.researchhub.source.infrastructure.SourceRepository;
+import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
+import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -36,7 +38,8 @@ class SourceServiceCleanupTest {
         when(transactions.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         InMemorySourceStorage storage = new InMemorySourceStorage();
 
-        SourceService service = new SourceService(repository, storage, new SourceLimits(1024),
+        SourceService service = new SourceService(repository, mock(SourceVersionRepository.class),
+                mock(SourceVersionJobRepository.class), storage, new SourceLimits(1024),
                 new UnlimitedWorkspaceSourceQuota(), mock(WorkspaceAuthorizationService.class),
                 mock(ProcessingJobService.class), transactions,
                 Clock.fixed(Instant.parse("2026-09-24T10:00:00Z"), ZoneOffset.UTC));

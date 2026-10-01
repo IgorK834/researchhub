@@ -9,11 +9,17 @@ import dev.researchhub.source.domain.Source;
 import dev.researchhub.source.domain.SourceStatus;
 import dev.researchhub.source.infrastructure.SourceEntity;
 import dev.researchhub.source.infrastructure.SourceRepository;
+import dev.researchhub.source.domain.SourceVersion;
+import dev.researchhub.source.infrastructure.SourceVersionEntity;
+import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
+import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.UUID;
 import dev.researchhub.processing.application.ProcessingJobQueue;
 import dev.researchhub.processing.domain.ProcessingJobType;
 import dev.researchhub.processing.domain.ProcessingResourceType;
@@ -33,14 +39,20 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
     private final ProcessingJobQueue queue;
     private final RetrievalStore retrieval;
     private final RetrievalIndex index;
+    private final SourceVersionRepository versions;
+    private final SourceVersionJobRepository versionJobs;
 
-    public SourceIngestJobStateListener(SourceRepository sources, Clock clock, SourceExtractionRepository extractions, ProcessingJobQueue queue, RetrievalStore retrieval, RetrievalIndex index) {
+    public SourceIngestJobStateListener(SourceRepository sources, Clock clock, SourceExtractionRepository extractions,
+                                        ProcessingJobQueue queue, RetrievalStore retrieval, RetrievalIndex index,
+                                        SourceVersionRepository versions, SourceVersionJobRepository versionJobs) {
         this.index = index;
         this.retrieval = retrieval;
         this.extractions = extractions;
         this.queue = queue;
         this.sources = sources;
         this.clock = clock;
+        this.versions = versions;
+        this.versionJobs = versionJobs;
     }
 
     @Override
@@ -53,8 +65,10 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
     public void running(ProcessingJobNotification job) {
         Source source = require(job);
         if (!current(job)) return;
+        SourceVersion version = requireVersion(job, source);
         if (source.status() == SourceStatus.UPLOADED || source.status() == SourceStatus.FAILED) {
-            save(source.moveTo(SourceStatus.PROCESSING, clock.instant()));
+            Instant now = clock.instant();
+            save(source.moveTo(SourceStatus.PROCESSING, now), version.moveTo(SourceStatus.PROCESSING, now));
         }
     }
 
@@ -63,13 +77,15 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
     public void succeeded(ProcessingJobNotification job) {
         Source source = require(job);
         if (!current(job)) return;
+        SourceVersion version = requireVersion(job, source);
         if (source.status() == SourceStatus.PROCESSING) {
             if (!extractions.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())
                     || !retrieval.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())
                     || !index.existsForJob(job.workspaceId(), job.resourceId(), job.jobId())) {
                 throw new IllegalStateException("A source cannot be READY without its persisted processing result");
             }
-            save(source.moveTo(SourceStatus.READY, clock.instant()));
+            Instant now = clock.instant();
+            save(source.moveTo(SourceStatus.READY, now), version.moveTo(SourceStatus.READY, now));
         }
     }
 
@@ -78,14 +94,18 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
     public void failed(ProcessingJobNotification job, ProcessingFailure error) {
         Source source = require(job);
         if (!current(job)) return;
+        SourceVersion version = requireVersion(job, source);
         // A backend can stop after the database claim and before the RUNNING callback commits. With a one-attempt
         // policy, stale recovery then delivers terminal failure while the source is still UPLOADED. Move through the
         // legal lifecycle inside this transaction so the UI cannot remain stuck behind a terminal job.
         if (source.status() == SourceStatus.UPLOADED) {
-            source = source.moveTo(SourceStatus.PROCESSING, clock.instant());
+            Instant now = clock.instant();
+            source = source.moveTo(SourceStatus.PROCESSING, now);
+            version = version.moveTo(SourceStatus.PROCESSING, now);
         }
         if (source.status() == SourceStatus.PROCESSING) {
-            save(source.processingFailed(error.message(), clock.instant()));
+            Instant now = clock.instant();
+            save(source.processingFailed(error.message(), now), version.processingFailed(error.message(), now));
         }
     }
 
@@ -101,7 +121,19 @@ public class SourceIngestJobStateListener implements ProcessingJobStateListener 
                         "source for processing job " + job.jobId() + " is missing"));
     }
 
-    private void save(Source source) {
+    private SourceVersion requireVersion(ProcessingJobNotification job, Source source) {
+        UUID versionId = versionJobs.findVersionId(job.jobId())
+                .orElseThrow(() -> new IllegalStateException("source version for processing job is missing"));
+        if (!versionId.equals(source.activeVersionId())) {
+            throw new IllegalStateException("processing job does not target the active source version");
+        }
+        return versions.findForUpdate(job.workspaceId(), job.resourceId(), versionId)
+                .map(SourceVersionEntity::toDomain)
+                .orElseThrow(() -> new IllegalStateException("source version for processing job is missing"));
+    }
+
+    private void save(Source source, SourceVersion version) {
+        versions.saveAndFlush(SourceVersionEntity.fromDomain(version));
         sources.saveAndFlush(SourceEntity.fromDomain(source));
     }
 }

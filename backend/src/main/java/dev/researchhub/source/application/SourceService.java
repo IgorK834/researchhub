@@ -10,10 +10,15 @@ import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.shared.error.UnsupportedFileTypeException;
 import dev.researchhub.source.domain.Source;
 import dev.researchhub.source.domain.SourceFilename;
+import dev.researchhub.source.domain.SourceStatus;
+import dev.researchhub.source.domain.SourceVersion;
 import dev.researchhub.source.domain.SourceType;
 import dev.researchhub.source.domain.StorageKey;
 import dev.researchhub.source.infrastructure.SourceEntity;
 import dev.researchhub.source.infrastructure.SourceRepository;
+import dev.researchhub.source.infrastructure.SourceVersionEntity;
+import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
+import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +70,8 @@ public class SourceService {
     private static final Logger log = LoggerFactory.getLogger(SourceService.class);
 
     private final SourceRepository sources;
+    private final SourceVersionRepository versions;
+    private final SourceVersionJobRepository versionJobs;
     private final SourceStorage storage;
     private final SourceLimits limits;
     private final WorkspaceSourceQuota quota;
@@ -73,11 +80,14 @@ public class SourceService {
     private final TransactionTemplate transactions;
     private final Clock clock;
 
-    public SourceService(SourceRepository sources, SourceStorage storage, SourceLimits limits,
+    public SourceService(SourceRepository sources, SourceVersionRepository versions,
+                         SourceVersionJobRepository versionJobs, SourceStorage storage, SourceLimits limits,
                          WorkspaceSourceQuota quota, WorkspaceAuthorizationService authorization,
                          ProcessingJobService processingJobs, PlatformTransactionManager transactionManager,
                          Clock clock) {
         this.sources = sources;
+        this.versions = versions;
+        this.versionJobs = versionJobs;
         this.storage = storage;
         this.limits = limits;
         this.quota = quota;
@@ -106,53 +116,61 @@ public class SourceService {
      */
     public SourceSummary upload(UUID workspaceId, UUID callerId, UploadSourceCommand command) {
         requireEditor(workspaceId, callerId);
-
-        SourceFilename filename = validated(() -> SourceFilename.of(command.originalFilename()));
-        SourceType type = SourceType.resolve(filename, command.declaredMediaType());
-
-        Long declared = command.declaredSizeBytes();
-        if (declared != null) {
-            if (declared > limits.maxSourceBytes()) {
-                throw tooLarge();
-            }
-            quota.requireCapacity(workspaceId, declared);
-        }
-
-        StorageKey key = StorageKey.generate();
-        MeteredInputStream metered = new MeteredInputStream(command.content(), limits.maxSourceBytes());
-        try {
-            BufferedInputStream buffered = new BufferedInputStream(metered, SourceType.SIGNATURE_WINDOW_BYTES);
-            requireSignature(type, buffered);
-            storage.store(key, buffered, type.mediaType());
-        } catch (ContentLimitExceededException exceeded) {
-            discard(key);
-            throw tooLarge();
-        } catch (IOException failed) {
-            discard(key);
-            throw new UncheckedIOException("Could not store an upload for workspace " + workspaceId, failed);
-        } catch (RuntimeException refused) {
-            discard(key);
-            throw refused;
-        }
-
-        long size = metered.count();
-        String sha256 = metered.sha256Hex();
+        StoredUpload stored = storeUpload(workspaceId, command);
         Instant now = clock.instant();
         try {
-            quota.requireCapacity(workspaceId, size);
+            quota.requireCapacity(workspaceId, stored.sizeBytes());
 
-            Source source = Source.uploaded(workspaceId, filename, type, size, key, sha256, callerId, now);
+            Source source = Source.uploaded(workspaceId, stored.filename(), stored.type(), stored.sizeBytes(),
+                    stored.key(), stored.sha256(), callerId, now);
             SourceEntity saved = transactions.execute(status -> {
                 SourceEntity recorded = sources.saveAndFlush(SourceEntity.fromDomain(source));
-                processingJobs.enqueueSourceIngest(workspaceId, recorded.getId());
+                versions.saveAndFlush(SourceVersionEntity.fromDomain(SourceVersion.fromActiveSource(recorded.toDomain())));
+                var job = processingJobs.enqueueSourceIngest(workspaceId, recorded.getId());
+                versionJobs.bind(job.id(), recorded.getActiveVersionId());
                 return recorded;
             });
 
             log.info("event=source.uploaded workspaceId={} sourceId={} sourceType={} sizeBytes={} userId={}",
-                    workspaceId, saved.getId(), type, size, callerId);
+                    workspaceId, saved.getId(), stored.type(), stored.sizeBytes(), callerId);
             return summaryOf(saved.toDomain());
         } catch (RuntimeException notRecorded) {
-            discard(key);
+            discard(stored.key());
+            throw notRecorded;
+        }
+    }
+
+    /** Stores revision bytes as a new immutable version and atomically selects it as active. */
+    public SourceSummary replace(UUID workspaceId, UUID callerId, UUID sourceId, UploadSourceCommand command) {
+        requireEditor(workspaceId, callerId);
+        Source before = requireSource(workspaceId, sourceId);
+        if (before.status() != SourceStatus.READY && before.status() != SourceStatus.FAILED) {
+            throw new ConflictException("Source processing is already in progress");
+        }
+        StoredUpload stored = storeUpload(workspaceId, command);
+        Instant now = clock.instant();
+        try {
+            quota.requireCapacity(workspaceId, stored.sizeBytes());
+            Source saved = transactions.execute(status -> {
+                Source current = sources.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId)
+                        .map(SourceEntity::toDomain)
+                        .orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND));
+                if (!current.activeVersionId().equals(before.activeVersionId())) {
+                    throw new ConflictException("The source was replaced by another request");
+                }
+                Source replacement = current.replaceWith(UUID.randomUUID(), current.activeVersionNumber() + 1,
+                        stored.filename(), stored.type(), stored.sizeBytes(), stored.key(), stored.sha256(), callerId, now);
+                versions.saveAndFlush(SourceVersionEntity.fromDomain(SourceVersion.fromActiveSource(replacement)));
+                SourceEntity recorded = sources.saveAndFlush(SourceEntity.fromDomain(replacement));
+                var job = processingJobs.reprocessSource(workspaceId, sourceId);
+                versionJobs.bind(job.id(), replacement.activeVersionId());
+                return recorded.toDomain();
+            });
+            log.info("event=source.replaced workspaceId={} sourceId={} sourceVersionId={} version={} userId={}",
+                    workspaceId, sourceId, saved.activeVersionId(), saved.activeVersionNumber(), callerId);
+            return summaryOf(saved);
+        } catch (RuntimeException notRecorded) {
+            discard(stored.key());
             throw notRecorded;
         }
     }
@@ -189,7 +207,13 @@ public class SourceService {
         Source source = sources.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId)
                 .map(SourceEntity::toDomain).orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND));
         Source processing = source.reprocess(clock.instant());
-        processingJobs.reprocessSource(workspaceId, sourceId);
+        SourceVersion version = versions.findForUpdate(workspaceId, sourceId, source.activeVersionId())
+                .map(SourceVersionEntity::toDomain)
+                .orElseThrow(() -> new IllegalStateException("Active source version is missing"))
+                .reprocess(clock.instant());
+        versions.saveAndFlush(SourceVersionEntity.fromDomain(version));
+        var job = processingJobs.reprocessSource(workspaceId, sourceId);
+        versionJobs.bind(job.id(), source.activeVersionId());
         sources.saveAndFlush(SourceEntity.fromDomain(processing));
         return summaryOf(processing);
     }
@@ -213,6 +237,40 @@ public class SourceService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<SourceVersionSummary> versions(UUID workspaceId, UUID callerId, UUID sourceId) {
+        requireReader(workspaceId, callerId);
+        Source source = requireSource(workspaceId, sourceId);
+        return versions.findByWorkspaceIdAndSourceIdOrderByVersionNumberDesc(workspaceId, sourceId).stream()
+                .map(entity -> versionSummary(entity.toDomain(), source.activeVersionId())).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public SourceVersionSummary findVersion(UUID workspaceId, UUID callerId, UUID sourceId, UUID versionId) {
+        requireReader(workspaceId, callerId);
+        Source source = requireSource(workspaceId, sourceId);
+        return versionSummary(requireVersion(workspaceId, sourceId, versionId), source.activeVersionId());
+    }
+
+    public SourceVersionContent openVersionContent(UUID workspaceId, UUID callerId, UUID sourceId, UUID versionId) {
+        requireReader(workspaceId, callerId);
+        Source source = transactions.execute(status -> requireSource(workspaceId, sourceId));
+        SourceVersion version = transactions.execute(status -> requireVersion(workspaceId, sourceId, versionId));
+        try {
+            return new SourceVersionContent(versionSummary(version, source.activeVersionId()),
+                    storage.open(version.storageKey()));
+        } catch (IOException failed) {
+            throw new UncheckedIOException("The stored content of source version " + versionId + " could not be opened", failed);
+        }
+    }
+
+    /** Active version snapshot used by analysis provenance after workspace authorization. */
+    @Transactional(readOnly = true)
+    public SourceVersionSummary activeVersion(UUID workspaceId, UUID callerId, UUID sourceId) {
+        Source source = requireAuthorizedSource(workspaceId, callerId, sourceId);
+        return versionSummary(requireVersion(workspaceId, sourceId, source.activeVersionId()), source.activeVersionId());
+    }
+
     /**
      * Reads the leading bytes without consuming them, and refuses an empty file or one that does not look like its
      * type — before anything is stored.
@@ -227,6 +285,30 @@ public class SourceService {
         if (!type.acceptsLeadingBytes(head)) {
             throw new UnsupportedFileTypeException("The file is named ." + type.extension()
                     + " but its content is not a " + type.name() + " file. " + SourceType.supportedTypesSentence());
+        }
+    }
+
+    private StoredUpload storeUpload(UUID workspaceId, UploadSourceCommand command) {
+        SourceFilename filename = validated(() -> SourceFilename.of(command.originalFilename()));
+        SourceType type = SourceType.resolve(filename, command.declaredMediaType());
+        Long declared = command.declaredSizeBytes();
+        if (declared != null) {
+            if (declared > limits.maxSourceBytes()) throw tooLarge();
+            quota.requireCapacity(workspaceId, declared);
+        }
+        StorageKey key = StorageKey.generate();
+        MeteredInputStream metered = new MeteredInputStream(command.content(), limits.maxSourceBytes());
+        try {
+            BufferedInputStream buffered = new BufferedInputStream(metered, SourceType.SIGNATURE_WINDOW_BYTES);
+            requireSignature(type, buffered);
+            storage.store(key, buffered, type.mediaType());
+            return new StoredUpload(filename, type, metered.count(), key, metered.sha256Hex());
+        } catch (ContentLimitExceededException exceeded) {
+            discard(key); throw tooLarge();
+        } catch (IOException failed) {
+            discard(key); throw new UncheckedIOException("Could not store an upload for workspace " + workspaceId, failed);
+        } catch (RuntimeException refused) {
+            discard(key); throw refused;
         }
     }
 
@@ -247,6 +329,17 @@ public class SourceService {
     private Source requireSource(UUID workspaceId, UUID sourceId) {
         return sources.findByWorkspaceIdAndId(workspaceId, sourceId)
                 .map(SourceEntity::toDomain)
+                .orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND));
+    }
+
+    private Source requireAuthorizedSource(UUID workspaceId, UUID callerId, UUID sourceId) {
+        requireReader(workspaceId, callerId);
+        return requireSource(workspaceId, sourceId);
+    }
+
+    private SourceVersion requireVersion(UUID workspaceId, UUID sourceId, UUID versionId) {
+        return versions.findByWorkspaceIdAndSourceIdAndId(workspaceId, sourceId, versionId)
+                .map(SourceVersionEntity::toDomain)
                 .orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND));
     }
 
@@ -280,7 +373,16 @@ public class SourceService {
         return new SourceSummary(source.id(), source.workspaceId(), source.originalFilename().value(),
                 source.displayName(), source.mediaType(), source.sourceType().name(), source.sizeBytes(),
                 source.contentSha256(), source.status().name(), source.failureSummary(), source.uploadedBy(),
-                source.createdAt(), source.updatedAt());
+                source.createdAt(), source.updatedAt(), source.activeVersionId(), source.activeVersionNumber());
     }
+
+    private static SourceVersionSummary versionSummary(SourceVersion version, UUID activeVersionId) {
+        return new SourceVersionSummary(version.id(), version.sourceId(), version.workspaceId(), version.versionNumber(),
+                version.originalFilename().value(), version.mediaType(), version.sourceType().name(), version.sizeBytes(),
+                version.contentSha256(), version.status().name(), version.failureSummary(), version.uploadedBy(),
+                version.createdAt(), version.updatedAt(), version.id().equals(activeVersionId));
+    }
+
+    private record StoredUpload(SourceFilename filename, SourceType type, long sizeBytes, StorageKey key, String sha256) {}
 
 }

@@ -5,6 +5,8 @@ import dev.researchhub.source.domain.Source;
 import dev.researchhub.source.domain.SourceFilename;
 import dev.researchhub.source.domain.SourceStatus;
 import dev.researchhub.source.domain.SourceType;
+import dev.researchhub.source.SourceRowFixture;
+import dev.researchhub.source.domain.SourceVersion;
 import dev.researchhub.source.domain.StorageKey;
 import dev.researchhub.workspace.UserRowFixture;
 import jakarta.persistence.EntityManager;
@@ -36,6 +38,9 @@ class SourceRepositoryIntegrationTest {
     private SourceRepository sources;
 
     @Autowired
+    private SourceVersionRepository versions;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -50,9 +55,12 @@ class SourceRepositoryIntegrationTest {
         return id;
     }
 
+    /** A source and its immutable version 1, as {@code SourceService.upload} records them. */
     private SourceEntity insert(UUID workspaceId, UUID uploader, String filename, SourceType type) {
-        return sources.saveAndFlush(SourceEntity.fromDomain(Source.uploaded(workspaceId,
+        SourceEntity saved = sources.saveAndFlush(SourceEntity.fromDomain(Source.uploaded(workspaceId,
                 SourceFilename.of(filename), type, 42, StorageKey.generate(), SHA, uploader, NOW)));
+        versions.saveAndFlush(SourceVersionEntity.fromDomain(SourceVersion.fromActiveSource(saved.toDomain())));
+        return saved;
     }
 
     private void updateColumn(String assignment, UUID id) {
@@ -162,13 +170,8 @@ class SourceRepositoryIntegrationTest {
 
     private void rawInsert(String sourceType, String mediaType, long size, String key, String sha, String status) {
         UUID ada = UserRowFixture.insertUser(jdbcTemplate, "raw-" + UUID.randomUUID() + "@example.com", "Raw");
-        jdbcTemplate.update("""
-                INSERT INTO sources (id, workspace_id, original_filename, display_name, media_type, source_type,
-                                     size_bytes, storage_key, content_sha256, status, uploaded_by, created_at,
-                                     updated_at)
-                VALUES (?, ?, 'f', 'f', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, UUID.randomUUID(), insertWorkspace(ada), mediaType, sourceType, size, key, sha, status, ada,
-                UserRowFixture.timestamp(NOW), UserRowFixture.timestamp(NOW));
+        SourceRowFixture.insert(jdbcTemplate, UUID.randomUUID(), insertWorkspace(ada), ada, "f", "f", mediaType,
+                sourceType, size, key, sha, status, null, NOW);
     }
 
     private void assertRefusedBy(String constraint, Runnable insert) {

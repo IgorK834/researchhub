@@ -20,11 +20,13 @@ import java.util.regex.Pattern;
  *   <li>the status only moves along {@link SourceStatus#next()}, and a failure has a bounded, user-safe summary.
  * </ul>
  *
- * <p><strong>The original input never changes.</strong> There is no method that returns a copy with different
- * bytes, a different key, a different type, or a different file name, and the table refuses such an update from
- * anybody. What may change is how the workspace labels it, how far processing has got, and the explanation attached
- * to a processing failure. Replacing the file is a new version of the source, so everything already derived from
- * this one keeps pointing at what it was derived from.
+ * <p><strong>Uploaded bytes never change.</strong> A source is the stable workspace object; each upload is an
+ * immutable {@link SourceVersion}, and the file fields here are the projection of the <em>active</em> (latest)
+ * version identified by {@link #activeVersionId()}. The only method that moves that projection is
+ * {@link #replaceWith}, which selects a newly stored version; nothing returns a copy with different bytes for the
+ * same version. What may change in place is how the workspace labels the source, how far processing has got, and the
+ * explanation attached to a processing failure. Everything already derived from an older version (analyses, citations,
+ * extractions) keeps pointing at that version, whose blob stays available.
  *
  * <p>{@code workspaceId} and {@code uploadedBy} are bare {@link UUID}s, as in {@code document}: this module does
  * not import {@code workspace.domain} or {@code user.domain}.
@@ -42,7 +44,9 @@ public record Source(
         String failureSummary,
         UUID uploadedBy,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID activeVersionId,
+        int activeVersionNumber
 ) {
 
     /**
@@ -65,6 +69,11 @@ public record Source(
         Objects.requireNonNull(uploadedBy, "uploadedBy must not be null");
         Objects.requireNonNull(createdAt, "createdAt must not be null");
         Objects.requireNonNull(updatedAt, "updatedAt must not be null");
+
+        Objects.requireNonNull(activeVersionId, "activeVersionId must not be null");
+        if (activeVersionNumber < 1) {
+            throw new IllegalArgumentException("active source version number must be at least 1");
+        }
 
         if (sizeBytes < 1) {
             throw new IllegalArgumentException("an empty file is not a source");
@@ -100,13 +109,28 @@ public record Source(
 
     /**
      * A source whose bytes were just stored, not yet persisted. {@link SourceStatus#UPLOADED}, displayed under its
-     * original file name.
+     * original file name, with version 1 as its active version. Hibernate assigns the source id on insert.
      */
     public static Source uploaded(UUID workspaceId, SourceFilename originalFilename, SourceType sourceType,
                                   long sizeBytes, StorageKey storageKey, String contentSha256, UUID uploadedBy,
                                   Instant now) {
-        return new Source(null, workspaceId, originalFilename, originalFilename.value(), sourceType, sizeBytes,
-                storageKey, contentSha256, SourceStatus.UPLOADED, null, uploadedBy, now, now);
+        return new Source(null, workspaceId, originalFilename, originalFilename.value(), sourceType,
+                sizeBytes, storageKey, contentSha256, SourceStatus.UPLOADED, null, uploadedBy, now, now,
+                UUID.randomUUID(), 1);
+    }
+
+    /** Selects a newly stored immutable input as the latest source version. */
+    public Source replaceWith(UUID versionId, int versionNumber, SourceFilename filename, SourceType type,
+                              long bytes, StorageKey key, String sha256, UUID replacementUploader, Instant now) {
+        if (status != SourceStatus.READY && status != SourceStatus.FAILED) {
+            throw new ConflictException("Source processing is already in progress");
+        }
+        if (versionNumber != activeVersionNumber + 1) {
+            throw new IllegalArgumentException("source versions must be consecutive");
+        }
+        return new Source(id, workspaceId, filename, displayName, type, bytes, key, sha256,
+                SourceStatus.UPLOADED, null, replacementUploader, createdAt, now,
+                Objects.requireNonNull(versionId), versionNumber);
     }
 
     /** The canonical media type of the source's type, which is what is stored. */
@@ -127,7 +151,7 @@ public record Source(
             throw new IllegalArgumentException("use processingFailed to record a failure summary");
         }
         return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
-                contentSha256, next, null, uploadedBy, createdAt, now);
+                contentSha256, next, null, uploadedBy, createdAt, now, activeVersionId, activeVersionNumber);
     }
 
     /** Explicitly reprocesses the same immutable bytes after a terminal run. */
@@ -136,7 +160,8 @@ public record Source(
             throw new ConflictException("Source processing is already in progress");
         }
         return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
-                contentSha256, SourceStatus.PROCESSING, null, uploadedBy, createdAt, now);
+                contentSha256, SourceStatus.PROCESSING, null, uploadedBy, createdAt, now,
+                activeVersionId, activeVersionNumber);
     }
 
     /** Moves a processing source to {@link SourceStatus#FAILED} with the safe explanation shown to members. */
@@ -145,7 +170,8 @@ public record Source(
             throw new ConflictException("A source that is " + status + " cannot become FAILED");
         }
         return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
-                contentSha256, SourceStatus.FAILED, summary, uploadedBy, createdAt, now);
+                contentSha256, SourceStatus.FAILED, summary, uploadedBy, createdAt, now,
+                activeVersionId, activeVersionNumber);
     }
 
 }

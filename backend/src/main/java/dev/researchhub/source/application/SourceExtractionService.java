@@ -13,6 +13,8 @@ import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.source.domain.SourceStatus;
 import dev.researchhub.source.infrastructure.SourceRepository;
 import dev.researchhub.source.infrastructure.SourceExtractionRepository;
+import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
+import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -35,10 +37,14 @@ public class SourceExtractionService implements SourceIngestResultSink, SourceRe
     private final RetrievalIndex index;
     private final SourceProcessingProgress progress;
     private final TransactionTemplate transactions;
+    private final SourceVersionJobRepository versionJobs;
+    private final SourceVersionRepository versions;
     public SourceExtractionService(SourceRepository sources, SourceExtractionRepository extractions,
                                    WorkspaceAuthorizationService authorization, Clock clock, RetrievalStore retrieval,
                                    EmbeddingProvider embeddings, RetrievalIndex index,
-                                   SourceProcessingProgress progress, PlatformTransactionManager transactionManager) {
+                                   SourceProcessingProgress progress, SourceVersionJobRepository versionJobs,
+                                   SourceVersionRepository versions,
+                                   PlatformTransactionManager transactionManager) {
         this.embeddings = embeddings;
         this.index = index;
         this.progress = progress;
@@ -47,6 +53,8 @@ public class SourceExtractionService implements SourceIngestResultSink, SourceRe
         this.sources = sources;
         this.extractions = extractions;
         this.authorization = authorization;
+        this.versionJobs = versionJobs;
+        this.versions = versions;
         this.clock = clock;
     }
     @Override
@@ -58,17 +66,21 @@ public class SourceExtractionService implements SourceIngestResultSink, SourceRe
         progress.update(job, SourceProcessingProgress.Stage.CHUNK);
         if (chunks == null) throw new IllegalArgumentException("Missing retrieval chunks");
         chunks.validate(job.workspaceId(), job.resourceId(), extraction);
+        UUID sourceVersionId = versionJobs.findVersionId(job.jobId())
+                .orElseThrow(() -> new IllegalStateException("Processing source version is not recorded"));
+        chunks = chunks.withSourceVersion(sourceVersionId);
         progress.update(job, SourceProcessingProgress.Stage.EMBED);
         // Provider requests happen outside the database transaction and resource locks.
         var batch = embeddings.embedDocuments(chunks.chunks().stream().map(RetrievalChunk::content).toList());
         progress.update(job, SourceProcessingProgress.Stage.INDEX);
-        transactions.executeWithoutResult(_status -> persist(job, extraction, chunks, batch));
+        RetrievalChunkSet versionedChunks = chunks;
+        transactions.executeWithoutResult(_status -> persist(job, sourceVersionId, extraction, versionedChunks, batch));
         progress.update(job, SourceProcessingProgress.Stage.FINALIZE);
     }
-    private void persist(ProcessingJobNotification job, SourceExtraction extraction, RetrievalChunkSet chunks,
+    private void persist(ProcessingJobNotification job, UUID sourceVersionId, SourceExtraction extraction, RetrievalChunkSet chunks,
                          EmbeddingBatch batch) {
         requireCurrentInput(job, extraction);
-        extractions.save(job.workspaceId(), job.resourceId(), job.jobId(), extraction, clock.instant());
+        extractions.save(job.workspaceId(), job.resourceId(), sourceVersionId, job.jobId(), extraction, clock.instant());
         retrieval.save(job.jobId(), chunks, clock.instant());
         index.upsert(job.jobId(), chunks, batch);
     }
@@ -88,6 +100,19 @@ public class SourceExtractionService implements SourceIngestResultSink, SourceRe
         authorization.requireContentReader(workspaceId, callerId);
         for (UUID sourceId : sourceIds) {
             if (sourceId == null || sources.findByWorkspaceIdAndId(workspaceId, sourceId).isEmpty()) {
+                throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+            }
+        }
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public void requireSourceVersions(UUID workspaceId, UUID callerId, java.util.List<UUID> sourceVersionIds) {
+        authorization.requireContentReader(workspaceId, callerId);
+        if (sourceVersionIds == null || sourceVersionIds.stream().anyMatch(java.util.Objects::isNull)) {
+            throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+        }
+        for (UUID versionId : sourceVersionIds) {
+            if (!versions.existsByWorkspaceIdAndId(workspaceId, versionId)) {
                 throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
             }
         }
@@ -129,5 +154,38 @@ public class SourceExtractionService implements SourceIngestResultSink, SourceRe
         // A stored result is published only after the source has completed successfully.
         if (source.status() != SourceStatus.READY) return null;
         return extractions.find(workspaceId, sourceId).orElse(null);
+    }
+
+    /** Authorized historical extraction used by bounded dataset preview and reproducible analysis. */
+    @Transactional(readOnly = true)
+    public SourceExtraction findVersion(UUID workspaceId, UUID sourceId, UUID sourceVersionId, UUID callerId) {
+        try {
+            authorization.requireContentReader(workspaceId, callerId);
+        } catch (ResourceNotFoundException hidden) {
+            throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+        }
+        if (sources.findByWorkspaceIdAndId(workspaceId, sourceId).isEmpty()) {
+            throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+        }
+        return extractions.findVersion(workspaceId, sourceId, sourceVersionId)
+                .orElseThrow(() -> new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND));
+    }
+
+    /**
+     * Authorized tabular profile of one archived version, or null when it has none. Used by the bounded dataset
+     * preview, which needs the sheet/column metadata and never the extracted text.
+     */
+    @Transactional(readOnly = true)
+    public SourceExtraction.WorkbookMetadata findVersionWorkbook(UUID workspaceId, UUID sourceId,
+                                                                 UUID sourceVersionId, UUID callerId) {
+        try {
+            authorization.requireContentReader(workspaceId, callerId);
+        } catch (ResourceNotFoundException hidden) {
+            throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+        }
+        if (sources.findByWorkspaceIdAndId(workspaceId, sourceId).isEmpty()) {
+            throw new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND);
+        }
+        return extractions.findVersionWorkbook(workspaceId, sourceId, sourceVersionId).orElse(null);
     }
 }

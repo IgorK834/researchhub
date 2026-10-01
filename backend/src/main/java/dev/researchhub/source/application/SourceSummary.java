@@ -23,6 +23,8 @@ public record SourceSummary(
         String failureSummary,
         UUID uploadedBy,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID activeVersionId,
+        int activeVersionNumber
 ) {
 }

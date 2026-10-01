@@ -122,7 +122,7 @@ class HttpProcessingWorkerClientTest {
         properties.getWorker().setBaseUrl(URI.create("http://127.0.0.1:" + server.getAddress().getPort()));
         properties.getWorker().setRequestTimeout(Duration.ofSeconds(2));
         properties.getWorker().setServiceToken(SERVICE_TOKEN);
-        SourceIngestInputProvider inputs = (_workspaceId, _sourceId, _ttl) -> new SourceIngestInput("PDF",
+        SourceIngestInputProvider inputs = (_workspaceId, _sourceId, _jobId, _ttl) -> new SourceIngestInput("PDF",
                 URI.create("http://127.0.0.1:10000/container/blob.pdf?sp=r&sig=temporary"),
                 Instant.parse("2030-01-02T03:04:05Z"));
         return new HttpProcessingWorkerClient(properties, new ObjectMapper(), inputs, (_job, _extraction, _retrieval) -> {});

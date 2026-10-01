@@ -82,6 +82,45 @@ public class SourceController {
         return SourceResponse.from(sources.findOne(workspaceId, currentUserId(), sourceId));
     }
 
+    @PostMapping(path = "/{sourceId}/versions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<SourceResponse> replace(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
+                                           @RequestPart(name = "file", required = false) MultipartFile file) {
+        if (file == null) throw new ApiException(ApiErrorCode.VALIDATION_FAILED, "A file part named 'file' is required");
+        try (InputStream content = file.getInputStream()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(SourceResponse.from(sources.replace(workspaceId,
+                    currentUserId(), sourceId, new UploadSourceCommand(file.getOriginalFilename(),
+                            file.getContentType(), file.getSize(), content))));
+        } catch (IOException failure) {
+            throw new UncheckedIOException("The uploaded file could not be read", failure);
+        }
+    }
+
+    @GetMapping("/{sourceId}/versions")
+    List<SourceVersionResponse> versions(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
+        return sources.versions(workspaceId, currentUserId(), sourceId).stream()
+                .map(SourceVersionResponse::from).toList();
+    }
+
+    @GetMapping("/{sourceId}/versions/{versionId}")
+    SourceVersionResponse version(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
+                                  @PathVariable UUID versionId) {
+        return SourceVersionResponse.from(sources.findVersion(workspaceId, currentUserId(), sourceId, versionId));
+    }
+
+    @GetMapping("/{sourceId}/versions/{versionId}/content")
+    ResponseEntity<InputStreamResource> versionContent(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
+                                                       @PathVariable UUID versionId) {
+        var opened = sources.openVersionContent(workspaceId, currentUserId(), sourceId, versionId);
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(opened.version().originalFilename(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(opened.version().mediaType()))
+                .contentLength(opened.version().sizeBytes())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .header("X-Content-Type-Options", "nosniff")
+                .body(new InputStreamResource(opened.content()));
+    }
+
     @GetMapping("/{sourceId}/extraction")
     ResponseEntity<SourceExtraction> extraction(@PathVariable UUID workspaceId, @PathVariable UUID sourceId) {
         SourceExtraction extraction = extractions.find(workspaceId, sourceId, currentUserId());

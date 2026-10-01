@@ -52,6 +52,9 @@ public record WorkerJobResult(
             require(extractionMetadata != null && failure == null, "successful result state");
             extraction().validate(sourceId);
             require(retrieval != null, "retrieval output");
+            require(retrieval.sourceVersionId() == null
+                    && retrieval.chunks().stream().allMatch(chunk -> chunk.sourceVersionId() == null),
+                    "server-owned source version");
             retrieval.validate(workspaceId, sourceId, extraction());
         } else if ("FAILED".equals(status)) {
             require(failure != null && retrieval == null, "failed result state");

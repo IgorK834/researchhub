@@ -101,6 +101,9 @@ class SourceServiceIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     private UUID owner;
     private UUID workspaceId;
 
@@ -363,6 +366,231 @@ class SourceServiceIntegrationTest {
         UncheckedIOException failure = assertThrows(UncheckedIOException.class,
                 () -> sources.openContent(workspaceId, owner, source.id()));
         assertTrue(failure.getCause() instanceof StorageObjectNotFoundException);
+    }
+
+
+    // --- RH-130: immutable source versions ---
+
+    private void markReady(UUID sourceId) {
+        jdbcTemplate.update("UPDATE source_versions SET status = 'READY', updated_at = now() WHERE id = "
+                + "(SELECT active_version_id FROM sources WHERE id = ?)", sourceId);
+        jdbcTemplate.update("UPDATE sources SET status = 'READY', updated_at = now() WHERE id = ?", sourceId);
+        // The durable run that produced the READY state is finished; only then can another run be queued.
+        jdbcTemplate.update("""
+                UPDATE processing_jobs SET status = 'SUCCEEDED', attempt_count = 1, started_at = created_at,
+                    finished_at = created_at, next_attempt_at = NULL
+                WHERE resource_id = ? AND status = 'PENDING'
+                """, sourceId);
+        // The JDBC update bypassed the persistence context, so the service must reload the rows.
+        entityManager.clear();
+    }
+
+    private UUID boundVersion(UUID sourceId, int generation) {
+        return jdbcTemplate.queryForObject("""
+                SELECT b.source_version_id FROM processing_jobs j
+                JOIN processing_job_source_versions b ON b.job_id = j.id
+                WHERE j.resource_id = ? AND j.generation = ?
+                """, UUID.class, sourceId, generation);
+    }
+
+    private static String text(InputStream stream) throws IOException {
+        try (stream) {
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    @Test
+    void anUploadRecordsVersionOneAndPinsItsProcessingJobToIt() {
+        SourceSummary source = sources.upload(workspaceId, owner, upload("a.csv", "text/csv", "a,b\n1,2\n".getBytes()));
+
+        assertEquals(1, source.activeVersionNumber());
+        List<SourceVersionSummary> versions = sources.versions(workspaceId, owner, source.id());
+        assertEquals(1, versions.size());
+        assertEquals(source.activeVersionId(), versions.getFirst().id());
+        assertTrue(versions.getFirst().active());
+        assertEquals(source.contentSha256(), versions.getFirst().contentSha256());
+        assertEquals(source.activeVersionId(), boundVersion(source.id(), 0));
+    }
+
+    @Test
+    void replacingAddsAnImmutableVersionAndTheOriginalBytesStayReadable() throws IOException {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        markReady(first.id());
+
+        SourceSummary second = sources.replace(workspaceId, owner, first.id(),
+                upload("data-rev2.csv", "text/csv", "a\n1\n2\n".getBytes()));
+
+        assertEquals(first.id(), second.id(), "the stable source identity does not change");
+        assertEquals(2, second.activeVersionNumber());
+        assertFalse(first.activeVersionId().equals(second.activeVersionId()));
+        assertEquals("data-rev2.csv", second.originalFilename());
+        assertEquals("UPLOADED", second.status());
+        assertEquals(2, storage.objectCount(), "the replaced blob is retained while a version row references it");
+
+        List<SourceVersionSummary> versions = sources.versions(workspaceId, owner, first.id());
+        assertEquals(List.of(2, 1), versions.stream().map(SourceVersionSummary::versionNumber).toList());
+        assertEquals(List.of(true, false), versions.stream().map(SourceVersionSummary::active).toList());
+        assertEquals("READY", versions.get(1).status(), "version 1 keeps its own lifecycle state");
+
+        assertEquals("a\n1\n", text(sources.openVersionContent(workspaceId, owner, first.id(), first.activeVersionId())
+                .content()));
+        assertEquals("a\n1\n2\n", text(sources.openContent(workspaceId, owner, first.id()).content()));
+        assertEquals(second.activeVersionId(), sources.activeVersion(workspaceId, owner, first.id()).id());
+        assertEquals(second.activeVersionId(), boundVersion(first.id(), 1));
+        assertEquals(first.activeVersionId(), boundVersion(first.id(), 0), "the first run still names version 1");
+    }
+
+    @Test
+    void aVersionCanChangeTheFileTypeAndIsValidatedLikeAnUpload() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        markReady(first.id());
+
+        assertThrows(UnsupportedFileTypeException.class, () -> sources.replace(workspaceId, owner, first.id(),
+                upload("run.exe", null, new byte[]{'M', 'Z'})));
+        assertThrows(UnsupportedFileTypeException.class, () -> sources.replace(workspaceId, owner, first.id(),
+                upload("fake.pdf", "application/pdf", new byte[]{'M', 'Z', (byte) 0x90, 0})));
+        assertThrows(ApiException.class, () -> sources.replace(workspaceId, owner, first.id(),
+                upload("empty.csv", "text/csv", new byte[0])));
+        assertThrows(PayloadTooLargeException.class, () -> sources.replace(workspaceId, owner, first.id(),
+                new UploadSourceCommand("big.txt", "text/plain", null,
+                        new ByteArrayInputStream("x".repeat(4096).getBytes()))));
+
+        assertEquals(1, storage.objectCount(), "no refused revision leaves bytes behind");
+        assertEquals(1, sources.versions(workspaceId, owner, first.id()).size());
+        assertEquals(1, sources.findOne(workspaceId, owner, first.id()).activeVersionNumber());
+
+        SourceSummary pdf = sources.replace(workspaceId, owner, first.id(), upload("paper.pdf", "application/pdf", PDF));
+        assertEquals("PDF", pdf.sourceType());
+        assertEquals(2, pdf.activeVersionNumber());
+    }
+
+    @Test
+    void aRevisionIsRefusedWhileTheCurrentVersionIsStillBeingProcessed() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+
+        ConflictException refused = assertThrows(ConflictException.class, () -> sources.replace(workspaceId, owner,
+                first.id(), upload("data2.csv", "text/csv", "a\n2\n".getBytes())));
+
+        assertTrue(refused.getMessage().contains("in progress"), refused.getMessage());
+        assertEquals(1, storage.objectCount());
+        assertEquals(1, sources.versions(workspaceId, owner, first.id()).size());
+    }
+
+    @Test
+    void aRefusedQuotaOnARevisionRemovesTheNewBytesAndKeepsTheOldVersionActive() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        markReady(first.id());
+        quota.remainingBytes = 2;
+
+        assertThrows(PayloadTooLargeException.class, () -> sources.replace(workspaceId, owner, first.id(),
+                upload("data2.csv", "text/csv", "a\n1\n2\n3\n".getBytes())));
+
+        assertEquals(1, storage.objectCount());
+        assertEquals(first.activeVersionId(), sources.findOne(workspaceId, owner, first.id()).activeVersionId());
+    }
+
+    @Test
+    void onlyAnEditorOfTheSameWorkspaceMayReplace() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        markReady(first.id());
+        UUID viewer = member("viewer@example.com", "VIEWER");
+        UUID stranger = UserRowFixture.insertUser(jdbcTemplate, "mallory@example.com", "Mallory");
+        UUID otherWorkspace = workspaces.create(new CreateWorkspaceCommand("Other", null, owner)).id();
+
+        assertThrows(ForbiddenException.class, () -> sources.replace(workspaceId, viewer, first.id(),
+                upload("b.csv", "text/csv", "a\n9\n".getBytes())));
+        assertThrows(ResourceNotFoundException.class, () -> sources.replace(workspaceId, stranger, first.id(),
+                upload("b.csv", "text/csv", "a\n9\n".getBytes())));
+        assertThrows(ResourceNotFoundException.class, () -> sources.replace(otherWorkspace, owner, first.id(),
+                upload("b.csv", "text/csv", "a\n9\n".getBytes())));
+        workspaces.archive(workspaceId, owner);
+        assertThrows(ConflictException.class, () -> sources.replace(workspaceId, owner, first.id(),
+                upload("b.csv", "text/csv", "a\n9\n".getBytes())));
+
+        assertEquals(1, storage.objectCount(), "no refused revision ever reached storage");
+    }
+
+    @Test
+    void versionReadsAreWorkspaceScopedAndReachTheViewerOnly() throws IOException {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        SourceSummary unrelated = sources.upload(workspaceId, owner, upload("other.csv", "text/csv", "z\n".getBytes()));
+        UUID viewer = member("viewer@example.com", "VIEWER");
+        UUID stranger = UserRowFixture.insertUser(jdbcTemplate, "mallory@example.com", "Mallory");
+        UUID otherWorkspace = workspaces.create(new CreateWorkspaceCommand("Other", null, owner)).id();
+
+        assertEquals("a\n1\n", text(sources.openVersionContent(workspaceId, viewer, first.id(),
+                first.activeVersionId()).content()));
+        assertEquals(first.activeVersionId(), sources.findVersion(workspaceId, viewer, first.id(),
+                first.activeVersionId()).id());
+        for (Runnable attempt : List.<Runnable>of(
+                () -> sources.versions(workspaceId, stranger, first.id()),
+                () -> sources.findVersion(workspaceId, stranger, first.id(), first.activeVersionId()),
+                () -> sources.openVersionContent(workspaceId, stranger, first.id(), first.activeVersionId()),
+                () -> sources.versions(otherWorkspace, owner, first.id()),
+                () -> sources.findVersion(otherWorkspace, owner, first.id(), first.activeVersionId()),
+                () -> sources.findVersion(workspaceId, owner, first.id(), unrelated.activeVersionId()),
+                () -> sources.openVersionContent(workspaceId, owner, first.id(), unrelated.activeVersionId()),
+                () -> sources.findVersion(workspaceId, owner, first.id(), UUID.randomUUID()),
+                () -> sources.activeVersion(workspaceId, stranger, first.id()))) {
+            ResourceNotFoundException refused = assertThrows(ResourceNotFoundException.class, attempt::run);
+            assertEquals("Source was not found", refused.getMessage());
+        }
+    }
+
+    @Test
+    void reprocessingReusesTheSameVersionAndBindsAFreshJobToIt() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        markReady(first.id());
+
+        SourceSummary again = sources.reprocess(workspaceId, owner, first.id());
+
+        assertEquals("PROCESSING", again.status());
+        assertEquals(first.activeVersionId(), again.activeVersionId());
+        assertEquals(1, again.activeVersionNumber());
+        assertEquals(first.activeVersionId(), boundVersion(first.id(), 1));
+        assertEquals("PROCESSING", sources.activeVersion(workspaceId, owner, first.id()).status());
+        assertEquals(1, storage.objectCount(), "reprocessing never copies or replaces bytes");
+    }
+
+    @Test
+    void aVersionRowCannotBeRewrittenByAnyStatement() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+
+        org.springframework.dao.DataIntegrityViolationException failure = assertThrows(
+                org.springframework.dao.DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update("UPDATE source_versions SET storage_key = ? WHERE id = ?",
+                        "sources/" + UUID.randomUUID(), first.activeVersionId()));
+        assertTrue(failure.getMessage().contains("immutable"), failure.getMessage());
+    }
+
+    @Test
+    void aVersionRowCannotBeDeletedWhileItsBytesAreReferenced() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+
+        org.springframework.dao.DataIntegrityViolationException failure = assertThrows(
+                org.springframework.dao.DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update("DELETE FROM source_versions WHERE id = ?", first.activeVersionId()));
+        assertTrue(failure.getMessage().contains("immutable"), failure.getMessage());
+    }
+
+    @Test
+    void theActiveProjectionMustMatchOneOfTheSourcesOwnVersions() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+        SourceSummary other = sources.upload(workspaceId, owner, upload("other.csv", "text/csv", "z\n".getBytes()));
+
+        // Pointing a source at another source's version, or changing bytes without a version, is refused.
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update("UPDATE sources SET active_version_id = ? WHERE id = ?",
+                        other.activeVersionId(), first.id()));
+    }
+
+    @Test
+    void aSourceCannotBeRewrittenToBytesNoVersionRecords() {
+        SourceSummary first = sources.upload(workspaceId, owner, upload("data.csv", "text/csv", "a\n1\n".getBytes()));
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                () -> jdbcTemplate.update("UPDATE sources SET content_sha256 = ? WHERE id = ?", "e".repeat(64),
+                        first.id()));
     }
 
 }

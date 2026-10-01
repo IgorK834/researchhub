@@ -19,13 +19,16 @@ public record SourceResponse(
         String failureSummary,
         UUID uploadedBy,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID activeVersionId,
+        int activeVersionNumber
 ) {
 
     static SourceResponse from(SourceSummary source) {
         return new SourceResponse(source.id(), source.workspaceId(), source.originalFilename(), source.displayName(),
                 source.mediaType(), source.sourceType(), source.sizeBytes(), source.contentSha256(), source.status(),
-                source.failureSummary(), source.uploadedBy(), source.createdAt(), source.updatedAt());
+                source.failureSummary(), source.uploadedBy(), source.createdAt(), source.updatedAt(),
+                source.activeVersionId(), source.activeVersionNumber());
     }
 
 }

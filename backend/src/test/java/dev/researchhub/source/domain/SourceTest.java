@@ -28,7 +28,7 @@ class SourceTest {
 
     private static Source withSize(long size) {
         return new Source(null, WORKSPACE, SourceFilename.of("r.pdf"), "r.pdf", SourceType.PDF, size,
-                StorageKey.generate(), SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW);
+                StorageKey.generate(), SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW, UUID.randomUUID(), 1);
     }
 
     @Test
@@ -68,13 +68,13 @@ class SourceTest {
         StorageKey key = StorageKey.generate();
         SourceFilename name = SourceFilename.of("r.pdf");
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, name, "  ", SourceType.PDF,
-                1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW));
+                1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW, UUID.randomUUID(), 1));
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, name, null, SourceType.PDF,
-                1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW));
+                1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW, UUID.randomUUID(), 1));
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, name, "x".repeat(256),
-                SourceType.PDF, 1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW));
+                SourceType.PDF, 1, key, SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW, UUID.randomUUID(), 1));
         assertEquals("Trimmed", new Source(null, WORKSPACE, name, "  Trimmed ", SourceType.PDF, 1, key, SHA,
-                SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW).displayName());
+                SourceStatus.UPLOADED, null, UPLOADER, NOW, NOW, UUID.randomUUID(), 1).displayName());
     }
 
     @Test
@@ -145,7 +145,7 @@ class SourceTest {
                 () -> processing.processingFailed("x".repeat(Source.FAILURE_SUMMARY_MAX_LENGTH + 1), LATER));
         assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE,
                 SourceFilename.of("r.pdf"), "r.pdf", SourceType.PDF, 1, StorageKey.generate(), SHA,
-                SourceStatus.UPLOADED, "not applicable", UPLOADER, NOW, NOW));
+                SourceStatus.UPLOADED, "not applicable", UPLOADER, NOW, NOW, UUID.randomUUID(), 1));
         assertThrows(IllegalArgumentException.class, () -> processing.moveTo(SourceStatus.FAILED, LATER));
     }
 
@@ -176,6 +176,76 @@ class SourceTest {
                 () -> new StorageKey("workspaces/" + UUID.randomUUID() + "/report.pdf"));
         assertThrows(IllegalArgumentException.class,
                 () -> new StorageKey("sources/" + UUID.randomUUID().toString().toUpperCase()));
+    }
+
+
+    // --- RH-130 versions ---
+
+    @Test
+    void anUploadStartsAtVersionOneWithAFreshVersionIdentity() {
+        Source first = uploaded();
+        Source second = uploaded();
+
+        assertEquals(1, first.activeVersionNumber());
+        assertNotEquals(first.activeVersionId(), second.activeVersionId());
+        assertThrows(NullPointerException.class, () -> new Source(null, WORKSPACE, SourceFilename.of("r.pdf"),
+                "r.pdf", SourceType.PDF, 1, StorageKey.generate(), SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW,
+                NOW, null, 1));
+        assertThrows(IllegalArgumentException.class, () -> new Source(null, WORKSPACE, SourceFilename.of("r.pdf"),
+                "r.pdf", SourceType.PDF, 1, StorageKey.generate(), SHA, SourceStatus.UPLOADED, null, UPLOADER, NOW,
+                NOW, UUID.randomUUID(), 0));
+    }
+
+    @Test
+    void replacingSelectsANewVersionAndLeavesTheStableIdentityAlone() {
+        Source ready = withId().moveTo(SourceStatus.PROCESSING, LATER).moveTo(SourceStatus.READY, LATER);
+        StorageKey key = StorageKey.generate();
+        UUID newVersion = UUID.randomUUID();
+        UUID reviser = UUID.randomUUID();
+
+        Source replaced = ready.replaceWith(newVersion, 2, SourceFilename.of("r-v2.xlsx"), SourceType.XLSX, 2048,
+                key, "b".repeat(64), reviser, LATER.plusSeconds(60));
+
+        assertEquals(ready.id(), replaced.id());
+        assertEquals(ready.createdAt(), replaced.createdAt());
+        assertEquals(ready.displayName(), replaced.displayName(), "the label the workspace chose is kept");
+        assertEquals(2, replaced.activeVersionNumber());
+        assertEquals(newVersion, replaced.activeVersionId());
+        assertEquals(key, replaced.storageKey());
+        assertEquals(SourceType.XLSX, replaced.sourceType());
+        assertEquals(SourceStatus.UPLOADED, replaced.status());
+        assertEquals(reviser, replaced.uploadedBy());
+        assertEquals(1, ready.activeVersionNumber(), "the earlier projection is untouched");
+    }
+
+    @Test
+    void aSourceCanBeReplacedAfterAFailedRunButNotWhileItIsBeingProcessed() {
+        Source failed = withId().moveTo(SourceStatus.PROCESSING, LATER).processingFailed("Broken", LATER);
+        assertEquals(2, failed.replaceWith(UUID.randomUUID(), 2, SourceFilename.of("fixed.pdf"), SourceType.PDF, 9,
+                StorageKey.generate(), SHA, UPLOADER, LATER).activeVersionNumber());
+
+        Source processing = withId().moveTo(SourceStatus.PROCESSING, LATER);
+        assertThrows(ConflictException.class, () -> processing.replaceWith(UUID.randomUUID(), 2,
+                SourceFilename.of("x.pdf"), SourceType.PDF, 9, StorageKey.generate(), SHA, UPLOADER, LATER));
+        assertThrows(ConflictException.class, () -> withId().replaceWith(UUID.randomUUID(), 2,
+                SourceFilename.of("x.pdf"), SourceType.PDF, 9, StorageKey.generate(), SHA, UPLOADER, LATER));
+    }
+
+    @Test
+    void versionNumbersAreConsecutive() {
+        Source ready = withId().moveTo(SourceStatus.PROCESSING, LATER).moveTo(SourceStatus.READY, LATER);
+        assertThrows(IllegalArgumentException.class, () -> ready.replaceWith(UUID.randomUUID(), 3,
+                SourceFilename.of("x.pdf"), SourceType.PDF, 9, StorageKey.generate(), SHA, UPLOADER, LATER));
+        assertThrows(IllegalArgumentException.class, () -> ready.replaceWith(UUID.randomUUID(), 1,
+                SourceFilename.of("x.pdf"), SourceType.PDF, 9, StorageKey.generate(), SHA, UPLOADER, LATER));
+    }
+
+    private static Source withId() {
+        Source unsaved = uploaded();
+        return new Source(UUID.randomUUID(), unsaved.workspaceId(), unsaved.originalFilename(), unsaved.displayName(),
+                unsaved.sourceType(), unsaved.sizeBytes(), unsaved.storageKey(), unsaved.contentSha256(),
+                unsaved.status(), null, unsaved.uploadedBy(), unsaved.createdAt(), unsaved.updatedAt(),
+                unsaved.activeVersionId(), unsaved.activeVersionNumber());
     }
 
 }
