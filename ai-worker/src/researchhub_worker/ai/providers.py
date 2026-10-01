@@ -209,6 +209,24 @@ class ModelGateway:
                 raise ProviderError('AI_OUTPUT_INVALID') from None
 
 
+    def generate_analysis(self, request):
+        from .source_analysis import generate_analysis, AnalysisResult
+        for attempt in range(3):
+            try:
+                request = ContextualRequest.model_validate(request.model_dump())
+                result = AnalysisResult.model_validate(generate_analysis(self._provider, request).model_dump())
+                result.validate_for(request)
+                if result.model != self.model_metadata():
+                    raise ValueError('Model metadata changed')
+                return result
+            except ProviderError as failure:
+                if not failure.retryable or attempt == 2:
+                    raise
+                self._sleep(0.2 * 2 ** attempt)
+            except (ValueError, KeyError, TypeError, AttributeError, IndexError):
+                raise ProviderError('AI_OUTPUT_INVALID') from None
+
+
 def configured_gateway():
     name = os.getenv('AI_WORKER_MODEL_PROVIDER', 'deterministic')
     if name == 'deterministic':
