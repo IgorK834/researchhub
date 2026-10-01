@@ -25,7 +25,8 @@ A document plugin derives numbering in first-reference order, with repeated enti
 a number. Deletion, reorder and undo recalculate presentation without mutating identity or
 provenance. The selected citation's toolbar offers number or source/location display. Clicking
 a citation navigates to the existing authorized source preview with processing version, unit
-and page. Saving/reloading retains the metadata and style. `citationReferences(doc)` exposes the
+and page. Saving/reloading retains the metadata and style. Clipboard HTML carries validated
+entity metadata; pasted URLs and visible numbers are ignored and rebuilt from the reference. `citationReferences(doc)` exposes the
 stable, ordered references for future bibliography formatting; bibliography export itself is deferred.
 
 ## Source comparison workflow
@@ -118,3 +119,12 @@ Java 25/Spring Boot 4.1.1 BOM, npm package-lock and Python 3.13.3/uv.lock remain
 Integration tests exercise real session/CSRF HTTP, worker HTTP, Flyway/Postgres, immutable provenance and
 2–5-source tables. The document page test saves/reloads structured references and opens their source
 without rewriting the claim; backend tests persist accepted citation metadata through another manual save.
+
+
+Final verification on 2026-10-01: 583 backend tests, 279 frontend tests and 292 worker tests passed.
+Source-analysis backend line coverage is 100%; frontend comparison/API line coverage is 100% and
+editor-citation line coverage exceeds 98%. The worker source-analysis module has 96% combined
+statement/branch coverage. Maven JAR, Webpack production bundle and the pinned worker Docker image
+built successfully. Both source-analysis fixtures also passed authenticated HTTP smoke tests in
+the built worker image. Frontend lint/typecheck/format checks pass; Webpack retains its bundle-size
+performance warnings.
