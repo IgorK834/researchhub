@@ -15,9 +15,9 @@ the search projection; SQL uses snake_case. `RetrievalChunk`, Python's correspon
 
 | Field | Meaning |
 | --- | --- |
-| chunkId | Stable 64-character SHA-256 identity of workspace/source/version/index/content hash/spans. |
+| chunkId | Stable 64-character SHA-256 identity of workspace/source/processing version/index/content hash/spans. It is content-addressed and deliberately independent of `sourceVersionId` (the digest keeps an always-null slot for it), so ids minted before versioning stay valid. |
 | sourceId, workspaceId | Mandatory UUIDs; every read is workspace-authorized. |
-| sourceVersionId | Explicit null until immutable source versioning is introduced. Current SQL rejects non-null values. |
+| sourceVersionId | The immutable source version the chunk was derived from (RH-130). The worker emits null; Spring binds the set to the job's version after validating it, and the column is `NOT NULL`. Search returns only chunks of a source's active version. |
 | chunkIndex | Ordered, contiguous index starting at zero within the current set. |
 | content | Source text, with two newlines between extracted units. Never generated or executed. |
 | pageStart, pageEnd | Inclusive PDF page range; null for sources without physical pages. V1 never crosses a page boundary. |
@@ -38,8 +38,9 @@ version fingerprint is SHA-256 of a compact UTF-8 JSON array described by `Retri
 Shared fixtures test equality across runtimes. Bump `hierarchical-char-1` when changing the chunking algorithm.
 
 `search-document.schema.json` adds field roles to the same chunk schema. Every adapter must filter by workspace,
-source and processing version, and atomically switch the active indexed version. Source version identity can become
-an additional filter once that feature exists. The Java/Python projection retains content and all provenance;
+source and processing version, and atomically switch the active indexed version. Source version identity is now an additional filter: search matches only chunks whose
+`source_version_id` is the source's active version, and `source_version_retrieval_sets` keeps a snapshot of every version's
+chunk set so analyses can be reproduced after a replacement ([source-versions.md](source-versions.md)). The Java/Python projection retains content and all provenance;
 workspace/version scope is mandatory. RH-102–RH-105 add pgvector through Flyway V14; [ADR-002](../adr/ADR-002-retrieval.md) selects one adapter.
 
 ## Deterministic hierarchy

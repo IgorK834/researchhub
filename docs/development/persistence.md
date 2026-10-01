@@ -35,7 +35,11 @@ Applied migrations:
 | 15 | `V15__audit_model_generations.sql` | Workspace-scoped model call trace, versioned template/parameter/input hash, bounded provenance, successful structured output and safe failure code. |
 | 16 | `V16__create_ai_conversations.sql` | Workspace research conversations, visible questions and complete answers with citations/model/template/usage; idempotent request identities and attempt leases. |
 
-The next migration is `V17__<description>.sql`.
+| 17 | `V17__create_ai_authoring_suggestions.sql` | Source-grounded authoring suggestions and acceptance events. |
+| 18 | `V18__create_ai_source_analyses.sql` | Immutable source comparisons and potential-difference analyses with provenance. |
+| 19 | `V19__version_sources_and_dataset_previews.sql` | Immutable `source_versions` (existing sources become version 1, blobs untouched), the active-version projection and its triggers, job → version binding, per-version extraction and retrieval snapshots, and `ai_source_analysis_sources` (the exact versions an analysis consumed). See [source-versions.md](source-versions.md). |
+
+The next migration is `V20__<description>.sql`.
 
 Research history is created only by Flyway. Assistant messages must be complete; partial streaming
 fragments are never persisted. Composite workspace ownership, unique turn identities and bounded
@@ -175,10 +179,12 @@ adds three rules of its own. The full reference is [sources.md](sources.md).
 - **Opaque keys.** `ck_sources_storage_key_format` accepts only `sources/<uuid v4>`, and `uq_sources_storage_key`
   keeps two rows from sharing bytes. A key is never derived from the file name and never used to find a row.
   `SourceRepository` has no lookup by key.
-- **Immutable original.** `tg_sources_original_is_immutable` refuses changing `id`, `workspace_id`,
-  `original_filename`, `media_type`, `source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by`, or
-  `created_at`. `display_name`, `status`, `failure_summary`, and `updated_at` may change. A replacement file will be a
-  new version, never an update of this row.
+- **Immutable original.** The uploaded bytes live in `source_versions`; `tg_source_version_input_is_immutable` (V19)
+  refuses any change to a version's input and any delete. `sources` keeps a stable `id`, `workspace_id` and `created_at`
+  (never updatable) and projects its **active** version: `tg_sources_original_is_immutable` (V19) lets the file columns
+  move only as a complete copy of one of that source's own versions (`fk_sources_active_version` is composite and
+  deferred so a source and its first version insert in one transaction). `display_name`, `status`,
+  `failure_summary` and `updated_at` may change. A replacement file is a new version, never an update.
 - `size_bytes` is between 1 and 1 GiB (`ck_sources_size_bytes`). The configured per-source limit is at most that.
   `content_sha256` is lowercase hex (`ck_sources_content_sha256_format`).
 - `ck_sources_failure_summary_matches_status` requires a concise summary for `FAILED` and requires it to be null for

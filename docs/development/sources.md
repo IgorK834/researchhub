@@ -7,7 +7,7 @@ reference for how a file becomes a source. Product context: [../context.md](../c
 Extraction persistence and previews are documented in [source-extraction.md](source-extraction.md). The authorized,
 versioned retrieval chunk contract and structure-aware chunking are documented in [source-retrieval.md](source-retrieval.md).
 
-The domain model, `sources` table (V8 and V9), application service, durable `SOURCE_INGEST` enqueue, HTTP API, React
+The domain model, `sources` table (V8 and V9) and its immutable versions (V19), application service, durable `SOURCE_INGEST` enqueue, HTTP API, React
 browse/upload UI, and Azure Blob adapter are implemented. Locally the adapter talks to Azurite through the same Azure
 SDK client used for Azure Blob Storage.
 The source service is only created once an adapter is configured (see [Storage](#storage)).
@@ -113,6 +113,46 @@ after storing. A future quota answers by throwing `PayloadTooLargeException`. Re
 
 ## Immutability and versions
 
+An uploaded file never changes. Every upload is an immutable **source version** (`source_versions`, V19) belonging to a
+stable `sources` row; replacing a file adds the next version with a new blob key and makes it the active one. A version's
+`original_filename`, `media_type`, `source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by` and
+`created_at` are refused by `tg_source_version_input_is_immutable`, and a version row cannot be deleted, so its blob stays
+referenced. The columns of the same name on `sources` are only a projection of the **active** (latest) version, kept so
+existing readers keep working; `tg_sources_original_is_immutable` (V19) allows them to move only as a complete copy of one
+of that source's own versions, and `id`, `workspace_id` and `created_at` never move.
+
+`content_sha256` is the SHA-256 of the stored bytes, computed while they streamed in. It is what provenance can cite,
+and it shows two uploads of the same file to be the same bytes. The full model, how processing and analyses are pinned
+to a version, and the retention policy are in [source-versions.md](source-versions.md).
+
+## Storage keys
+
+`StorageKey.generate()` returns `sources/<random UUID v4>`, and `ck_sources_storage_key_format` accepts nothing else.
+The key contains nothing the user chose: no file name, no workspace id, no source id.
+
+**A key carries no authority.** Nothing looks a source up by key, and no response includes one. Every read finds the
+source by id within the caller's workspace, after the workspace membership check, and only then reads the key from
+that row.
+
+## Limits and quota
+
+| Limit | Where | Default |
+| --- | --- | --- |
+| One source | `researchhub.sources.max-size-bytes`, read by `SourceLimits` | 50 MiB (`52428800`) |
+| Schema ceiling | `ck_sources_size_bytes`, `Source.MAX_SIZE_BYTES_CEILING` | 1 GiB. A configured limit above it fails startup. |
+| Empty file | `ck_sources_size_bytes`, and checked before storing | Refused, `400 VALIDATION_FAILED` |
+| Whole workspace | `WorkspaceSourceQuota` hook | None: `UnlimitedWorkspaceSourceQuota` |
+
+The per-source limit is enforced while the bytes stream in (`MeteredInputStream`). A client that declares its size is
+refused before anything is read. A client that declares a smaller size, or none, is stopped at `limit + 1` bytes.
+Both cases are `413 PAYLOAD_TOO_LARGE` with detail `The file is larger than the 50 MB allowed for one source`.
+
+The quota hook is asked twice per upload: once with the declared size before reading, and once with the real size
+after storing. A future quota answers by throwing `PayloadTooLargeException`. Replacing
+`UnlimitedWorkspaceSourceQuota` with another bean is the whole change.
+
+## Immutability and versions
+
 A source's **original input never changes**. `id`, `workspace_id`, `original_filename`, `media_type`,
 `source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by`, and `created_at` are `updatable = false`
 on the entity. `tg_sources_original_is_immutable` refuses changing any of them from any writer. Only `display_name`,
@@ -176,14 +216,19 @@ All routes require a session. Mutating requests also require the normal CSRF hea
 | `POST /api/workspaces/{workspaceId}/sources` | Multipart part `file`; editors/owners get `201` with source metadata. |
 | `GET /api/workspaces/{workspaceId}/sources` | Metadata list, newest first. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}` | One source's metadata. |
-| `POST /api/workspaces/{workspaceId}/sources/{sourceId}/reprocess` | Owner/editor on an active workspace; READY/FAILED only; returns `202 PROCESSING`. |
+| `POST /api/workspaces/{workspaceId}/sources/{sourceId}/reprocess` | Owner/editor on an active workspace; READY/FAILED only; returns `202 PROCESSING`. Reprocesses the same version. |
+| `POST /api/workspaces/{workspaceId}/sources/{sourceId}/versions` | Multipart part `file`; replaces the file as a **new immutable version** (`201`, `activeVersionNumber` + 1). Owner/editor, READY/FAILED source only. See [source-versions.md](source-versions.md). |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/versions` | Every version, newest first. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/versions/{versionId}` | One version's metadata. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/versions/{versionId}/content` | The exact bytes of that version. |
+| `GET /api/workspaces/{workspaceId}/analysis/datasets/{sourceId}/versions/{versionId}/preview` | Bounded structure of a CSV/XLSX version; see [dataset-inspection.md](dataset-inspection.md). |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}/preview` | Safe inline PDF original, including before processing completes. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}/extraction` | Typed current extraction when READY, otherwise `204`. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}/extraction/runs` | Small version/digest journal of successful result persistence. |
 | `GET /api/workspaces/{workspaceId}/sources/{sourceId}/locations/{unitId}` | Current provenance and source/PDF page links; also `locations?pageNumber=N`. |
-| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/content` | Streams the original bytes with canonical content type and an encoded attachment filename. |
+| `GET /api/workspaces/{workspaceId}/sources/{sourceId}/content` | Streams the active version's bytes with canonical content type and an encoded attachment filename. |
 
-Metadata responses contain `status` and nullable `failureSummary`, so the list can explain a processing failure
+Metadata responses contain `status`, nullable `failureSummary`, and the active version (`activeVersionId`, `activeVersionNumber`), so the list can explain a processing failure
 without fetching the file. They never contain `storageKey`, container credentials, or document contents. Content is
 streamed through the authorized backend route; no public or permanent Blob URL is issued. The download response uses
 an encoded attachment filename plus `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`.

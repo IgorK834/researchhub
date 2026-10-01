@@ -30,11 +30,14 @@ dev.researchhub
 │   ├── application     DocumentService, CheckpointPolicy, SaveKind, commands, summaries and details
 │   ├── domain          Document, DocumentContent, DocumentContentFormat, DocumentVersion, DocumentVersionReason, StaleRevisionException
 │   └── infrastructure  DocumentEntity, DocumentRepository, DocumentVersionEntity, DocumentVersionRepository
-├── source          Uploaded research material
-│   ├── api             SourceController and SourceResponse
-│   ├── application     SourceService, processing listener, the SourceStorage port, limits and quota
-│   ├── domain          Source, SourceType, SourceStatus, SourceFilename, StorageKey
-│   └── infrastructure  SourceEntity, SourceRepository, AzureBlobSourceStorage and its configuration
+├── source          Uploaded research material and its immutable versions
+│   ├── api             SourceController, SourceResponse, SourceVersionResponse
+│   ├── application     SourceService, processing listener, the SourceStorage port, limits and quota, version summaries/content
+│   ├── domain          Source, SourceVersion, SourceType, SourceStatus, SourceFilename, StorageKey
+│   └── infrastructure  SourceEntity, SourceVersionEntity, their repositories, AzureBlobSourceStorage and its configuration
+├── analysis        Safe, inspectable representations of data for analysis
+│   ├── api             DatasetPreviewController (bounded CSV/XLSX version preview)
+│   └── application     DatasetPreview contract, DatasetPreviewService, DatasetPreviewBuilder
 ├── ai              Retrieval substrate
 │   ├── api             Workspace-authorized current source chunk reads
 │   ├── application     Chunk/config/provenance contracts, validation, retrieval read service and storage port
@@ -176,7 +179,7 @@ Create the package when the first type for that module is added. Do not add empt
 | `source` | Workspace source metadata and ingestion status |
 | `processing` | Durable job identity/state, safe claim/retry/recovery, and worker delivery ports |
 | `ai` | Authorized retrieval/model orchestration and durable research conversations with SSE events. Model calls and data processing stay in `ai-worker/`. |
-| `analysis` | Analysis artifacts, execution status, and provenance of computed results |
+| `analysis` | Analysis artifacts, execution status, and provenance of computed results. Today: the bounded, formula-inert dataset preview of a source version ([dataset-inspection.md](dataset-inspection.md)). Execution stays in `ai-worker/`. |
 | `audit` | Audit events |
 
 [docs/context.md](../context.md) section 18 also names `collaboration`, `citation`, and `comment`. Those are future modules. Add each one when its feature starts, and list it in this table in the same change. Do not create the package only to match the long-term diagram.
@@ -223,7 +226,10 @@ prohibition of the normal case.
 | `document.api` | `dev.researchhub.auth.application` | Every document route acts on behalf of the signed-in user, and `auth` owns the session. As in `workspace.api`, the caller comes from `CurrentUserResolver` rather than the body, and only `id()` is read. |
 | `source.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Exactly as for documents: a source's access rule is its workspace's. `SourceService` calls the two `void` guards and never learns what a role is. `source` must not import `workspace.domain`, `workspace.infrastructure`, `user.domain`, or `user.infrastructure`, and nothing in `source.domain` or `source.application` may import a cloud SDK. |
 | `source.application` | `dev.researchhub.processing.application` | `SourceService` enqueues the durable job in its database transaction; `SourceIngestJobStateListener` implements the narrow notification interface to mirror status. It imports no processing domain or infrastructure type. |
-| `ai.application` | `dev.researchhub.source.application.SourceReadScope`, `SourceExtractionService`, `SourceService` and `SourceSummary` | Selected-source ownership, grounded chunk reads and context title snapshots go through public source contracts; no source repository/domain import. |
+| `ai.application` | `dev.researchhub.source.application.SourceReadScope`, `SourceExtractionService`, `SourceService`, `SourceSummary` and `SourceVersionSummary` | Selected-source and selected-**version** ownership (`requireSources`, `requireSourceVersions`), grounded chunk reads, historical per-version evidence and context title snapshots go through public source contracts; no source repository/domain import. |
+| `analysis.api` | `dev.researchhub.auth.application.CurrentUserResolver` | The caller comes from the authenticated session, never a request field. |
+| `analysis.application` | `dev.researchhub.source.application.SourceService`, `SourceExtractionService` and `SourceVersionSummary` | Workspace authorization, "this version belongs to this source" and the archived worker profile of a version are decided by `source`; `analysis` only projects them. No `source.domain` or `source.infrastructure` import. |
+| `analysis.application` | `dev.researchhub.processing.application.SourceExtraction` | The validated worker profile (`WorkbookMetadata`, `CsvProfile`) is a public application contract of `processing`; `analysis` reads it and never produces it. |
 | `ai.application` | `dev.researchhub.workspace.application.WorkspaceAuthorizationService` | Retrieval authorizes before embedding and filters inside SQL. The model gateway authorizes before resolving evidence, rechecks after inference and scopes persisted responses to the workspace. |
 | `ai.api` | `dev.researchhub.auth.application.CurrentUserResolver` | The caller comes from the authenticated session, never a request field. |
 | `source.application` | `dev.researchhub.ai.application` | Ingestion uses embedding/index/chunk ports and requires complete indexed publication before READY. No vendor dependency. |

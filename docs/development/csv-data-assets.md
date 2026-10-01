@@ -115,3 +115,9 @@ two-workspace isolation and membership revocation. `frontend`: `npm run test:cov
 `npm run lint`, `npm run format:check`; the profile and source module have >=80% gates, shared fixtures,
 preview integration and safe-rendering tests. `docker compose build ai-worker` verifies the deployable
 pinned Python image. These checks need no paid provider.
+
+## Dataset preview (RH-131/132)
+
+The profile described here is what the bounded, versioned [dataset preview](dataset-inspection.md) is built from: its
+CSV columns, inferred types, missing counts and exact-or-unknown row count are served per immutable source version
+without reading the file again.

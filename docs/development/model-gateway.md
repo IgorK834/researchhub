@@ -36,8 +36,9 @@ Membership and context are rechecked after inference before publishing.
 `result` carries schema/request/template identities, template hash, model/provider/version, provider
 request ID, usage and `answer`. SUPPORTED contains bounded claims (`text`, `evidenceIds`);
 INSUFFICIENT_EVIDENCE has no claims. Spring builds evidence snapshots with workspace/source/chunk IDs,
-processing version, content hash, page range, section title and source spans. `sourceVersionId` remains
-null until source versioning exists. Runtime checks prove traceability, not semantic entailment.
+processing version, content hash, page range, section title and source spans. Since RH-130 `sourceVersionId` is the
+immutable source version the chunk was derived from (null only for evidence minted before versioning). Runtime checks
+prove traceability, not semantic entailment.
 
 Internal `GET /internal/ai/model` and `POST /internal/ai/generate` require the worker service Bearer
 token. Model input contains explicit bounded text, never DB access, blob URLs or tools. The generation

@@ -16,8 +16,9 @@ compatibility with existing retrieval citation contracts; the nested locator mus
 
 Accepted authoring/evidence proposals create entities, never pasted bracket text. Existing legacy
 entities still open without rewriting the stored document. Source-level entities may omit the
-chunk. Physical historical source versions are not yet published by ingestion, so `sourceVersionId`
-currently remains null; processing-version identity and spans preserve the available provenance.
+chunk. Since RH-130 every newly published chunk carries the immutable `sourceVersionId` it was derived from, and
+retrieved references keep it next to the processing-version identity and spans (entities created earlier keep a null
+version).
 The existing source preview refuses stale processing locations rather than presenting new text
 as historical evidence.
 
@@ -77,13 +78,17 @@ All public routes are session/CSRF protected and scoped under
 | --- | --- |
 | POST /comparisons | `Compare {selectedSourceIds, criteria, instruction}` → immutable `Analysis` |
 | GET /{id} | Authorized comparison or disagreement result with provenance |
-| POST /{id}/disagreements | `FollowUp {instruction}` → `Analysis` linked to a comparison |
+| POST /{id}/disagreements | `FollowUp {instruction, versionSelection}` → `Analysis` linked to a comparison. `versionSelection` is `ORIGINAL` (default: the comparison's own versions and chunks) or `LATEST` (an explicit migration to the current versions, recorded in the new analysis). |
 
 `Analysis` contains identity, workspace, creator, kind, parent comparison id, original comparison
-command, actual analysis instruction, source descriptors, structured answer, retrieved citations,
+command, actual analysis instruction, source descriptors (`id`, `title`, and since RH-130 `sourceVersionId`, `versionNumber`,
+`contentSha256`: the exact version it consumed), structured answer, retrieved citations,
 warnings, model/template/hash/usage/request provenance, context hash/budget summary and timestamp.
 V18 creates `ai_source_analyses`, with a workspace-scoped parent foreign key, bounded JSON and an
-immutable trigger. Reads reauthorize all selected sources; an id from another workspace yields 404.
+immutable trigger; V19 adds the relational `ai_source_analysis_sources` (analysis → source → exact version). Reads
+reauthorize the versions an analysis consumed and never re-read data, so replacing a source later does not change a saved
+analysis; an id from another workspace yields 404. Version semantics and the original/latest choice:
+[source-versions.md](source-versions.md#analyses-reference-the-exact-versions-they-consumed).
 
 Worker POST `/internal/ai/analyze` requires the existing service credential and accepts the unchanged
 v2 context envelope. It uses strict JSON schema, resolves local evidence keys (`S1` etc.) to chunk ids,

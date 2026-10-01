@@ -60,8 +60,9 @@ error, and success.
   components and shared UI; it should hold little logic of its own. Example: `pages/LoginPage.tsx`
   renders the login form from `features/auth/` (once that feature exists).
 - **`features/<name>/`** — a vertical slice for one product area. The folders that exist are
-  `features/auth/`, `features/workspaces/`, `features/documents/`, and `features/sources/` (so far only the
-  source type mapping, for checking a file before upload); name a new one after the
+  `features/auth/`, `features/workspaces/`, `features/documents/`, `features/sources/` (the source library, uploads,
+  immutable versions and extraction previews), `features/ai/` and `features/analysis/` (the bounded dataset preview of a
+  source version, see [dataset-inspection.md](dataset-inspection.md)); name a new one after the
   collection it serves, matching its query key (`queryKeys.documents`, not `queryKey.document`).
   Feature code should not import from another feature; shared needs go through `shared/`. When a
   screen genuinely needs two features — the document page needs the workspace role to decide what to
