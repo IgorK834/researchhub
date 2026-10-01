@@ -215,3 +215,48 @@ test('explicit reordering derives presentation numbers without changing referenc
   ).toEqual(a);
   editor.destroy();
 });
+
+test('clipboard HTML preserves entity metadata and derives numbers in the target document', () => {
+  const c = { ...citation, citationId: 'c:clipboard', displayStyle: 'NUMERIC' };
+  const original = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Claim.' },
+          { type: 'researchCitation', attrs: { citation: c } },
+        ],
+      },
+    ],
+  };
+  const editor = new Editor({ extensions: documentExtensions, content: original });
+  const html = editor.getHTML();
+  expect(html).toContain('data-citation=');
+  const target = new Editor({ extensions: documentExtensions, content: html });
+  expect(target.getJSON()).toEqual(original);
+  expect(target.view.dom.textContent).toBe('Claim. [1]');
+  const parsed = document.createElement('div');
+  parsed.innerHTML = html;
+  expect(parsed.querySelector('script')).toBeNull();
+  // Href and visible numbering from a clipboard are never trusted as reference metadata.
+  const anchor = parsed.querySelector('a')!;
+  anchor.href = 'javascript:alert(1)';
+  anchor.textContent = '[999]';
+  target.commands.setContent(parsed.innerHTML);
+  expect(target.getJSON()).toEqual(original);
+  expect(target.view.dom.querySelector('a')?.getAttribute('href')).toContain(
+    '/app/workspaces/w/sources/s',
+  );
+  for (const invalid of [
+    'not-json',
+    JSON.stringify({ sourceId: 'unscoped' }),
+    'x'.repeat(262145),
+  ]) {
+    anchor.setAttribute('data-citation', invalid);
+    target.commands.setContent(parsed.innerHTML);
+    expect(citationReferences(target.state.doc)).toEqual([]);
+  }
+  editor.destroy();
+  target.destroy();
+});

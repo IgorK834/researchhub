@@ -123,6 +123,24 @@ export const ResearchCitation = Node.create({
   addAttributes() {
     return { citation: { default: null, rendered: false, validate: validateCitation } };
   },
+  parseHTML() {
+    return [
+      {
+        tag: 'a[data-research-citation][data-citation]',
+        getAttrs: (element) => {
+          const metadata = element.getAttribute('data-citation');
+          if (metadata === null || metadata.length > 262144) return false;
+          try {
+            const citation: unknown = JSON.parse(metadata);
+            validateCitation(citation);
+            return { citation };
+          } catch {
+            return false;
+          }
+        },
+      },
+    ];
+  },
   addProseMirrorPlugins() {
     return [
       new Plugin({
@@ -149,6 +167,7 @@ export const ResearchCitation = Node.create({
         href: display.href,
         title: display.title,
         'data-research-citation': citationIdentity(c),
+        'data-citation': JSON.stringify(c),
       },
       display.text,
     ];
