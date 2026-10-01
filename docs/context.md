@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI writing, analysis, and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI authoring is implemented through RH-120–122; analysis and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
 
 RH-092 recognizes CSV as a data asset with bounded primitive-type/missing-value profiles, structured
 row previews and schema-only retrieval. Inference can be wrong; original values remain strings and
@@ -225,7 +225,7 @@ large-file totals remain unknown when the row scan is incomplete. Compatibility,
 RH-110 now provides a central structured model gateway: versioned templates and feature parameters,
 workspace-authorized current chunk evidence, model/usage metadata, call audit, deterministic offline
 provider and configurable Foundry adapter. Contracts and verification are in
-[development/model-gateway.md](development/model-gateway.md). Workspace questions use this gateway through RH-112; AI writing remains planned.
+[development/model-gateway.md](development/model-gateway.md). Workspace questions use this gateway through RH-112; approved AI authoring uses the same worker/provider boundary through RH-120–122.
 
 RH-111 adds deterministic local citation keys, escaped source metadata/text, configurable context
 budgets checked before inference, exact-text sharing without losing source locations, and saved
@@ -236,7 +236,7 @@ the source preview displays the response's citation mapping. See
 RH-112 now connects authorized workspace/source selection, ranked retrieval, grounded context and
 structured generation into a question endpoint and workspace UI. Empty/unanswerable evidence produces
 explicit insufficiency; citations and saved generation metadata refer only to retrieved source chunks.
-See [development/workspace-questions.md](development/workspace-questions.md). AI writing, analysis and
+See [development/workspace-questions.md](development/workspace-questions.md). AI authoring is implemented through RH-120–122; analysis and
 realtime collaborative editing remain planned.
 
 RH-113–RH-115 add shared authorized conversation history with model/template/usage provenance, an AI
@@ -245,6 +245,11 @@ are persisted; the current synchronous adapter emits answer deltas after validat
 token streaming deferred. Revocation, bounded cancellation, retry identity and migration details:
 [development/research-conversations.md](development/research-conversations.md),
 [ADR-004](adr/ADR-004-research-event-streaming.md).
+
+RH-120–RH-122 add explicitly sourced section drafts, selected-fragment rewrite suggestions and evidence
+for human-written claims in the document editor. Accept/Reject/Edit keep approval explicit; accepted edits
+are revision-checked, idempotent and recorded as AI-origin history/provenance. See
+[development/ai-authoring.md](development/ai-authoring.md).
 
 ---
 

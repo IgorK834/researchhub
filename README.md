@@ -14,6 +14,10 @@ RH-113–RH-115 add durable workspace research conversations, a panel beside the
 versioned citation links and SSE progress with complete-answer persistence:
 [Research conversations](docs/development/research-conversations.md).
 
+RH-120–RH-122 add source-grounded draft sections, selected-fragment rewrite suggestions and evidence
+for human-written claims, with explicit approval, idempotent insertion and AI-origin provenance:
+[AI-assisted authoring](docs/development/ai-authoring.md).
+
 Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
 
 Backend module rules: [docs/development/backend-architecture.md](docs/development/backend-architecture.md). REST error contract: [docs/development/api-errors.md](docs/development/api-errors.md). Request validation rules and shared length limits: [docs/development/validation.md](docs/development/validation.md). Health probes: [docs/development/health.md](docs/development/health.md).
