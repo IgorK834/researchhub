@@ -71,7 +71,7 @@ export interface UpdateDocumentInput {
 
 /** Why a version was recorded. Mirrors `DocumentVersionReason` on the server. */
 export type DocumentVersionReason =
-  'CREATED' | 'MANUAL_SAVE' | 'AUTOSAVE_CHECKPOINT' | 'RESTORE';
+  'CREATED' | 'MANUAL_SAVE' | 'AUTOSAVE_CHECKPOINT' | 'RESTORE' | 'AI_ACCEPTANCE';
 
 /**
  * One restore point in a document's history. Mirrors `DocumentVersionSummaryResponse`: no content, like the

@@ -537,6 +537,112 @@ describe('DocumentDetailPage', () => {
   });
 
   describe('autosave', () => {
+    it('reviews a selected fragment, rejects without autosave and accepts through the server before continuing at the new revision', async () => {
+      const fetchMock = stubDocumentApi({});
+      const originalFetch = globalThis.fetch;
+      let acceptedDocument: DocumentRow | null = null;
+      const aiRequests: {
+        method: string;
+        path: string;
+        body: Record<string, unknown>;
+      }[] = [];
+      globalThis.fetch = jest.fn((url: unknown, init?: RequestInit) => {
+        const path = String(url);
+        if (path.startsWith(`${DOCUMENT_PATH}/ai/suggestions`)) {
+          const body =
+            init?.body === undefined
+              ? {}
+              : (JSON.parse(String(init.body)) as Record<string, unknown>);
+          aiRequests.push({ method: init?.method ?? 'GET', path, body });
+          const proposal = {
+            id: 'proposal',
+            workspaceId: WORKSPACE_ID,
+            documentId: DOCUMENT_ID,
+            createdBy: 'u-1',
+            state: 'PENDING',
+            command: body,
+            originalText: 'Measurements',
+            generatedText: 'Refined measurements',
+            citations: [],
+            candidates: [],
+            warnings: [],
+            generation: null,
+            acceptedRevision: null,
+          };
+          if (path.endsWith('/accept')) {
+            acceptedDocument = documentRow({
+              revision: 2,
+              content: paragraphs('Refined measurements'),
+            });
+            return Promise.resolve(
+              jsonResponse(
+                { eventId: 'proposal', acceptedRevision: 2, document: acceptedDocument },
+                200,
+                'application/json',
+              ),
+            );
+          }
+          return Promise.resolve(
+            jsonResponse(
+              path.endsWith('/reject') ? { ...proposal, state: 'REJECTED' } : proposal,
+              200,
+              'application/json',
+            ),
+          );
+        }
+        if (path === DOCUMENT_PATH && acceptedDocument !== null) {
+          if (init?.method === 'PATCH') {
+            const body = JSON.parse(String(init.body)) as SaveBody;
+            expect(body.revision).toBe(2);
+            acceptedDocument = {
+              ...acceptedDocument,
+              revision: 3,
+              content: body.content,
+            };
+          }
+          return Promise.resolve(jsonResponse(acceptedDocument, 200, 'application/json'));
+        }
+        return originalFetch(url as RequestInfo, init);
+      }) as unknown as typeof fetch;
+      renderDocumentDetailPage();
+      await findBody();
+      act(() => {
+        bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
+      });
+      fireEvent.change(screen.getByLabelText('Operation'), {
+        target: { value: 'REWRITE' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Generate suggestion' }));
+      await screen.findByRole('region', { name: 'AI suggestion' });
+      expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
+      expect(savedBodies(fetchMock)).toHaveLength(0);
+      expect(aiRequests[0]?.body).toMatchObject({
+        kind: 'REWRITE',
+        from: 1,
+        to: 13,
+        expectedRevision: 1,
+        selectedSourceIds: [],
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('region', { name: 'AI suggestion' })).toBeNull(),
+      );
+      expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
+      expect(savedBodies(fetchMock)).toHaveLength(0);
+      fireEvent.click(screen.getByRole('button', { name: 'Generate suggestion' }));
+      await screen.findByRole('region', { name: 'AI suggestion' });
+      fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+      await waitFor(() =>
+        expect(bodyEditor().getJSON()).toEqual(paragraphs('Refined measurements')),
+      );
+      expect(
+        aiRequests.filter((request) => request.path.endsWith('/accept')),
+      ).toHaveLength(1);
+      expect(savedBodies(fetchMock)).toHaveLength(0);
+      editBody('Human continued writing');
+      await waitForSaveState('Saved');
+      expect(screen.getByText(/revision 3/)).not.toBeNull();
+    });
     it('saves the editor JSON after typing pauses, as an autosave, and says so', async () => {
       const fetchMock = stubDocumentApi({});
 

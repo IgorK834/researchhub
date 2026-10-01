@@ -16,8 +16,25 @@ module.exports = {
     '!src/shared/api/index.ts',
     'src/features/sources/**/*.{ts,tsx}',
     'src/features/ai/**/*.{ts,tsx}',
+    'src/features/documents/api/researchCitation.ts',
   ],
   coverageThreshold: {
+    'src/features/documents/api/researchCitation.ts': {
+      lines: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/ai/components/AuthoringPanel.tsx': {
+      lines: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/ai/api/authoringApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/ai/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'src/features/sources/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'src/features/sources/components/CsvAssetProfile.tsx': {

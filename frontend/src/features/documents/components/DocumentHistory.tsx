@@ -31,6 +31,7 @@ const REASONS: Readonly<Record<DocumentVersionReason, string>> = {
   MANUAL_SAVE: 'Saved version',
   AUTOSAVE_CHECKPOINT: 'Autosave checkpoint',
   RESTORE: 'Restored',
+  AI_ACCEPTANCE: 'AI suggestion accepted',
 };
 
 function formatTime(iso: string): string {

@@ -7,7 +7,15 @@ import {
   type ProseMirrorDocument,
 } from '../api/documentContent';
 
+export interface AuthoringSelection {
+  readonly from: number;
+  readonly to: number;
+  readonly text: string;
+  readonly placementBlock: number;
+}
+
 interface DocumentBodyEditorProps {
+  readonly onSelectionChange?: (selection: AuthoringSelection) => void;
   /**
    * The document to open. Read once, when the editor is created.
    *
@@ -41,14 +49,17 @@ export function DocumentBodyEditor({
   initialContent,
   editable,
   onChange,
+  onSelectionChange,
   labelId,
   label,
   errorId,
 }: DocumentBodyEditorProps): ReactElement {
   // Read through a ref, so a new callback from the parent does not need a new editor.
   const onChangeRef = useRef(onChange);
+  const selectionRef = useRef(onSelectionChange);
   useEffect(() => {
     onChangeRef.current = onChange;
+    selectionRef.current = onSelectionChange;
   });
 
   // The editable element is a div, so the accessible name and state are set on it directly. Memoised so the
@@ -73,6 +84,15 @@ export function DocumentBodyEditor({
     content: initialContent,
     editable,
     editorProps,
+    onSelectionUpdate: ({ editor: changed }) => {
+      const { from, to, $from } = changed.state.selection;
+      selectionRef.current?.({
+        from,
+        to,
+        text: changed.state.doc.textBetween(from, to, '\n'),
+        placementBlock: $from.index(0) + 1,
+      });
+    },
     onUpdate: ({ editor: changed }) => {
       onChangeRef.current(savedDocumentOf(changed));
     },

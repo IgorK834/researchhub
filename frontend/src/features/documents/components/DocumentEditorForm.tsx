@@ -9,7 +9,8 @@ import {
 } from '../api/documentContent';
 import { useArchiveDocument } from '../api/useDocuments';
 import { useDocumentAutosave } from '../autosave/useDocumentAutosave';
-import { DocumentBodyEditor } from './DocumentBodyEditor';
+import { DocumentBodyEditor, type AuthoringSelection } from './DocumentBodyEditor';
+import { AuthoringPanel } from '../../ai/components/AuthoringPanel';
 import { DocumentHistory } from './DocumentHistory';
 import { SaveStatus } from './SaveStatus';
 
@@ -70,8 +71,16 @@ export function DocumentEditorForm({
     document.revision,
   );
 
+  const [aiBusy, setAiBusy] = useState(false);
+  const [selection, setSelection] = useState<AuthoringSelection>({
+    from: 1,
+    to: 1,
+    text: '',
+    placementBlock: 1,
+  });
   const isArchived = document.archivedAt !== null;
-  const editable = canEdit && !isArchived && storedBody !== null;
+  const authoringAvailable = canEdit && !isArchived && storedBody !== null;
+  const editable = authoringAvailable && !aiBusy;
 
   const fieldErrors =
     autosave.status === 'failed' ? fieldErrorsByName(autosave.error) : {};
@@ -136,6 +145,7 @@ export function DocumentEditorForm({
             <DocumentBodyEditor
               initialContent={storedBody}
               editable={editable}
+              onSelectionChange={setSelection}
               onChange={(content) => {
                 setBody(content);
                 autosave.edit({ title, content });
@@ -165,6 +175,20 @@ export function DocumentEditorForm({
         ) : null}
       </form>
 
+      {authoringAvailable ? (
+        <AuthoringPanel
+          workspaceId={workspaceId}
+          documentId={document.id}
+          revision={autosave.revision}
+          settled={settled}
+          selection={selection}
+          blockCount={body.content?.length ?? 0}
+          onBusy={setAiBusy}
+          onAccepted={onReplaced}
+          onReload={onDiscardLocalChanges}
+        />
+      ) : null}
+
       <DocumentHistory
         workspaceId={workspaceId}
         documentId={document.id}
@@ -180,7 +204,7 @@ export function DocumentEditorForm({
         <p>
           <button
             type="button"
-            disabled={archive.isPending || !settled}
+            disabled={archive.isPending || !settled || aiBusy}
             onClick={() => {
               archive.mutate();
             }}
