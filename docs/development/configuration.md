@@ -279,3 +279,11 @@ use `pgvector/pgvector:0.8.2-pg17-bookworm`. The default worker embedding provid
 deployment, model name, immutable model version and dimension via `AZURE_EMBEDDING_*`.
 These are worker-only server secrets/configuration, never frontend values. Full bounds
 and migration/rebuild instructions: [source-retrieval.md](source-retrieval.md).
+
+
+### Source comparison and potential differences (RH-124–125)
+
+The existing AI worker/provider handles these features. Server-owned output/token/context settings
+are `AI_SOURCE_ANALYSIS_MAX_OUTPUT_TOKENS` (6144), `AI_SOURCE_ANALYSIS_TEMPERATURE` (0 or `none`),
+`AI_SOURCE_ANALYSIS_CONTEXT_MAX_TOKENS` (98304) and `AI_SOURCE_ANALYSIS_CONTEXT_MAX_BYTES` (65536).
+[Source analysis](source-analysis.md) describes bounds, contracts and the offline/Foundry provider distinction.

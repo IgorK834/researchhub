@@ -186,3 +186,9 @@ records the boundary and deferred product workflows.
 RH-111: [grounded context](docs/development/grounded-context.md) now assigns local citation keys,
 packs escaped source titles/locations/text, shares exact duplicate text and rejects budget overflow
 before inference. Its mapping is preserved in audited responses and rendered by the frontend.
+
+
+RH-123–RH-125: [Structured citations and source analysis](docs/development/source-analysis.md)
+add stable editor references with dynamic numbering, selected-source comparison tables and cited,
+AI-assisted interpretations of potential differences. Results preserve provenance and do not
+change documents automatically; missing research fields stay missing.
