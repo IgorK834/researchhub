@@ -15,6 +15,7 @@ module.exports = {
     'src/shared/api/**/*.ts',
     '!src/shared/api/index.ts',
     'src/features/sources/**/*.{ts,tsx}',
+    'src/features/analysis/**/*.{ts,tsx}',
     'src/features/ai/**/*.{ts,tsx}',
     'src/features/documents/api/researchCitation.ts',
   ],
@@ -83,5 +84,6 @@ module.exports = {
       functions: 80,
       statements: 80,
     },
+    'src/features/analysis/': { lines: 80, branches: 80, functions: 80, statements: 80 },
   },
 };
