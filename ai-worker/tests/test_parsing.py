@@ -313,7 +313,7 @@ def test_csv_preserves_quoted_cells_unicode_newlines_and_preview_limits():
     assert 'text' in sheet.columns[2].data_types
     assert parse('CSV', b'one').workbook.sheets[0].preview_rows[0].cells == ['one']
     assert parse('CSV', b' ').failure.code == 'EMPTY_DOCUMENT'
-    assert parse('CSV', b'a,b\n"unterminated').failure.code == 'DOCUMENT_PARSE_FAILED'
+    assert parse('CSV', b'a,b\n"unterminated').failure.code == 'CSV_MALFORMED'
 
 
 def test_xlsx_preview_is_bounded_keeps_formulas_as_data_and_row_numbers():

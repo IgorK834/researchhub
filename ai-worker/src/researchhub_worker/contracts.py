@@ -29,6 +29,7 @@ FailureCode = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,63}$"
 
 from .contract_model import ContractModel
 from .retrieval.contracts import RetrievalChunkSet
+from .tabular_contracts import CsvProfile
 
 
 class ContractError(ValueError):
@@ -144,11 +145,28 @@ class SheetMetadata(ContractModel):
 
 
 class WorkbookMetadata(ContractModel):
+    csv_profile: CsvProfile | None = None
     preview_row_limit: Annotated[int, Field(ge=1, le=100)]
     sheets: Annotated[list[SheetMetadata], Field(max_length=100)]
     row_limit: Annotated[int, Field(ge=1, le=10000)]
     column_limit: Annotated[int, Field(ge=1, le=256)]
     sample_limit: Annotated[int, Field(ge=1, le=100)]
+
+    @model_validator(mode='after')
+    def consistent_csv_profile(self):
+        if self.csv_profile is not None:
+            profile = self.csv_profile
+            if len(self.sheets) != 1 or self.sheets[0].name != 'CSV':
+                raise ValueError('CSV profile requires its CSV sheet')
+            sheet = self.sheets[0]
+            if (sheet.header_row is None or sheet.column_count is None or sheet.column_count < 1
+                or profile.profiled_row_count != sheet.sampled_rows - sheet.header_row
+                or sheet.row_count_estimate != (sheet.sampled_rows if profile.row_scan_complete else None)
+                or sheet.truncated != (not profile.row_scan_complete or sheet.column_count > self.column_limit)
+                or len(profile.columns) != min(sheet.column_count, self.column_limit)
+                or [c.column_number for c in sheet.columns] != [c.column_number for c in profile.columns]):
+                raise ValueError('CSV profile must describe its bounded sheet scan')
+        return self
 
 
 class ExtractedChunk(ContractModel):
