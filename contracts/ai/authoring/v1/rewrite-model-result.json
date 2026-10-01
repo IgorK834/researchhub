@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "10000000-0000-0000-0000-000000000001",
+  "templateId": "authoring-rewrite:1",
+  "templateHash": "c7aaccae24ae9e5288921a51e98a50a641a2ffac12cdba3ad50248ee722ea24b",
+  "model": {
+    "provider": "deterministic",
+    "name": "extractive-fixture",
+    "version": "1",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "usage": {
+    "inputTokens": 115,
+    "outputTokens": 2,
+    "totalTokens": 117,
+    "estimated": true
+  },
+  "providerRequestId": "572ffbeff58ed968880fce34f1d1aaf5837598a7300a2fe3db54db84892a3a72",
+  "answer": {
+    "status": "READY",
+    "text": "Human claim.",
+    "citationIds": [],
+    "matches": []
+  }
+}
