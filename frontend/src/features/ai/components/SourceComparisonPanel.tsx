@@ -10,6 +10,7 @@ import {
   DEFAULT_COMPARISON_CRITERIA,
   type ComparisonCommand,
   type SourceAnalysis,
+  type VersionSelection,
 } from '../api/sourceAnalysisApi';
 
 export function SourceComparisonPanel({
@@ -27,6 +28,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
   );
   const [instruction, setInstruction] = useState('');
   const [focus, setFocus] = useState('');
+  const [versionSelection, setVersionSelection] = useState<VersionSelection>('ORIGINAL');
   const [validation, setValidation] = useState<string | null>(null);
   const compare = useMutation({
     mutationFn: (command: ComparisonCommand) => compareSources(workspaceId, command),
@@ -35,10 +37,12 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
     mutationFn: ({
       id,
       instruction: detail,
+      versions,
     }: {
       id: string;
       instruction: string | null;
-    }) => findPotentialDisagreements(workspaceId, id, detail),
+      versions: VersionSelection;
+    }) => findPotentialDisagreements(workspaceId, id, detail, versions),
   });
   const busy = compare.isPending || differences.isPending;
   return (
@@ -82,6 +86,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
           }
           setValidation(null);
           differences.reset();
+          setVersionSelection('ORIGINAL');
           compare.mutate({
             selectedSourceIds: selected,
             criteria: fields,
@@ -145,9 +150,21 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
                 differences.mutate({
                   id: compare.data.id,
                   instruction: focus.trim() || null,
+                  versions: versionSelection,
                 });
             }}
           >
+            <VersionChoice
+              analysis={compare.data}
+              currentVersionIds={
+                new Map(
+                  sources.data?.map((source) => [source.id, source.activeVersionId]),
+                )
+              }
+              value={versionSelection}
+              disabled={busy}
+              onChange={setVersionSelection}
+            />
             <label>
               Disagreement analysis focus (optional)
               <textarea
@@ -174,6 +191,63 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
         <DisagreementResult analysis={differences.data} />
       ) : null}
     </section>
+  );
+}
+/**
+ * Re-running an analysis keeps the exact source versions it consumed unless the user explicitly migrates it, so a
+ * replaced spreadsheet or paper never silently changes what an earlier result was based on.
+ */
+function VersionChoice({
+  analysis,
+  currentVersionIds,
+  value,
+  disabled,
+  onChange,
+}: {
+  readonly analysis: SourceAnalysis;
+  readonly currentVersionIds: ReadonlyMap<string, string>;
+  readonly value: VersionSelection;
+  readonly disabled: boolean;
+  readonly onChange: (value: VersionSelection) => void;
+}): ReactElement {
+  const newer = analysis.sources.filter((source) => {
+    const current = currentVersionIds.get(source.id);
+    return (
+      source.sourceVersionId !== null &&
+      current !== undefined &&
+      current !== source.sourceVersionId
+    );
+  });
+  return (
+    <fieldset disabled={disabled}>
+      <legend>Source versions for this analysis</legend>
+      {newer.length === 0 ? null : (
+        <p role="status">
+          A newer version was uploaded after this comparison:{' '}
+          {newer.map((source) => source.title).join(', ')}.
+        </p>
+      )}
+      <label>
+        <input
+          type="radio"
+          name="source-version-selection"
+          value="ORIGINAL"
+          checked={value === 'ORIGINAL'}
+          onChange={() => onChange('ORIGINAL')}
+        />
+        Use the original versions from the comparison
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="source-version-selection"
+          value="LATEST"
+          checked={value === 'LATEST'}
+          onChange={() => onChange('LATEST')}
+        />
+        Use the latest versions (re-reads the sources)
+      </label>
+    </fieldset>
   );
 }
 function EvidenceLinks({
@@ -240,6 +314,9 @@ export function ComparisonResult({
               {analysis.sources.map((source) => (
                 <th scope="col" key={source.id}>
                   {source.title}
+                  {source.versionNumber > 0
+                    ? ` (version ${String(source.versionNumber)})`
+                    : ''}
                 </th>
               ))}
             </tr>

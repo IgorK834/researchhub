@@ -4,7 +4,14 @@
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 
 import { WorkspaceDetailPage } from './WorkspaceDetailPage';
 
@@ -302,11 +309,11 @@ function stubWorkspaceApi(options: {
 }
 
 /** Returns the client so a test can inspect what a mutation did to the cache. */
-function renderWorkspaceDetailPage(): QueryClient {
+function renderWorkspaceDetailPage(entry = '/'): QueryClient {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>{children}</MemoryRouter>
     </QueryClientProvider>
   );
   render(<WorkspaceDetailPage />, { wrapper });
@@ -388,6 +395,44 @@ describe('WorkspaceDetailPage', () => {
     ).not.toBeNull();
     expect(screen.getByText('VIEWER')).not.toBeNull();
     expect(screen.getByText('Team 4')).not.toBeNull();
+  });
+
+  it('opens the questions scoped to the dataset chosen with "Analyze this data"', async () => {
+    stubWorkspaceApi({
+      sources: [
+        {
+          id: 's-9',
+          workspaceId: WORKSPACE_ID,
+          originalFilename: 'measurements.xlsx',
+          displayName: 'measurements.xlsx',
+          mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          sourceType: 'XLSX',
+          sizeBytes: 10,
+          contentSha256: '0'.repeat(64),
+          status: 'READY',
+          failureSummary: null,
+          uploadedBy: 'u-ada',
+          createdAt: '2026-09-23T10:15:30Z',
+          updatedAt: '2026-09-23T10:15:30Z',
+        },
+      ],
+    });
+
+    renderWorkspaceDetailPage(
+      '/?analyzeSource=s-9&analyzeVersion=v2&analyzeSheet=Measurements',
+    );
+
+    const question = (await screen.findByLabelText('Question')) as HTMLTextAreaElement;
+    expect(question.value).toContain(
+      'Describe the columns, data types and data-quality issues',
+    );
+    expect(question.value).toContain('Focus on the "Measurements" sheet.');
+    const questions = screen.getByRole('region', { name: 'Ask workspace sources' });
+    expect(await within(questions).findByLabelText('measurements.xlsx')).toHaveProperty(
+      'checked',
+      true,
+    );
+    expect(document.activeElement).toBe(question);
   });
 
   it('shows a not-found state for a 404 without saying whether the workspace exists', async () => {

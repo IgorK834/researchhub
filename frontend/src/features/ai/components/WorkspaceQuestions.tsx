@@ -1,24 +1,61 @@
-import { useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { describeError } from '../../../shared/api';
 import { useSourcesQuery } from '../../sources/api/useSources';
 import { askWorkspaceQuestion, type WorkspaceQuestion } from '../api/questionApi';
 import { StructuredResponse } from './StructuredResponse';
 
-/** Reset local questions/results when navigating to another workspace. */
-export function WorkspaceQuestions({
-  workspaceId,
-}: {
-  readonly workspaceId: string;
-}): ReactElement {
-  return <QuestionForm key={workspaceId} workspaceId={workspaceId} />;
+/** A dataset the user chose to analyze: the question starts scoped to that source. */
+export interface QuestionFocus {
+  readonly sourceId: string;
+  readonly sheetName: string | null;
 }
 
-function QuestionForm({ workspaceId }: { readonly workspaceId: string }): ReactElement {
+function starterQuestion(focus: QuestionFocus | undefined): string {
+  if (focus === undefined) return '';
+  const sheet =
+    focus.sheetName === null || focus.sheetName === 'CSV'
+      ? ''
+      : ` Focus on the "${focus.sheetName}" sheet.`;
+  return `Describe the columns, data types and data-quality issues in this dataset.${sheet}`;
+}
+
+/** Reset local questions/results when navigating to another workspace or dataset. */
+export function WorkspaceQuestions({
+  workspaceId,
+  focus,
+}: {
+  readonly workspaceId: string;
+  readonly focus?: QuestionFocus;
+}): ReactElement {
+  return (
+    <QuestionForm
+      key={`${workspaceId}:${focus?.sourceId ?? ''}:${focus?.sheetName ?? ''}`}
+      workspaceId={workspaceId}
+      {...(focus === undefined ? {} : { focus })}
+    />
+  );
+}
+
+function QuestionForm({
+  workspaceId,
+  focus,
+}: {
+  readonly workspaceId: string;
+  readonly focus?: QuestionFocus;
+}): ReactElement {
   const sources = useSourcesQuery(workspaceId);
-  const [question, setQuestion] = useState('');
-  const [scope, setScope] = useState('all');
-  const [selected, setSelected] = useState<readonly string[]>([]);
+  const [question, setQuestion] = useState(() => starterQuestion(focus));
+  const [scope, setScope] = useState(focus === undefined ? 'all' : 'selected');
+  const [selected, setSelected] = useState<readonly string[]>(
+    focus === undefined ? [] : [focus.sourceId],
+  );
+  const questionInput = useRef<HTMLTextAreaElement>(null);
+  const focusedSource = focus?.sourceId;
+  // Only when a dataset was chosen, and not again for unrelated re-renders of the parent.
+  useEffect(() => {
+    if (focusedSource !== undefined) questionInput.current?.focus();
+  }, [focusedSource]);
   const [validation, setValidation] = useState<string | null>(null);
   const ask = useMutation({
     mutationFn: (input: WorkspaceQuestion) => askWorkspaceQuestion(workspaceId, input),
@@ -59,6 +96,7 @@ function QuestionForm({ workspaceId }: { readonly workspaceId: string }): ReactE
           <label htmlFor="workspace-question">Question</label>
           <textarea
             id="workspace-question"
+            ref={questionInput}
             maxLength={2000}
             value={question}
             disabled={ask.isPending}

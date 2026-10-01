@@ -19,6 +19,9 @@ export interface AnalysisCell {
   readonly text: string | null;
   readonly evidenceIds: readonly string[];
 }
+/** Which source versions a follow-up uses: the ones the comparison consumed, or the latest uploads. */
+export type VersionSelection = 'ORIGINAL' | 'LATEST';
+
 export interface SourceAnalysis {
   readonly id: string;
   readonly workspaceId: string;
@@ -26,7 +29,13 @@ export interface SourceAnalysis {
   readonly parentComparisonId: string | null;
   readonly command: ComparisonCommand;
   readonly analysisInstruction: string;
-  readonly sources: readonly { readonly id: string; readonly title: string }[];
+  readonly sources: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly sourceVersionId: string | null;
+    readonly versionNumber: number;
+    readonly contentSha256: string | null;
+  }[];
   readonly answer: {
     readonly status: 'READY' | 'INSUFFICIENT_EVIDENCE' | 'NO_POTENTIAL_DISAGREEMENT';
     readonly rows: readonly {
@@ -81,10 +90,11 @@ export async function findPotentialDisagreements(
   workspaceId: string,
   id: string,
   instruction: string | null,
+  versionSelection: VersionSelection = 'ORIGINAL',
 ): Promise<SourceAnalysis> {
   await apiClient.get<void>(CSRF_PRIMING_PATH);
   return apiClient.post<SourceAnalysis>(
     `${path(workspaceId)}/${encodeURIComponent(id)}/disagreements`,
-    { body: { instruction } },
+    { body: { instruction, versionSelection } },
   );
 }

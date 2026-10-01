@@ -15,7 +15,7 @@ import {
 } from '../api/sourceAnalysisApi';
 import type { Citation } from '../api/generationApi';
 let mockSources: {
-  data?: { id: string; displayName: string }[];
+  data?: { id: string; displayName: string; activeVersionId?: string }[];
   error: Error | null;
   isPending: boolean;
 };
@@ -52,8 +52,20 @@ const comparison: SourceAnalysis = {
     instruction: null,
   },
   sources: [
-    { id: 's1', title: 'Paper A' },
-    { id: 's2', title: 'Paper B' },
+    {
+      id: 's1',
+      title: 'Paper A',
+      sourceVersionId: 'v-a1',
+      versionNumber: 1,
+      contentSha256: 'a'.repeat(64),
+    },
+    {
+      id: 's2',
+      title: 'Paper B',
+      sourceVersionId: 'v-b1',
+      versionNumber: 1,
+      contentSha256: 'b'.repeat(64),
+    },
   ],
   answer: {
     status: 'READY',
@@ -178,8 +190,8 @@ beforeEach(() => {
   jest.resetAllMocks();
   mockSources = {
     data: [
-      { id: 's1', displayName: 'Paper A' },
-      { id: 's2', displayName: 'Paper B' },
+      { id: 's1', displayName: 'Paper A', activeVersionId: 'v-a1' },
+      { id: 's2', displayName: 'Paper B', activeVersionId: 'v-b1' },
     ],
     error: null,
     isPending: false,
@@ -212,7 +224,7 @@ test('comparison and baseline-scoped differences show table, narrative and both 
   });
   fireEvent.click(screen.getByText('Find potential disagreements'));
   await screen.findByText('Potential disagreement');
-  expect(differences).toHaveBeenCalledWith('w', 'comparison', 'Datasets');
+  expect(differences).toHaveBeenCalledWith('w', 'comparison', 'Datasets', 'ORIGINAL');
   expect(screen.getByText('Different reported result')).toBeTruthy();
   expect(screen.getByText('Different experimental conditions')).toBeTruthy();
   expect(screen.getByText('First result')).toBeTruthy();
@@ -293,7 +305,7 @@ test('failed and pending calls keep controls bounded and results are reset on wo
   differences.mockRejectedValue(new Error('Unavailable'));
   fireEvent.click(screen.getByText('Find potential disagreements'));
   await screen.findByText(/Disagreement analysis failed/);
-  expect(differences).toHaveBeenCalledWith('w', 'comparison', null);
+  expect(differences).toHaveBeenCalledWith('w', 'comparison', null, 'ORIGINAL');
   compare.mockRejectedValue(new Error('Unavailable'));
   fireEvent.click(screen.getByText('Compare selected sources'));
   await screen.findByText(/Comparison failed/);
@@ -344,4 +356,50 @@ test('no-evidence, no differences and unavailable reference states do not invent
     screen.getByText('Insufficient evidence from at least two sources.'),
   ).toBeTruthy();
   expect(screen.getByText(/Unavailable reference/)).toBeTruthy();
+});
+
+test('column headers name the exact source version each result consumed', async () => {
+  render(view());
+  choose();
+  fireEvent.click(screen.getByText('Compare selected sources'));
+  await screen.findByRole('table');
+  expect(screen.getByText('Paper A (version 1)')).toBeTruthy();
+  expect(screen.getByText('Paper B (version 1)')).toBeTruthy();
+});
+test('a follow-up keeps the original versions by default and migrates only when the user chooses', async () => {
+  render(view());
+  choose();
+  fireEvent.click(screen.getByText('Compare selected sources'));
+  await screen.findByRole('table');
+  // No newer version exists, so there is no migration notice and the original versions are preselected.
+  expect(screen.queryByText(/A newer version was uploaded/)).toBeNull();
+  expect(
+    (
+      screen.getByLabelText(
+        'Use the original versions from the comparison',
+      ) as HTMLInputElement
+    ).checked,
+  ).toBe(true);
+
+  mockSources = {
+    ...mockSources,
+    data: [
+      { id: 's1', displayName: 'Paper A', activeVersionId: 'v-a2' },
+      { id: 's2', displayName: 'Paper B', activeVersionId: 'v-b1' },
+    ],
+  };
+  cleanup();
+  render(view());
+  choose();
+  fireEvent.click(screen.getByText('Compare selected sources'));
+  await screen.findByRole('table');
+  expect(screen.getByRole('status').textContent).toContain(
+    'A newer version was uploaded after this comparison: Paper A.',
+  );
+  fireEvent.click(
+    screen.getByLabelText('Use the latest versions (re-reads the sources)'),
+  );
+  fireEvent.click(screen.getByText('Find potential disagreements'));
+  await screen.findByText('Potential disagreement');
+  expect(differences).toHaveBeenLastCalledWith('w', 'comparison', null, 'LATEST');
 });

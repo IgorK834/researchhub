@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SourceComparisonPanel } from '../features/ai/components/SourceComparisonPanel';
 import { WorkspaceQuestions } from '../features/ai/components/WorkspaceQuestions';
 
@@ -64,6 +64,9 @@ function WorkspaceDetail({
   const { data: workspace, error, isPending } = useWorkspaceQuery(workspaceId);
   const { data: members } = useWorkspaceMembersQuery(workspaceId);
   const navigate = useNavigate();
+  // "Analyze this data" on a dataset preview arrives here with the source (and sheet) already chosen.
+  const [search] = useSearchParams();
+  const analyzeSource = search.get('analyzeSource');
 
   if (isPending) {
     return (
@@ -138,7 +141,14 @@ function WorkspaceDetail({
         }
       />
       {canEditContent ? <SourceUploadForm workspaceId={workspace.id} /> : null}
-      <WorkspaceQuestions workspaceId={workspace.id} />
+      <WorkspaceQuestions
+        workspaceId={workspace.id}
+        {...(analyzeSource === null
+          ? {}
+          : {
+              focus: { sourceId: analyzeSource, sheetName: search.get('analyzeSheet') },
+            })}
+      />
       <SourceComparisonPanel workspaceId={workspace.id} />
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and

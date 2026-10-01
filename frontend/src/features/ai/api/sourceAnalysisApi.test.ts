@@ -29,7 +29,12 @@ test('scoped transports preserve explicit sources, criteria, baseline and CSRF',
   await findPotentialDisagreements('w/1', 'a/1', 'Assess datasets');
   expect(post).toHaveBeenLastCalledWith(
     '/api/workspaces/w%2F1/ai/source-analyses/a%2F1/disagreements',
-    { body: { instruction: 'Assess datasets' } },
+    { body: { instruction: 'Assess datasets', versionSelection: 'ORIGINAL' } },
+  );
+  await findPotentialDisagreements('w/1', 'a/1', null, 'LATEST');
+  expect(post).toHaveBeenLastCalledWith(
+    '/api/workspaces/w%2F1/ai/source-analyses/a%2F1/disagreements',
+    { body: { instruction: null, versionSelection: 'LATEST' } },
   );
 });
 test('safe failures propagate without retried model calls', async () => {

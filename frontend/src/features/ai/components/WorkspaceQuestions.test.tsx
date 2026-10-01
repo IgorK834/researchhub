@@ -254,3 +254,75 @@ it('clears private question state across workspaces and ignores a late result fr
   expect(screen.queryByText(supported.answer)).toBeNull();
   expect(screen.queryByText('Question: Private previous question')).toBeNull();
 });
+
+function focused(
+  focus: { sourceId: string; sheetName: string | null },
+  workspaceId = 'w1',
+) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const wrap = (next: typeof focus) => (
+    <QueryClientProvider client={client}>
+      <WorkspaceQuestions workspaceId={workspaceId} focus={next} />
+    </QueryClientProvider>
+  );
+  return { ...render(wrap(focus)), wrap };
+}
+it('starts scoped to the dataset chosen for analysis and asks only about that source', async () => {
+  const mock = requests(supported, [
+    ready,
+    { id: 's2', displayName: 'Other', status: 'READY' },
+  ]);
+  focused({ sourceId: 's1', sheetName: null });
+
+  const question = screen.getByLabelText('Question') as HTMLTextAreaElement;
+  expect(question.value).toBe(
+    'Describe the columns, data types and data-quality issues in this dataset.',
+  );
+  expect(document.activeElement).toBe(question);
+  expect((screen.getByLabelText('Selected sources') as HTMLInputElement).checked).toBe(
+    true,
+  );
+  expect(((await screen.findByLabelText('Lecture')) as HTMLInputElement).checked).toBe(
+    true,
+  );
+  expect((screen.getByLabelText('Other') as HTMLInputElement).checked).toBe(false);
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Ask question' })).toHaveProperty(
+      'disabled',
+      false,
+    ),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Ask question' }));
+  await screen.findByText(supported.answer);
+  const post = mock.mock.calls.find((call) => String(call[0]).endsWith('/questions'));
+  expect(JSON.parse(String(post?.[1]?.body))).toEqual({
+    question: 'Describe the columns, data types and data-quality issues in this dataset.',
+    selectedSourceIds: ['s1'],
+  });
+});
+it('names the sheet of a workbook, but not the implicit CSV sheet', () => {
+  requests();
+  const { unmount } = focused({ sourceId: 's1', sheetName: 'Measurements' });
+  expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toContain(
+    'Focus on the "Measurements" sheet.',
+  );
+  unmount();
+  focused({ sourceId: 's1', sheetName: 'CSV' });
+  expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).not.toContain(
+    'Focus on',
+  );
+});
+it('starts over when another dataset is chosen in the same workspace', async () => {
+  requests();
+  const { rerender, wrap } = focused({ sourceId: 's1', sheetName: null });
+  fireEvent.change(screen.getByLabelText('Question'), {
+    target: { value: 'my own words' },
+  });
+  rerender(wrap({ sourceId: 's1', sheetName: 'Second' }));
+  expect((screen.getByLabelText('Question') as HTMLTextAreaElement).value).toContain(
+    '"Second"',
+  );
+});
