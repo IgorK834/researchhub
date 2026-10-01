@@ -12,6 +12,7 @@ import java.util.*;
 @Profile("local")
 public class ModelGateway {
     private final ModelProvider provider;
+    private final AuthoringModelProvider authoringProvider;
     private final SourceRetrievalService retrieval;
     private final WorkspaceAuthorizationService authorization;
     private final GenerationFeature feature;
@@ -21,7 +22,8 @@ public class ModelGateway {
     private final dev.researchhub.source.application.SourceService sources;
     public ModelGateway(ModelProvider provider, SourceRetrievalService retrieval, WorkspaceAuthorizationService authorization,
                         GenerationFeature feature, GenerationStore store, GroundedContextBuilder contexts, ContextProperties contextProperties,
-                        dev.researchhub.source.application.SourceService sources) {
+                        dev.researchhub.source.application.SourceService sources, AuthoringModelProvider authoringProvider) {
+        this.authoringProvider = authoringProvider;
         this.provider = provider; this.retrieval = retrieval; this.authorization = authorization; this.feature = feature; this.store = store;
         this.contexts = contexts; this.contextProperties = contextProperties; this.sources = sources;
     }
@@ -57,6 +59,20 @@ public class ModelGateway {
             store.fail(workspaceId, request.requestId(), failure.code());
             throw failure;
         }
+    }
+    /** Authoring has a separate result schema; it shares the model boundary and fail-closed validation.
+     * The authoring application persists the result/context with its approval state. */
+    AuthoringContracts.Result author(UUID workspaceId, UUID callerId, ContextContracts.ContextualRequest request,
+                                    AuthoringContracts.Kind kind, boolean citationRequired) {
+        authorization.requireContentReader(workspaceId, callerId);
+        AuthoringContracts.Result result;
+        try { result = authoringProvider.author(request); }
+        catch (ModelFailure safe) { throw safe; }
+        catch (RuntimeException unsafe) { throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR); }
+        try { Objects.requireNonNull(result).validateFor(request.request(), kind, citationRequired); }
+        catch (IllegalArgumentException | NullPointerException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
+        authorization.requireContentReader(workspaceId, callerId);
+        return result;
     }
     private List<RetrievalChunk> resolve(UUID workspaceId, UUID callerId, Command command) {
         return command.evidence().stream().map(ref -> retrieval.chunk(workspaceId, ref.sourceId(), callerId, ref.chunkId(), ref.processingVersion())).toList();

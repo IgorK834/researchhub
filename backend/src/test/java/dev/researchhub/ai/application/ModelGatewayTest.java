@@ -25,7 +25,7 @@ class ModelGatewayTest {
 
     @BeforeEach void prepare() throws Exception {
         feature = new GenerationFeature("grounded-response:2", "0", 1024);
-        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources);
+        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources, mock(AuthoringModelProvider.class));
         chunk = new RetrievalChunk("a".repeat(64), source, workspace, null, 0, "Supported fact.", 2, 2, "Theory",
             RetrievalIdentity.hash("Supported fact."), "retrieval-1:test", List.of(new SourceSpan("unit-2", 0, 15)));
         when(sources.findOne(workspace, caller, source)).thenReturn(new dev.researchhub.source.application.SourceSummary(source, workspace, "lecture.pdf", "Lecture", "application/pdf", "PDF", 20, "hash", "READY", null, caller, java.time.Instant.now(), java.time.Instant.now()));
@@ -78,7 +78,7 @@ class ModelGatewayTest {
         assertEquals(ApiErrorCode.AI_OUTPUT_INVALID, assertThrows(ModelFailure.class, () -> gateway.generate(workspace, caller, command)).code());
     }
     @Test void contextOverflowStopsBeforeProviderAndAuditAndMetadataCalls() {
-        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,64,true), sources);
+        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,64,true), sources, mock(AuthoringModelProvider.class));
         assertEquals(ApiErrorCode.AI_CONTEXT_TOO_LARGE, assertThrows(ApiException.class, () -> gateway.generate(workspace, caller, command)).code());
         verifyNoInteractions(provider, store);
     }
