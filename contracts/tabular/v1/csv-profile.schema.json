@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "CsvColumn": {
+      "additionalProperties": false,
+      "properties": {
+        "columnNumber": {
+          "maximum": 256,
+          "minimum": 1,
+          "title": "Columnnumber",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "inferredType": {
+          "enum": [
+            "integer",
+            "number",
+            "boolean",
+            "date",
+            "text",
+            "unknown"
+          ],
+          "title": "Inferredtype",
+          "type": "string"
+        },
+        "missingCount": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Missingcount",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "columnNumber",
+        "name",
+        "inferredType",
+        "missingCount"
+      ],
+      "title": "CsvColumn",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "encoding": {
+      "enum": [
+        "UTF-8",
+        "UTF-8-BOM"
+      ],
+      "title": "Encoding",
+      "type": "string"
+    },
+    "delimiter": {
+      "anyOf": [
+        {
+          "enum": [
+            ",",
+            ";",
+            "\t",
+            "|"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Delimiter"
+    },
+    "headerPolicy": {
+      "const": "FIRST_NONEMPTY_RECORD",
+      "default": "FIRST_NONEMPTY_RECORD",
+      "title": "Headerpolicy",
+      "type": "string"
+    },
+    "missingValuePolicy": {
+      "const": "EMPTY_OR_WHITESPACE",
+      "default": "EMPTY_OR_WHITESPACE",
+      "title": "Missingvaluepolicy",
+      "type": "string"
+    },
+    "indexPolicy": {
+      "const": "SCHEMA_ONLY",
+      "default": "SCHEMA_ONLY",
+      "title": "Indexpolicy",
+      "type": "string"
+    },
+    "rowCount": {
+      "anyOf": [
+        {
+          "maximum": 10000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Rowcount"
+    },
+    "profiledRowCount": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Profiledrowcount",
+      "type": "integer"
+    },
+    "rowScanComplete": {
+      "title": "Rowscancomplete",
+      "type": "boolean"
+    },
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/CsvColumn"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Columns",
+      "type": "array"
+    }
+  },
+  "required": [
+    "encoding",
+    "delimiter",
+    "rowCount",
+    "profiledRowCount",
+    "rowScanComplete",
+    "columns"
+  ],
+  "title": "CsvProfile",
+  "type": "object"
+}

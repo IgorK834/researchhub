@@ -1,0 +1,216 @@
+{
+  "schemaVersion": "4.0",
+  "jobId": "018f1f7a-6c20-7c2f-9d3f-4cda0ca3b8bd",
+  "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+  "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+  "processingVersion": "source-ingest-4",
+  "status": "SUCCEEDED",
+  "duplicateDelivery": false,
+  "retrieval": {
+    "schemaVersion": "1.0",
+    "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+    "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+    "sourceVersionId": null,
+    "ingestionVersion": "source-ingest-4",
+    "parserVersion": "csv-stdlib/rh-2",
+    "sourceContentHash": "8c6d9621604e5b0ef85b5179ea7b5725dd9a4c6918848a97f0fad993ab3e426a",
+    "extractionContentHash": "3776917c9b6ffb0ed351294b565373a21c5973b6ebe19174c5c8bbca0246ca38",
+    "processingVersion": "retrieval-1:fa36a1f924def54271365dbf3192df335447ef1f4d650b9a715fc6647bdb5b43",
+    "config": {
+      "version": "hierarchical-char-1",
+      "maxCharacters": 1600,
+      "overlapCharacters": 150,
+      "minCharacters": 200
+    },
+    "chunks": [
+      {
+        "chunkId": "e0538f5a0a8afc0b9feef987578d597246b9de876ada235a83b1b42121c4a5f3",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "workspaceId": "018f1f79-cbc4-7ac8-a454-d7bf0ead9a46",
+        "sourceVersionId": null,
+        "chunkIndex": 0,
+        "content": "CSV data asset. Encoding: UTF-8. Delimiter: semicolon.\nData rows: 2. Profiled data rows: 2.\nFirst nonempty record is an assumed header. Types are inferred and may be wrong.\nMissing values mean empty or whitespace-only cells. Retrieval contains schema metadata only.\nColumn 1: name; inferred type: text; missing in profiled rows: 0.\nColumn 2: age; inferred type: integer; missing in profiled rows: 1.\nColumn 3: active; inferred type: boolean; missing in profiled rows: 0.\nColumn 4: missing; inferred type: unknown; missing in profiled rows: 2.",
+        "pageStart": null,
+        "pageEnd": null,
+        "sectionTitle": null,
+        "contentHash": "3776917c9b6ffb0ed351294b565373a21c5973b6ebe19174c5c8bbca0246ca38",
+        "processingVersion": "retrieval-1:fa36a1f924def54271365dbf3192df335447ef1f4d650b9a715fc6647bdb5b43",
+        "spans": [
+          {
+            "unitId": "unit-0",
+            "characterStart": 0,
+            "characterEnd": 542
+          }
+        ]
+      }
+    ]
+  },
+  "parserVersion": "csv-stdlib/rh-2",
+  "workbook": {
+    "csvProfile": {
+      "schemaVersion": "1.0",
+      "encoding": "UTF-8",
+      "delimiter": ";",
+      "headerPolicy": "FIRST_NONEMPTY_RECORD",
+      "missingValuePolicy": "EMPTY_OR_WHITESPACE",
+      "indexPolicy": "SCHEMA_ONLY",
+      "rowCount": 2,
+      "profiledRowCount": 2,
+      "rowScanComplete": true,
+      "columns": [
+        {
+          "columnNumber": 1,
+          "name": "name",
+          "inferredType": "text",
+          "missingCount": 0
+        },
+        {
+          "columnNumber": 2,
+          "name": "age",
+          "inferredType": "integer",
+          "missingCount": 1
+        },
+        {
+          "columnNumber": 3,
+          "name": "active",
+          "inferredType": "boolean",
+          "missingCount": 0
+        },
+        {
+          "columnNumber": 4,
+          "name": "missing",
+          "inferredType": "unknown",
+          "missingCount": 2
+        }
+      ]
+    },
+    "previewRowLimit": 50,
+    "sheets": [
+      {
+        "previewRows": [
+          {
+            "rowNumber": 1,
+            "cells": [
+              "name",
+              "age",
+              "active",
+              "missing"
+            ]
+          },
+          {
+            "rowNumber": 2,
+            "cells": [
+              "Ada",
+              "37",
+              "true",
+              ""
+            ]
+          },
+          {
+            "rowNumber": 3,
+            "cells": [
+              "Bob",
+              "",
+              "false",
+              " "
+            ]
+          }
+        ],
+        "name": "CSV",
+        "state": "visible",
+        "usedRange": null,
+        "rowCountEstimate": 3,
+        "columnCount": 4,
+        "headerCandidate": [
+          "name",
+          "age",
+          "active",
+          "missing"
+        ],
+        "headerRow": 1,
+        "columns": [
+          {
+            "columnNumber": 1,
+            "values": [
+              "Ada",
+              "Bob"
+            ],
+            "dataTypes": [
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 2,
+            "values": [
+              "37"
+            ],
+            "dataTypes": [
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 3,
+            "values": [
+              "true",
+              "false"
+            ],
+            "dataTypes": [
+              "text"
+            ]
+          },
+          {
+            "columnNumber": 4,
+            "values": [],
+            "dataTypes": [
+              "empty"
+            ]
+          }
+        ],
+        "sampledRows": 3,
+        "truncated": false,
+        "formulaPresence": false,
+        "formulaScanComplete": true
+      }
+    ],
+    "rowLimit": 1000,
+    "columnLimit": 64,
+    "sampleLimit": 10
+  },
+  "extractionMetadata": {
+    "title": null,
+    "author": null,
+    "language": null,
+    "pageCount": 0,
+    "characterCount": 542,
+    "contentSha256": "8c6d9621604e5b0ef85b5179ea7b5725dd9a4c6918848a97f0fad993ab3e426a"
+  },
+  "structure": {
+    "pages": [],
+    "sections": []
+  },
+  "chunks": [
+    {
+      "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+      "parserVersion": "csv-stdlib/rh-2",
+      "location": {
+        "kind": "SHEET",
+        "blockIndex": null,
+        "headingLevel": null,
+        "sheetName": "CSV",
+        "cellRange": null
+      },
+      "chunkId": "unit-0",
+      "ordinal": 0,
+      "text": "CSV data asset. Encoding: UTF-8. Delimiter: semicolon.\nData rows: 2. Profiled data rows: 2.\nFirst nonempty record is an assumed header. Types are inferred and may be wrong.\nMissing values mean empty or whitespace-only cells. Retrieval contains schema metadata only.\nColumn 1: name; inferred type: text; missing in profiled rows: 0.\nColumn 2: age; inferred type: integer; missing in profiled rows: 1.\nColumn 3: active; inferred type: boolean; missing in profiled rows: 0.\nColumn 4: missing; inferred type: unknown; missing in profiled rows: 2.",
+      "pageNumber": null,
+      "sectionId": null,
+      "characterStart": 0,
+      "characterEnd": 542
+    }
+  ],
+  "warnings": [
+    "CSV_HEADER_ASSUMED: The first nonempty record is treated as a header; verify column names.",
+    "TYPE_INFERENCE: Primitive types describe the bounded data sample and may be wrong."
+  ],
+  "failure": null
+}

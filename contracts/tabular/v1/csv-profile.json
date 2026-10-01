@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "encoding": "UTF-8",
+  "delimiter": ";",
+  "headerPolicy": "FIRST_NONEMPTY_RECORD",
+  "missingValuePolicy": "EMPTY_OR_WHITESPACE",
+  "indexPolicy": "SCHEMA_ONLY",
+  "rowCount": 2,
+  "profiledRowCount": 2,
+  "rowScanComplete": true,
+  "columns": [
+    {
+      "columnNumber": 1,
+      "name": "name",
+      "inferredType": "text",
+      "missingCount": 0
+    },
+    {
+      "columnNumber": 2,
+      "name": "age",
+      "inferredType": "integer",
+      "missingCount": 1
+    },
+    {
+      "columnNumber": 3,
+      "name": "active",
+      "inferredType": "boolean",
+      "missingCount": 0
+    },
+    {
+      "columnNumber": 4,
+      "name": "missing",
+      "inferredType": "unknown",
+      "missingCount": 2
+    }
+  ]
+}
