@@ -26,6 +26,10 @@ module.exports = (env, argv) => {
     entry: path.resolve(__dirname, 'src/index.tsx'),
     output: {
       path: path.resolve(__dirname, 'dist'),
+      // Absolute, so index.html references `/main.js` and still resolves on nested client routes
+      // such as /app/workspaces/<id>/sources/<id>. The app is served from the origin root
+      // (AppRouter has no basename), in development and in whatever hosts dist/.
+      publicPath: '/',
       filename: isProduction ? '[name].[contenthash].js' : '[name].js',
       clean: true,
     },
@@ -38,7 +42,12 @@ module.exports = (env, argv) => {
         {
           test: /\.(ts|tsx|js|jsx)$/,
           exclude: /node_modules/,
-          use: 'babel-loader',
+          use: {
+            loader: 'babel-loader',
+            // `--mode` does not set NODE_ENV for Babel, which would otherwise default to
+            // "development" and emit the dev-only `jsxDEV` transform into production bundles.
+            options: { envName: isProduction ? 'production' : 'development' },
+          },
         },
         {
           test: /\.css$/,
