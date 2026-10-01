@@ -192,3 +192,14 @@ RH-123–RH-125: [Structured citations and source analysis](docs/development/sou
 add stable editor references with dynamic numbering, selected-source comparison tables and cited,
 AI-assisted interpretations of potential differences. Results preserve provenance and do not
 change documents automatically; missing research fields stay missing.
+
+RH-130: [immutable source versions](docs/development/source-versions.md). Replacing a spreadsheet or paper adds a new
+version instead of changing bytes: older versions and their blobs stay downloadable, processing is pinned to the version
+a job was created for, and every analysis records the exact versions it consumed. A follow-up uses the original versions
+unless the user explicitly chooses the latest. See [ADR-005](docs/adr/ADR-005-immutable-source-versions.md).
+
+RH-131–RH-132: [dataset inspection](docs/development/dataset-inspection.md). A bounded, formula-inert preview of a CSV/XLSX
+version (sheets, dimensions, header, inferred types, missing values, sample rows, explicit truncation warnings) is served
+by the Spring API from the worker's stored profile and shown on the source page with an **Analyze this data** action.
+Shared Java/Python contract and fixtures: [`contracts/analysis/dataset-preview/v1`](contracts/analysis/dataset-preview/v1/README.md).
+Existing databases are upgraded by Flyway V19 (existing sources become version 1; no blobs move).
