@@ -148,6 +148,21 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <id>csv-profile-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes>
+                                <include>dev/researchhub/processing/application/SourceExtraction$Csv*</include>
+                                <include>dev/researchhub/processing/application/SourceExtraction$WorkbookMetadata*</include>
+                            </includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-csv-profile</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>conversation-coverage-report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>

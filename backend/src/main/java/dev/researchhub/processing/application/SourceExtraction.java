@@ -122,7 +122,9 @@ public record SourceExtraction(String processingVersion, String parserVersion, E
             require(formulaPresence == null || formulaPresence || formulaScanComplete);
         }
     }
-    public record WorkbookMetadata(int previewRowLimit, List<SheetMetadata> sheets, int rowLimit, int columnLimit, int sampleLimit) {
+    /** Additive, nullable profile: pre-RH-092 workbook payloads remain readable without invented metadata. */
+    public record WorkbookMetadata(int previewRowLimit, List<SheetMetadata> sheets, int rowLimit, int columnLimit, int sampleLimit,
+                                   CsvProfile csvProfile) {
         void validate() {
             require(previewRowLimit >= 1 && previewRowLimit <= 100);
             require(rowLimit >= 1 && rowLimit <= 10000 && columnLimit >= 1 && columnLimit <= 256 && sampleLimit >= 1 && sampleLimit <= 100);
@@ -131,6 +133,39 @@ public record SourceExtraction(String processingVersion, String parserVersion, E
             for (var sheet : sheets) {
                 require(sheet != null && names.add(sheet.name()));
                 sheet.validate(rowLimit, columnLimit, sampleLimit, previewRowLimit);
+            }
+            if (csvProfile != null) {
+                require(sheets.size() == 1 && "CSV".equals(sheets.getFirst().name()));
+                csvProfile.validate(sheets.getFirst(), columnLimit);
+            }
+        }
+    }
+    public record CsvColumn(int columnNumber, String name, String inferredType, int missingCount) {}
+    public record CsvProfile(String schemaVersion, String encoding, String delimiter, String headerPolicy,
+                             String missingValuePolicy, String indexPolicy, Long rowCount, int profiledRowCount,
+                             boolean rowScanComplete, List<CsvColumn> columns) {
+        void validate(SheetMetadata sheet, int columnLimit) {
+            require("1.0".equals(schemaVersion) && encoding != null && List.of("UTF-8", "UTF-8-BOM").contains(encoding));
+            require(delimiter == null || List.of(",", ";", "\t", "|").contains(delimiter));
+            require("FIRST_NONEMPTY_RECORD".equals(headerPolicy) && "EMPTY_OR_WHITESPACE".equals(missingValuePolicy)
+                    && "SCHEMA_ONLY".equals(indexPolicy));
+            require(sheet.headerRow() != null && sheet.columnCount() != null && sheet.columnCount() > 0);
+            require(profiledRowCount >= 0 && profiledRowCount == sheet.sampledRows() - sheet.headerRow());
+            require(rowScanComplete ? rowCount != null && rowCount == profiledRowCount : rowCount == null);
+            require(rowScanComplete ? sheet.rowCountEstimate() != null && sheet.rowCountEstimate() == sheet.sampledRows()
+                    : sheet.rowCountEstimate() == null);
+            require(sheet.truncated() == (!rowScanComplete || sheet.columnCount() > columnLimit));
+            require(columns != null && columns.size() == Math.min(sheet.columnCount(), columnLimit)
+                    && sheet.columns().size() == columns.size());
+            var names = new HashSet<String>();
+            for (int index = 0; index < columns.size(); index++) {
+                var column = columns.get(index);
+                require(column != null && column.columnNumber() == index + 1 && column.name() != null
+                        && !column.name().isBlank() && column.name().length() <= 500 && names.add(column.name()));
+                require(column.inferredType() != null && List.of("integer", "number", "boolean", "date", "text", "unknown").contains(column.inferredType()));
+                require(column.missingCount() >= 0 && column.missingCount() <= profiledRowCount);
+                require("unknown".equals(column.inferredType()) == (column.missingCount() == profiledRowCount));
+                require(sheet.columns().get(index).columnNumber() == column.columnNumber());
             }
         }
     }

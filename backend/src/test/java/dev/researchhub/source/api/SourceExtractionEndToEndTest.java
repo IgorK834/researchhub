@@ -225,6 +225,73 @@ class SourceExtractionEndToEndTest {
         queue.updateState(job.id(), job.status(), job.attemptCount(), job.retry(new dev.researchhub.processing.domain.ProcessingJobError("RETRY", "Retry."), Instant.now()));
         assertThrows(IllegalStateException.class, () -> extractionService.store(notification, adjusted, null));
     }
+    @Test void csvProfilesParseCommaAndSemicolonAndKeepDataOutOfTheSearchIndex() throws Exception {
+        for (String separator:List.of(",",";")) {
+            byte[] data=("\ufeffname,age,weight,active,date,id,empty\nAda,37,1.5,true,2026-09-30,00123,\nBob, ,2,false,2026-10-01,00456, ".replace(",",separator)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            String id=upload("data.csv",data);dispatch();
+            assertEquals("READY",owner.json(owner.get(sourcePath(id))).get("status").asString());
+            var response=owner.get(sourcePath(id)+"/extraction");assertEquals(200,response.statusCode());
+            var output=owner.json(response);var profile=output.get("workbook").get("csvProfile");
+            assertEquals("csv-stdlib/rh-2",output.get("parserVersion").asString());
+            assertEquals("UTF-8-BOM",profile.get("encoding").asString());assertEquals(separator,profile.get("delimiter").asString());
+            assertEquals(2,profile.get("rowCount").asInt());assertTrue(profile.get("rowScanComplete").asBoolean());
+            assertEquals("integer",profile.get("columns").get(1).get("inferredType").asString());
+            assertEquals(1,profile.get("columns").get(1).get("missingCount").asInt());
+            assertEquals("unknown",profile.get("columns").get(6).get("inferredType").asString());
+            assertEquals("00123",output.get("workbook").get("sheets").get(0).get("previewRows").get(1).get("cells").get(5).asString());
+            var indexed=jdbc.queryForList("SELECT content FROM source_chunk_embeddings WHERE source_id=?",String.class,UUID.fromString(id));
+            assertFalse(indexed.isEmpty());assertTrue(indexed.stream().noneMatch(text->text.contains("Ada")||text.contains("00123")));
+            assertTrue(indexed.stream().anyMatch(text->text.contains("schema metadata only")));
+            assertEquals("private, no-store",response.headers().firstValue("Cache-Control").orElseThrow());
+            String other=owner.createdWorkspaceId("Other","isolated");
+            assertEquals(404,owner.get("/api/workspaces/"+other+"/sources/"+id+"/extraction").statusCode());
+        }
+    }
+    @Test void largeCsvPreviewIsBoundedAndLegacyProfilesCanBeReprocessedWithoutDuplicateChunks() throws Exception {
+        String id=upload("large.csv",("name,value\n"+"PRIVATE_ROW_MARKER,42\n".repeat(5000)).getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        var output=owner.json(owner.get(sourcePath(id)+"/extraction"));var profile=output.get("workbook").get("csvProfile");
+        assertTrue(profile.get("rowCount").isNull());assertFalse(profile.get("rowScanComplete").asBoolean());
+        assertEquals(2,profile.get("profiledRowCount").asInt());
+        assertTrue(output.get("workbook").get("sheets").get(0).get("truncated").asBoolean());
+        assertEquals(3,output.get("workbook").get("sheets").get(0).get("previewRows").size());
+        int count=jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings WHERE source_id=?",Integer.class,UUID.fromString(id));
+        assertTrue(count>0);assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings WHERE source_id=? AND content LIKE '%PRIVATE_ROW_MARKER%'",Integer.class,UUID.fromString(id)));
+        jdbc.update("UPDATE source_extractions SET payload=payload #- '{workbook,csvProfile}',payload_sha256=NULL WHERE source_id=?",UUID.fromString(id));
+        assertTrue(owner.json(owner.get(sourcePath(id)+"/extraction")).get("workbook").get("csvProfile").isNull());
+        assertEquals(202,owner.postJson(sourcePath(id)+"/reprocess","{}").statusCode());dispatch();
+        assertFalse(owner.json(owner.get(sourcePath(id)+"/extraction")).get("workbook").get("csvProfile").isNull());
+        assertEquals(count,jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings WHERE source_id=?",Integer.class,UUID.fromString(id)));
+        var viewer=new ApiBrowser(port,mapper);String viewerId=viewer.signUp("csv-viewer@example.com","Viewer");
+        owner.postJson("/api/workspaces/"+workspaceId+"/members","{\"email\":\"csv-viewer@example.com\",\"role\":\"VIEWER\"}");
+        assertEquals(200,viewer.get(sourcePath(id)+"/extraction").statusCode());
+        assertEquals(204,owner.delete("/api/workspaces/"+workspaceId+"/members/"+viewerId).statusCode());
+        assertEquals(404,viewer.get(sourcePath(id)+"/extraction").statusCode());
+    }
+    @Test void csvNonBmpHeadersAndCellsStayWithinJavaMetadataLimitsWithoutBrokenUnicode() throws Exception {
+        String header="a"+"🔬".repeat(500),cell="📊".repeat(500);
+        String id=upload("unicode.csv",(header+","+header+"\n"+cell+","+cell).getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        assertEquals("READY",owner.json(owner.get(sourcePath(id))).get("status").asString());
+        var workbook=owner.json(owner.get(sourcePath(id)+"/extraction")).get("workbook");
+        var columns=workbook.get("csvProfile").get("columns");
+        assertNotEquals(columns.get(0).get("name").asString(),columns.get(1).get("name").asString());
+        for (var column:columns) assertTrue(column.get("name").asString().length()<=500);
+        assertEquals("📊".repeat(250),workbook.get("sheets").get(0).get("previewRows").get(1).get("cells").get(0).asString());
+    }
+    @Test void malformedCsvEncodingAndDelimiterFailSafelyWithoutPublishedMetadataOrSearchRows() throws Exception {
+        for (var input:java.util.Map.of("encoding.csv",new byte[]{'a',',','b','\n','x',',',(byte)0xff},
+                "delimiter.csv","a;b\nPRIVATE_SECRET;2;3".getBytes(java.nio.charset.StandardCharsets.UTF_8)).entrySet()) {
+            String id=upload(input.getKey(),input.getValue());dispatch();
+            var source=owner.json(owner.get(sourcePath(id)));assertEquals("FAILED",source.get("status").asString());
+            assertFalse(source.get("failureSummary").asString().contains("PRIVATE_SECRET"));
+            assertEquals(input.getKey().startsWith("encoding")?"CSV_ENCODING_INVALID":"CSV_DELIMITER_INVALID",
+                jdbc.queryForObject("SELECT last_error_code FROM processing_jobs WHERE resource_id=?",String.class,UUID.fromString(id)));
+            assertEquals(1,jdbc.queryForObject("SELECT attempt_count FROM processing_jobs WHERE resource_id=?",Integer.class,UUID.fromString(id)));
+            assertEquals(204,owner.get(sourcePath(id)+"/extraction").statusCode());
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings WHERE source_id=?",Integer.class,UUID.fromString(id)));
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM source_extractions WHERE source_id=?",Integer.class,UUID.fromString(id)));
+        }
+    }
+
     @Test void previewAndCitationLocationsAreAuthorizedAndPageAware() throws Exception {
         String id = upload("lecture.pdf", fixture("lecture.pdf"));
         dispatch();
