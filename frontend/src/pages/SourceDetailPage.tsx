@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { CitationVersionStatus } from '../features/ai/components/CitationVersionStatus';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { PdfSourcePreview } from '../features/sources/components/PdfSourcePreview';
 import { SourceProcessing } from '../features/sources/components/SourceProcessing';
@@ -11,9 +11,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SourceExtractionPreview } from '../features/sources/components/SourceExtractionPreview';
 import { sourceContentPath } from '../features/sources/api/sourceApi';
 import { SOURCE_STATUS_LABELS } from '../features/sources/api/sourceTypes';
-import { useSourceQuery } from '../features/sources/api/useSources';
+import {
+  useSourceQuery,
+  useSourceVersionsQuery,
+} from '../features/sources/api/useSources';
 import { useWorkspaceMembersQuery } from '../features/workspaces/api/useWorkspaces';
 import { describeError, hasApiErrorCode } from '../shared/api';
+import { DatasetPreviewPanel } from '../features/analysis/components/DatasetPreviewPanel';
+import { SourceReplaceForm } from '../features/sources/components/SourceReplaceForm';
+import { SourceVersionHistory } from '../features/sources/components/SourceVersionHistory';
+import type { AnalyzeTarget } from '../features/analysis/components/DatasetPreviewPanel';
 
 export function SourceDetailPage(): ReactElement {
   const { workspaceId, sourceId } = useParams<{
@@ -64,9 +71,24 @@ function SourceDetail({
   } = useSourceQuery(workspaceId, sourceId);
   const { data: members } = useWorkspaceMembersQuery(workspaceId);
   const { data: currentUser } = useCurrentUser();
+  const { data: versions } = useSourceVersionsQuery(workspaceId, sourceId);
+  const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
   const client = useQueryClient();
   const role = members?.find((member) => member.userId === currentUser?.id)?.role;
+  const analyze = (target: AnalyzeTarget): void => {
+    const params = new URLSearchParams({
+      analyzeSource: target.sourceId,
+      analyzeVersion: target.sourceVersionId,
+      analyzeSheet: target.sheetName,
+    });
+    void navigate(`/app/workspaces/${workspaceId}?${params.toString()}`);
+  };
+  const previewVersion = (versionId: string): void => {
+    const next = new URLSearchParams(search);
+    next.set('version', versionId);
+    setSearch(next);
+  };
   const onNavigate = (page: number): void => {
     const next = new URLSearchParams(search);
     next.set('page', String(page));
@@ -87,6 +109,16 @@ function SourceDetail({
   const uploader =
     members?.find((member) => member.userId === source.uploadedBy)?.displayName ??
     source.uploadedBy;
+  // The data preview follows ?version=<id> when it names a known version, and otherwise the latest one.
+  const requestedVersion = versions?.find(
+    (version) => version.id === search.get('version'),
+  );
+  const previewedVersion =
+    requestedVersion ??
+    versions?.find((version) => version.id === source.activeVersionId);
+  const previewVersionId = previewedVersion?.id ?? source.activeVersionId;
+  const previewType = previewedVersion?.sourceType ?? source.sourceType;
+  const previewStatus = previewedVersion?.status ?? source.status;
 
   return (
     <section>
@@ -105,6 +137,8 @@ function SourceDetail({
       <dl>
         <dt>Type</dt>
         <dd>{source.sourceType}</dd>
+        <dt>Version</dt>
+        <dd>{source.activeVersionNumber} (latest)</dd>
         <dt>Status</dt>
         <dd>{SOURCE_STATUS_LABELS[source.status]}</dd>
         <dt>Uploaded by</dt>
@@ -135,6 +169,17 @@ function SourceDetail({
         status={source.status}
         canEdit={role === 'OWNER' || role === 'EDITOR'}
       />
+      {(previewType === 'CSV' || previewType === 'XLSX') &&
+      previewStatus === 'READY' &&
+      previewVersionId ? (
+        <DatasetPreviewPanel
+          workspaceId={workspaceId}
+          sourceId={sourceId}
+          sourceVersionId={previewVersionId}
+          isLatestVersion={previewVersionId === source.activeVersionId}
+          onAnalyze={analyze}
+        />
+      ) : null}
       {source.sourceType === 'PDF' ? (
         <PdfSourcePreview
           workspaceId={workspaceId}
@@ -155,6 +200,16 @@ function SourceDetail({
           selectedSheet={search.get('sheet')}
           expectedParserVersion={search.get('parserVersion')}
         />
+      ) : null}
+      <SourceVersionHistory
+        workspaceId={workspaceId}
+        sourceId={sourceId}
+        selectedVersionId={previewVersionId}
+        onPreview={previewVersion}
+      />
+      {(role === 'OWNER' || role === 'EDITOR') &&
+      (source.status === 'READY' || source.status === 'FAILED') ? (
+        <SourceReplaceForm workspaceId={workspaceId} sourceId={sourceId} />
       ) : null}
       <button
         type="button"
