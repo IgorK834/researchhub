@@ -14,6 +14,9 @@ researchhub:
         timeout: ${AI_CONVERSATION_STREAM_TIMEOUT:PT90S}
         heartbeat: ${AI_CONVERSATION_STREAM_HEARTBEAT:PT10S}
     features:
+      authoring:
+        max-output-tokens: ${AI_AUTHORING_MAX_OUTPUT_TOKENS:4096}
+        temperature: ${AI_AUTHORING_TEMPERATURE:0}
       workspace-question:
         top-k: ${AI_WORKSPACE_QUESTION_TOP_K:6}
         temperature: ${AI_WORKSPACE_QUESTION_TEMPERATURE:0}

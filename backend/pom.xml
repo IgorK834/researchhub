@@ -163,6 +163,22 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>authoring-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes>
+                                <include>dev/researchhub/ai/application/Authoring*</include>
+                                <include>dev/researchhub/ai/infrastructure/PostgresAuthoring*</include>
+                                <include>dev/researchhub/ai/api/Authoring*</include>
+                            </includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-authoring</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>conversation-coverage-report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
