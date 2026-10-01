@@ -144,6 +144,7 @@
                         <include>dev/researchhub/source/**</include>
                         <include>dev/researchhub/processing/**</include>
                         <include>dev/researchhub/ai/**</include>
+                        <include>dev/researchhub/analysis/**</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -302,6 +303,18 @@
                                     </limits>
                                 </rule>
                             </rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>analysis-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/analysis/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-analysis</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit></limits></rule></rules>
                         </configuration>
                     </execution>
                     <execution>
