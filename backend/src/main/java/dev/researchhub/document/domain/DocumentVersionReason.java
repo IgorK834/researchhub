@@ -18,6 +18,9 @@ public enum DocumentVersionReason {
     AUTOSAVE_CHECKPOINT,
 
     /** The revision produced by restoring an older snapshot. Records which one. */
-    RESTORE
+    RESTORE,
+
+    /** A human explicitly accepted an AI authoring suggestion. */
+    AI_ACCEPTANCE
 
 }

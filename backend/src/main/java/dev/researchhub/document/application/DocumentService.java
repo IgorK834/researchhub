@@ -150,6 +150,22 @@ public class DocumentService {
     @Transactional
     public DocumentDetail revise(UUID workspaceId, UUID callerId, UUID documentId,
                                  ReviseDocumentCommand command) {
+        return reviseWithReason(workspaceId, callerId, documentId, command, null);
+    }
+
+    /** Explicit AI acceptance: a visible milestone, never selectable through ordinary save requests. */
+    @Transactional
+    public DocumentDetail reviseFromAi(UUID workspaceId, UUID callerId, UUID documentId, ReviseDocumentCommand command) {
+        return reviseWithReason(workspaceId, callerId, documentId, command, DocumentVersionReason.AI_ACCEPTANCE);
+    }
+
+    /** Public application boundary for revision conflicts; other modules do not import document domain types. */
+    public static void requireCurrentRevision(DocumentDetail document, long expected) {
+        if (document.summary().revision() != expected) throw new StaleRevisionException(document.summary().revision(), expected);
+    }
+
+    private DocumentDetail reviseWithReason(UUID workspaceId, UUID callerId, UUID documentId,
+                                            ReviseDocumentCommand command, DocumentVersionReason forcedReason) {
         requireEditor(workspaceId, callerId);
 
         Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
@@ -159,7 +175,8 @@ public class DocumentService {
                 command.title(), DocumentContent.of(command.content()), command.expectedRevision(), now));
 
         DocumentEntity saved = documents.saveAndFlush(DocumentEntity.fromDomain(revised));
-        checkpoints.reasonFor(command.saveKind(), versions.findNewestCreatedAt(documentId), now)
+        (forcedReason == null ? checkpoints.reasonFor(command.saveKind(), versions.findNewestCreatedAt(documentId), now)
+                : java.util.Optional.of(forcedReason))
                 .ifPresent(reason -> snapshot(DocumentVersion.snapshotOf(saved.toDomain(), reason, callerId, now)));
 
         log.info("event=document.revised workspaceId={} documentId={} revision={} saveKind={} userId={}",
