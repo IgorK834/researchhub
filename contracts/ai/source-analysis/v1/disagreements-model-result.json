@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "10000000-0000-0000-0000-000000000001",
+  "templateId": "source-disagreements:1",
+  "templateHash": "8e478697fa6f9fcec1b5a1a2e04532d3f68b2ebbb08ef16317cf34d5686764e8",
+  "model": {
+    "provider": "deterministic",
+    "name": "extractive-fixture",
+    "version": "1",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "usage": {
+    "inputTokens": 172,
+    "outputTokens": 40,
+    "totalTokens": 212,
+    "estimated": true
+  },
+  "providerRequestId": "c542ac99ee90631b962594b443bfcdd9db5a0129f5b84f2cf742c5c082fe7afa",
+  "answer": {
+    "status": "READY",
+    "rows": [],
+    "summary": [],
+    "findings": [
+      {
+        "category": "DIFFERENT_EXPERIMENTAL_CONDITIONS",
+        "description": "Different explicit values for method; this does not establish a contradiction. Review methodological and contextual differences.",
+        "sides": [
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000001",
+            "text": "randomized",
+            "evidenceIds": [
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          },
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000002",
+            "text": "observational",
+            "evidenceIds": [
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ]
+          }
+        ],
+        "methodologicalContext": {
+          "criterion": "methodological/context differences",
+          "status": "REPORTED",
+          "text": "method: randomized; method: observational",
+          "evidenceIds": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ]
+        }
+      },
+      {
+        "category": "DIFFERENT_REPORTED_RESULT",
+        "description": "Different explicit values for main result; this does not establish a contradiction. Review methodological and contextual differences.",
+        "sides": [
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000001",
+            "text": "80%",
+            "evidenceIds": [
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          },
+          {
+            "sourceId": "00000000-0000-4000-8000-000000000002",
+            "text": "60%",
+            "evidenceIds": [
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ]
+          }
+        ],
+        "methodologicalContext": {
+          "criterion": "methodological/context differences",
+          "status": "REPORTED",
+          "text": "method: randomized; method: observational",
+          "evidenceIds": [
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ]
+        }
+      }
+    ]
+  }
+}

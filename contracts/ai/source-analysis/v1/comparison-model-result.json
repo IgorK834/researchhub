@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "10000000-0000-0000-0000-000000000001",
+  "templateId": "source-comparison:1",
+  "templateHash": "0500b2aa1ba4c54cd90e0248742d51cbc357087db12db1c6a4c4931947e29c8b",
+  "model": {
+    "provider": "deterministic",
+    "name": "extractive-fixture",
+    "version": "1",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "usage": {
+    "inputTokens": 161,
+    "outputTokens": 11,
+    "totalTokens": 172,
+    "estimated": true
+  },
+  "providerRequestId": "0be9b132d0a73ef64da1c544e76006d2085daddfaf86d6512710ad196b946907",
+  "answer": {
+    "status": "READY",
+    "rows": [
+      {
+        "sourceId": "00000000-0000-4000-8000-000000000001",
+        "cells": [
+          {
+            "criterion": "method",
+            "status": "REPORTED",
+            "text": "randomized",
+            "evidenceIds": [
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          },
+          {
+            "criterion": "dataset",
+            "status": "MISSING",
+            "text": null,
+            "evidenceIds": []
+          },
+          {
+            "criterion": "main result",
+            "status": "REPORTED",
+            "text": "80%",
+            "evidenceIds": [
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          }
+        ]
+      },
+      {
+        "sourceId": "00000000-0000-4000-8000-000000000002",
+        "cells": [
+          {
+            "criterion": "method",
+            "status": "REPORTED",
+            "text": "observational",
+            "evidenceIds": [
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ]
+          },
+          {
+            "criterion": "dataset",
+            "status": "MISSING",
+            "text": null,
+            "evidenceIds": []
+          },
+          {
+            "criterion": "main result",
+            "status": "REPORTED",
+            "text": "60%",
+            "evidenceIds": [
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": [
+      {
+        "text": "Explicitly reported fields from retrieved excerpts: method, main result",
+        "evidenceIds": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ]
+      }
+    ],
+    "findings": []
+  }
+}
