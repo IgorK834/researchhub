@@ -1,3 +1,5 @@
+import { DataTable, Panel, type TableColumn } from '../../../shared/components/content';
+import { Button } from '../../../shared/components/Button';
 import type { ReactElement } from 'react';
 
 import { describeError } from '../../../shared/api';
@@ -28,99 +30,82 @@ export function SourceVersionHistory({
   if (versions.error !== null) {
     return <p role="alert">Could not load versions: {describeError(versions.error)}</p>;
   }
-  return (
-    <section aria-labelledby="source-versions-heading">
-      <h2 id="source-versions-heading">Versions</h2>
-      <p>
-        Each upload is kept as an immutable version. Existing analyses keep the version
-        they used.
-      </p>
-      <table aria-label="Source versions">
-        <thead>
-          <tr>
-            <th scope="col">Version</th>
-            <th scope="col">File</th>
-            <th scope="col">Size</th>
-            <th scope="col">Status</th>
-            <th scope="col">Uploaded</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {versions.data.map((version) => (
-            <VersionRow
-              key={version.id}
-              workspaceId={workspaceId}
-              sourceId={sourceId}
-              version={version}
-              selected={version.id === selectedVersionId}
-              {...(onPreview === undefined ? {} : { onPreview })}
-            />
-          ))}
-        </tbody>
-      </table>
-    </section>
-  );
-}
-
-function VersionRow({
-  workspaceId,
-  sourceId,
-  version,
-  selected,
-  onPreview,
-}: {
-  readonly workspaceId: string;
-  readonly sourceId: string;
-  readonly version: SourceVersion;
-  readonly selected: boolean;
-  readonly onPreview?: (versionId: string) => void;
-}): ReactElement {
-  const canPreview =
-    onPreview !== undefined &&
-    TABULAR.has(version.sourceType) &&
-    version.status === 'READY';
-  return (
-    <tr aria-current={selected ? 'true' : undefined}>
-      <th scope="row">
-        {version.versionNumber}
-        {version.active ? ' (latest)' : ''}
-      </th>
-      <td>{version.originalFilename}</td>
-      <td>{version.sizeBytes.toLocaleString()} bytes</td>
-      <td>
-        <SourceStatusChip status={version.status} />
-      </td>
-      <td>
+  const columns: readonly TableColumn<SourceVersion>[] = [
+    {
+      id: 'version',
+      header: 'Version',
+      rowHeader: true,
+      render: (version) =>
+        `${String(version.versionNumber)}${version.active ? ' (latest)' : ''}`,
+    },
+    { id: 'file', header: 'File', render: (version) => version.originalFilename },
+    {
+      id: 'size',
+      header: 'Size',
+      render: (version) => `${version.sizeBytes.toLocaleString()} bytes`,
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      render: (version) => <SourceStatusChip status={version.status} />,
+    },
+    {
+      id: 'uploaded',
+      header: 'Uploaded',
+      render: (version) => (
         <time dateTime={version.createdAt}>
           {new Intl.DateTimeFormat(undefined, {
             dateStyle: 'medium',
             timeStyle: 'short',
           }).format(new Date(version.createdAt))}
         </time>
-      </td>
-      <td>
-        <a
-          href={sourceVersionContentPath(workspaceId, sourceId, version.id)}
-          download={version.originalFilename}
-          aria-label={`Download version ${String(version.versionNumber)}`}
-        >
-          Download
-        </a>
-        {canPreview ? (
-          <>
-            {' '}
-            <button
-              type="button"
-              aria-pressed={selected}
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      render: (version) => (
+        <>
+          <Button
+            size="compact"
+            variant="ghost"
+            icon="download"
+            href={sourceVersionContentPath(workspaceId, sourceId, version.id)}
+            download={version.originalFilename}
+            aria-label={`Download version ${String(version.versionNumber)}`}
+          >
+            Download
+          </Button>
+          {onPreview !== undefined &&
+          TABULAR.has(version.sourceType) &&
+          version.status === 'READY' ? (
+            <Button
+              size="compact"
+              variant="secondary"
+              aria-pressed={version.id === selectedVersionId}
               aria-label={`Preview data of version ${String(version.versionNumber)}`}
               onClick={() => onPreview(version.id)}
             >
               Preview data
-            </button>
-          </>
-        ) : null}
-      </td>
-    </tr>
+            </Button>
+          ) : null}
+        </>
+      ),
+    },
+  ];
+  return (
+    <Panel title="Versions">
+      <p>
+        Each upload is kept as an immutable version. Existing analyses keep the version
+        they used.
+      </p>
+      <DataTable
+        columns={columns}
+        rows={versions.data}
+        rowKey={(version) => version.id}
+        isSelected={(version) => version.id === selectedVersionId}
+        caption="Source versions"
+      />
+    </Panel>
   );
 }

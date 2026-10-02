@@ -1,3 +1,6 @@
+import { Panel } from '../../../shared/components/content';
+import { Progress } from '../../../shared/components/feedback';
+import { Button } from '../../../shared/components/Button';
 import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
@@ -39,7 +42,7 @@ export function SourceProcessing({
     FINALIZE: 'Finishing processing',
   };
   return (
-    <section aria-label="Source processing">
+    <Panel title="Source processing">
       {busy ? (
         <p role="status">
           Source processing is in progress. Status updates automatically.
@@ -50,11 +53,7 @@ export function SourceProcessing({
           <p>
             {stageLabels[processing.data.stage]} · {processing.data.progress}%
           </p>
-          <progress
-            aria-label="Source processing progress"
-            value={processing.data.progress}
-            max={100}
-          />
+          <Progress label="Source processing progress" value={processing.data.progress} />
         </div>
       ) : null}
       {busy && processing.error ? (
@@ -63,13 +62,15 @@ export function SourceProcessing({
         </p>
       ) : null}
       {canEdit ? (
-        <button
+        <Button
+          variant="secondary"
+          icon="refresh"
           type="button"
           disabled={busy || mutation.isPending}
           onClick={() => mutation.mutate()}
         >
-          Reprocess source
-        </button>
+          {status === 'FAILED' ? 'Retry processing' : 'Reprocess source'}
+        </Button>
       ) : null}
       {mutation.error ? (
         <p role="alert">Could not reprocess source: {describeError(mutation.error)}</p>
@@ -92,6 +93,6 @@ export function SourceProcessing({
           </ol>
         </details>
       ) : null}
-    </section>
+    </Panel>
   );
 }

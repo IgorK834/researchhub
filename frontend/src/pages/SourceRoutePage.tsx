@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { useNarrowDesktop } from '../shared/hooks/useNarrowDesktop';
 import { SlideOver } from '../shared/components/overlays';
-import { ToolShell } from '../shared/components/shell';
 import { SourceDetailPage } from './SourceDetailPage';
 import { WorkspaceDetailPage } from './WorkspaceDetailPage';
 import { workspaceSectionPath } from '../app/workspaceRoutes';
@@ -21,9 +20,7 @@ export function SourceRoutePage(): ReactElement {
   return (
     <>
       {!narrow || workspaceId === undefined ? (
-        <ToolShell label="Source reader">
-          <div ref={attach} />
-        </ToolShell>
+        <div ref={attach} />
       ) : (
         <>
           <WorkspaceDetailPage section="sources" />
@@ -41,7 +38,10 @@ export function SourceRoutePage(): ReactElement {
           </SlideOver>
         </>
       )}
-      {createPortal(<SourceDetailPage />, host)}
+      {createPortal(
+        <SourceDetailPage embedded={narrow && workspaceId !== undefined} />,
+        host,
+      )}
     </>
   );
 }

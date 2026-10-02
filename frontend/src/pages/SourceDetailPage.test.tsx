@@ -38,6 +38,7 @@ function renderPage(
       );
     if (String(url) === `${sourcePath}/extraction/runs`)
       return Promise.resolve(response([]));
+    if (String(url) === `${sourcePath}/versions`) return Promise.resolve(response([]));
     if (String(url) === sourcePath) return Promise.resolve(sourceResponse);
     if (String(url) === `${sourcePath}/extraction`)
       return Promise.resolve(response(extraction));
@@ -86,7 +87,7 @@ it('shows authorized metadata, uploader, status and a backend download link', as
   );
 
   expect(await screen.findByRole('heading', { name: 'team.csv' })).not.toBeNull();
-  expect(screen.getByText('Failed')).not.toBeNull();
+  expect(screen.getAllByText('Failed')).toHaveLength(2);
   expect(screen.getByText('Ada')).not.toBeNull();
   expect(screen.getByText('Failure: The CSV is malformed.')).not.toBeNull();
   expect(screen.getByRole('link', { name: 'Download source' }).getAttribute('href')).toBe(

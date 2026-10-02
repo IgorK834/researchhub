@@ -1,3 +1,7 @@
+import styles from './SourceDetail.module.css';
+import { TextField } from '../../../shared/components/forms';
+import { Panel } from '../../../shared/components/content';
+import { Button } from '../../../shared/components/Button';
 import { useState, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/api';
@@ -28,8 +32,7 @@ export function PdfSourcePreview({
   const parsed = parsePdfPage(requestedPage, count);
   const page = parsed ?? 1;
   return (
-    <section aria-label="PDF preview">
-      <h2>PDF preview</h2>
+    <Panel title="PDF preview">
       {parsed === null ? (
         <p role="alert">
           The requested PDF page is not available. Enter a valid page number.
@@ -40,29 +43,37 @@ export function PdfSourcePreview({
         {count && count > 0 ? ` of ${String(count)}` : ''}
       </p>
       <PdfPageForm key={page} page={page} count={count} onNavigate={onNavigate} />
-      <button type="button" disabled={page <= 1} onClick={() => onNavigate(page - 1)}>
-        Previous PDF page
-      </button>
-      <button
-        type="button"
-        disabled={page >= (count && count > 0 ? count : 10000)}
-        onClick={() => onNavigate(page + 1)}
-      >
-        Next PDF page
-      </button>
-      <p>
-        <a
-          href={pdfPreviewPath(workspaceId, sourceId, page)}
-          target="_blank"
-          rel="noopener noreferrer"
+      <div className={styles.actions}>
+        <Button
+          variant="secondary"
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onNavigate(page - 1)}
         >
-          Open PDF at page {page}
-        </a>
-      </p>
+          Previous PDF page
+        </Button>
+        <Button
+          variant="secondary"
+          type="button"
+          disabled={page >= (count && count > 0 ? count : 10000)}
+          onClick={() => onNavigate(page + 1)}
+        >
+          Next PDF page
+        </Button>
+        <p>
+          <a
+            href={pdfPreviewPath(workspaceId, sourceId, page)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open PDF at page {page}
+          </a>
+        </p>
+      </div>
       <p>
         The PDF opens in your browser viewer. Page navigation depends on browser support.
       </p>
-    </section>
+    </Panel>
   );
 }
 
@@ -85,6 +96,7 @@ function PdfPageForm({
         </p>
       ) : null}
       <form
+        className={styles.actions}
         onSubmit={(event) => {
           event.preventDefault();
           const selected = parsePdfPage(input, count);
@@ -96,17 +108,17 @@ function PdfPageForm({
           onNavigate(selected);
         }}
       >
-        <label>
-          PDF page{' '}
-          <input
-            type="number"
-            min={1}
-            max={count && count > 0 ? count : 10000}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-          />
-        </label>
-        <button type="submit">Go to page</button>
+        <TextField
+          label="PDF page"
+          type="number"
+          min={1}
+          max={count && count > 0 ? count : 10000}
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+        />
+        <Button variant="secondary" type="submit">
+          Go to page
+        </Button>
       </form>
     </>
   );

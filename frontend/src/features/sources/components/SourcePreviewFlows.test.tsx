@@ -194,7 +194,7 @@ it('shows safe history and mutation errors and respects busy and reader states',
     </QueryClientProvider>,
   );
   expect(await screen.findByText(/Could not load processing history/)).not.toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Reprocess source' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Retry processing' }));
   expect(await screen.findByText(/Could not reprocess source/)).not.toBeNull();
   view.rerender(
     <QueryClientProvider client={cache}>
@@ -283,7 +283,7 @@ it('shows the server stage and coarse progress while processing a source', async
     </QueryClientProvider>,
   );
   expect(await screen.findByText('Making source searchable · 50%')).not.toBeNull();
-  expect(screen.getByRole('progressbar').getAttribute('value')).toBe('50');
+  expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
   expect(
     screen.getByRole('button', { name: 'Reprocess source' }).hasAttribute('disabled'),
   ).toBe(true);

@@ -1,3 +1,5 @@
+import { Panel } from '../../../shared/components/content';
+import { Button } from '../../../shared/components/Button';
 import { useRef, useState, type ReactElement } from 'react';
 
 import { describeError } from '../../../shared/api';
@@ -17,8 +19,7 @@ export function SourceReplaceForm({
   const [error, setError] = useState<string | null>(null);
   const replace = useReplaceSource(workspaceId, sourceId);
   return (
-    <section aria-labelledby="replace-source-heading">
-      <h2 id="replace-source-heading">Upload a new version</h2>
+    <Panel title="Upload a new version">
       <p>Existing analyses keep their original version and bytes.</p>
       <form
         onSubmit={(event) => {
@@ -72,10 +73,10 @@ export function SourceReplaceForm({
             }
           }}
         />
-        <button type="submit" disabled={replace.isPending}>
+        <Button type="submit" disabled={replace.isPending}>
           {replace.isPending ? 'Uploading version…' : 'Upload new version'}
-        </button>
+        </Button>
       </form>
-    </section>
+    </Panel>
   );
 }

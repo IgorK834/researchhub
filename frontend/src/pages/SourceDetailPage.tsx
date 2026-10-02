@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SourceExtractionPreview } from '../features/sources/components/SourceExtractionPreview';
 import { sourceContentPath } from '../features/sources/api/sourceApi';
 import {
+  SourceTypeTile,
   SourceTypeBadge,
   SourceStatusChip,
 } from '../features/sources/components/SourceVisuals';
@@ -28,7 +29,17 @@ import { SourceVersionHistory } from '../features/sources/components/SourceVersi
 import type { AnalyzeTarget } from '../features/analysis/components/DatasetPreviewPanel';
 import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 
-export function SourceDetailPage(): ReactElement {
+import { SourceDetailFrame } from '../features/sources/components/SourceDetailFrame';
+import { Button } from '../shared/components/Button';
+import { Panel } from '../shared/components/content';
+import { Banner } from '../shared/components/feedback';
+import styles from '../features/sources/components/SourceDetail.module.css';
+
+export function SourceDetailPage({
+  embedded = false,
+}: {
+  readonly embedded?: boolean;
+}): ReactElement {
   const { workspaceId, sourceId } = useParams<{
     workspaceId: string;
     sourceId: string;
@@ -36,7 +47,9 @@ export function SourceDetailPage(): ReactElement {
   if (workspaceId === undefined || sourceId === undefined) {
     return <SourceNotFound workspaceId={workspaceId} />;
   }
-  return <SourceDetail workspaceId={workspaceId} sourceId={sourceId} />;
+  return (
+    <SourceDetail workspaceId={workspaceId} sourceId={sourceId} embedded={embedded} />
+  );
 }
 
 function SourceNotFound({
@@ -65,9 +78,11 @@ function SourceNotFound({
 function SourceDetail({
   workspaceId,
   sourceId,
+  embedded,
 }: {
   readonly workspaceId: string;
   readonly sourceId: string;
+  readonly embedded: boolean;
 }): ReactElement {
   const {
     data: source,
@@ -132,12 +147,72 @@ function SourceDetail({
   const previewType = previewedVersion?.sourceType ?? source.sourceType;
   const previewStatus = previewedVersion?.status ?? source.status;
 
+  const metadata = (
+    <div className={styles.metadata}>
+      <Panel title="Source information">
+        <dl>
+          <dt>Type</dt>
+          <dd>
+            <SourceTypeBadge sourceType={source.sourceType} />
+          </dd>
+          <dt>Version</dt>
+          <dd>{source.activeVersionNumber} (latest)</dd>
+          <dt>Status</dt>
+          <dd>
+            <SourceStatusChip status={source.status} />
+          </dd>
+          <dt>Uploaded by</dt>
+          <dd>{uploader}</dd>
+          <dt>Uploaded on</dt>
+          <dd>
+            <time dateTime={source.createdAt}>
+              {new Intl.DateTimeFormat(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(source.createdAt))}
+            </time>
+          </dd>
+          <dt>Size</dt>
+          <dd>{source.sizeBytes.toLocaleString()} bytes</dd>
+        </dl>
+      </Panel>
+      <Button
+        href={`/app/workspaces/${encodeURIComponent(workspaceId)}/ask?askSource=${encodeURIComponent(sourceId)}`}
+        icon="sparkle"
+        disabled={source.status !== 'READY'}
+      >
+        Ask this source
+      </Button>
+      <Button
+        href={sourceContentPath(workspaceId, sourceId)}
+        download={source.displayName}
+        variant="secondary"
+        icon="download"
+      >
+        Download source
+      </Button>
+    </div>
+  );
   return (
-    <section>
-      <p>
-        <Link to={`/app/workspaces/${workspaceId}`}>Back to the workspace</Link>
-      </p>
-      <h1>{source.displayName}</h1>
+    <SourceDetailFrame
+      embedded={embedded}
+      metadata={metadata}
+      header={
+        <>
+          <Link to={`/app/workspaces/${workspaceId}`}>Back to the workspace</Link>
+          <header className={styles.header}>
+            <SourceTypeTile sourceType={source.sourceType} />
+            <div className={styles.heading}>
+              <h1>{source.displayName}</h1>
+              <div className={styles.badges}>
+                <SourceTypeBadge sourceType={source.sourceType} />
+                <SourceStatusChip status={source.status} />
+              </div>
+            </div>
+          </header>
+        </>
+      }
+    >
       {search.get('processingVersion') ? (
         <CitationVersionStatus
           key={source.updatedAt}
@@ -146,39 +221,9 @@ function SourceDetail({
           processingVersion={search.get('processingVersion') ?? ''}
         />
       ) : null}
-      <dl>
-        <dt>Type</dt>
-        <dd>
-          <SourceTypeBadge sourceType={source.sourceType} />
-        </dd>
-        <dt>Version</dt>
-        <dd>{source.activeVersionNumber} (latest)</dd>
-        <dt>Status</dt>
-        <dd>
-          <SourceStatusChip status={source.status} />
-        </dd>
-        <dt>Uploaded by</dt>
-        <dd>{uploader}</dd>
-        <dt>Uploaded on</dt>
-        <dd>
-          <time dateTime={source.createdAt}>
-            {new Intl.DateTimeFormat(undefined, {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            }).format(new Date(source.createdAt))}
-          </time>
-        </dd>
-        <dt>Size</dt>
-        <dd>{source.sizeBytes.toLocaleString()} bytes</dd>
-      </dl>
       {source.failureSummary === null ? null : (
-        <p role="alert">Failure: {source.failureSummary}</p>
+        <Banner tone="error" lead={`Failure: ${source.failureSummary}`} />
       )}
-      <p>
-        <a href={sourceContentPath(workspaceId, sourceId)} download={source.displayName}>
-          Download source
-        </a>
-      </p>
       <SourceProcessing
         workspaceId={workspaceId}
         sourceId={sourceId}
@@ -226,7 +271,9 @@ function SourceDetail({
       {canEditContent && (source.status === 'READY' || source.status === 'FAILED') ? (
         <SourceReplaceForm workspaceId={workspaceId} sourceId={sourceId} />
       ) : null}
-      <button
+      <Button
+        variant="ghost"
+        icon="refresh"
         type="button"
         onClick={() => {
           void refetch();
@@ -236,7 +283,7 @@ function SourceDetail({
         }}
       >
         Refresh status
-      </button>
-    </section>
+      </Button>
+    </SourceDetailFrame>
   );
 }

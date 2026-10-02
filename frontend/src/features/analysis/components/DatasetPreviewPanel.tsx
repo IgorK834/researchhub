@@ -1,6 +1,7 @@
+import { Button } from '../../../shared/components/Button';
 import { useState, type ReactElement } from 'react';
 
-import { DataTable } from '../../../shared/components/content';
+import { DataTable, Panel } from '../../../shared/components/content';
 
 import { describeError, hasApiErrorCode } from '../../../shared/api';
 import type {
@@ -60,14 +61,13 @@ export function DatasetPreviewPanel({
   if (preview.isPending) return <p role="status">Loading dataset preview…</p>;
   if (preview.error !== null) {
     return (
-      <section aria-label="Dataset preview">
-        <h2>Dataset preview</h2>
+      <Panel title="Dataset preview">
         <p role={hasApiErrorCode(preview.error, 'CONFLICT') ? 'status' : 'alert'}>
           {hasApiErrorCode(preview.error, 'CONFLICT')
             ? 'The dataset structure is not available yet. It appears once this version has been processed.'
             : `Could not load dataset preview: ${describeError(preview.error)}`}
         </p>
-      </section>
+      </Panel>
     );
   }
   // A new version (or a new source) starts from its own first sheet.
@@ -97,8 +97,7 @@ function PreviewContent({
   const sheet = data.sheets.find((candidate) => candidate.name === selectedName);
 
   return (
-    <section aria-labelledby="dataset-preview-heading">
-      <h2 id="dataset-preview-heading">Dataset preview</h2>
+    <Panel title="Dataset preview">
       <SourceHeader data={data} isLatestVersion={isLatestVersion} />
       <LimitNotice data={data} />
       {sheet === undefined ? (
@@ -129,7 +128,9 @@ function PreviewContent({
           <SampleTable sheet={sheet} />
           {onAnalyze === undefined ? null : (
             <p>
-              <button
+              <Button
+                variant="secondary"
+                icon="chart"
                 type="button"
                 disabled={!isLatestVersion}
                 onClick={() =>
@@ -141,7 +142,7 @@ function PreviewContent({
                 }
               >
                 Analyze this data
-              </button>
+              </Button>
               {isLatestVersion ? null : (
                 <small> Analysis uses the latest version of this source.</small>
               )}
@@ -156,7 +157,7 @@ function PreviewContent({
           {data.limits.maxResponseBytes.toLocaleString()} bytes in total.
         </small>
       </p>
-    </section>
+    </Panel>
   );
 }
 

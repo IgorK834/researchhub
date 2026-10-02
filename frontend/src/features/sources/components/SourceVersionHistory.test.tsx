@@ -106,8 +106,8 @@ it('offers a data preview only for ready CSV/XLSX versions and reports the choic
   fireEvent.click(preview);
   expect(onPreview).toHaveBeenCalledWith('v3');
   const rows = screen.getAllByRole('row').slice(1);
-  expect(rows[0]?.getAttribute('aria-current')).toBe('true');
-  expect(rows[1]?.getAttribute('aria-current')).toBeNull();
+  expect(rows[0]?.getAttribute('data-selected')).toBe('true');
+  expect(rows[1]?.getAttribute('data-selected')).toBeNull();
 });
 
 it('offers no preview action when the page cannot show one', async () => {

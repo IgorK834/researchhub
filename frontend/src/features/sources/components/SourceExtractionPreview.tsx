@@ -1,3 +1,5 @@
+import { Panel, DataTable } from '../../../shared/components/content';
+import { Button } from '../../../shared/components/Button';
 import { useEffect, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -48,16 +50,15 @@ export function SourceExtractionPreview({
     return (
       <div>
         <p role="alert">Could not load extracted content: {describeError(error)}</p>
-        <button type="button" onClick={() => void refetch()}>
+        <Button variant="secondary" type="button" onClick={() => void refetch()}>
           Retry extraction preview
-        </button>
+        </Button>
       </div>
     );
   }
   if (data === null) return <p>Extracted content is not available yet.</p>;
   return (
-    <section aria-label="Extracted content">
-      <h2>Extracted content</h2>
+    <Panel title="Extracted content">
       {expectedParserVersion && expectedParserVersion !== data.parserVersion ? (
         <p role="alert">
           This source was reprocessed with a different parser. Check the cited location
@@ -118,60 +119,62 @@ export function SourceExtractionPreview({
               {(sheet.previewRows ?? []).length === 0 ? (
                 <p>No row preview is available. Reprocess this source to create one.</p>
               ) : (
-                <table aria-label={`${sheet.name} row preview`}>
-                  <thead>
-                    <tr>
-                      <th scope="col">Row</th>
-                      {Array.from(
-                        {
-                          length: Math.max(
-                            sheet.headerCandidate.length,
-                            ...sheet.previewRows.map((row) => row.cells.length),
-                          ),
-                        },
-                        (_, index) => (
-                          <th scope="col" key={index}>
-                            {sheet.headerCandidate[index] ||
-                              `Column ${String(index + 1)}`}
-                          </th>
+                <DataTable
+                  caption={`${sheet.name} row preview`}
+                  rows={sheet.previewRows}
+                  rowKey={(row) => row.rowNumber}
+                  columns={[
+                    {
+                      id: 'row',
+                      header: 'Row',
+                      rowHeader: true,
+                      render: (row) => row.rowNumber,
+                    },
+                    ...Array.from(
+                      {
+                        length: Math.max(
+                          sheet.headerCandidate.length,
+                          ...sheet.previewRows.map((row) => row.cells.length),
                         ),
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sheet.previewRows.map((row) => (
-                      <tr key={row.rowNumber}>
-                        <th scope="row">{row.rowNumber}</th>
-                        {row.cells.map((cell, index) => (
-                          <td key={index}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      },
+                      (_, index) => ({
+                        id: `column-${String(index)}`,
+                        header:
+                          sheet.headerCandidate[index] || `Column ${String(index + 1)}`,
+                        render: (row: (typeof sheet.previewRows)[number]) =>
+                          row.cells[index] ?? '',
+                      }),
+                    ),
+                  ]}
+                />
               )}
               <p>
                 Preview includes at most {data.workbook?.previewRowLimit ?? 50} rows per
                 sheet. Cell values may be shortened to 500 characters.
               </p>
-              <table aria-label={`${sheet.name} schema`}>
-                <thead>
-                  <tr>
-                    <th>Column</th>
-                    <th>Sample types</th>
-                    <th>Sample values</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sheet.columns.map((column) => (
-                    <tr key={column.columnNumber}>
-                      <td>{column.columnNumber}</td>
-                      <td>{column.dataTypes.join(', ')}</td>
-                      <td>{column.values.join(' | ')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                caption={`${sheet.name} schema`}
+                rows={sheet.columns}
+                rowKey={(column) => column.columnNumber}
+                columns={[
+                  {
+                    id: 'column',
+                    header: 'Column',
+                    rowHeader: true,
+                    render: (column) => column.columnNumber,
+                  },
+                  {
+                    id: 'types',
+                    header: 'Sample types',
+                    render: (column) => column.dataTypes.join(', '),
+                  },
+                  {
+                    id: 'values',
+                    header: 'Sample values',
+                    render: (column) => column.values.join(' | '),
+                  },
+                ]}
+              />
             </section>
           ))}
         </section>
@@ -223,6 +226,6 @@ export function SourceExtractionPreview({
           </pre>
         </details>
       ))}
-    </section>
+    </Panel>
   );
 }
