@@ -357,3 +357,33 @@ it('requires a provider and meaningful toast text', () => {
   for (const input of invalid) expect(() => api.showToast(input)).toThrow();
   expect(screen.getByRole('status').textContent).toBe('');
 });
+
+it('announces informational toasts politely, allows a lock icon and expires or dismisses them', () => {
+  setupToasts();
+  act(() =>
+    api.showToast({
+      tone: 'info',
+      title: 'Read-only',
+      message: 'Only editors can change this document.',
+      duration: 1000,
+    }),
+  );
+  const host = screen.getByRole('region', { name: 'Notifications' });
+  expect(within(host).getByRole('status').textContent).toContain('Read-only');
+  expect(within(host).getByRole('alert').textContent).toBe('');
+  act(() => jest.advanceTimersByTime(1000));
+  expect(screen.queryByText('Read-only')).toBeNull();
+  act(() =>
+    api.showToast({
+      tone: 'info',
+      icon: 'lock',
+      title: 'Viewer',
+      message: 'Read and ask AI.',
+      duration: 0,
+    }),
+  );
+  act(() => jest.advanceTimersByTime(10_000));
+  expect(screen.getByText('Viewer')).not.toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Dismiss Viewer' }));
+  expect(screen.queryByText('Viewer')).toBeNull();
+});

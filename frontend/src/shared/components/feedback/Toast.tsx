@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom';
 
 import { Button } from '../Button';
 import { Icon } from '../icons';
+import type { IconName } from '../icons';
 import { registerToastHost } from '../overlays/useOverlay';
 import styles from './Feedback.module.css';
 
@@ -27,7 +28,8 @@ interface ToastBase {
 export type ToastInput = ToastBase &
   (
     | {
-        readonly tone: 'success';
+        readonly tone: 'success' | 'info';
+        readonly icon?: IconName;
         readonly action?: ToastAction;
         /** 0 keeps it until dismissed. */ readonly duration?: number;
       }
@@ -63,7 +65,7 @@ function ToastItem({
   const [paused, setPaused] = useState(false);
   const pointerInside = useRef(false);
   const focusInside = useRef(false);
-  const remaining = useRef(input.tone === 'success' ? (input.duration ?? 5000) : 0);
+  const remaining = useRef(input.tone !== 'blocking' ? (input.duration ?? 5000) : 0);
   useEffect(() => {
     if (paused || remaining.current === 0) return;
     const started = Date.now();
@@ -77,7 +79,11 @@ function ToastItem({
     <div
       className={[
         styles.toast,
-        input.tone === 'blocking' ? styles.blocking : styles.successToast,
+        input.tone === 'blocking'
+          ? styles.blocking
+          : input.tone === 'info'
+            ? styles.infoToast
+            : styles.successToast,
       ].join(' ')}
       onPointerEnter={() => {
         pointerInside.current = true;
@@ -99,7 +105,14 @@ function ToastItem({
       }}
     >
       <span className={styles.toastIcon}>
-        <Icon name={input.tone === 'success' ? 'check' : 'alert'} size={16} />
+        <Icon
+          name={
+            input.tone === 'blocking'
+              ? 'alert'
+              : (input.icon ?? (input.tone === 'success' ? 'check' : 'info'))
+          }
+          size={16}
+        />
       </span>
       <div className={styles.message}>
         <strong>{input.title}</strong>
@@ -140,7 +153,7 @@ export function ToastHost({
     <section aria-label="Notifications" className={styles.toastHost}>
       <div role="status" aria-live="polite" aria-atomic="false">
         {entries
-          .filter((entry) => entry.input.tone === 'success')
+          .filter((entry) => entry.input.tone !== 'blocking')
           .map((entry) => (
             <ToastItem key={entry.id} entry={entry} dismiss={dismiss} />
           ))}
@@ -175,7 +188,7 @@ export function ToastProvider({
     )
       throw new Error('A toast needs a title, message and named action.');
     if (
-      input.tone === 'success' &&
+      input.tone !== 'blocking' &&
       input.duration !== undefined &&
       (!Number.isFinite(input.duration) || input.duration < 0)
     )

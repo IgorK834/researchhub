@@ -159,12 +159,14 @@
   background: var(--color-surface);
   color: var(--color-text-primary);
 }
-.blocking {
+.blocking,
+.infoToast {
   background: var(--color-text-primary);
   color: var(--color-surface);
   border-color: var(--color-text-primary);
 }
-.blocking .message > span {
+.blocking .message > span,
+.infoToast .message > span {
   color: var(--color-surface);
 }
 .toastIcon {
@@ -180,6 +182,9 @@
 }
 .blocking .toastIcon {
   background: var(--color-brand-coral);
+}
+.infoToast .toastIcon {
+  background: var(--color-brand-yellow);
 }
 .toastAction {
   border: 0;
@@ -199,10 +204,12 @@
   block-size: 22px;
   padding: 0;
 }
-.blocking .dismiss:hover {
+.blocking .dismiss:hover,
+.infoToast .dismiss:hover {
   background: var(--color-action-hover);
 }
-.blocking :focus-visible {
+.blocking :focus-visible,
+.infoToast :focus-visible {
   outline-color: var(--color-surface);
 }
 @media (max-width: 600px) {

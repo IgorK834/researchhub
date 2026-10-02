@@ -7,6 +7,8 @@ import { SlideOver } from '../overlays';
 import styles from './ToolShell.module.css';
 
 export interface ToolShellProps {
+  readonly contextOpen?: boolean;
+  readonly onContextOpenChange?: (open: boolean) => void;
   readonly children: ReactNode;
   readonly label: string;
   readonly secondary?: ReactNode;
@@ -29,6 +31,8 @@ export function ToolShell({
   contextTitle = 'Context panel',
   contextFooter,
   contextMode = 'auto',
+  contextOpen,
+  onContextOpenChange,
 }: ToolShellProps): ReactElement {
   return (
     <div className={styles.tool} data-secondary-width={secondaryWidth}>
@@ -41,7 +45,13 @@ export function ToolShell({
         {children}
       </section>
       {context === undefined ? null : (
-        <ContextPanel title={contextTitle} footer={contextFooter} mode={contextMode}>
+        <ContextPanel
+          title={contextTitle}
+          footer={contextFooter}
+          mode={contextMode}
+          controlledOpen={contextOpen}
+          onOpenChange={onContextOpenChange}
+        >
           {context}
         </ContextPanel>
       )}
@@ -54,7 +64,11 @@ function ContextPanel({
   footer,
   mode,
   children,
+  controlledOpen,
+  onOpenChange,
 }: {
+  readonly controlledOpen?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
   readonly title: string;
   readonly footer?: ReactNode;
   readonly mode: NonNullable<ToolShellProps['contextMode']>;
@@ -62,7 +76,12 @@ function ContextPanel({
 }): ReactElement {
   const narrow = useNarrowDesktop();
   const sliding = mode === 'slide-over' || (mode === 'auto' && narrow);
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = (value: boolean): void => {
+    setLocalOpen(value);
+    onOpenChange?.(value);
+  };
   const trigger = useRef<HTMLButtonElement>(null);
   // A stable portal container keeps drafts, requests and focusable inputs alive across dock changes.
   const [host] = useState(() => document.createElement('div'));
@@ -92,7 +111,7 @@ function ContextPanel({
             open={open}
             onClose={() => setOpen(false)}
             title={title}
-            returnFocusRef={trigger}
+            returnFocusRef={controlledOpen === undefined ? trigger : undefined}
             footer={footer === undefined ? undefined : <div ref={attachFooter} />}
           >
             <div ref={attach} />

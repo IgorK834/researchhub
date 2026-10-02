@@ -133,9 +133,16 @@ export interface MenuItem {
 export interface MenuProps {
   readonly label: string;
   readonly items: readonly MenuItem[];
+  readonly disabled?: boolean;
+  readonly triggerIcon?: IconName;
 }
 
-export function Menu({ label, items }: MenuProps): ReactElement {
+export function Menu({
+  label,
+  items,
+  disabled = false,
+  triggerIcon,
+}: MenuProps): ReactElement {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<Element | null>(null);
@@ -159,11 +166,24 @@ export function Menu({ label, items }: MenuProps): ReactElement {
   });
   usePosition(open, trigger, surface);
   const enabled = items.filter((item) => !item.disabled);
+  const triggerContent =
+    triggerIcon === undefined
+      ? {
+          children: (
+            <>
+              {label}
+              <Icon name="chevDown" />
+            </>
+          ),
+        }
+      : { iconOnly: true as const, icon: triggerIcon, 'aria-label': label };
   return (
     <>
       <Button
         ref={trigger}
+        {...triggerContent}
         variant="secondary"
+        disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
@@ -180,10 +200,7 @@ export function Menu({ label, items }: MenuProps): ReactElement {
             setOpen(true);
           }
         }}
-      >
-        {label}
-        <Icon name="chevDown" />
-      </Button>
+      />
       {open
         ? createPortal(
             <div ref={host} className={styles.popoverLayer} data-rh-overlay="">

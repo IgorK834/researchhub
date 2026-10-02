@@ -17,6 +17,7 @@ export interface DialogProps {
   readonly initialFocusRef?: RefObject<HTMLElement | null>;
   readonly returnFocusRef?: RefObject<HTMLElement | null>;
   readonly closeLabel?: string;
+  readonly closeDisabled?: boolean;
   readonly className?: string;
 }
 
@@ -31,6 +32,7 @@ function ModalSurface({
   initialFocusRef,
   returnFocusRef,
   closeLabel = 'Close',
+  closeDisabled = false,
   className,
   slideOver,
 }: DialogProps & { readonly slideOver: boolean }): ReactElement | null {
@@ -76,6 +78,7 @@ function ModalSurface({
             iconOnly
             icon="x"
             aria-label={closeLabel}
+            disabled={closeDisabled}
             onClick={onClose}
           />
         </header>
