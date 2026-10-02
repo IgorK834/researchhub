@@ -57,8 +57,8 @@ export function useCreateWorkspace(): UseMutationResult<
 
   return useMutation<Workspace, ApiError, CreateWorkspaceInput>({
     mutationFn: (input) => createWorkspace(input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.workspaces() });
     },
   });
 }
@@ -74,8 +74,12 @@ export function useCreateWorkspace(): UseMutationResult<
  * unauthenticated current user is, because "not found" here is a dead end the page has to render
  * differently, not an ordinary value.
  */
-export function useWorkspaceQuery(workspaceId: string): UseQueryResult<Workspace, Error> {
+export function useWorkspaceQuery(
+  workspaceId: string,
+  enabled = true,
+): UseQueryResult<Workspace, Error> {
   return useQuery({
+    enabled,
     queryKey: queryKeys.workspace(workspaceId),
     queryFn: ({ signal }) => fetchWorkspace(workspaceId, signal),
   });
@@ -130,8 +134,10 @@ export function useArchiveWorkspace(
  */
 export function useWorkspaceMembersQuery(
   workspaceId: string,
+  enabled = true,
 ): UseQueryResult<readonly WorkspaceMember[], Error> {
   return useQuery({
+    enabled,
     queryKey: queryKeys.workspaceMembers(workspaceId),
     queryFn: ({ signal }) => fetchWorkspaceMembers(workspaceId, signal),
   });

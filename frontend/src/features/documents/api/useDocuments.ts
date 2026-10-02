@@ -35,8 +35,10 @@ import {
  */
 export function useDocumentsQuery(
   workspaceId: string,
+  enabled = true,
 ): UseQueryResult<readonly DocumentSummary[], Error> {
   return useQuery({
+    enabled,
     queryKey: queryKeys.documents(workspaceId),
     queryFn: ({ signal }) => fetchDocuments(workspaceId, signal),
   });

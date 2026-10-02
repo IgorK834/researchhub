@@ -20,8 +20,10 @@ import {
 
 export function useSourcesQuery(
   workspaceId: string,
+  enabled = true,
 ): UseQueryResult<readonly WorkspaceSource[], Error> {
   return useQuery({
+    enabled,
     queryKey: queryKeys.sources(workspaceId),
     queryFn: ({ signal }) => fetchSources(workspaceId, signal),
   });
