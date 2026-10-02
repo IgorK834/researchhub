@@ -15,7 +15,7 @@ import {
 } from '../api/sourceAnalysisApi';
 import type { Citation } from '../api/generationApi';
 let mockSources: {
-  data?: { id: string; displayName: string; activeVersionId?: string }[];
+  data?: { id: string; displayName: string; status: 'READY' | 'PROCESSING'; activeVersionId?: string }[];
   error: Error | null;
   isPending: boolean;
 };
@@ -190,8 +190,8 @@ beforeEach(() => {
   jest.resetAllMocks();
   mockSources = {
     data: [
-      { id: 's1', displayName: 'Paper A', activeVersionId: 'v-a1' },
-      { id: 's2', displayName: 'Paper B', activeVersionId: 'v-b1' },
+      { id: 's1', displayName: 'Paper A', status: 'READY', activeVersionId: 'v-a1' },
+      { id: 's2', displayName: 'Paper B', status: 'READY', activeVersionId: 'v-b1' },
     ],
     error: null,
     isPending: false,
@@ -255,7 +255,7 @@ test('comparison and baseline-scoped differences show table, narrative and both 
 test('invalid selections and criteria stop calls, including excessive source counts', () => {
   mockSources.data = Array.from({ length: 6 }, (_, i) => ({
     id: `s${i}`,
-    displayName: `Paper ${i}`,
+    displayName: `Paper ${i}`, status: 'READY',
   }));
   render(view());
   fireEvent.click(screen.getByText('Compare selected sources'));
@@ -384,8 +384,8 @@ test('a follow-up keeps the original versions by default and migrates only when 
   mockSources = {
     ...mockSources,
     data: [
-      { id: 's1', displayName: 'Paper A', activeVersionId: 'v-a2' },
-      { id: 's2', displayName: 'Paper B', activeVersionId: 'v-b1' },
+      { id: 's1', displayName: 'Paper A', status: 'READY', activeVersionId: 'v-a2' },
+      { id: 's2', displayName: 'Paper B', status: 'READY', activeVersionId: 'v-b1' },
     ],
   };
   cleanup();

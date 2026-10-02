@@ -1,12 +1,12 @@
-import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
+import { SourcePicker } from './SourcePicker';
+import { ScopeChip } from '../../../shared/components/ScopeChip';
 import { useRef, useState, type ReactElement } from 'react';
-import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
 import type { WorkspaceDocument } from '../../documents/api/documentApi';
 import type { AuthoringSelection } from '../../documents/components/DocumentBodyEditor';
 import { useSourcesQuery } from '../../sources/api/useSources';
-import { citationPath } from '../api/generationApi';
+import { CitationReference, citationVariant } from './Citations';
 import {
   acceptAuthoring,
   rejectAuthoring,
@@ -196,6 +196,17 @@ export function AuthoringPanel({
           Load latest document
         </button>
       ) : null}
+      <ScopeChip
+        selectedSourceIds={
+          kind === 'EVIDENCE' && all
+            ? null
+            : kind === 'REWRITE' && action !== 'EXPAND'
+              ? []
+              : selected
+        }
+        readyCount={ready.length}
+        action="Author using"
+      />
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -297,36 +308,23 @@ export function AuthoringPanel({
             </label>
           )}
           {kind !== 'REWRITE' || action === 'EXPAND' ? (
-            <fieldset disabled={kind === 'EVIDENCE' && all}>
-              <legend>
-                {kind === 'REWRITE'
-                  ? 'Optional sources for expansion'
-                  : 'Selected sources'}
-              </legend>
-              {ready.map((source) => (
-                <label key={source.id}>
-                  <input
-                    type="checkbox"
-                    aria-label={source.displayName}
-                    checked={selected.includes(source.id)}
-                    onChange={(event) =>
-                      setSelected((current) =>
-                        event.target.checked
-                          ? [...current, source.id]
-                          : current.filter((id) => id !== source.id),
-                      )
-                    }
-                  />
-                  {source.displayName}{' '}
-                  {source.sourceType ? (
-                    <span aria-hidden="true">
-                      <SourceTypeBadge sourceType={source.sourceType} />
-                    </span>
-                  ) : null}
-                </label>
-              ))}
-              {ready.length === 0 ? <p>No ready sources available.</p> : null}
-            </fieldset>
+            <SourcePicker
+              legend={
+                kind === 'REWRITE' ? 'Optional sources for expansion' : 'Selected sources'
+              }
+              action="Author using"
+              sources={(sources.data ?? []).map((source) => ({
+                id: source.id,
+                title: source.displayName,
+                sourceType: source.sourceType,
+                status: source.status,
+              }))}
+              value={kind === 'EVIDENCE' && all ? null : selected}
+              onChange={(ids) => {
+                setSelected(ids);
+                if (kind === 'EVIDENCE') setAll(false);
+              }}
+            />
           ) : null}
           <button
             type="submit"
@@ -356,7 +354,7 @@ export function AuthoringPanel({
           {suggestion.command.kind === 'EVIDENCE' ? (
             <>
               {suggestion.candidates.length === 0 ? <p>Insufficient evidence.</p> : null}
-              {suggestion.candidates.map((candidate) => (
+              {suggestion.candidates.map((candidate, index) => (
                 <article key={candidate.citation.chunkId}>
                   <p>
                     {candidate.category === 'related'
@@ -366,14 +364,14 @@ export function AuthoringPanel({
                   </p>
                   <blockquote>{candidate.snippet}</blockquote>
                   <p>{candidate.reason}</p>
-                  <Link to={citationPath(candidate.citation)}>
+                  <CitationReference citation={candidate.citation} number={index + 1} quote={candidate.snippet} variant={citationVariant(sources.data?.find((source) => source.id === candidate.citation.sourceId)?.sourceType)}>
                     {candidate.citation.title ?? 'Source'} —{' '}
                     {candidate.citation.pageStart === null
                       ? (candidate.citation.sectionTitle ??
                         candidate.citation.spans[0]?.unitId ??
                         'location')
                       : `page ${candidate.citation.pageStart}`}
-                  </Link>
+                  </CitationReference>
                   <button
                     type="button"
                     disabled={
@@ -412,14 +410,14 @@ export function AuthoringPanel({
                   />
                 </label>
               ) : null}
-              {suggestion.citations.map((citation) => (
+              {suggestion.citations.map((citation, index) => (
                 <p key={citation.chunkId}>
-                  <Link to={citationPath(citation)}>
+                  <CitationReference citation={citation} number={index + 1} variant={citationVariant(sources.data?.find((source) => source.id === citation.sourceId)?.sourceType)}>
                     {citation.title ?? 'Source'} —{' '}
                     {citation.pageStart === null
                       ? (citation.sectionTitle ?? citation.spans[0]?.unitId ?? 'location')
                       : `page ${citation.pageStart}`}
-                  </Link>
+                  </CitationReference>
                 </p>
               ))}
               <button

@@ -1,10 +1,9 @@
-import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
+import { SourcePicker } from './SourcePicker';
 import { useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { describeError } from '../../../shared/api';
 import { useSourcesQuery } from '../../sources/api/useSources';
-import { citationPath } from '../api/generationApi';
+import { CitationReference } from './Citations';
 import {
   compareSources,
   findPotentialDisagreements,
@@ -97,28 +96,18 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
       >
         <fieldset disabled={busy || sources.isPending || sources.error !== null}>
           <legend>Select 2–5 sources to compare</legend>
-          {(sources.data ?? []).map((source) => (
-            <label key={source.id}>
-              <input
-                type="checkbox"
-                aria-label={source.displayName}
-                checked={selected.includes(source.id)}
-                onChange={(event) =>
-                  setSelected(
-                    event.target.checked
-                      ? [...selected, source.id]
-                      : selected.filter((id) => id !== source.id),
-                  )
-                }
-              />
-              {source.displayName}{' '}
-              {source.sourceType ? (
-                <span aria-hidden="true">
-                  <SourceTypeBadge sourceType={source.sourceType} />
-                </span>
-              ) : null}
-            </label>
-          ))}
+          <SourcePicker
+            legend="Comparison sources"
+            action="Compare"
+            sources={(sources.data ?? []).map((source) => ({
+              id: source.id,
+              title: source.displayName,
+              sourceType: source.sourceType,
+              status: source.status,
+            }))}
+            value={selected}
+            onChange={setSelected}
+          />
           {sources.data?.length === 0 ? (
             <p>No sources available for comparison.</p>
           ) : null}
@@ -270,7 +259,7 @@ function EvidenceLinks({
         const citation = analysis.evidence.find((item) => item.chunkId === id);
         if (citation === undefined) return <span key={id}> [Unavailable reference]</span>;
         return (
-          <Link key={id} to={citationPath(citation)}>
+          <CitationReference key={id} citation={citation} number={analysis.evidence.indexOf(citation) + 1}>
             {' '}
             [{citation.title ?? 'Source'}
             {citation.pageStart === null
@@ -279,7 +268,7 @@ function EvidenceLinks({
                 : `, ${citation.sectionTitle}`
               : `, p. ${citation.pageStart}`}
             ]
-          </Link>
+          </CitationReference>
         );
       })}
     </span>

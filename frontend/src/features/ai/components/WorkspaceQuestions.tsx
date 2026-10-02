@@ -1,13 +1,13 @@
-import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
+import { SourcePicker } from './SourcePicker';
+import { ScopeChip } from '../../../shared/components/ScopeChip';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { describeError } from '../../../shared/api';
 import { useSourcesQuery } from '../../sources/api/useSources';
 import { askWorkspaceQuestion, type WorkspaceQuestion } from '../api/questionApi';
-import { StructuredResponse } from './StructuredResponse';
+import { GroundedAnswer, AnswerState } from './GroundedAnswer';
 import { Button } from '../../../shared/components/Button';
 import { Textarea } from '../../../shared/components/forms';
-import { Badge } from '../../../shared/components/identity';
 import { IconTile } from '../../../shared/components/content';
 import styles from './WorkspaceQuestions.module.css';
 
@@ -201,14 +201,9 @@ function QuestionForm({
           />
         </div>
         <div className={styles.scope}>
-          <Badge
-            icon="book"
-            tone="blue"
-            label={
-              scope === 'all'
-                ? 'All workspace sources'
-                : `Selected sources · ${selected.length}`
-            }
+          <ScopeChip
+            selectedSourceIds={scope === 'all' ? null : selected}
+            readyCount={ready.length}
           />
         </div>
         <details className={styles.scopeOptions} open={variant === 'full'}>
@@ -235,35 +230,19 @@ function QuestionForm({
               />
               Selected sources
             </label>
-            {scope === 'selected' ? (
-              <div>
-                {ready.map((source) => (
-                  <label key={source.id}>
-                    <input
-                      type="checkbox"
-                      aria-label={source.displayName}
-                      checked={selected.includes(source.id)}
-                      onChange={(event) =>
-                        setSelected((current) =>
-                          event.target.checked
-                            ? [...current, source.id]
-                            : current.filter((id) => id !== source.id),
-                        )
-                      }
-                    />
-                    {source.displayName}{' '}
-                    {source.sourceType ? (
-                      <span aria-hidden="true">
-                        <SourceTypeBadge sourceType={source.sourceType} />
-                      </span>
-                    ) : null}
-                  </label>
-                ))}
-                {selected.length === 0 ? (
-                  <p>No sources selected. The answer will have no evidence.</p>
-                ) : null}
-              </div>
-            ) : null}
+            <SourcePicker
+              sources={(sources.data ?? []).map((source) => ({
+                id: source.id,
+                title: source.displayName,
+                sourceType: source.sourceType,
+                status: source.status,
+              }))}
+              value={scope === 'all' ? null : selected}
+              onChange={(ids) => {
+                setScope('selected');
+                setSelected(ids);
+              }}
+            />
           </fieldset>
         </details>
         {validation !== null ? (
@@ -271,11 +250,17 @@ function QuestionForm({
             {validation}
           </p>
         ) : null}
-        {ask.error !== null ? <p role="alert">{describeError(ask.error)}</p> : null}
+        {ask.error !== null ? (
+          <AnswerState
+            state="failed"
+            message={describeError(ask.error)}
+            onRetry={
+              ask.variables === undefined ? undefined : () => ask.mutate(ask.variables!)
+            }
+          />
+        ) : null}
         {ask.isPending ? (
-          <p role="status" aria-live="polite">
-            Searching sources and answering…
-          </p>
+          <AnswerState state="thinking" message="Searching sources and answering…" />
         ) : null}
         <Button
           {...submitContent}
@@ -290,11 +275,21 @@ function QuestionForm({
       {ask.data !== undefined && !ask.isPending && ask.error === null ? (
         <section aria-label="Workspace answer" aria-live="polite">
           <p>Question: {ask.variables?.question}</p>
-          {ask.data.generation === null ? (
-            <p>{ask.data.answer}</p>
-          ) : (
-            <StructuredResponse response={ask.data.generation} />
-          )}
+          <GroundedAnswer
+            status={ask.data.status}
+            reason={ask.data.reason}
+            answer={ask.data.answer}
+            generation={ask.data.generation}
+            evidence={ask.data.citations.map((citation, index) => ({
+              citation,
+              label:
+                ask.data.generation?.context?.citations.find(
+                  (binding) => binding.chunkId === citation.chunkId,
+                )?.citationKey ?? `S${String(index + 1)}`,
+              sourceType: sources.data?.find((source) => source.id === citation.sourceId)
+                ?.sourceType,
+            }))}
+          />
         </section>
       ) : null}
     </section>

@@ -113,7 +113,7 @@ it('searches only chosen READY sources and preserves an explicit empty selection
     ),
   );
   fireEvent.click(screen.getByLabelText('Selected sources'));
-  expect(screen.queryByLabelText('Still processing')).toBeNull();
+  expect(screen.getByLabelText('Still processing')).toHaveProperty('disabled', true);
   expect(
     screen.getByText('No sources selected. The answer will have no evidence.'),
   ).not.toBeNull();
