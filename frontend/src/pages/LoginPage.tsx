@@ -2,14 +2,18 @@ import { useState, type ReactElement } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useLogin } from '../features/auth/api/useAuth';
-import { FormField } from '../features/auth/components/FormField';
+import { AuthLayout } from '../features/auth/components/AuthLayout';
+import styles from '../features/auth/components/AuthLayout.module.css';
+import { TextField } from '../shared/components/forms';
+import { Badge } from '../shared/components/identity';
 import { describeError, fieldErrorsByName, hasApiErrorCode } from '../shared/api';
+import { Button } from '../shared/components/Button';
 
 /**
  * Sign-in form.
  *
  * On success the browser holds a session cookie and the user goes to `/app`. Nothing about the
- * credential is kept here: the password lives in component state only until the request is sent, and the
+ * credential is persisted here: the password is cleared after a successful request, and the
  * session id is in a cookie the page cannot read.
  */
 export function LoginPage(): ReactElement {
@@ -31,6 +35,7 @@ export function LoginPage(): ReactElement {
       : null;
 
   const submit = (): void => {
+    if (isPending) return;
     mutate(
       { email, password },
       {
@@ -43,9 +48,12 @@ export function LoginPage(): ReactElement {
   };
 
   return (
-    <main>
-      <h1>Log in</h1>
-
+    <AuthLayout
+      variant="login"
+      title="Log in"
+      subtitle="Pick up your workspace where you left it."
+      footer="© ResearchHub · Privacy · Terms"
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -53,36 +61,67 @@ export function LoginPage(): ReactElement {
         }}
         noValidate
       >
-        {formMessage !== null ? <p role="alert">{formMessage}</p> : null}
+        {formMessage !== null ? (
+          <p role="alert" className={styles.formError}>
+            {formMessage}
+          </p>
+        ) : null}
 
-        <FormField
+        <TextField
+          size="large"
           id="email"
+          name="email"
           label="Email"
           type="email"
           value={email}
           autoComplete="email"
           error={fieldErrors['email']}
-          onChange={setEmail}
+          onChange={(event) => setEmail(event.target.value)}
         />
 
-        <FormField
+        <TextField
+          size="large"
           id="password"
+          name="password"
           label="Password"
           type="password"
           value={password}
           autoComplete="current-password"
           error={fieldErrors['password']}
-          onChange={setPassword}
+          onChange={(event) => setPassword(event.target.value)}
         />
 
-        <button type="submit" disabled={isPending}>
-          {isPending ? 'Logging in…' : 'Log in'}
-        </button>
+        <Button
+          type="submit"
+          size="large"
+          busy={isPending}
+          busyLabel="Logging in…"
+          aria-label={isPending ? 'Logging in…' : undefined}
+          className={styles.submit}
+        >
+          Log in
+        </Button>
       </form>
-
-      <p>
-        No account yet? <Link to="/register">Register</Link>
+      <div className={styles.divider}>or</div>
+      <Button
+        type="button"
+        variant="secondary"
+        size="large"
+        disabled
+        aria-label="Continue with Google"
+        aria-describedby="google-soon"
+        className={styles.google}
+      >
+        <span className={styles.googleContent}>
+          Continue with Google
+          <span id="google-soon">
+            <Badge label="Soon" icon="clock" tone="yellow" size="compact" />
+          </span>
+        </span>
+      </Button>
+      <p className={styles.accountLink}>
+        No account yet? <Link to="/register">Create account</Link>
       </p>
-    </main>
+    </AuthLayout>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { Button } from '../../../shared/components/Button';
 import { useNavigate } from 'react-router-dom';
 
 import { describeError } from '../../../shared/api';
@@ -26,9 +27,16 @@ export function LogoutButton(): ReactElement {
 
   return (
     <>
-      <button type="button" onClick={submit} disabled={isPending}>
-        {isPending ? 'Logging out…' : 'Log out'}
-      </button>
+      <Button
+        aria-label={isPending ? 'Logging out…' : 'Log out'}
+        variant="ghost"
+        size="compact"
+        icon="logout"
+        onClick={submit}
+        disabled={isPending}
+      >
+        <span data-rh-label="">{isPending ? 'Logging out…' : 'Log out'}</span>
+      </Button>
       {error !== null ? (
         <span role="alert">Could not log out: {describeError(error)}</span>
       ) : null}
