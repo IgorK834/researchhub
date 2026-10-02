@@ -1,0 +1,178 @@
+.overview,
+.sectionPage {
+  min-inline-size: 0;
+  padding: var(--space-4);
+}
+.hero {
+  margin-block-end: var(--space-6);
+}
+.hero h1 {
+  margin-block: var(--space-3) var(--space-2);
+}
+.heroDescription {
+  max-inline-size: 76ch;
+  color: var(--color-text-secondary);
+}
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+  margin-block-start: var(--space-5);
+}
+.overviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  margin-block-start: var(--space-6);
+  align-items: start;
+}
+.recentColumn,
+.adminColumn {
+  display: grid;
+  gap: var(--space-5);
+  min-inline-size: 0;
+}
+.recentList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.recentList li {
+  padding-inline: 0;
+}
+.recentList a {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.recentList a:hover {
+  text-decoration: underline;
+}
+.documentTitle {
+  font-family: var(--font-paper);
+  font-size: var(--type-h3-size);
+}
+.aiActivity > section {
+  background: var(--color-brand-lavender-tint);
+  border-color: var(--color-brand-lavender-mid);
+}
+.quiet,
+.sectionMeta {
+  color: var(--color-text-secondary);
+}
+.sectionMeta {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.adminGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  margin-block-start: var(--space-6);
+}
+.member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.memberName {
+  font-weight: var(--font-weight-bold);
+}
+.memberEmail {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-regular);
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.roleInfo {
+  display: grid;
+  gap: var(--space-4);
+}
+.roleInfo > div + div {
+  border-block-start: var(--border-width) solid var(--color-border);
+  padding-block-start: var(--space-4);
+}
+.roleInfo p {
+  margin-block: var(--space-2) 0;
+  color: var(--color-text-secondary);
+}
+.addButton {
+  inline-size: 100%;
+  margin-block-start: var(--space-3);
+}
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+  margin-block-start: var(--space-6);
+}
+.settingsNav {
+  display: grid;
+  gap: var(--space-2);
+}
+.settingsNav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+.settingsNav a[aria-current] {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  font-weight: var(--font-weight-bold);
+}
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-5);
+}
+.archiveCard {
+  background: var(--color-brand-coral-tint);
+  border-color: var(--color-brand-coral-mid);
+}
+.archiveCard h2 {
+  margin: 0;
+  font-size: var(--type-h3-size);
+}
+.archiveHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.readOnly dt {
+  font-weight: var(--font-weight-bold);
+  margin-block-start: var(--space-4);
+}
+.readOnly dd {
+  margin: var(--space-2) 0 0;
+  overflow-wrap: anywhere;
+}
+.retainedNotice {
+  background: var(--color-brand-mint-tint);
+  border-color: var(--color-brand-mint-mid);
+}
+@media (max-width: 1280px) {
+  .settingsGrid {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1100px) {
+  .adminGrid,
+  .overviewGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

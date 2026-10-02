@@ -1,7 +1,11 @@
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
-import { TextField, Select } from '../../../shared/components/forms';
+import { TextField, ChoiceCards } from '../../../shared/components/forms';
+import { Button } from '../../../shared/components/Button';
+import { Panel } from '../../../shared/components/content';
+import { Banner } from '../../../shared/components/feedback';
+import styles from './WorkspaceViews.module.css';
 import { useAddWorkspaceMember } from '../api/useWorkspaces';
 
 interface AddMemberFormProps {
@@ -38,6 +42,7 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
     error !== null && Object.keys(fieldErrors).length === 0 ? describeError(error) : null;
 
   const submit = (): void => {
+    if (isPending) return;
     mutate(
       { email, role },
       {
@@ -50,49 +55,56 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
   };
 
   return (
-    <section aria-labelledby="add-member-heading">
-      <h2 id="add-member-heading">Add a member</h2>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
-        }}
-        noValidate
-      >
-        {formMessage !== null ? <p role="alert">{formMessage}</p> : null}
-
-        <TextField
-          id="add-member-email"
-          name="add-member-email"
-          label="Email"
-          type="email"
-          autoComplete="off"
-          value={email}
-          error={emailError}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-
-        <Select
-          id="add-member-role"
-          name="add-member-role"
-          label="Role"
-          value={role}
-          error={roleError}
-          onChange={(event) =>
-            setRole(event.target.value === 'VIEWER' ? 'VIEWER' : 'EDITOR')
-          }
+    <div id="add-member-heading">
+      <Panel title="Add a member">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+          noValidate
         >
-          <option value="EDITOR">EDITOR</option>
-          <option value="VIEWER">VIEWER</option>
-        </Select>
+          {formMessage !== null ? <Banner tone="error" lead={formMessage} /> : null}
 
-        <button type="submit" disabled={isPending}>
-          {isPending ? 'Adding…' : 'Add member'}
-        </button>
-      </form>
+          <TextField
+            id="add-member-email"
+            name="add-member-email"
+            label="Email"
+            type="email"
+            autoComplete="off"
+            value={email}
+            disabled={isPending}
+            error={emailError}
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
-      <p>Only people who already have a ResearchHub account can be added.</p>
-    </section>
+          <ChoiceCards<'EDITOR' | 'VIEWER'>
+            id="add-member-role"
+            name="add-member-role"
+            label="Role"
+            value={role}
+            error={roleError}
+            onChange={setRole}
+            disabled={isPending}
+            options={[
+              { value: 'EDITOR', label: 'Editor', icon: 'pencil' },
+              { value: 'VIEWER', label: 'Viewer', icon: 'eye' },
+            ]}
+          />
+
+          <Button
+            type="submit"
+            className={styles.addButton}
+            busy={isPending}
+            busyLabel="Adding…"
+            aria-label={isPending ? 'Adding…' : undefined}
+          >
+            Add member
+          </Button>
+        </form>
+
+        <p>Only people who already have a ResearchHub account can be added.</p>
+      </Panel>
+    </div>
   );
 }

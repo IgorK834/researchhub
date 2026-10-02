@@ -1,65 +1,94 @@
-import { useState, type ReactElement } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { describeError } from '../../../shared/api';
+import { Button } from '../../../shared/components/Button';
+import { Card } from '../../../shared/components/content';
+import { Banner } from '../../../shared/components/feedback';
+import { Badge } from '../../../shared/components/identity';
+import { Dialog } from '../../../shared/components/overlays';
 import { useArchiveWorkspace } from '../api/useWorkspaces';
+import styles from './WorkspaceViews.module.css';
 
-interface ArchiveWorkspaceButtonProps {
-  readonly workspaceId: string;
-}
-
-/**
- * Archives a workspace, after asking.
- *
- * Confirmation is a second button rather than `window.confirm`: a native dialog blocks the thread, cannot
- * be styled or described to a screen reader, and is not implemented in jsdom, so it could not be tested.
- * The two-step version is ordinary markup, and the wording is the useful part — it says what archiving
- * does and, just as importantly, what it does not do.
- *
- * On success the user goes back to the list, where the workspace is no longer shown. Rendered only for an
- * owner; the server enforces that independently.
- */
+/** Server-authorized soft archive. Confirmation promises retained data and access, never restoration. */
 export function ArchiveWorkspaceButton({
   workspaceId,
-}: ArchiveWorkspaceButtonProps): ReactElement {
+  workspaceName,
+}: {
+  readonly workspaceId: string;
+  readonly workspaceName: string;
+}): ReactElement {
   const navigate = useNavigate();
-  const { mutate, isPending, error } = useArchiveWorkspace(workspaceId);
-
+  const { mutate, isPending, error, reset } = useArchiveWorkspace(workspaceId);
   const [confirming, setConfirming] = useState(false);
-
-  const archive = (): void => {
-    mutate(undefined, {
-      onSuccess: () => {
-        setConfirming(false);
-        void navigate('/app/workspaces');
-      },
-    });
-  };
-
+  const trigger = useRef<HTMLButtonElement>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
   return (
-    <section aria-labelledby="archive-workspace-heading">
-      <h2 id="archive-workspace-heading">Archive</h2>
-
-      {error !== null ? <p role="alert">{describeError(error)}</p> : null}
-
-      {confirming ? (
-        <>
-          <p>
-            Archive this workspace? It will disappear from your workspace list. Nothing is
-            deleted — members keep their access and the workspace stays open by its link.
-          </p>
-          <button type="button" onClick={archive} disabled={isPending}>
-            {isPending ? 'Archiving…' : 'Confirm archive'}
-          </button>
-          <button type="button" onClick={() => setConfirming(false)} disabled={isPending}>
-            Cancel
-          </button>
-        </>
-      ) : (
-        <button type="button" onClick={() => setConfirming(true)}>
-          Archive workspace
-        </button>
-      )}
-    </section>
+    <Card className={styles.archiveCard}>
+      <div className={styles.archiveHeader}>
+        <h2 id="archive-workspace-heading">Archive workspace</h2>
+        <Badge label="Owner only" icon="lock" tone="ink" />
+      </div>
+      <p>
+        Removes this workspace from everyone&apos;s active workspace list. Members keep
+        their access through its link. Nothing is deleted.
+      </p>
+      <Button
+        ref={trigger}
+        variant="danger-soft"
+        icon="archive"
+        onClick={() => {
+          reset();
+          setConfirming(true);
+        }}
+      >
+        Archive workspace
+      </Button>
+      <Dialog
+        open={confirming}
+        title={`Archive ${workspaceName}?`}
+        description="Archiving removes this workspace from the active workspace list."
+        initialFocusRef={cancel}
+        returnFocusRef={trigger}
+        dismissible={!isPending}
+        closeDisabled={isPending}
+        onClose={() => setConfirming(false)}
+        footer={
+          <>
+            <Button
+              ref={cancel}
+              variant="secondary"
+              disabled={isPending}
+              onClick={() => setConfirming(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              icon="archive"
+              busy={isPending}
+              busyLabel="Archiving…"
+              aria-label={isPending ? 'Archiving…' : undefined}
+              onClick={() => {
+                mutate(undefined, {
+                  onSuccess: () => {
+                    setConfirming(false);
+                    void navigate('/app/workspaces');
+                  },
+                });
+              }}
+            >
+              Archive workspace
+            </Button>
+          </>
+        }
+      >
+        <Card className={styles.retainedNotice}>
+          <strong>No files or documents will be deleted.</strong> Sources and every
+          document version are retained. Members keep their access, and the workspace
+          remains readable through its link. Its content can no longer be changed.
+        </Card>
+        {error !== null ? <Banner tone="error" lead={describeError(error)} /> : null}
+      </Dialog>
+    </Card>
   );
 }
