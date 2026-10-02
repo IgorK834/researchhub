@@ -441,12 +441,14 @@ describe('WorkspaceDetailPage', () => {
       'ask',
     );
 
-    const question = (await screen.findByLabelText('Question')) as HTMLTextAreaElement;
+    const question = (await screen.findByLabelText(
+      'Research question',
+    )) as HTMLTextAreaElement;
     expect(question.value).toContain(
       'Describe the columns, data types and data-quality issues',
     );
     expect(question.value).toContain('Focus on the "Measurements" sheet.');
-    const questions = screen.getByRole('region', { name: 'Ask workspace sources' });
+    const questions = screen.getByRole('region', { name: 'Scope' });
     expect(await within(questions).findByLabelText('measurements.xlsx')).toHaveProperty(
       'checked',
       true,

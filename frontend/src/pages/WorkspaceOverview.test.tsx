@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { WorkspaceDetailPage } from './WorkspaceDetailPage';
+import * as conversations from '../features/ai/api/conversationApi';
+import turnFixture from '../../../contracts/ai/conversations/v1/completed.json';
+import conversationFixture from '../../../contracts/ai/conversations/v1/conversation.json';
 import emptyAnswer from '../../../contracts/ai/questions/v1/no-evidence.json';
 
 const timestamp = '2026-10-02T10:00:00Z';
@@ -60,6 +63,16 @@ function api(
     const path = String(url);
     if (path === '/api/auth/csrf') return Promise.resolve(json(null, 204));
     if (path.endsWith('/ai/questions')) return Promise.resolve(json(emptyAnswer));
+    if (path.endsWith('/ai/conversations') && init?.method === 'POST')
+      return Promise.resolve(json(conversationFixture, 201));
+    if (path.includes('/ai/conversations/') && init?.method === 'GET')
+      return Promise.resolve(
+        json({
+          conversation: conversationFixture,
+          messages: [],
+          nextBeforeSequence: null,
+        }),
+      );
     if (path === '/api/workspaces/w1')
       return Promise.resolve(
         json({
@@ -132,6 +145,7 @@ function page(entry = '/app/workspaces/w1', strict = false) {
 }
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  jest.restoreAllMocks();
 });
 
 it('composes the hero and recent collections with exact data, ordering and no per-row requests', async () => {
@@ -212,7 +226,7 @@ it('shows uploaded status, known zero counts and independent empty states for a 
   page();
   expect(await screen.findByText('Grounded in 0 sources')).toBeTruthy();
   expect(screen.getByText('No description.')).toBeTruthy();
-  expect(screen.getByText('Uploaded')).toBeTruthy();
+  expect(within(screen.getByRole('region', { name: 'Recent sources' })).getByText('Uploaded')).toBeTruthy();
   expect(screen.getByText('No documents yet.')).toBeTruthy();
   expect(await screen.findByText('No AI conversations yet.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /create|upload/i })).toBeNull();
@@ -248,7 +262,19 @@ it('reports collection failures independently without showing stale data or zero
 it.each([false, true])(
   'submits the overview question to Ask AI once with its selected scope (selected=%s)',
   async (selected) => {
-    const mock = api();
+    api();
+    const turn = turnFixture as conversations.ConversationTurn;
+    const stream = jest
+      .spyOn(conversations, 'streamConversationQuestion')
+      .mockResolvedValue({
+        ...turn,
+        assistant: {
+          ...turn.assistant,
+          content: emptyAnswer.answer,
+          response:
+            emptyAnswer as conversations.ConversationTurn['assistant']['response'],
+        },
+      });
     page('/app/workspaces/w1', true);
     await waitFor(() =>
       expect(
@@ -264,20 +290,20 @@ it.each([false, true])(
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ask question' }));
     expect(await screen.findByText(emptyAnswer.answer)).toBeTruthy();
-    expect(screen.getByLabelText('Location').textContent).toBe(
-      '/app/workspaces/w1/ask · null',
+    await waitFor(() =>
+      expect(screen.getByLabelText('Location').textContent).toBe(
+        '/app/workspaces/w1/ask · null',
+      ),
     );
-    const posts = mock.mock.calls.filter((call) =>
-      String(call[0]).endsWith('/ai/questions'),
-    );
-    expect(posts).toHaveLength(1);
-    expect(JSON.parse(String(posts[0]?.[1]?.body))).toEqual({
+    expect(stream).toHaveBeenCalledTimes(1);
+    expect(stream.mock.calls[0]?.[2]).toEqual({
+      clientRequestId: expect.any(String),
       question: 'What does the paper support?',
       ...(selected ? { selectedSourceIds: ['s1'] } : {}),
     });
-    expect(screen.getByRole('textbox', { name: 'Question' })).toHaveProperty(
+    expect(screen.getByRole('textbox', { name: 'Research question' })).toHaveProperty(
       'value',
-      'What does the paper support?',
+      '',
     );
   },
 );

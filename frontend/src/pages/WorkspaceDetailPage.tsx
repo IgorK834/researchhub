@@ -7,8 +7,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import { SourceComparisonPanel } from '../features/ai/components/SourceComparisonPanel';
-import { WorkspaceQuestions } from '../features/ai/components/WorkspaceQuestions';
+import { AskAIPage } from './AskAIPage';
 
 import { DocumentList } from '../features/documents/components/DocumentList';
 import { SourceList } from '../features/sources/components/SourceList';
@@ -31,7 +30,6 @@ import {
   workspaceSectionPath,
   type WorkspaceSection,
 } from '../app/workspaceRoutes';
-import { ToolShell } from '../shared/components/shell';
 import { RoleBadge } from '../shared/components/identity';
 import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 
@@ -62,7 +60,7 @@ export function WorkspaceDetailPage({
       />
     );
   const content = <WorkspaceDetail workspaceId={workspaceId} section={section} />;
-  return section === 'ask' ? <ToolShell label="Ask AI">{content}</ToolShell> : content;
+  return content;
 }
 
 /**
@@ -164,6 +162,25 @@ function WorkspaceDetail({
         }
       />
     );
+  if (section === 'ask')
+    return (
+      <AskAIPage
+        workspaceId={workspace.id}
+        initialQuestion={initialQuestion}
+        initialSourceId={search.get('askSource') ?? undefined}
+        onInitialQuestionUsed={() => {
+          void navigate(`${location.pathname}${location.search}${location.hash}`, {
+            replace: true,
+            state: null,
+          });
+        }}
+        {...(analyzeSource === null
+          ? {}
+          : {
+              focus: { sourceId: analyzeSource, sheetName: search.get('analyzeSheet') },
+            })}
+      />
+    );
   const heading =
     section === 'members'
       ? 'Members'
@@ -196,31 +213,6 @@ function WorkspaceDetail({
       ) : (
         <p>{workspace.description}</p>
       )}
-
-      {section === 'ask' ? (
-        <>
-          <WorkspaceQuestions
-            workspaceId={workspace.id}
-            initialQuestion={initialQuestion}
-            initialSourceId={search.get('askSource') ?? undefined}
-            onInitialQuestionUsed={() => {
-              void navigate(`${location.pathname}${location.search}${location.hash}`, {
-                replace: true,
-                state: null,
-              });
-            }}
-            {...(analyzeSource === null
-              ? {}
-              : {
-                  focus: {
-                    sourceId: analyzeSource,
-                    sheetName: search.get('analyzeSheet'),
-                  },
-                })}
-          />
-          <SourceComparisonPanel workspaceId={workspace.id} />
-        </>
-      ) : null}
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}
