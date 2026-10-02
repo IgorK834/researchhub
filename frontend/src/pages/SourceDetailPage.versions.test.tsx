@@ -69,17 +69,21 @@ function Probe(): ReactElement {
 
 function renderPage({
   role = 'EDITOR',
+  archivedAt = null,
   sourceBody = source(),
   versions = [version('v2', 2), version('v1', 1)],
   entry = '/app/workspaces/w-1/sources/s-1',
 }: {
   role?: string;
+  archivedAt?: string | null;
   sourceBody?: Record<string, unknown>;
   versions?: unknown[];
   entry?: string;
 } = {}): jest.Mock {
   const fetchMock = jest.fn((url: unknown) => {
     const path = String(url);
+    if (path === '/api/workspaces/w-1')
+      return Promise.resolve(response({ role, archivedAt }));
     if (path === '/api/me')
       return Promise.resolve(
         response({
@@ -172,6 +176,21 @@ it('hides the replacement form from viewers and while the source is still being 
   expect(screen.queryByRole('heading', { name: 'Upload a new version' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Dataset preview' })).toBeNull();
 });
+
+it.each(['OWNER', 'EDITOR', 'VIEWER', 'REVIEWER'])(
+  'keeps archived source content readable but omits editing for %s',
+  async (role) => {
+    renderPage({
+      role,
+      archivedAt: '2026-10-01T10:00:00Z',
+      sourceBody: source({ status: 'FAILED' }),
+    });
+    await screen.findByRole('table', { name: 'Source versions' });
+    expect(screen.getByRole('link', { name: 'Download source' })).toBeDefined();
+    expect(screen.queryByRole('heading', { name: 'Upload a new version' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reprocess source' })).toBeNull();
+  },
+);
 
 it('previews an older version from the history and refuses to analyze it', async () => {
   const fetchMock = renderPage();

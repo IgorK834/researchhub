@@ -139,9 +139,12 @@ function renderApp(): void {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const app = (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/app/workspaces/${WORKSPACE_ID}`]}>
+      <MemoryRouter initialEntries={[`/app/workspaces/${WORKSPACE_ID}/documents`]}>
         <Routes>
-          <Route path="/app/workspaces/:workspaceId" element={<WorkspaceDetailPage />} />
+          <Route
+            path="/app/workspaces/:workspaceId/documents"
+            element={<WorkspaceDetailPage section="documents" />}
+          />
           <Route
             path="/app/workspaces/:workspaceId/documents/:documentId"
             element={<DocumentDetailPage />}

@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { PdfSourcePreview } from '../features/sources/components/PdfSourcePreview';
 import { SourceProcessing } from '../features/sources/components/SourceProcessing';
-import { useCurrentUser } from '../features/auth/api/useAuth';
 import { parsePdfPage } from '../features/sources/api/sourceLocations';
 import { queryKeys } from '../shared/api';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,12 +14,16 @@ import {
   useSourceQuery,
   useSourceVersionsQuery,
 } from '../features/sources/api/useSources';
-import { useWorkspaceMembersQuery } from '../features/workspaces/api/useWorkspaces';
+import {
+  useWorkspaceMembersQuery,
+  useWorkspaceQuery,
+} from '../features/workspaces/api/useWorkspaces';
 import { describeError, hasApiErrorCode } from '../shared/api';
 import { DatasetPreviewPanel } from '../features/analysis/components/DatasetPreviewPanel';
 import { SourceReplaceForm } from '../features/sources/components/SourceReplaceForm';
 import { SourceVersionHistory } from '../features/sources/components/SourceVersionHistory';
 import type { AnalyzeTarget } from '../features/analysis/components/DatasetPreviewPanel';
+import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 
 export function SourceDetailPage(): ReactElement {
   const { workspaceId, sourceId } = useParams<{
@@ -70,12 +73,18 @@ function SourceDetail({
     refetch,
   } = useSourceQuery(workspaceId, sourceId);
   const { data: members } = useWorkspaceMembersQuery(workspaceId);
-  const { data: currentUser } = useCurrentUser();
+  const workspace = useWorkspaceQuery(
+    workspaceId,
+    source !== undefined && error === null,
+  );
   const { data: versions } = useSourceVersionsQuery(workspaceId, sourceId);
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
   const client = useQueryClient();
-  const role = members?.find((member) => member.userId === currentUser?.id)?.role;
+  const { canEditContent } = workspaceCapabilities(
+    workspace.error === null ? workspace.data?.role : undefined,
+    workspace.data === undefined || workspace.data.archivedAt !== null,
+  );
   const analyze = (target: AnalyzeTarget): void => {
     const params = new URLSearchParams({
       analyzeSource: target.sourceId,
@@ -167,7 +176,7 @@ function SourceDetail({
         workspaceId={workspaceId}
         sourceId={sourceId}
         status={source.status}
-        canEdit={role === 'OWNER' || role === 'EDITOR'}
+        canEdit={canEditContent}
       />
       {(previewType === 'CSV' || previewType === 'XLSX') &&
       previewStatus === 'READY' &&
@@ -207,8 +216,7 @@ function SourceDetail({
         selectedVersionId={previewVersionId}
         onPreview={previewVersion}
       />
-      {(role === 'OWNER' || role === 'EDITOR') &&
-      (source.status === 'READY' || source.status === 'FAILED') ? (
+      {canEditContent && (source.status === 'READY' || source.status === 'FAILED') ? (
         <SourceReplaceForm workspaceId={workspaceId} sourceId={sourceId} />
       ) : null}
       <button

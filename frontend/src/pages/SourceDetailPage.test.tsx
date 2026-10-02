@@ -25,6 +25,8 @@ function renderPage(
   entry = '/app/workspaces/w-1/sources/s-1',
 ): void {
   globalThis.fetch = jest.fn((url: unknown) => {
+    if (String(url) === '/api/workspaces/w-1')
+      return Promise.resolve(response({ role: 'EDITOR', archivedAt: null }));
     if (String(url) === '/api/me')
       return Promise.resolve(
         response({

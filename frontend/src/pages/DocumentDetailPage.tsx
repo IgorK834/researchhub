@@ -9,6 +9,8 @@ import { DocumentEditorForm } from '../features/documents/components/DocumentEdi
 import { DocumentList } from '../features/documents/components/DocumentList';
 import { useWorkspaceQuery } from '../features/workspaces/api/useWorkspaces';
 import { describeError, hasApiErrorCode } from '../shared/api';
+import { ToolShell } from '../shared/components/shell';
+import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 
 /**
  * The workspace's writing shell: its documents down the side, one of them open in the editor.
@@ -98,46 +100,39 @@ function DocumentScreen({
     workspace.data?.archivedAt !== null && workspace.data !== undefined;
   // A viewer may read and nothing else. Until the role is known, assume the narrower answer rather than
   // rendering controls that would turn into a 403.
-  const canEdit = (role === 'OWNER' || role === 'EDITOR') && !workspaceArchived;
+  const { canEditContent: canEdit } = workspaceCapabilities(role, workspaceArchived);
 
   const openDocument = (id: string): void => {
     void navigate(`/app/workspaces/${workspaceId}/documents/${id}`);
   };
 
   return (
-    <div style={SHELL_STYLE}>
-      <nav aria-label="Workspace documents" style={SIDEBAR_STYLE}>
-        <p>
-          <Link to={`/app/workspaces/${workspaceId}`}>Back to the workspace</Link>
-          {workspace.data === undefined ? null : <> · {workspace.data.name}</>}
-        </p>
-        <DocumentList workspaceId={workspaceId} currentDocumentId={documentId} />
-        {canEdit ? (
-          <CreateDocumentForm
-            workspaceId={workspaceId}
-            onCreated={(created) => {
-              openDocument(created.id);
-            }}
-          />
-        ) : null}
-      </nav>
-
-      <section aria-label="Editor" style={EDITOR_STYLE}>
-        <EditorArea
-          workspaceId={workspaceId}
-          document={document}
-          canEdit={canEdit}
-          reloadCount={reloadCount}
-          onReload={() => {
-            setReloadCount((count) => count + 1);
-          }}
-        />
-      </section>
-      {document.data !== undefined && workspace.data !== undefined ? (
-        <aside
-          aria-label="Research alongside the document"
-          style={{ flex: '0 1 24rem', minWidth: '18rem', maxWidth: '100%' }}
-        >
+    <ToolShell
+      label="Editor"
+      secondaryLabel="Workspace documents"
+      secondaryWidth={240}
+      secondary={
+        <>
+          <p>
+            <Link to={`/app/workspaces/${workspaceId}/documents`}>
+              Back to the workspace
+            </Link>
+            {workspace.data === undefined ? null : <> · {workspace.data.name}</>}
+          </p>
+          <DocumentList workspaceId={workspaceId} currentDocumentId={documentId} />
+          {canEdit ? (
+            <CreateDocumentForm
+              workspaceId={workspaceId}
+              onCreated={(created) => {
+                openDocument(created.id);
+              }}
+            />
+          ) : null}
+        </>
+      }
+      contextTitle="Research alongside the document"
+      context={
+        document.data !== undefined && workspace.data !== undefined ? (
           <ResearchPanel
             workspaceId={workspaceId}
             sources={{
@@ -154,9 +149,19 @@ function DocumentScreen({
                   : `Could not load research sources: ${describeError(sources.error)}`,
             }}
           />
-        </aside>
-      ) : null}
-    </div>
+        ) : undefined
+      }
+    >
+      <EditorArea
+        workspaceId={workspaceId}
+        document={document}
+        canEdit={canEdit}
+        reloadCount={reloadCount}
+        onReload={() => {
+          setReloadCount((count) => count + 1);
+        }}
+      />
+    </ToolShell>
   );
 }
 
@@ -217,16 +222,3 @@ function EditorArea({
     </>
   );
 }
-
-/**
- * Two columns that wrap into one on a narrow screen. Inline because the app has no stylesheet yet, and one
- * layout rule is not worth introducing one for.
- */
-const SHELL_STYLE = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '2rem',
-  alignItems: 'flex-start',
-} as const;
-const SIDEBAR_STYLE = { flex: '0 1 16rem', minWidth: '12rem' } as const;
-const EDITOR_STYLE = { flex: '1 1 32rem', minWidth: 0 } as const;

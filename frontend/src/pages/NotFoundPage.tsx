@@ -6,7 +6,7 @@ export function NotFoundPage(): ReactElement {
     <main>
       <h1>Page not found</h1>
       <p>
-        <Link to="/">Go back home</Link>
+        <Link to="/app">Go back home</Link>
       </p>
     </main>
   );
