@@ -201,7 +201,7 @@ researchhub/
 └── README.md
 ```
 
-The frontend is scaffolded: Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring are implemented: the document page is a writing shell with the workspace's documents down the side, create-and-open, a title input and a Tiptap editor over the stored ProseMirror JSON, autosave with a visible save state, and a version history with restore. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` now provides the internal source-ingest HTTP boundary; PDF/DOCX/XLSX parsers and configurable embedding providers are implemented; Spring owns pgvector indexing.
+The frontend uses Webpack, Babel, strict TypeScript, React Router, a shared API client, and TanStack Query at the app root. Shared token-based content and navigation primitives and an authenticated sidebar/top-bar frame are implemented; workspace navigation has Overview, Documents, Sources, Ask AI, Members and Settings section routes, preserving existing citation/dataset URLs and query selectors. Tools share a 64 px rail, optional secondary column and 340 px context panel; at 1280 px and below sidebars collapse to the rail, context/source panels use slide-overs and metadata table columns collapse. Behind those routes, registration, login, the workspace list and create form, the workspace detail page with its member list and owner-only member management, settings, and archive control, and document authoring are implemented: the document page is a writing shell with the workspace's documents down the side, create-and-open, a title input and a Tiptap editor over the stored ProseMirror JSON, autosave with a visible save state, and a version history with restore. Layout: [development/frontend-structure.md](development/frontend-structure.md). API layer: [development/frontend-api.md](development/frontend-api.md). Checks: [development/frontend-tooling.md](development/frontend-tooling.md). `ai-worker/` now provides the internal source-ingest HTTP boundary; PDF/DOCX/XLSX parsers and configurable embedding providers are implemented; Spring owns pgvector indexing.
 
 Local-only paths are ignored and must not be committed:
 
@@ -1477,7 +1477,7 @@ Do not lock these prematurely:
 
 - JWT vs cookie/session auth,
 - exact React state-management approach,
-- UI component library,
+- UI component library: resolved by [ADR-006](adr/ADR-006-ui-styling-and-assets.md), hand-built primitives on CSS custom properties and CSS Modules; no component library,
 - Tiptap vs alternative editor,
 - Hocuspocus vs other Yjs server approach,
 - Azure Web PubSub usage,
