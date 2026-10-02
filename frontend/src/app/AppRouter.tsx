@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router-dom';
 
 import { RequireAuthenticatedUser } from '../features/auth/components/RequireAuthenticatedUser';
 import { AppLayoutPage } from '../pages/AppLayoutPage';
@@ -7,11 +7,11 @@ import { DocumentDetailPage } from '../pages/DocumentDetailPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { RegisterPage } from '../pages/RegisterPage';
-import { SourceDetailPage } from '../pages/SourceDetailPage';
+import { SourceRoutePage } from '../pages/SourceRoutePage';
 import { WorkspaceDetailPage } from '../pages/WorkspaceDetailPage';
 import { WorkspaceListPage } from '../pages/WorkspaceListPage';
 
-const router = createBrowserRouter([
+export const appRoutes: RouteObject[] = [
   // Public: reaching these is how someone becomes authenticated, so they must not be behind the guard.
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
@@ -29,9 +29,15 @@ const router = createBrowserRouter([
           { index: true, element: <WorkspaceListPage /> },
           { path: 'workspaces', element: <WorkspaceListPage /> },
           { path: 'workspaces/:workspaceId', element: <WorkspaceDetailPage /> },
+          ...(['documents', 'sources', 'ask', 'members', 'settings'] as const).map(
+            (section) => ({
+              path: `workspaces/:workspaceId/${section}`,
+              element: <WorkspaceDetailPage section={section} />,
+            }),
+          ),
           {
             path: 'workspaces/:workspaceId/sources/:sourceId',
-            element: <SourceDetailPage />,
+            element: <SourceRoutePage />,
           },
           {
             path: 'workspaces/:workspaceId/documents/:documentId',
@@ -42,7 +48,10 @@ const router = createBrowserRouter([
     ],
   },
   { path: '*', element: <NotFoundPage /> },
-]);
+];
+
+// One browser history subscription, including React StrictMode development mounts.
+const router = createBrowserRouter(appRoutes);
 
 export function AppRouter(): ReactElement {
   return <RouterProvider router={router} />;
