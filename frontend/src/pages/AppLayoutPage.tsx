@@ -1,4 +1,4 @@
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useCurrentUser } from '../features/auth/api/useAuth';
@@ -222,6 +222,7 @@ function ShellContent({
   const navigate = useNavigate();
   const { workspaceId, documentId, sourceId } = useParams();
   useSectionFocus();
+  const [documentTopbarHost] = useState(() => document.createElement('div'));
   const base = `/app/workspaces/${workspaceId}`;
   const narrow = useNarrowDesktop();
   const { openCreateWorkspace, defaultTriggerRef } = useCreateWorkspaceDialog();
@@ -235,7 +236,11 @@ function ShellContent({
     documentId !== undefined ||
     (sourceId !== undefined && !narrow) ||
     sectionKey === 'ask';
-  const { canManage, canEditContent: canEdit } = workspaceCapabilities(
+  const {
+    canManage,
+    canEditContent: canEdit,
+    canViewSettings,
+  } = workspaceCapabilities(
     context?.workspace.role,
     context === undefined || context.workspace.archivedAt !== null,
   );
@@ -278,7 +283,7 @@ function ShellContent({
         Add member
       </Button>
     );
-  else if (canEdit && section === 'Sources')
+  else if (canEdit && section === 'Sources' && sourceId !== undefined)
     action = (
       <Button
         icon="upload"
@@ -315,7 +320,17 @@ function ShellContent({
         />
       }
       members={context?.members}
-      primaryAction={action}
+      primaryAction={
+        documentId === undefined ? (
+          action
+        ) : (
+          <div
+            ref={(element) => {
+              if (element) element.appendChild(documentTopbarHost);
+            }}
+          />
+        )
+      }
       sidebar={
         <ShellSidebar
           brand={
@@ -422,7 +437,7 @@ function ShellContent({
             )
           }
           footer={
-            canManage ? (
+            canViewSettings ? (
               <nav aria-label="Workspace settings">
                 <NavEntry
                   href={`${base}/settings#edit-workspace-heading`}
@@ -439,7 +454,7 @@ function ShellContent({
         />
       }
     >
-      <Outlet context={{ user } satisfies AppOutletContext} />
+      <Outlet context={{ user, documentTopbarHost } satisfies AppOutletContext} />
     </AppShell>
   );
 }

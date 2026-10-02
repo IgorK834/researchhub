@@ -69,6 +69,8 @@ function stubBackend(role: string): { documents: StoredDocument[] } {
     if (path === `/api/workspaces/${WORKSPACE_ID}/ai/conversations?offset=0`) {
       return Promise.resolve(json({ items: [], nextOffset: null }));
     }
+    if (path === `/api/workspaces/${WORKSPACE_ID}/members`)
+      return Promise.resolve(json([]));
     if (path === `/api/workspaces/${WORKSPACE_ID}/sources`) {
       return Promise.resolve(json([]));
     }
@@ -177,7 +179,8 @@ describe('writing a report in a workspace', () => {
     const backend = stubBackend('EDITOR');
     renderApp();
 
-    // Create from the workspace page: the new report opens straight away.
+    // Open the creation dialog on the dedicated documents page.
+    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
     fireEvent.change(await screen.findByLabelText('Document title'), {
       target: { value: 'Lab report' },
     });
@@ -212,7 +215,7 @@ describe('writing a report in a workspace', () => {
     // Leave for the workspace, then reopen the report from its list.
     fireEvent.click(screen.getByRole('link', { name: 'Back to the workspace' }));
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Electronics Lab' }),
+      await screen.findByRole('heading', { level: 1, name: 'Documents' }),
     ).not.toBeNull();
     const documentsSection = screen.getByRole('region', { name: 'Documents' });
     fireEvent.click(
@@ -231,6 +234,7 @@ describe('writing a report in a workspace', () => {
     const backend = stubBackend('OWNER');
     renderApp();
 
+    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
     fireEvent.change(await screen.findByLabelText('Document title'), {
       target: { value: 'Draft' },
     });

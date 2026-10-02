@@ -215,11 +215,12 @@ it('focuses existing sections from navigation and action slots, including repeat
       'New document',
       'create-document-heading',
     ],
-    ['Sources 3', 'workspace-sources-heading', 'Upload source', 'upload-source-heading'],
+    ['Sources 3', 'workspace-sources-heading', null, null],
     ['Members', 'workspace-members-heading', 'Add member', 'add-member-heading'],
   ]) {
     fireEvent.click(within(navigation()).getByRole('link', { name: link! }));
     await waitFor(() => expect(document.activeElement?.id).toBe(heading));
+    if (action === null) continue; // The dedicated library owns its upload action.
     fireEvent.click(screen.getByRole('button', { name: action! }));
     await waitFor(() => expect(document.activeElement?.id).toBe(actionHeading));
     screen.getByRole('button', { name: action! }).focus();
@@ -262,7 +263,9 @@ it.each([
 ])('omits unavailable management for %s archivedAt=%s', async (role, archivedAt) => {
   setup('/app/workspaces/w1', { workspace: { ...workspace, role, archivedAt } });
   await screen.findByText('Grounded in 1 source');
-  expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull();
+  expect(Boolean(screen.queryByRole('link', { name: 'Settings' }))).toBe(
+    role === 'OWNER' || role === 'EDITOR',
+  );
   expect(screen.queryByRole('button', { name: 'Add member' })).toBeNull();
   expect(Boolean(screen.queryByRole('button', { name: 'New document' }))).toBe(
     role === 'EDITOR' && archivedAt === null,

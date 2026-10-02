@@ -16,6 +16,7 @@ import {
 } from '@testing-library/react';
 
 import { DocumentDetailPage } from './DocumentDetailPage';
+import { queryKeys } from '../shared/api';
 
 const WORKSPACE_ID = 'w-1';
 const DOCUMENT_ID = 'd-1';
@@ -228,6 +229,21 @@ function stubDocumentApi(options: {
     const path = String(url);
     const method = init?.method ?? 'GET';
 
+    if (path === `/api/workspaces/${WORKSPACE_ID}/members`)
+      return Promise.resolve(
+        jsonResponse(
+          [
+            {
+              userId: 'u-1',
+              displayName: 'Ada Lovelace',
+              role: 'OWNER',
+              email: 'ada@example.test',
+            },
+          ],
+          200,
+          'application/json',
+        ),
+      );
     if (path === `/api/workspaces/${WORKSPACE_ID}/sources`) {
       return Promise.resolve(jsonResponse([], 200, 'application/json'));
     }
@@ -337,14 +353,14 @@ function stubDocumentApi(options: {
   return fetchMock;
 }
 
-function renderDocumentDetailPage(): { unmount: () => void } {
+function renderDocumentDetailPage(): { unmount: () => void; queryClient: QueryClient } {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>{children}</MemoryRouter>
     </QueryClientProvider>
   );
-  return render(<DocumentDetailPage />, { wrapper });
+  return { ...render(<DocumentDetailPage />, { wrapper }), queryClient };
 }
 
 /** The editable element of the document body. Tiptap renders a div with the role and name set on it. */
@@ -415,16 +431,7 @@ async function idle(ms: number): Promise<void> {
 }
 
 async function openHistory(): Promise<HTMLElement> {
-  fireEvent.click(screen.getByText('Version history'));
-  // jsdom does not toggle <details> on a summary click, so open it the way a browser would.
-  const details = screen.getByText('Version history').closest('details');
-  if (details === null) {
-    throw new Error('No history panel');
-  }
-  act(() => {
-    details.open = true;
-    details.dispatchEvent(new Event('toggle'));
-  });
+  fireEvent.click(screen.getByRole('button', { name: 'History' }));
   return screen.findByRole('list', { name: 'Versions' });
 }
 
@@ -438,6 +445,43 @@ afterEach(() => {
 
 describe('DocumentDetailPage', () => {
   describe('reading', () => {
+    it('shows the acknowledged save time and does not replace it on a background refetch', async () => {
+      const acknowledgedAt = '2026-10-02T12:30:00Z';
+      stubDocumentApi({
+        saveResponses: [
+          jsonResponse(
+            documentRow({
+              revision: 2,
+              updatedAt: acknowledgedAt,
+              content: paragraphs('Written'),
+            }),
+            200,
+            'application/json',
+          ),
+        ],
+      });
+      const { queryClient } = renderDocumentDetailPage();
+      await findBody();
+      editBody('Written');
+      await waitForSaveState('Saved');
+      const chip = screen
+        .getAllByRole('status')
+        .find((region) => region.querySelector('strong')?.textContent === 'Saved')!;
+      expect(chip.querySelector('time')?.getAttribute('datetime')).toBe(acknowledgedAt);
+      act(() => {
+        queryClient.setQueryData(
+          queryKeys.document(WORKSPACE_ID, DOCUMENT_ID),
+          documentRow({
+            revision: 3,
+            updatedAt: '2026-10-02T14:00:00Z',
+            content: paragraphs('Another writer'),
+          }),
+        );
+      });
+      await idle(20);
+      expect(chip.querySelector('time')?.getAttribute('datetime')).toBe(acknowledgedAt);
+      expect(screen.getByRole('textbox', { name: 'Text' }).textContent).toBe('Written');
+    });
     it('shows a loading state before the document arrives', () => {
       stubDocumentApi({});
 
@@ -457,6 +501,7 @@ describe('DocumentDetailPage', () => {
       expect((await findBody()).textContent).toBe('Measurements');
       expect(saveState()).toBe('Saved');
       expect(screen.getByText(/revision 4/)).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }));
       expect(
         await screen.findByRole('region', { name: 'AI research panel' }),
       ).not.toBeNull();
@@ -673,6 +718,7 @@ describe('DocumentDetailPage', () => {
       act(() => {
         bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
       });
+      fireEvent.click(screen.getByRole('tab', { name: 'Writing' }));
       fireEvent.change(screen.getByLabelText('Operation'), {
         target: { value: 'REWRITE' },
       });
@@ -1042,6 +1088,23 @@ describe('DocumentDetailPage', () => {
       const versions = await openHistory();
       expect(within(versions).getByText(/Revision 1 · Created/)).not.toBeNull();
       expect(within(versions).queryByRole('button', { name: /^Restore/ })).toBeNull();
+      expect(screen.getByText('Read-only')).not.toBeNull();
+      expect(screen.getByText('You’re a viewer in this workspace.')).not.toBeNull();
+      const notification = screen.getByRole('region', { name: 'Notifications' });
+      expect(
+        within(notification).getByText('Only editors can change this document'),
+      ).not.toBeNull();
+      fireEvent.click(
+        within(notification).getByRole('button', {
+          name: 'Dismiss Only editors can change this document',
+        }),
+      );
+      expect(
+        within(notification).queryByText('Only editors can change this document'),
+      ).toBeNull();
+      expect(
+        screen.queryByText(/kept on this device|Request edit access|comment on/i),
+      ).toBeNull();
     });
 
     it('offers the toolbar, save, and archive to an editor and an owner', async () => {
@@ -1232,13 +1295,29 @@ describe('DocumentDetailPage', () => {
       fireEvent.click(
         within(versions).getByRole('button', { name: 'Preview revision 1' }),
       );
-
+      await screen.findByRole('region', { name: 'Version differences' });
+      fireEvent.click(screen.getByText('Stored version content'));
       const preview = await screen.findByRole('textbox', { name: 'Text of revision 1' });
       await waitFor(() => {
         expect(preview.textContent).toBe('Measurements');
       });
       expect(preview.getAttribute('contenteditable')).toBe('false');
       // The document being edited is untouched by looking at history.
+      expect(
+        screen.getByRole('textbox', { name: 'Text', hidden: true }).textContent,
+      ).toBe('Rewritten');
+      expect(
+        screen.getByText('Previewing v1, compared with current (v2)'),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole('region', { name: 'Version differences' }).querySelector('ins')
+          ?.textContent,
+      ).toBe('Rewritten');
+      expect(
+        screen.getByRole('region', { name: 'Version differences' }).querySelector('del')
+          ?.textContent,
+      ).toBe('Measurements');
+      fireEvent.click(screen.getByRole('button', { name: 'Close version preview' }));
       expect(screen.getByRole('textbox', { name: 'Text' }).textContent).toBe('Rewritten');
     });
 
@@ -1322,6 +1401,39 @@ describe('DocumentDetailPage', () => {
   });
 
   describe('workspace shell', () => {
+    it('compares stored content while preserving failed, unsaved edits across preview and context switches', async () => {
+      const api = stubDocumentApi({ offline: () => true });
+      renderDocumentDetailPage();
+      await findBody();
+      editBody('My unsaved text');
+      await waitForSaveState('Save failed');
+      const versions = await openHistory();
+      fireEvent.click(
+        within(versions).getByRole('button', { name: 'Preview revision 1' }),
+      );
+      await screen.findByText(/No differences/);
+      expect(
+        screen.getByRole('region', { name: 'Version differences' }).textContent,
+      ).not.toContain('My unsaved text');
+      expect(
+        screen.getByRole('textbox', { name: 'Text', hidden: true }).textContent,
+      ).toBe('My unsaved text');
+      expect(
+        within(versions).getByRole('button', { name: 'Restore revision 1' }),
+      ).toHaveProperty('disabled', true);
+      fireEvent.click(screen.getByRole('tab', { name: 'Sources' }));
+      expect(screen.getByRole('textbox', { name: 'Text' }).textContent).toBe(
+        'My unsaved text',
+      );
+      expect(screen.queryByRole('region', { name: 'Version differences' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'History' }));
+      await screen.findByRole('region', { name: 'Version differences' });
+      fireEvent.click(screen.getByRole('button', { name: 'Close version preview' }));
+      expect(screen.getByRole('textbox', { name: 'Text' }).textContent).toBe(
+        'My unsaved text',
+      );
+      expect(savedBodies(api)).toHaveLength(1);
+    });
     it('lists the workspace documents beside the editor, marking the open one', async () => {
       stubDocumentApi({});
 
@@ -1345,10 +1457,11 @@ describe('DocumentDetailPage', () => {
 
       renderDocumentDetailPage();
       const nav = await screen.findByRole('navigation', { name: 'Workspace documents' });
-      fireEvent.change(await within(nav).findByLabelText('Document title'), {
+      fireEvent.click(await within(nav).findByRole('button', { name: 'New document' }));
+      fireEvent.change(await screen.findByLabelText('Document title'), {
         target: { value: 'Appendix' },
       });
-      fireEvent.click(within(nav).getByRole('button', { name: 'Create document' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create document' }));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
@@ -1356,5 +1469,82 @@ describe('DocumentDetailPage', () => {
         );
       });
     });
+  });
+});
+
+describe('document editor frame navigation', () => {
+  it('updates the outline when headings are edited, highlights cursor and scroll sections, and navigates without saving', async () => {
+    const api = stubDocumentApi({ document: documentRow({ content: STRUCTURED }) });
+    renderDocumentDetailPage();
+    await findBody();
+    const outline = screen.getByRole('region', { name: 'Outline' });
+    const initial = await within(outline).findByRole('button', { name: 'Method' });
+    fireEvent.click(initial);
+    expect(initial.getAttribute('aria-current')).toBe('location');
+    expect(savedBodies(api)).toHaveLength(0);
+    editBody({
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1 },
+          content: [{ type: 'text', text: 'New method' }],
+        },
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: 'Results' }],
+        },
+        { type: 'paragraph' },
+      ],
+    });
+    expect(within(outline).queryByRole('button', { name: 'Method' })).toBeNull();
+    fireEvent.click(within(outline).getByRole('button', { name: 'Results' }));
+    expect(
+      within(outline)
+        .getByRole('button', { name: 'Results' })
+        .getAttribute('aria-current'),
+    ).toBe('location');
+    fireEvent.scroll(window);
+    expect(
+      within(outline)
+        .getByRole('button', { name: 'Results' })
+        .getAttribute('aria-current'),
+    ).toBe('location');
+    editBody('No headings now');
+    expect(within(outline).getByText('Add headings to build an outline.')).toBeTruthy();
+    await waitForSaveState('Saved');
+  });
+  it('keeps research drafts and the editor alive when context tabs change', async () => {
+    const api = stubDocumentApi({});
+    renderDocumentDetailPage();
+    await findBody();
+    const editor = bodyEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }));
+    const panel = screen.getByRole('region', { name: 'AI research panel' });
+    const question = within(panel).getByRole('textbox');
+    fireEvent.change(question, { target: { value: 'My research question' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Sources' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }));
+    expect(within(panel).getByRole('textbox')).toHaveProperty(
+      'value',
+      'My research question',
+    );
+    expect(bodyEditor()).toBe(editor);
+    expect(savedBodies(api)).toHaveLength(0);
+  });
+  it('formats quotes with an active toolbar state and preserves them on autosave', async () => {
+    const api = stubDocumentApi({});
+    renderDocumentDetailPage();
+    await findBody();
+    act(() => bodyEditor().commands.setTextSelection({ from: 1, to: 13 }));
+    // jsdom has no text-range geometry; exercise the command without viewport scrolling.
+    bodyEditor().view.setProps({ handleScrollToSelection: () => true });
+    const quote = screen.getByRole('button', { name: 'Quote' });
+    fireEvent.click(quote);
+    expect(quote.getAttribute('aria-pressed')).toBe('true');
+    expect(bodyEditor().getJSON().content?.[0]?.type).toBe('blockquote');
+    await waitForSaveState('Saved');
+    expect(savedBodies(api).at(-1)?.content).toEqual(bodyEditor().getJSON());
   });
 });
