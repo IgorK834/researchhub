@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import type { ReactElement, ReactNode } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   cleanup,
@@ -14,6 +14,7 @@ import {
 } from '@testing-library/react';
 
 import { WorkspaceDetailPage } from './WorkspaceDetailPage';
+import { installResizeObserver } from '../shared/testing/resizeObserver';
 
 const WORKSPACE_ID = 'w-1';
 
@@ -298,6 +299,10 @@ function stubWorkspaceApi(options: {
         options.detailResponse ?? jsonResponse(current, 200, 'application/json'),
       );
     }
+    if (path.endsWith('/ai/conversations?offset=0'))
+      return Promise.resolve(
+        jsonResponse({ items: [], nextOffset: null }, 200, 'application/json'),
+      );
     if (path === '/api/workspaces' && method === 'GET') {
       return Promise.resolve(jsonResponse([], 200, 'application/json'));
     }
@@ -316,7 +321,12 @@ function renderWorkspaceDetailPage(
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[entry]}>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
+        <Routes>
+          <Route path="/app/workspaces/:workspaceId" element={<WorkspaceDetailPage />} />
+          <Route path="*" element={children} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>
   );
   render(<WorkspaceDetailPage section={section} />, { wrapper });
@@ -325,6 +335,10 @@ function renderWorkspaceDetailPage(
 
 const originalFetch = globalThis.fetch;
 const originalXhr = globalThis.XMLHttpRequest;
+let restoreResizeObserver: () => void;
+beforeEach(() => {
+  restoreResizeObserver = installResizeObserver();
+});
 
 /** Makes the progress-capable upload transport talk to the same in-memory API as the other requests. */
 function installUploadTransport(fetchMock: jest.Mock): void {
@@ -381,6 +395,7 @@ function installUploadTransport(fetchMock: jest.Mock): void {
 }
 
 afterEach(() => {
+  restoreResizeObserver();
   globalThis.fetch = originalFetch;
   globalThis.XMLHttpRequest = originalXhr;
   mockNavigate.mockReset();
@@ -508,9 +523,10 @@ describe('WorkspaceDetailPage', () => {
     // By text, not by role: the member section contributes its own `status` while it loads.
     expect(await screen.findByText('Changes saved.')).not.toBeNull();
     await waitFor(() => {
-      expect(
-        screen.getByRole('heading', { name: 'Electronics Lab — Team 4' }),
-      ).not.toBeNull();
+      expect(screen.getByLabelText('Name')).toHaveProperty(
+        'value',
+        'Electronics Lab — Team 4',
+      );
     });
 
     const patch = fetchMock.mock.calls.find(
@@ -573,9 +589,12 @@ describe('WorkspaceDetailPage', () => {
     renderWorkspaceDetailPage('/', 'settings');
     fireEvent.click(await screen.findByRole('button', { name: 'Archive workspace' }));
 
-    expect(screen.getByText(/Archive this workspace\?/).textContent).toContain(
-      'Nothing is deleted',
-    );
+    expect(
+      within(screen.getByRole('dialog')).getByText(
+        'No files or documents will be deleted.',
+      ),
+    ).not.toBeNull();
+    expect(screen.queryByText(/restore/i)).toBeNull();
     expect(
       fetchMock.mock.calls.some(
         (call) => (call[1] as RequestInit | undefined)?.method === 'POST',
@@ -584,7 +603,7 @@ describe('WorkspaceDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('button', { name: 'Archive workspace' })).not.toBeNull();
-    expect(screen.queryByText(/Archive this workspace\?/)).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('archives on confirmation, invalidates the list, and returns to it', async () => {
@@ -595,7 +614,11 @@ describe('WorkspaceDetailPage', () => {
     queryClient.setQueryData(['workspaces'], [workspaceRow()]);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Archive workspace' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm archive' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Archive workspace',
+      }),
+    );
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/app/workspaces');
@@ -627,7 +650,7 @@ describe('WorkspaceDetailPage', () => {
     renderWorkspaceDetailPage('/', 'documents');
 
     expect(await screen.findByText('Loading documents…')).not.toBeNull();
-    expect(screen.queryByText('No documents yet.')).toBeNull();
+    expect(screen.queryByText('Nothing written yet')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Final report' })).toBeNull();
   });
 
@@ -647,7 +670,7 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage('/', 'documents');
 
-    expect(await screen.findByText('No documents yet.')).not.toBeNull();
+    expect(await screen.findByText('Nothing written yet')).not.toBeNull();
     expect(screen.queryByText(/Could not load the documents/)).toBeNull();
   });
 
@@ -666,13 +689,14 @@ describe('WorkspaceDetailPage', () => {
         ),
       ).toBe(true);
     });
-    expect(screen.queryByText('No documents yet.')).toBeNull();
+    expect(screen.queryByText('Nothing written yet')).toBeNull();
   });
 
   it('creates a document and shows it in the refreshed list', async () => {
     const fetchMock = stubWorkspaceApi({ documents: [] });
 
     renderWorkspaceDetailPage('/', 'documents');
+    fireEvent.click(await screen.findByRole('button', { name: 'New document' }));
     fireEvent.change(await screen.findByLabelText('Document title'), {
       target: { value: 'Final report' },
     });
@@ -681,7 +705,7 @@ describe('WorkspaceDetailPage', () => {
     // Rendered from the refetched list, not from the mutation response being spliced into local state.
     expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
     await waitFor(() => {
-      expect(screen.getByLabelText('Document title')).toHaveProperty('value', '');
+      expect(screen.queryByRole('dialog', { name: 'New document' })).toBeNull();
     });
 
     const listReads = fetchMock.mock.calls.filter(
@@ -706,7 +730,7 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage('/', 'documents');
 
-    expect(await screen.findByRole('button', { name: 'Create document' })).not.toBeNull();
+    expect(await screen.findByRole('button', { name: 'New document' })).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Add a member' })).toBeNull();
   });
@@ -767,7 +791,7 @@ describe('WorkspaceDetailPage', () => {
       `/api/workspaces/${WORKSPACE_ID}/sources/s-1/content`,
     );
     expect(screen.getByText('Uploaded')).not.toBeNull();
-    expect(link.parentElement?.textContent).toContain('CSV, 2.0 KB');
+    expect(link.parentElement?.textContent).toContain('2.0 KB');
     expect(link.closest('tr')?.textContent).toContain('Ada Lovelace');
     expect(link.closest('tr')?.querySelector('time')?.getAttribute('dateTime')).toBe(
       '2026-09-23T10:15:30Z',
@@ -807,13 +831,13 @@ describe('WorkspaceDetailPage', () => {
     const fetchMock = stubWorkspaceApi({ sources: [] });
     installUploadTransport(fetchMock);
     renderWorkspaceDetailPage('/', 'sources');
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload source' }));
     const picker = await screen.findByLabelText('Source file');
     const file = new File(['name,value\na,1\n'], 'measurements.csv', {
       type: 'text/csv',
     });
 
     fireEvent.change(picker, { target: { files: [file] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
 
     expect(await screen.findByText('Uploaded measurements.csv.')).not.toBeNull();
     expect(screen.getByRole('link', { name: 'measurements.csv' })).not.toBeNull();
@@ -833,7 +857,7 @@ describe('WorkspaceDetailPage', () => {
       sourceState: sharedSources,
     });
     renderWorkspaceDetailPage('/', 'sources');
-    expect(await screen.findByText('No sources yet.')).not.toBeNull();
+    expect(await screen.findByText('Bring in your research material')).not.toBeNull();
 
     sharedSources.push({
       id: 's-remote',
@@ -861,10 +885,10 @@ describe('WorkspaceDetailPage', () => {
     installUploadTransport(fetchMock);
     renderWorkspaceDetailPage('/', 'sources');
     const file = new File(['a,b\n1,2'], 'team.csv', { type: 'text/csv' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload source' }));
     fireEvent.change(await screen.findByLabelText('Source file'), {
       target: { files: [file] },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
 
     expect(await screen.findByText('Uploading team.csv: 50%')).not.toBeNull();
     expect((screen.getByLabelText('Upload progress') as HTMLProgressElement).value).toBe(
@@ -883,10 +907,10 @@ describe('WorkspaceDetailPage', () => {
     installUploadTransport(fetchMock);
     renderWorkspaceDetailPage('/', 'sources');
     const file = new File(['MZ'], 'team.csv', { type: 'text/csv' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload source' }));
     fireEvent.change(await screen.findByLabelText('Source file'), {
       target: { files: [file] },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       'The file contents do not match its .csv extension',
@@ -901,10 +925,10 @@ describe('WorkspaceDetailPage', () => {
       type: 'application/octet-stream',
     });
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Upload source' }));
     fireEvent.change(await screen.findByLabelText('Source file'), {
       target: { files: [file] },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Upload source' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Files of type .exe are not supported',
@@ -955,14 +979,17 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage('/', 'members');
 
-    expect(await screen.findByLabelText('Role for Kasia Nowak')).toHaveProperty(
-      'value',
-      'EDITOR',
-    );
-    expect(screen.getByLabelText('Role for Ada Lovelace')).toHaveProperty(
-      'value',
-      'OWNER',
-    );
+    const table = await screen.findByRole('table', { name: 'Members' });
+    expect(within(table).getByText('Editor')).not.toBeNull();
+    expect(within(table).getByText('Owner')).not.toBeNull();
+    expect(
+      within(table)
+        .getByRole('button', { name: 'Role for Kasia Nowak' })
+        .getAttribute('aria-haspopup'),
+    ).toBe('menu');
+    expect(
+      within(table).getByRole('button', { name: 'Role for Ada Lovelace' }),
+    ).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Remove Kasia Nowak' })).not.toBeNull();
     expect(screen.getByRole('heading', { name: 'Add a member' })).not.toBeNull();
   });
@@ -1042,9 +1069,8 @@ describe('WorkspaceDetailPage', () => {
     });
 
     renderWorkspaceDetailPage('/', 'members');
-    fireEvent.change(await screen.findByLabelText('Role for Ada Lovelace'), {
-      target: { value: 'EDITOR' },
-    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Role for Ada Lovelace' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editor' }));
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('at least one owner');
@@ -1055,6 +1081,9 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage('/', 'members');
     fireEvent.click(await screen.findByRole('button', { name: 'Remove Kasia Nowak' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove member' }),
+    );
 
     await waitFor(() => {
       expect(screen.queryByText('kasia@example.com')).toBeNull();

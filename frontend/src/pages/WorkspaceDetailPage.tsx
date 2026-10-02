@@ -10,10 +10,8 @@ import {
 import { SourceComparisonPanel } from '../features/ai/components/SourceComparisonPanel';
 import { WorkspaceQuestions } from '../features/ai/components/WorkspaceQuestions';
 
-import { CreateDocumentForm } from '../features/documents/components/CreateDocumentForm';
 import { DocumentList } from '../features/documents/components/DocumentList';
 import { SourceList } from '../features/sources/components/SourceList';
-import { SourceUploadForm } from '../features/sources/components/SourceUploadForm';
 import {
   useWorkspaceMembersQuery,
   useWorkspaceQuery,
@@ -22,6 +20,11 @@ import { AddMemberForm } from '../features/workspaces/components/AddMemberForm';
 import { ArchiveWorkspaceButton } from '../features/workspaces/components/ArchiveWorkspaceButton';
 import { EditWorkspaceForm } from '../features/workspaces/components/EditWorkspaceForm';
 import { MemberList } from '../features/workspaces/components/MemberList';
+import { RoleInformation } from '../features/workspaces/components/RoleInformation';
+import { WorkspaceOverview } from './WorkspaceOverview';
+import type { WorkspaceQuestion } from '../features/ai/api/questionApi';
+import { Icon } from '../shared/components/icons';
+import styles from '../features/workspaces/components/WorkspaceViews.module.css';
 import { describeError, hasApiErrorCode } from '../shared/api';
 import {
   legacyWorkspaceSection,
@@ -98,6 +101,7 @@ function WorkspaceDetail({
     workspace !== undefined && error === null,
   );
   const navigate = useNavigate();
+  const location = useLocation();
   // "Analyze this data" on a dataset preview arrives here with the source (and sheet) already chosen.
   const [search] = useSearchParams();
   const analyzeSource = search.get('analyzeSource');
@@ -126,14 +130,58 @@ function WorkspaceDetail({
 
   const isArchived = workspace.archivedAt !== null;
 
-  const { canManage, canEditContent } = workspaceCapabilities(workspace.role, isArchived);
+  const { canManage, canEditContent, canViewSettings } = workspaceCapabilities(
+    workspace.role,
+    isArchived,
+  );
+
+  if (section === 'overview') return <WorkspaceOverview workspace={workspace} />;
+  // Presentation routing only: the backend continues to enforce membership and workspace writes.
+  if (section === 'settings' && !canViewSettings)
+    return <Navigate replace to={workspaceSectionPath(workspace.id, 'overview')} />;
+  const initialQuestion = (
+    location.state as { workspaceQuestion?: WorkspaceQuestion } | null
+  )?.workspaceQuestion;
+  if (section === 'documents')
+    return (
+      <DocumentList
+        workspaceId={workspace.id}
+        canEdit={canEditContent}
+        onCreated={(id) => {
+          void navigate(`/app/workspaces/${workspace.id}/documents/${id}`);
+        }}
+      />
+    );
+  if (section === 'sources')
+    return (
+      <SourceList
+        key={workspace.id}
+        workspaceId={workspace.id}
+        canEdit={canEditContent}
+        archived={isArchived}
+        uploaderNames={
+          new Map(members?.map((member) => [member.userId, member.displayName]))
+        }
+      />
+    );
+  const heading =
+    section === 'members'
+      ? 'Members'
+      : section === 'settings'
+        ? 'Settings'
+        : workspace.name;
 
   return (
-    <section>
-      <h1>{workspace.name}</h1>
+    <section
+      className={
+        section === 'members' || section === 'settings' ? styles.sectionPage : undefined
+      }
+    >
+      <h1>{heading}</h1>
 
-      <p>
-        Your role: <RoleBadge role={workspace.role} />
+      <p className={styles.sectionMeta}>
+        {heading === workspace.name ? 'Your role:' : workspace.name}{' '}
+        <RoleBadge role={workspace.role} />
       </p>
 
       {isArchived ? (
@@ -149,35 +197,18 @@ function WorkspaceDetail({
         <p>{workspace.description}</p>
       )}
 
-      {/* Every member can read the documents; only an editor or owner can start one. */}
-      {section === 'overview' || section === 'documents' ? (
-        <DocumentList workspaceId={workspace.id} />
-      ) : null}
-      {section === 'documents' && canEditContent ? (
-        <CreateDocumentForm
-          workspaceId={workspace.id}
-          onCreated={(created) => {
-            // A new document is opened straight away: it was created to be written in.
-            void navigate(`/app/workspaces/${workspace.id}/documents/${created.id}`);
-          }}
-        />
-      ) : null}
-
-      {section === 'overview' || section === 'sources' ? (
-        <SourceList
-          workspaceId={workspace.id}
-          uploaderNames={
-            new Map(members?.map((member) => [member.userId, member.displayName]))
-          }
-        />
-      ) : null}
-      {section === 'sources' && canEditContent ? (
-        <SourceUploadForm workspaceId={workspace.id} />
-      ) : null}
       {section === 'ask' ? (
         <>
           <WorkspaceQuestions
             workspaceId={workspace.id}
+            initialQuestion={initialQuestion}
+            initialSourceId={search.get('askSource') ?? undefined}
+            onInitialQuestionUsed={() => {
+              void navigate(`${location.pathname}${location.search}${location.hash}`, {
+                replace: true,
+                state: null,
+              });
+            }}
             {...(analyzeSource === null
               ? {}
               : {
@@ -194,26 +225,49 @@ function WorkspaceDetail({
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}
       {section === 'members' ? (
-        <MemberList workspaceId={workspace.id} canManage={canManage} />
+        <div className={styles.adminGrid}>
+          <MemberList
+            key={workspace.id}
+            workspaceId={workspace.id}
+            canManage={canManage}
+          />
+          <div className={styles.adminColumn}>
+            {canManage ? (
+              <AddMemberForm key={workspace.id} workspaceId={workspace.id} />
+            ) : null}
+            <RoleInformation />
+          </div>
+        </div>
       ) : null}
 
       {/* Owner-only, and only while the workspace is active. Both conditions are re-checked by the
           server, which answers 403 to a non-owner and 409 on an archived workspace. */}
-      {section === 'members' && canManage ? (
-        <AddMemberForm workspaceId={workspace.id} />
-      ) : null}
-      {section === 'settings' && canManage ? (
-        <>
-          <EditWorkspaceForm workspace={workspace} />
-          <ArchiveWorkspaceButton workspaceId={workspace.id} />
-        </>
-      ) : null}
-
-      {section === 'settings' && !canManage ? (
-        <p>
-          Workspace settings are read-only. Only an owner of an active workspace can
-          change them.
-        </p>
+      {section === 'settings' ? (
+        <div className={styles.settingsGrid}>
+          <nav className={styles.settingsNav} aria-label="Workspace settings sections">
+            <Link to={workspaceSectionPath(workspace.id, 'settings')} aria-current="page">
+              <Icon name="sliders" size={18} />
+              General
+            </Link>
+            <Link to={workspaceSectionPath(workspace.id, 'members')}>
+              <Icon name="users" size={18} />
+              Members
+            </Link>
+          </nav>
+          <div className={styles.adminColumn}>
+            <EditWorkspaceForm
+              key={workspace.id}
+              workspace={workspace}
+              readOnly={!canManage}
+            />
+            {canManage ? (
+              <ArchiveWorkspaceButton
+                workspaceId={workspace.id}
+                workspaceName={workspace.name}
+              />
+            ) : null}
+          </div>
+        </div>
       ) : null}
       <p>
         <Link to="/app/workspaces">Back to your workspaces</Link>

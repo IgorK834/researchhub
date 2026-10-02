@@ -121,17 +121,26 @@ function setup(path: string, routes = appRoutes) {
 }
 
 it.each([
-  ['', 'Overview', 'Documents'],
-  ['/documents', 'Documents', 'New document'],
-  ['/sources', 'Sources', 'Upload source'],
+  ['', 'Overview', 'Recent documents'],
+  ['/documents', 'Documents', 'Documents'],
+  ['/sources', 'Sources', 'Sources'],
   ['/ask', 'Ask AI', 'Ask workspace sources'],
-  ['/members', 'Members', 'Members'],
-  ['/settings', 'Settings', 'Workspace settings'],
+  ['/members', 'Members', 'Members table'],
+  ['/settings', 'Settings', 'General'],
 ])(
   'opens section %s directly and marks its sidebar entry',
   async (suffix, name, content) => {
     setup(`/app/workspaces/w1${suffix}`);
-    await screen.findByRole('heading', { name: workspace.name });
+    await screen.findByRole('heading', {
+      name:
+        suffix === '/documents' || suffix === '/sources'
+          ? name
+          : suffix === '/members'
+            ? 'Members'
+            : suffix === '/settings'
+              ? 'Settings'
+              : workspace.name,
+    });
     expect(screen.getAllByRole('main')).toHaveLength(1);
     const entry =
       within(
@@ -245,7 +254,7 @@ it('uses the application browser router and session guard on a history change', 
       <AppRouter />
     </QueryClientProvider>,
   );
-  expect(await screen.findByRole('heading', { name: 'Electronics Lab' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Settings' })).toBeTruthy();
   cleanup();
   window.history.replaceState(null, '', '/');
   await act(() => window.dispatchEvent(new PopStateEvent('popstate')));
