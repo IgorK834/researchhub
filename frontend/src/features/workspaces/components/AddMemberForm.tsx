@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
+import { TextField, Select } from '../../../shared/components/forms';
 import { useAddWorkspaceMember } from '../api/useWorkspaces';
 
 interface AddMemberFormProps {
@@ -61,41 +62,30 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
       >
         {formMessage !== null ? <p role="alert">{formMessage}</p> : null}
 
-        <p>
-          <label htmlFor="add-member-email">Email</label>
-          <input
-            id="add-member-email"
-            name="add-member-email"
-            type="email"
-            value={email}
-            autoComplete="off"
-            aria-invalid={emailError !== undefined}
-            {...(emailError === undefined
-              ? {}
-              : { 'aria-describedby': 'add-member-email-error' })}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          {emailError === undefined ? null : (
-            <span id="add-member-email-error">{emailError}</span>
-          )}
-        </p>
+        <TextField
+          id="add-member-email"
+          name="add-member-email"
+          label="Email"
+          type="email"
+          autoComplete="off"
+          value={email}
+          error={emailError}
+          onChange={(event) => setEmail(event.target.value)}
+        />
 
-        <p>
-          <label htmlFor="add-member-role">Role</label>
-          <select
-            id="add-member-role"
-            name="add-member-role"
-            value={role}
-            aria-invalid={roleError !== undefined}
-            onChange={(event) =>
-              setRole(event.target.value === 'VIEWER' ? 'VIEWER' : 'EDITOR')
-            }
-          >
-            <option value="EDITOR">EDITOR</option>
-            <option value="VIEWER">VIEWER</option>
-          </select>
-          {roleError === undefined ? null : <span>{roleError}</span>}
-        </p>
+        <Select
+          id="add-member-role"
+          name="add-member-role"
+          label="Role"
+          value={role}
+          error={roleError}
+          onChange={(event) =>
+            setRole(event.target.value === 'VIEWER' ? 'VIEWER' : 'EDITOR')
+          }
+        >
+          <option value="EDITOR">EDITOR</option>
+          <option value="VIEWER">VIEWER</option>
+        </Select>
 
         <button type="submit" disabled={isPending}>
           {isPending ? 'Adding…' : 'Add member'}

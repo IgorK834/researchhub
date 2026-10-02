@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
 
 import type { Workspace } from '../api/workspaceApi';
+import { WorkspaceCard } from './WorkspaceCard';
+import styles from './Workspaces.module.css';
 
 interface WorkspaceListProps {
   readonly workspaces: readonly Workspace[];
@@ -19,17 +20,11 @@ interface WorkspaceListProps {
  * (`WorkspaceAuthorizationService`).
  */
 export function WorkspaceList({ workspaces }: WorkspaceListProps): ReactElement {
-  if (workspaces.length === 0) {
-    return <p>You do not belong to any workspace yet. Create one to get started.</p>;
-  }
-
   return (
-    <ul>
+    <ul className={styles.grid} aria-label="Your workspaces">
       {workspaces.map((workspace) => (
         <li key={workspace.id}>
-          <Link to={`/app/workspaces/${workspace.id}`}>{workspace.name}</Link>
-          <span> — {workspace.role}</span>
-          {workspace.description === null ? null : <p>{workspace.description}</p>}
+          <WorkspaceCard workspace={workspace} />
         </li>
       ))}
     </ul>

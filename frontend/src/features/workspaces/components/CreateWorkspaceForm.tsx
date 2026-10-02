@@ -1,7 +1,12 @@
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type RefObject } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
+import { TextField, Textarea } from '../../../shared/components/forms';
 import { useCreateWorkspace } from '../api/useWorkspaces';
+import { Button } from '../../../shared/components/Button';
+import { Banner } from '../../../shared/components/feedback';
+import { WorkspaceCard } from './WorkspaceCard';
+import styles from './Workspaces.module.css';
 
 /**
  * Form for creating a workspace.
@@ -10,11 +15,18 @@ import { useCreateWorkspace } from '../api/useWorkspaces';
  * here, so the field limits cannot drift from the backend's. The submitted name is cleared on success,
  * which is also when the list behind this form refetches.
  *
- * Fields are written out rather than reusing `features/auth`'s `FormField`: one feature must not import
- * from another (docs/development/frontend-structure.md), and a description needs a `textarea`, which
- * that component does not render.
+ * Shared TextField and Textarea own the accessible field chrome. This feature owns the draft,
+ * submission and server errors, without importing components from another feature.
  */
-export function CreateWorkspaceForm(): ReactElement {
+export function CreateWorkspaceForm({
+  onCancel,
+  onCreated,
+  initialFocusRef,
+}: {
+  readonly onCancel: () => void;
+  readonly onCreated: () => void;
+  readonly initialFocusRef: RefObject<HTMLInputElement | null>;
+}): ReactElement {
   const { mutate, isPending, error } = useCreateWorkspace();
 
   const [name, setName] = useState('');
@@ -30,21 +42,21 @@ export function CreateWorkspaceForm(): ReactElement {
     error !== null && Object.keys(fieldErrors).length === 0 ? describeError(error) : null;
 
   const submit = (): void => {
+    if (isPending) return;
     mutate(
       { name, description },
       {
         onSuccess: () => {
           setName('');
           setDescription('');
+          onCreated();
         },
       },
     );
   };
 
   return (
-    <section aria-labelledby="create-workspace-heading">
-      <h2 id="create-workspace-heading">New workspace</h2>
-
+    <div className={styles.createLayout}>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -52,48 +64,53 @@ export function CreateWorkspaceForm(): ReactElement {
         }}
         noValidate
       >
-        {formMessage !== null ? <p role="alert">{formMessage}</p> : null}
+        {formMessage !== null ? <Banner tone="error" lead={formMessage} /> : null}
 
-        <p>
-          <label htmlFor="workspace-name">Name</label>
-          <input
-            id="workspace-name"
-            name="workspace-name"
-            type="text"
-            value={name}
-            autoComplete="off"
-            aria-invalid={nameError !== undefined}
-            {...(nameError === undefined
-              ? {}
-              : { 'aria-describedby': 'workspace-name-error' })}
-            onChange={(event) => setName(event.target.value)}
-          />
-          {nameError === undefined ? null : (
-            <span id="workspace-name-error">{nameError}</span>
-          )}
-        </p>
+        <TextField
+          id="workspace-name"
+          name="workspace-name"
+          label="Name"
+          type="text"
+          size="large"
+          ref={initialFocusRef}
+          autoComplete="off"
+          value={name}
+          error={nameError}
+          onChange={(event) => setName(event.target.value)}
+        />
 
-        <p>
-          <label htmlFor="workspace-description">Description</label>
-          <textarea
-            id="workspace-description"
-            name="workspace-description"
-            value={description}
-            aria-invalid={descriptionError !== undefined}
-            {...(descriptionError === undefined
-              ? {}
-              : { 'aria-describedby': 'workspace-description-error' })}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-          {descriptionError === undefined ? null : (
-            <span id="workspace-description-error">{descriptionError}</span>
-          )}
-        </p>
+        <Textarea
+          id="workspace-description"
+          name="workspace-description"
+          label="Description"
+          hint="Optional"
+          value={description}
+          error={descriptionError}
+          onChange={(event) => setDescription(event.target.value)}
+        />
 
-        <button type="submit" disabled={isPending}>
-          {isPending ? 'Creating…' : 'Create workspace'}
-        </button>
+        <div className={styles.formActions}>
+          <Button type="button" variant="secondary" size="large" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            size="large"
+            busy={isPending}
+            busyLabel="Creating…"
+            aria-label={isPending ? 'Creating…' : undefined}
+          >
+            Create workspace
+          </Button>
+        </div>
       </form>
-    </section>
+      <aside className={styles.preview} aria-label="Workspace preview">
+        <p className={styles.previewLabel}>Preview</p>
+        <WorkspaceCard preview name={name} description={description} />
+        <p className={styles.previewHelp}>
+          You&apos;ll add sources and invite people next.
+        </p>
+      </aside>
+    </div>
   );
 }

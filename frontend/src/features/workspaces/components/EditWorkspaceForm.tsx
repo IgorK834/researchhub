@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
+import { TextField, Textarea } from '../../../shared/components/forms';
 import { useUpdateWorkspace } from '../api/useWorkspaces';
 import type { Workspace } from '../api/workspaceApi';
 
@@ -60,41 +61,25 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps): ReactE
         {formMessage !== null ? <p role="alert">{formMessage}</p> : null}
         {saved && error === null ? <p role="status">Changes saved.</p> : null}
 
-        <p>
-          <label htmlFor="edit-workspace-name">Name</label>
-          <input
-            id="edit-workspace-name"
-            name="edit-workspace-name"
-            type="text"
-            value={name}
-            autoComplete="off"
-            aria-invalid={nameError !== undefined}
-            {...(nameError === undefined
-              ? {}
-              : { 'aria-describedby': 'edit-workspace-name-error' })}
-            onChange={(event) => setName(event.target.value)}
-          />
-          {nameError === undefined ? null : (
-            <span id="edit-workspace-name-error">{nameError}</span>
-          )}
-        </p>
+        <TextField
+          id="edit-workspace-name"
+          name="edit-workspace-name"
+          label="Name"
+          type="text"
+          autoComplete="off"
+          value={name}
+          error={nameError}
+          onChange={(event) => setName(event.target.value)}
+        />
 
-        <p>
-          <label htmlFor="edit-workspace-description">Description</label>
-          <textarea
-            id="edit-workspace-description"
-            name="edit-workspace-description"
-            value={description}
-            aria-invalid={descriptionError !== undefined}
-            {...(descriptionError === undefined
-              ? {}
-              : { 'aria-describedby': 'edit-workspace-description-error' })}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-          {descriptionError === undefined ? null : (
-            <span id="edit-workspace-description-error">{descriptionError}</span>
-          )}
-        </p>
+        <Textarea
+          id="edit-workspace-description"
+          name="edit-workspace-description"
+          label="Description"
+          value={description}
+          error={descriptionError}
+          onChange={(event) => setDescription(event.target.value)}
+        />
 
         <button type="submit" disabled={isPending}>
           {isPending ? 'Saving…' : 'Save changes'}

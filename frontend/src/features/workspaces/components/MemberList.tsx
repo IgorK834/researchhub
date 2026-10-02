@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 
 import { describeError } from '../../../shared/api';
+import { Select } from '../../../shared/components/forms';
 import {
   useChangeWorkspaceMemberRole,
   useRemoveWorkspaceMember,
@@ -62,11 +63,9 @@ export function MemberList({ workspaceId, canManage }: MemberListProps): ReactEl
               <span>{member.displayName}</span> <span>{member.email}</span>
               {canManage ? (
                 <>
-                  <label htmlFor={`member-role-${member.userId}`}>
-                    Role for {member.displayName}
-                  </label>
-                  <select
+                  <Select
                     id={`member-role-${member.userId}`}
+                    label={`Role for ${member.displayName}`}
                     value={member.role}
                     disabled={busy}
                     onChange={(event) => {
@@ -81,7 +80,7 @@ export function MemberList({ workspaceId, canManage }: MemberListProps): ReactEl
                         {role}
                       </option>
                     ))}
-                  </select>
+                  </Select>
 
                   <button
                     type="button"
