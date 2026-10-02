@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { describeError, isApiError, queryKeys } from '../api';
 import { useHealthQuery } from '../hooks/useHealthQuery';
+import { Banner } from './feedback';
 
 /**
  * Smoke-test surface for the shared API client and TanStack Query: renders the backend health
@@ -29,17 +30,18 @@ export function ApiStatusBanner(): ReactElement {
     <section aria-labelledby="api-status-heading">
       <h2 id="api-status-heading">Backend status</h2>
 
-      <p role="status" aria-live="polite">
-        {isPending ? 'Checking the API…' : null}
-
-        {error !== null && !isPending
-          ? `Unavailable: ${describeError(error)}${
-              isApiError(error) ? ` (code ${error.code})` : ''
-            }`
-          : null}
-
-        {data !== undefined && error === null ? `API reports ${data.status}` : null}
-      </p>
+      <Banner
+        role="status"
+        tone={isPending ? 'info' : error !== null ? 'error' : 'success'}
+        icon={isPending ? 'refresh' : undefined}
+        lead={
+          isPending
+            ? 'Checking the API…'
+            : error !== null
+              ? `Unavailable: ${describeError(error)}${isApiError(error) ? ` (code ${error.code})` : ''}`
+              : `API reports ${data?.status ?? 'unknown'}`
+        }
+      />
 
       <button type="button" onClick={refresh} disabled={isFetching}>
         {isFetching ? 'Refreshing…' : 'Refresh status'}

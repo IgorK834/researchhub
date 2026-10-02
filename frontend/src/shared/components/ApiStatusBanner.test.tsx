@@ -3,7 +3,7 @@
  */
 import type { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import { ApiStatusBanner } from './ApiStatusBanner';
 
@@ -109,5 +109,20 @@ describe('ApiStatusBanner', () => {
 
     const status = await screen.findByText(/Could not reach the ResearchHub API/);
     expect(status).not.toBeNull();
+  });
+
+  it('refreshes the health query and preserves the existing status announcement', async () => {
+    stubFetch(() =>
+      Promise.resolve(jsonResponse({ status: 'UP' }, 200, 'application/json')),
+    );
+    renderBanner();
+    await screen.findByText('API reports UP');
+    expect(screen.getByRole('status').textContent).toBe('API reports UP');
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
+    await screen.findByRole('button', { name: 'Refresh status' });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByRole('status').querySelector('svg')?.getAttribute('aria-hidden'),
+    ).toBe('true');
   });
 });
