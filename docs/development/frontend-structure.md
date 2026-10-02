@@ -131,6 +131,14 @@ SourceList uses the semantic DataTable; its Uploaded by and Date columns opt int
 priority. Dataset, comparison and other tables keep all columns unless their consumers explicitly
 mark metadata. No generic behavior guesses priority from translated header text.
 
+RH-279/RH-295/RH-296 provide feature-owned source type badges/tiles and status chips, a dedicated
+Sources library with type counts, and a multi-file upload dialog. Exhaustive visual maps live
+alongside the source type/status contracts; unknown wire values have neutral fallbacks. Upload
+queue state belongs to the mounted form rather than the dialog contents, so closing it does not
+cancel pending uploads or backend processing. Upload validation, download and reprocess use the
+existing transport. The library owns its upload action; the shell still links to its opener from
+the source reader. Ask source opens the existing question form with the selected source scope.
+
 RH-278 centralizes UI affordances in `shared/utils/workspaceCapabilities.ts`; workspace,
 document and source pages and the shell consume the same role/archive mapping. The server
 still authorizes every request. `shared/components/identity/RoleBadge.tsx` adds the design's
@@ -143,3 +151,19 @@ identity. Sidebar, top-bar and empty-state openers share one dialog. Drafts stay
 successful creation waits for the existing workspace query invalidation/refetch before
 closing. See the [workspace home contract](../../frontend/src/features/workspaces/components/README.md)
 for preview, focus, error and request behavior.
+
+RH-286–RH-288 compose the workspace landing and administration screens. The route-level
+`pages/WorkspaceOverview.tsx` combines existing feature queries; feature modules do not
+gain new cross-feature imports. The AI feature shares its conversation-summary query with
+ResearchPanel, and the Overview ask form hands its question/scope to the existing `/ask`
+flow through consumed router state. Workspace-specific table, role information, General
+form and confirmations remain in `features/workspaces/components`. Owner/Editor Settings
+visibility is explicit in the shared capability helper. See the
+[workspace screen contracts](../../frontend/src/features/workspaces/components/README.md).
+
+RH-289–RH-291 add the dedicated Documents table and editor frame. Document-specific table,
+column navigation, outline, citation-derived source lists and paper styles live in
+`features/documents`; the page composes workspace authorization and existing AI panels.
+Stable portals place save/history/authoring UI into shell slots without remounting the
+editor or AI drafts. Contracts, JSON compatibility and verification commands:
+[document screens](../../frontend/src/features/documents/components/README.md).

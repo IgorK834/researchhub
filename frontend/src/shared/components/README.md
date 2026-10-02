@@ -100,7 +100,7 @@ with a neutral users badge; a blank string reads "Unknown role". Every badge inc
 an icon and a visible word. `workspaceRoleLabel` supplies the same text for the switcher.
 
 `workspaceCapabilities(role: string | undefined, archived: boolean)` in `shared/utils`
-returns `{ canRead, canEditContent, canManage }` for an **already authorized** membership:
+returns `{ canRead, canEditContent, canManage, canViewSettings }` for an **already authorized** membership:
 
 | Role                      | Read | Edit content | Manage workspace |
 | ------------------------- | ---- | ------------ | ---------------- |
@@ -115,6 +115,9 @@ does not grant write affordances. Consumers omit unavailable controls rather tha
 them; the helper neither gates routes nor replaces server authorization. The source page
 uses the shared workspace metadata query for both role and archive state, while its member
 query remains responsible for uploader labels. Reading and downloads are unchanged.
+`canViewSettings` is true for Owner and Editor, including archived workspaces where the
+General card is read-only. Viewer and unfamiliar roles have no Settings entry and direct
+Settings URLs return to Overview. This controls presentation, not server access rights.
 
 ## Overlays (RH-270)
 
@@ -130,6 +133,8 @@ starts on the first enabled visible control and returns to the element active at
 An outside, hidden or disabled initial target falls back to an available dialog control.
 An optional `className` adds feature-specific geometry; a CSS Module can set
 `--dialog-width` (600 px by default) while the surface remains capped at the viewport.
+`closeDisabled` disables the explicit close button while a submitted operation is pending;
+pair it with `dismissible={false}` and disabled cancellation controls when appropriate.
 `dismissible={false}` blocks Escape/outside dismissal; the named close control remains
 available for explicit cancellation. The callback never performs the destructive action.
 
@@ -141,6 +146,8 @@ native buttons; ArrowDown/Up open at either end. Inside, arrows wrap over enable
 Home/End select an end, typeahead finds labels, Tab exits and Escape returns to the trigger.
 Shortcut hints do not register application shortcuts. Context menus do not execute actions
 on focus. Popups clamp to the viewport and reposition on scrolling/resizing.
+`triggerIcon` uses an icon-only trigger with the same accessible `label`; `disabled`
+disables that trigger. The role menu uses these options while a membership write is pending.
 
 Popups opened inside a modal portal inside its surface so focus and stacking remain
 consistent. Layer tokens are content 0, popover 100, slide-over 200, modal 300, toast 400;
@@ -271,12 +278,14 @@ lets the shell wait for workspace authorization before requesting its collection
 counts remain unknown, and failed workspace context is suppressed even if cached metadata
 exists. The outlet stays mounted while these queries resolve or fail, preserving drafts.
 
-Documents, Sources, Ask AI, Members and owner Settings destinations use the workspace
+Documents, Sources, Ask AI, Members and Owner/Editor Settings destinations use the workspace
 section routes. Existing heading ids remain available for focus navigation. The app focuses
 and scrolls to the heading, including asynchronously rendered content and repeated actions.
-Detail breadcrumbs resolve names from the same list queries. New workspace/document,
-Upload source and Add member top-bar actions focus existing forms in their sections. Settings and write actions are absent for viewers and archived workspaces;
-editors can write but cannot manage the workspace. Server authorization remains authoritative.
+Detail breadcrumbs resolve names from the same list queries. New document,
+Upload source and Add member top-bar actions focus existing forms in their sections.
+New workspace opens the shared creation dialog. Settings is absent for viewers;
+write actions are absent for viewers and archived workspaces.
+Editors can read General settings and write content in active workspaces but cannot manage the workspace. Server authorization remains authoritative.
 
 The grounding sticker counts **READY** sources, matching the existing question scope; the
 Sources navigation count includes every listed source. Member avatars describe workspace
@@ -302,7 +311,8 @@ but is removed from the application header. The responsive contract is documente
 Overview keeps the metadata and read-only document/source lists; creation/upload, research,
 member management and owner settings live in their respective sections. Archived and role
 restrictions, server field errors and immutable-version behavior are unchanged. Settings
-opened by a non-owner render a read-only explanation. Unknown sections resolve to Not Found.
+opened by an Editor render read-only metadata; Viewer and unfamiliar roles return to Overview.
+Owner settings are read-only when archived. Unknown sections resolve to Not Found.
 
 The document and source URLs retain their existing shapes. All query parameters, including
 `page`, `unit`, `version`, `processingVersion`, `analyzeSource`, `analyzeVersion` and
@@ -337,7 +347,7 @@ same result, preserving `table`, `th`, scopes and row headers. SourceList marks 
 and **Date** as metadata. Tables scroll within their named container rather than the page.
 At least one column must remain visible. `ResponsiveFilters` moves consumer-supplied controls
 into a single **Filters** popover and keeps their DOM/state alive; it owns no filtering logic.
-SourceList currently has no filter controls, so this change does not add a new filter feature.
+SourceList uses local type tabs with counts; search, additional filters and a grid view remain out of scope.
 
 References: `Brand&system.pdf` p.3; `Document_editor.pdf` p.1; `Sources.pdf` p.3;
 `Ask,evidence&comparison.pdf` p.1; `Reusable_parts.pdf` p.5; `Responsive.pdf` p.1.
