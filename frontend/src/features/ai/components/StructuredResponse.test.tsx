@@ -1,8 +1,11 @@
 /** @jest-environment jsdom */
-import { render, screen } from '@testing-library/react';
+import { render as renderView, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 import type { GeneratedResponse } from '../api/generationApi';
 import { StructuredResponse } from './StructuredResponse';
 
+jest.mock('../api/citationEvidence', () => ({ fetchCitationFragment: async (citation: unknown) => ({ ...(citation as object), content: 'Stored cited passage' }) }));
 const response: GeneratedResponse = {
   result: {
     schemaVersion: '1.0',
@@ -114,3 +117,5 @@ it('renders local citation keys with escaped source titles while retaining the s
   ).toContain('/sources/s1?processingVersion=v1');
   expect(document.querySelector('img')).toBeNull();
 });
+
+function render(element: ReactElement) { return renderView(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{element}</QueryClientProvider>); }
