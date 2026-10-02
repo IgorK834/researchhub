@@ -4,6 +4,7 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import prettierConfig from 'eslint-config-prettier';
 import globals from 'globals';
+import css from '@eslint/css';
 
 /**
  * ESLint 9 flat config.
@@ -21,7 +22,24 @@ export default [
     ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
 
-  js.configs.recommended,
+  { ...js.configs.recommended, files: ['**/*.{js,cjs,mjs,jsx,ts,tsx}'] },
+
+  {
+    files: ['src/**/*.css'],
+    plugins: { css },
+    language: 'css/css',
+    rules: {
+      ...css.configs.recommended.rules,
+      // Definitions live in tokens.css; a contract test catches missing references.
+      'css/no-invalid-properties': ['error', { allowUnknownVariables: true }],
+    },
+  },
+
+  {
+    files: ['src/**/*.d.ts'],
+    // Babel's scope model conflates separate ambient module declarations.
+    rules: { 'no-redeclare': 'off' },
+  },
 
   {
     files: ['src/**/*.{ts,tsx,js,jsx}'],

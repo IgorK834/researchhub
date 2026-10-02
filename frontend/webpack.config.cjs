@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('node:fs');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
@@ -51,11 +52,64 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
+          // Only *.module.css is scoped; tokens, base styles and fonts remain global.
+          oneOf: [
+            {
+              test: /\.module\.css$/,
+              use: [
+                'style-loader',
+                {
+                  loader: 'css-loader',
+                  options: {
+                    modules: {
+                      namedExport: false,
+                      exportLocalsConvention: 'as-is',
+                      localIdentName: isProduction
+                        ? 'rh_[hash:base64:8]'
+                        : 'rh_[name]__[local]__[hash:base64:5]',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              use: [
+                'style-loader',
+                { loader: 'css-loader', options: { modules: false } },
+              ],
+            },
+          ],
+        },
+        {
+          // SVG imports are URLs, never implicit React components or inline HTML.
+          test: /\.(woff2?|ttf|otf|eot|svg)$/i,
+          type: 'asset/resource',
+          generator: { filename: 'assets/[name].[contenthash][ext]' },
         },
       ],
     },
     plugins: [
+      {
+        // Font binaries and icon artwork must travel with their redistribution notices.
+        apply(compiler) {
+          compiler.hooks.thisCompilation.tap('ResearchHubNotices', (compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'ResearchHubNotices',
+                stage: webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+              },
+              () => {
+                compilation.emitAsset(
+                  'THIRD_PARTY_NOTICES.txt',
+                  new webpack.sources.RawSource(
+                    fs.readFileSync(path.resolve(__dirname, 'THIRD_PARTY_NOTICES.md')),
+                  ),
+                );
+              },
+            );
+          });
+        },
+      },
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'public/index.html'),
       }),
