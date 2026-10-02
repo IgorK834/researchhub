@@ -2,11 +2,31 @@
  * @jest-environment jsdom
  */
 import type { ReactElement, ReactNode } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { WorkspaceListPage } from './WorkspaceListPage';
+import {
+  CreateWorkspaceDialogProvider,
+  useCreateWorkspaceDialog,
+} from '../features/workspaces/components/CreateWorkspaceDialog';
+import { Button } from '../shared/components/Button';
+
+function Frame({ displayName }: { readonly displayName: string }): ReactElement {
+  const { openCreateWorkspace, defaultTriggerRef } = useCreateWorkspaceDialog();
+  return (
+    <>
+      <Button
+        ref={defaultTriggerRef}
+        onClick={(event) => openCreateWorkspace(event.currentTarget)}
+      >
+        New workspace
+      </Button>
+      <Outlet context={{ user: { displayName } }} />
+    </>
+  );
+}
 
 interface WorkspaceRow {
   readonly id: string;
@@ -101,22 +121,38 @@ function stubWorkspaceApi(options: {
   return fetchMock;
 }
 
-function renderWorkspaceListPage(): void {
+function renderWorkspaceListPage(displayName = 'Ada'): void {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={['/app']}>
+        <Routes>
+          <Route
+            path="/app"
+            element={
+              <CreateWorkspaceDialogProvider>
+                <Frame displayName={displayName} />
+              </CreateWorkspaceDialogProvider>
+            }
+          >
+            <Route index element={children} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>
   );
   render(<WorkspaceListPage />, { wrapper });
 }
 
 function fillAndSubmit(name: string, description: string): void {
+  fireEvent.click(screen.getByRole('button', { name: 'New workspace' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: name } });
   fireEvent.change(screen.getByLabelText('Description'), {
     target: { value: description },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Create workspace' }));
+  fireEvent.click(
+    within(screen.getByRole('dialog')).getByRole('button', { name: 'Create workspace' }),
+  );
 }
 
 const originalFetch = globalThis.fetch;
@@ -127,6 +163,161 @@ afterEach(() => {
 });
 
 describe('WorkspaceListPage', () => {
+  it('greets the resolved user and displays card metadata with one collection request', async () => {
+    const fetchMock = stubWorkspaceApi({
+      initial: [
+        workspace('Lab', 'EDITOR', 'Research'),
+        workspace('Future workspace', 'REVIEWER', null),
+      ],
+    });
+    renderWorkspaceListPage();
+    expect(screen.getByRole('heading', { name: 'Welcome back, Ada.' })).toBeDefined();
+    const list = await screen.findByRole('list', { name: 'Your workspaces' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(within(rows[0]!).getByText('Editor')).toBeDefined();
+    expect(within(rows[1]!).getByText('REVIEWER')).toBeDefined();
+    expect(rows[0]?.querySelector('time')?.dateTime).toBe('2026-09-23T10:15:30Z');
+    expect(rows[0]?.querySelector('time')?.textContent).not.toBe('');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/api/workspaces');
+  });
+
+  it('shows a neutral greeting for a blank display name and teaches three first-run steps', async () => {
+    stubWorkspaceApi({ initial: [] });
+    renderWorkspaceListPage(' ');
+    expect(
+      screen.getByRole('heading', { name: 'Welcome to ResearchHub.' }),
+    ).toBeDefined();
+    await screen.findByRole('heading', { name: 'Start your first research workspace.' });
+    const onboarding = screen.getByRole('list', { name: 'Getting started' });
+    expect(within(onboarding).getAllByRole('listitem')).toHaveLength(3);
+    for (const title of ['Add sources', 'Write together', 'Check the evidence'])
+      expect(within(onboarding).getByRole('heading', { name: title })).toBeDefined();
+    expect(screen.queryByRole('link', { name: /Learn how/ })).toBeNull();
+  });
+
+  it('announces loading while keeping decorative skeletons out of the accessible content', async () => {
+    let resolve!: (value: Response) => void;
+    globalThis.fetch = jest.fn(
+      () =>
+        new Promise<Response>((done) => {
+          resolve = done;
+        }),
+    ) as unknown as typeof fetch;
+    renderWorkspaceListPage();
+    expect(screen.getByRole('status').textContent).toBe('Loading your workspaces…');
+    expect(screen.queryByRole('list', { name: 'Getting started' })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Your workspaces' })).toBeNull();
+    await act(async () => resolve(jsonResponse([], 200, 'application/json')));
+    await screen.findByRole('heading', { name: 'Start your first research workspace.' });
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('updates the preview live and restores focus to the opener on Cancel, discarding the draft', async () => {
+    const fetchMock = stubWorkspaceApi({ initial: [] });
+    renderWorkspaceListPage();
+    await screen.findByRole('heading', { name: 'Start your first research workspace.' });
+    const opener = screen.getByRole('button', { name: 'New workspace' });
+    fireEvent.click(opener);
+    const dialog = screen.getByRole('dialog', { name: 'Create workspace' });
+    const preview = within(dialog).getByRole('complementary', {
+      name: 'Workspace preview',
+    });
+    expect(document.activeElement).toBe(within(dialog).getByLabelText('Name'));
+    expect(
+      within(preview).getByRole('heading', { name: 'Workspace name' }),
+    ).toBeDefined();
+    fireEvent.change(within(dialog).getByLabelText('Name'), {
+      target: { value: '  Photonics Seminar  ' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Description'), {
+      target: { value: 'Reading group' },
+    });
+    expect(
+      within(preview).getByRole('heading', { name: 'Photonics Seminar' }),
+    ).toBeDefined();
+    expect(within(preview).getByText('Reading group')).toBeDefined();
+    expect(within(preview).getByText('Owner')).toBeDefined();
+    expect(within(preview).queryByRole('link')).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(document.activeElement).toBe(opener);
+    fireEvent.click(opener);
+    expect(screen.getByLabelText('Name')).toHaveProperty('value', '');
+    expect(screen.getByLabelText('Description')).toHaveProperty('value', '');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.activeElement).toBe(opener);
+    expect(
+      fetchMock.mock.calls.some((call) => (call[1] as RequestInit)?.method === 'POST'),
+    ).toBe(false);
+  });
+
+  it('returns focus to the stable New workspace action if creation removes the empty-state opener', async () => {
+    stubWorkspaceApi({ initial: [] });
+    renderWorkspaceListPage();
+    const empty = await screen.findByRole('region', {
+      name: 'Start your first research workspace.',
+    });
+    fireEvent.click(within(empty).getByRole('button', { name: 'Create workspace' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Name'), {
+      target: { value: 'First workspace' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create workspace' }));
+    await screen.findByRole('link', { name: 'First workspace' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'New workspace' }),
+    );
+  });
+
+  it('associates description validation with the textarea and prevents duplicate pending submissions', async () => {
+    let resolve!: (value: Response) => void;
+    const initial = jsonResponse([], 200, 'application/json');
+    const fetchMock = jest.fn((url: unknown, init?: RequestInit) => {
+      if (String(url) === '/api/auth/csrf') return Promise.resolve(emptyNoContent());
+      if (init?.method !== 'POST') return Promise.resolve(initial);
+      return new Promise<Response>((done) => {
+        resolve = done;
+      });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    renderWorkspaceListPage();
+    await screen.findByRole('heading', { name: 'Start your first research workspace.' });
+    fillAndSubmit('Lab', 'Too long');
+    const button = await screen.findByRole('button', { name: 'Creating…' });
+    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter((call) => call[1]?.method === 'POST'),
+      ).toHaveLength(1),
+    );
+    fireEvent.submit(button.closest('form')!);
+    expect(
+      fetchMock.mock.calls.filter((call) => call[1]?.method === 'POST'),
+    ).toHaveLength(1);
+    await act(async () =>
+      resolve(
+        jsonResponse(
+          {
+            status: 400,
+            code: 'VALIDATION_FAILED',
+            detail: 'Validation failed',
+            errors: [{ field: 'description', message: 'Description is too long.' }],
+          },
+          400,
+          'application/problem+json',
+        ),
+      ),
+    );
+    const message = await screen.findByText('Description is too long.');
+    const description = screen.getByLabelText('Description');
+    expect(description.getAttribute('aria-invalid')).toBe('true');
+    expect(description.getAttribute('aria-describedby')).toBe(
+      `workspace-description-hint ${message.id}`,
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
   it('lists the workspaces the signed-in user belongs to, with their role', async () => {
     stubWorkspaceApi({
       initial: [
@@ -140,10 +331,10 @@ describe('WorkspaceListPage', () => {
     const items = await screen.findAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]?.textContent).toContain('Electronics Lab');
-    expect(items[0]?.textContent).toContain('OWNER');
+    expect(items[0]?.textContent).toContain('Owner');
     expect(items[0]?.textContent).toContain('Team 4');
     expect(items[1]?.textContent).toContain('Thesis');
-    expect(items[1]?.textContent).toContain('VIEWER');
+    expect(items[1]?.textContent).toContain('Viewer');
   });
 
   it('links each workspace to its own route', async () => {
@@ -161,9 +352,7 @@ describe('WorkspaceListPage', () => {
     renderWorkspaceListPage();
 
     expect(
-      await screen.findByText(
-        'You do not belong to any workspace yet. Create one to get started.',
-      ),
+      await screen.findByText('Start your first research workspace.'),
     ).not.toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
   });
@@ -172,9 +361,7 @@ describe('WorkspaceListPage', () => {
     const fetchMock = stubWorkspaceApi({ initial: [] });
 
     renderWorkspaceListPage();
-    await screen.findByText(
-      'You do not belong to any workspace yet. Create one to get started.',
-    );
+    await screen.findByText('Start your first research workspace.');
 
     fillAndSubmit('Electronics Lab', 'Team 4');
 
@@ -227,10 +414,10 @@ describe('WorkspaceListPage', () => {
 
     renderWorkspaceListPage();
     fillAndSubmit('Electronics Lab', 'Team 4');
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toHaveProperty('value', '');
-    });
+    await screen.findByRole('link', { name: 'Electronics Lab' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'New workspace' }));
+    expect(screen.getByLabelText('Name')).toHaveProperty('value', '');
     expect(screen.getByLabelText('Description')).toHaveProperty('value', '');
   });
 
@@ -304,11 +491,7 @@ describe('WorkspaceListPage', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Could not load your workspaces');
-    expect(
-      screen.queryByText(
-        'You do not belong to any workspace yet. Create one to get started.',
-      ),
-    ).toBeNull();
+    expect(screen.queryByText('Start your first research workspace.')).toBeNull();
     expect(screen.queryByRole('listitem')).toBeNull();
   });
 });

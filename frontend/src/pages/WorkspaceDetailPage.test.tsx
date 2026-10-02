@@ -309,14 +309,17 @@ function stubWorkspaceApi(options: {
 }
 
 /** Returns the client so a test can inspect what a mutation did to the cache. */
-function renderWorkspaceDetailPage(entry = '/'): QueryClient {
+function renderWorkspaceDetailPage(
+  entry = '/',
+  section: import('../app/workspaceRoutes').WorkspaceSection = 'overview',
+): QueryClient {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[entry]}>{children}</MemoryRouter>
     </QueryClientProvider>
   );
-  render(<WorkspaceDetailPage />, { wrapper });
+  render(<WorkspaceDetailPage section={section} />, { wrapper });
   return queryClient;
 }
 
@@ -393,7 +396,7 @@ describe('WorkspaceDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Electronics Lab' }),
     ).not.toBeNull();
-    expect(screen.getByText('VIEWER')).not.toBeNull();
+    expect(screen.getByText('Viewer')).not.toBeNull();
     expect(screen.getByText('Team 4')).not.toBeNull();
   });
 
@@ -420,6 +423,7 @@ describe('WorkspaceDetailPage', () => {
 
     renderWorkspaceDetailPage(
       '/?analyzeSource=s-9&analyzeVersion=v2&analyzeSheet=Measurements',
+      'ask',
     );
 
     const question = (await screen.findByLabelText('Question')) as HTMLTextAreaElement;
@@ -466,7 +470,7 @@ describe('WorkspaceDetailPage', () => {
   it('offers the owner controls to an owner', async () => {
     stubWorkspaceApi({ workspace: workspaceRow({ role: 'OWNER' }) });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'settings');
 
     expect(await screen.findByRole('button', { name: 'Save changes' })).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Archive workspace' })).not.toBeNull();
@@ -477,9 +481,11 @@ describe('WorkspaceDetailPage', () => {
   it('does not offer the owner controls to an editor or a viewer', async () => {
     for (const role of ['EDITOR', 'VIEWER']) {
       stubWorkspaceApi({ workspace: workspaceRow({ role }) });
-      renderWorkspaceDetailPage();
+      renderWorkspaceDetailPage('/', 'settings');
 
-      expect(await screen.findByText(role)).not.toBeNull();
+      expect(
+        await screen.findByText(role === 'EDITOR' ? 'Editor' : 'Viewer'),
+      ).not.toBeNull();
       expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Archive workspace' })).toBeNull();
       expect(screen.queryByLabelText('Name')).toBeNull();
@@ -493,7 +499,7 @@ describe('WorkspaceDetailPage', () => {
   it('saves a rename and shows the new name', async () => {
     const fetchMock = stubWorkspaceApi({});
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'settings');
     fireEvent.change(await screen.findByLabelText('Name'), {
       target: { value: 'Electronics Lab — Team 4' },
     });
@@ -533,7 +539,7 @@ describe('WorkspaceDetailPage', () => {
       ),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'settings');
     fireEvent.change(await screen.findByLabelText('Name'), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
@@ -551,7 +557,7 @@ describe('WorkspaceDetailPage', () => {
       ),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'settings');
     fireEvent.change(await screen.findByLabelText('Name'), {
       target: { value: 'Renamed' },
     });
@@ -564,7 +570,7 @@ describe('WorkspaceDetailPage', () => {
   it('asks for confirmation before archiving', async () => {
     const fetchMock = stubWorkspaceApi({});
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'settings');
     fireEvent.click(await screen.findByRole('button', { name: 'Archive workspace' }));
 
     expect(screen.getByText(/Archive this workspace\?/).textContent).toContain(
@@ -583,7 +589,7 @@ describe('WorkspaceDetailPage', () => {
 
   it('archives on confirmation, invalidates the list, and returns to it', async () => {
     const fetchMock = stubWorkspaceApi({});
-    const queryClient = renderWorkspaceDetailPage();
+    const queryClient = renderWorkspaceDetailPage('/', 'settings');
     // A cached list from an earlier visit. It still contains the workspace that is about to leave it,
     // which is exactly the stale state the invalidation has to deal with.
     queryClient.setQueryData(['workspaces'], [workspaceRow()]);
@@ -618,7 +624,7 @@ describe('WorkspaceDetailPage', () => {
   it('shows a loading state while the document list is still in flight', async () => {
     stubWorkspaceApi({ documentsPending: true });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     expect(await screen.findByText('Loading documents…')).not.toBeNull();
     expect(screen.queryByText('No documents yet.')).toBeNull();
@@ -628,7 +634,7 @@ describe('WorkspaceDetailPage', () => {
   it('links each document to its own route', async () => {
     stubWorkspaceApi({ documents: [REPORT_DOCUMENT] });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     const link = await screen.findByRole('link', { name: 'Final report' });
     expect(link.getAttribute('href')).toBe(
@@ -639,7 +645,7 @@ describe('WorkspaceDetailPage', () => {
   it('treats a workspace with no documents as an empty list rather than an error', async () => {
     stubWorkspaceApi({ documents: [] });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     expect(await screen.findByText('No documents yet.')).not.toBeNull();
     expect(screen.queryByText(/Could not load the documents/)).toBeNull();
@@ -650,7 +656,7 @@ describe('WorkspaceDetailPage', () => {
       documentsResponse: problem(500, 'INTERNAL_ERROR', 'An unexpected error occurred'),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     await waitFor(() => {
       const alerts = screen.getAllByRole('alert');
@@ -666,7 +672,7 @@ describe('WorkspaceDetailPage', () => {
   it('creates a document and shows it in the refreshed list', async () => {
     const fetchMock = stubWorkspaceApi({ documents: [] });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
     fireEvent.change(await screen.findByLabelText('Document title'), {
       target: { value: 'Final report' },
     });
@@ -698,7 +704,7 @@ describe('WorkspaceDetailPage', () => {
       documents: [REPORT_DOCUMENT],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     expect(await screen.findByRole('button', { name: 'Create document' })).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
@@ -711,7 +717,7 @@ describe('WorkspaceDetailPage', () => {
       documents: [REPORT_DOCUMENT],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Create document' })).toBeNull();
@@ -724,7 +730,7 @@ describe('WorkspaceDetailPage', () => {
       documents: [REPORT_DOCUMENT],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'documents');
 
     expect(await screen.findByRole('link', { name: 'Final report' })).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Create document' })).toBeNull();
@@ -753,7 +759,7 @@ describe('WorkspaceDetailPage', () => {
       ],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
 
     const link = await screen.findByRole('link', { name: 'measurements.csv' });
     expect(link.getAttribute('href')).toBe(`/app/workspaces/${WORKSPACE_ID}/sources/s-1`);
@@ -762,8 +768,8 @@ describe('WorkspaceDetailPage', () => {
     );
     expect(screen.getByText('Uploaded')).not.toBeNull();
     expect(link.parentElement?.textContent).toContain('CSV, 2.0 KB');
-    expect(link.parentElement?.textContent).toContain('Uploaded by Ada Lovelace');
-    expect(link.parentElement?.querySelector('time')?.getAttribute('dateTime')).toBe(
+    expect(link.closest('tr')?.textContent).toContain('Ada Lovelace');
+    expect(link.closest('tr')?.querySelector('time')?.getAttribute('dateTime')).toBe(
       '2026-09-23T10:15:30Z',
     );
   });
@@ -790,7 +796,7 @@ describe('WorkspaceDetailPage', () => {
       ],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
 
     expect(await screen.findByText('Failed')).not.toBeNull();
     expect(screen.getByText('Failure: The workbook is encrypted.')).not.toBeNull();
@@ -800,7 +806,7 @@ describe('WorkspaceDetailPage', () => {
   it('uploads a valid source as multipart data and refreshes the list', async () => {
     const fetchMock = stubWorkspaceApi({ sources: [] });
     installUploadTransport(fetchMock);
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
     const picker = await screen.findByLabelText('Source file');
     const file = new File(['name,value\na,1\n'], 'measurements.csv', {
       type: 'text/csv',
@@ -826,7 +832,7 @@ describe('WorkspaceDetailPage', () => {
       workspace: workspaceRow({ role: 'VIEWER' }),
       sourceState: sharedSources,
     });
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
     expect(await screen.findByText('No sources yet.')).not.toBeNull();
 
     sharedSources.push({
@@ -853,7 +859,7 @@ describe('WorkspaceDetailPage', () => {
   it('shows upload progress while the server is storing the file', async () => {
     const fetchMock = stubWorkspaceApi({ sourceUploadPending: true });
     installUploadTransport(fetchMock);
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
     const file = new File(['a,b\n1,2'], 'team.csv', { type: 'text/csv' });
     fireEvent.change(await screen.findByLabelText('Source file'), {
       target: { files: [file] },
@@ -875,7 +881,7 @@ describe('WorkspaceDetailPage', () => {
       ),
     });
     installUploadTransport(fetchMock);
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
     const file = new File(['MZ'], 'team.csv', { type: 'text/csv' });
     fireEvent.change(await screen.findByLabelText('Source file'), {
       target: { files: [file] },
@@ -890,7 +896,7 @@ describe('WorkspaceDetailPage', () => {
 
   it('refuses an unsupported source before making an upload request', async () => {
     const fetchMock = stubWorkspaceApi({ sources: [] });
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'sources');
     const file = new File(['MZ'], 'program.exe', {
       type: 'application/octet-stream',
     });
@@ -918,7 +924,7 @@ describe('WorkspaceDetailPage', () => {
       workspaceRow({ archivedAt: '2026-09-24T09:00:00Z' }),
     ]) {
       stubWorkspaceApi({ workspace });
-      renderWorkspaceDetailPage();
+      renderWorkspaceDetailPage('/', 'sources');
       expect(await screen.findByRole('heading', { name: 'Sources' })).not.toBeNull();
       expect(screen.queryByLabelText('Source file')).toBeNull();
       cleanup();
@@ -934,7 +940,7 @@ describe('WorkspaceDetailPage', () => {
       members: [OWNER_MEMBER, EDITOR_MEMBER],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
 
     expect(await screen.findByText('Ada Lovelace')).not.toBeNull();
     expect(screen.getByText('kasia@example.com')).not.toBeNull();
@@ -947,7 +953,7 @@ describe('WorkspaceDetailPage', () => {
   it('offers an owner a role control and a remove control for each member', async () => {
     stubWorkspaceApi({ members: [OWNER_MEMBER, EDITOR_MEMBER] });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
 
     expect(await screen.findByLabelText('Role for Kasia Nowak')).toHaveProperty(
       'value',
@@ -964,7 +970,7 @@ describe('WorkspaceDetailPage', () => {
   it('adds a member and shows them in the refreshed list', async () => {
     const fetchMock = stubWorkspaceApi({ members: [OWNER_MEMBER] });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
     fireEvent.change(await screen.findByLabelText('Email'), {
       target: { value: 'kasia@example.com' },
     });
@@ -996,7 +1002,7 @@ describe('WorkspaceDetailPage', () => {
       ),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
     fireEvent.change(await screen.findByLabelText('Email'), {
       target: { value: 'nobody@example.com' },
     });
@@ -1016,7 +1022,7 @@ describe('WorkspaceDetailPage', () => {
       ),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
     fireEvent.change(await screen.findByLabelText('Email'), {
       target: { value: 'kasia@example.com' },
     });
@@ -1035,7 +1041,7 @@ describe('WorkspaceDetailPage', () => {
       ),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
     fireEvent.change(await screen.findByLabelText('Role for Ada Lovelace'), {
       target: { value: 'EDITOR' },
     });
@@ -1047,7 +1053,7 @@ describe('WorkspaceDetailPage', () => {
   it('removes a member from the displayed list', async () => {
     stubWorkspaceApi({ members: [OWNER_MEMBER, EDITOR_MEMBER] });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
     fireEvent.click(await screen.findByRole('button', { name: 'Remove Kasia Nowak' }));
 
     await waitFor(() => {
@@ -1062,7 +1068,7 @@ describe('WorkspaceDetailPage', () => {
       members: [OWNER_MEMBER, EDITOR_MEMBER],
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'members');
 
     expect(await screen.findByText('kasia@example.com')).not.toBeNull();
     expect(screen.queryByLabelText('Role for Kasia Nowak')).toBeNull();
@@ -1075,7 +1081,7 @@ describe('WorkspaceDetailPage', () => {
       workspace: workspaceRow({ archivedAt: '2026-09-24T09:00:00Z' }),
     });
 
-    renderWorkspaceDetailPage();
+    renderWorkspaceDetailPage('/', 'settings');
 
     // Matched by its text rather than by role: several things on this page announce themselves as a
     // `status`, including the page and the member list while they load.

@@ -1,5 +1,12 @@
 import type { ReactElement } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { SourceComparisonPanel } from '../features/ai/components/SourceComparisonPanel';
 import { WorkspaceQuestions } from '../features/ai/components/WorkspaceQuestions';
 
@@ -16,21 +23,43 @@ import { ArchiveWorkspaceButton } from '../features/workspaces/components/Archiv
 import { EditWorkspaceForm } from '../features/workspaces/components/EditWorkspaceForm';
 import { MemberList } from '../features/workspaces/components/MemberList';
 import { describeError, hasApiErrorCode } from '../shared/api';
+import {
+  legacyWorkspaceSection,
+  workspaceSectionPath,
+  type WorkspaceSection,
+} from '../app/workspaceRoutes';
+import { ToolShell } from '../shared/components/shell';
+import { RoleBadge } from '../shared/components/identity';
+import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 
 /**
  * One workspace: its metadata, the caller's role in it, and the owner's controls.
  *
  * Renders inside the protected `/app` shell, so there is always a signed-in user by the time this mounts.
  */
-export function WorkspaceDetailPage(): ReactElement {
+export function WorkspaceDetailPage({
+  section = 'overview',
+}: {
+  readonly section?: WorkspaceSection;
+}): ReactElement {
   const { workspaceId } = useParams<{ workspaceId: string }>();
 
+  const location = useLocation();
   // The route always supplies the parameter, so this is unreachable in the app. Handled anyway, and
   // handled before any data hook runs, so the id passed down below is a definite string.
   if (workspaceId === undefined) {
     return <WorkspaceNotFound />;
   }
-  return <WorkspaceDetail workspaceId={workspaceId} />;
+  const legacy = legacyWorkspaceSection(location.search, location.hash);
+  if (section === 'overview' && legacy !== 'overview')
+    return (
+      <Navigate
+        replace
+        to={`${workspaceSectionPath(workspaceId, legacy)}${location.search}${location.hash}`}
+      />
+    );
+  const content = <WorkspaceDetail workspaceId={workspaceId} section={section} />;
+  return section === 'ask' ? <ToolShell label="Ask AI">{content}</ToolShell> : content;
 }
 
 /**
@@ -58,11 +87,16 @@ function WorkspaceNotFound(): ReactElement {
 
 function WorkspaceDetail({
   workspaceId,
+  section,
 }: {
   readonly workspaceId: string;
+  readonly section: WorkspaceSection;
 }): ReactElement {
   const { data: workspace, error, isPending } = useWorkspaceQuery(workspaceId);
-  const { data: members } = useWorkspaceMembersQuery(workspaceId);
+  const { data: members } = useWorkspaceMembersQuery(
+    workspaceId,
+    workspace !== undefined && error === null,
+  );
   const navigate = useNavigate();
   // "Analyze this data" on a dataset preview arrives here with the source (and sheet) already chosen.
   const [search] = useSearchParams();
@@ -92,21 +126,14 @@ function WorkspaceDetail({
 
   const isArchived = workspace.archivedAt !== null;
 
-  // One flag for every owner-only control, so a new one cannot accidentally be shown on an archived
-  // workspace. It decides what to render and nothing else: the server authorizes each request itself.
-  const canManage = workspace.role === 'OWNER' && !isArchived;
-
-  // Content is a wider permission than management: an editor writes documents but cannot touch members or
-  // workspace settings. A viewer reads. The server checks EDIT_CONTENT on every write regardless.
-  const canEditContent =
-    (workspace.role === 'OWNER' || workspace.role === 'EDITOR') && !isArchived;
+  const { canManage, canEditContent } = workspaceCapabilities(workspace.role, isArchived);
 
   return (
     <section>
       <h1>{workspace.name}</h1>
 
       <p>
-        Your role: <strong>{workspace.role}</strong>
+        Your role: <RoleBadge role={workspace.role} />
       </p>
 
       {isArchived ? (
@@ -123,8 +150,10 @@ function WorkspaceDetail({
       )}
 
       {/* Every member can read the documents; only an editor or owner can start one. */}
-      <DocumentList workspaceId={workspace.id} />
-      {canEditContent ? (
+      {section === 'overview' || section === 'documents' ? (
+        <DocumentList workspaceId={workspace.id} />
+      ) : null}
+      {section === 'documents' && canEditContent ? (
         <CreateDocumentForm
           workspaceId={workspace.id}
           onCreated={(created) => {
@@ -134,37 +163,58 @@ function WorkspaceDetail({
         />
       ) : null}
 
-      <SourceList
-        workspaceId={workspace.id}
-        uploaderNames={
-          new Map(members?.map((member) => [member.userId, member.displayName]))
-        }
-      />
-      {canEditContent ? <SourceUploadForm workspaceId={workspace.id} /> : null}
-      <WorkspaceQuestions
-        workspaceId={workspace.id}
-        {...(analyzeSource === null
-          ? {}
-          : {
-              focus: { sourceId: analyzeSource, sheetName: search.get('analyzeSheet') },
-            })}
-      />
-      <SourceComparisonPanel workspaceId={workspace.id} />
+      {section === 'overview' || section === 'sources' ? (
+        <SourceList
+          workspaceId={workspace.id}
+          uploaderNames={
+            new Map(members?.map((member) => [member.userId, member.displayName]))
+          }
+        />
+      ) : null}
+      {section === 'sources' && canEditContent ? (
+        <SourceUploadForm workspaceId={workspace.id} />
+      ) : null}
+      {section === 'ask' ? (
+        <>
+          <WorkspaceQuestions
+            workspaceId={workspace.id}
+            {...(analyzeSource === null
+              ? {}
+              : {
+                  focus: {
+                    sourceId: analyzeSource,
+                    sheetName: search.get('analyzeSheet'),
+                  },
+                })}
+          />
+          <SourceComparisonPanel workspaceId={workspace.id} />
+        </>
+      ) : null}
 
       {/* Every member sees who else is here. Only an owner of an active workspace gets the controls, and
           the server re-checks that on every request. */}
-      <MemberList workspaceId={workspace.id} canManage={canManage} />
+      {section === 'members' ? (
+        <MemberList workspaceId={workspace.id} canManage={canManage} />
+      ) : null}
 
       {/* Owner-only, and only while the workspace is active. Both conditions are re-checked by the
           server, which answers 403 to a non-owner and 409 on an archived workspace. */}
-      {canManage ? (
+      {section === 'members' && canManage ? (
+        <AddMemberForm workspaceId={workspace.id} />
+      ) : null}
+      {section === 'settings' && canManage ? (
         <>
-          <AddMemberForm workspaceId={workspace.id} />
           <EditWorkspaceForm workspace={workspace} />
           <ArchiveWorkspaceButton workspaceId={workspace.id} />
         </>
       ) : null}
 
+      {section === 'settings' && !canManage ? (
+        <p>
+          Workspace settings are read-only. Only an owner of an active workspace can
+          change them.
+        </p>
+      ) : null}
       <p>
         <Link to="/app/workspaces">Back to your workspaces</Link>
       </p>
