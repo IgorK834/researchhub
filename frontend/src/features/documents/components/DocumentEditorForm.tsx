@@ -34,6 +34,7 @@ export interface DocumentAuthoringContext {
 export interface DocumentEditorFormProps {
   readonly renderAuthoring?: (context: DocumentAuthoringContext) => ReactNode;
   readonly historyHost?: HTMLElement;
+  readonly sourceTypes?: ReadonlyMap<string, string>;
   readonly historyExpanded?: boolean;
   readonly statusHost?: HTMLElement;
   readonly onNavigationChange?: (navigation: DocumentNavigation) => void;
@@ -82,6 +83,7 @@ export function DocumentEditorForm({
   onReplaced,
   renderAuthoring,
   historyHost,
+  sourceTypes,
   historyExpanded,
   statusHost,
   onNavigationChange,
@@ -211,6 +213,7 @@ export function DocumentEditorForm({
             </span>
             {storedBody === null ? null : (
               <DocumentBodyEditor
+                sourceTypes={sourceTypes}
                 onOpenCitation={(path) => {
                   void navigate(path);
                 }}

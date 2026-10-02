@@ -1,4 +1,5 @@
 import { Node } from '@tiptap/core';
+import chipStyles from '../../../shared/components/CitationChip.module.css';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { citationPath, type Citation } from '../../ai/api/generationApi';
@@ -188,6 +189,14 @@ export const ResearchCitation = Node.create({
         dom.title = display.title;
         dom.textContent = display.text;
         dom.dataset['researchCitation'] = citationIdentity(c);
+        dom.dataset['citation'] = JSON.stringify(c);
+        dom.dataset['citationNumber'] = String(
+          (numbering.getState(editor.state) ?? numbersOf(editor.state.doc)).get(
+            citationIdentity(c),
+          ) ?? '?',
+        );
+        dom.className = `${chipStyles.chip} ${chipStyles.document}`;
+        dom.setAttribute('aria-haspopup', 'dialog');
         dom.setAttribute('contenteditable', 'false');
       };
       render();
@@ -200,7 +209,10 @@ export const ResearchCitation = Node.create({
           render();
           return true;
         },
-        stopEvent: (event) => event.type === 'click',
+        stopEvent: (event) =>
+          event.type === 'click' ||
+          (event instanceof KeyboardEvent &&
+            (event.key === 'Enter' || event.key === ' ')),
         destroy: () => {
           editor.off('transaction', render);
         },

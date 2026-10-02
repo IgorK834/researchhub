@@ -23,6 +23,7 @@ const DOCUMENT_ID = 'd-1';
 const DOCUMENT_PATH = `/api/workspaces/${WORKSPACE_ID}/documents/${DOCUMENT_ID}`;
 const VERSIONS_PATH = `${DOCUMENT_PATH}/versions`;
 
+beforeAll(() => { globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver; });
 const mockNavigate = jest.fn();
 
 jest.mock('react-router-dom', () => ({
@@ -562,6 +563,11 @@ describe('DocumentDetailPage', () => {
       expect(bodyEditor().getJSON()).toEqual(stored);
       expect(body.querySelector('a')?.textContent).toBe(' [1]');
       fireEvent.click(body.querySelector('a')!);
+      const preview = screen.getByRole('dialog', { name: 'Citation 1' });
+      expect(within(preview).getByText('Paper · Page 7')).toBeTruthy();
+      expect(bodyEditor().getJSON()).toEqual(stored);
+      expect(mockNavigate).not.toHaveBeenCalled();
+      fireEvent.click(within(preview).getByRole('link', { name: 'Open source' }));
       expect(mockNavigate).toHaveBeenCalledWith(
         '/app/workspaces/w-1/sources/s-1?processingVersion=retrieval-v1&unit=page-7&page=7',
       );
@@ -586,6 +592,7 @@ describe('DocumentDetailPage', () => {
       const reloaded = await findBody();
       expect(reloaded.querySelector('a')?.textContent).toBe(' [Paper, p. 7]');
       fireEvent.click(reloaded.querySelector('a')!);
+      fireEvent.click(within(screen.getByRole('dialog', { name: 'Citation 1' })).getByRole('link', { name: 'View context' }));
       expect(mockNavigate).toHaveBeenCalledTimes(2);
     });
 

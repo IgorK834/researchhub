@@ -208,3 +208,5 @@
     font-size: 1.75rem;
   }
 }
+
+.editor :global(a[data-citation-variant='dataset']) { background: var(--color-brand-mint-tint); }

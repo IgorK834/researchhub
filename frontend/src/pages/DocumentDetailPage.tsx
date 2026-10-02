@@ -233,6 +233,7 @@ function DocumentScreen({
                             title: source.displayName,
                             sourceType: source.sourceType,
                             ready: source.status === 'READY',
+                            status: source.status,
                           })) ?? [],
                         loading: sources.isPending,
                         error: sourceError,
@@ -262,6 +263,7 @@ function DocumentScreen({
         <EditorArea
           workspaceId={workspaceId}
           document={document}
+          sourceTypes={new Map(sources.data?.map((source) => [source.id, source.sourceType]))}
           canEdit={canEdit}
           isViewer={authorized && workspace.data?.role === 'VIEWER'}
           authors={
@@ -300,6 +302,7 @@ function EditorArea({
   historyHost,
   historyExpanded,
   authoringHost,
+  sourceTypes,
 }: {
   readonly workspaceId: string;
   readonly document: ReturnType<typeof useDocumentQuery>;
@@ -314,6 +317,7 @@ function EditorArea({
   readonly historyHost: HTMLElement;
   readonly historyExpanded: boolean;
   readonly authoringHost: HTMLElement;
+  readonly sourceTypes: ReadonlyMap<string, string>;
 }): ReactElement {
   if (document.isPending)
     return (
@@ -344,6 +348,7 @@ function EditorArea({
         canEdit={canEdit}
         isViewer={isViewer}
         authors={authors}
+        sourceTypes={sourceTypes}
         onDiscardLocalChanges={() => {
           void document.refetch().then(onReload);
         }}

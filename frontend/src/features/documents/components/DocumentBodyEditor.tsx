@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import { createPortal } from 'react-dom';
 
@@ -10,6 +10,8 @@ import {
 import { documentNavigation, type DocumentNavigation } from '../api/documentNavigation';
 import { Icon, type IconName } from '../../../shared/components/icons';
 import styles from './DocumentPaper.module.css';
+import type { EditorCitation } from '../api/researchCitation';
+import { CitationPopover, citationVariant } from '../../ai/components/Citations';
 
 export interface AuthoringSelection {
   readonly from: number;
@@ -20,6 +22,7 @@ export interface AuthoringSelection {
 
 interface DocumentBodyEditorProps {
   readonly toolbarHost?: HTMLElement;
+  readonly sourceTypes?: ReadonlyMap<string, string>;
   readonly onNavigationChange?: (navigation: DocumentNavigation) => void;
   readonly navigationTarget?: { readonly position: number } | null;
   readonly onOpenCitation?: (path: string) => void;
@@ -65,7 +68,22 @@ export function DocumentBodyEditor({
   onNavigationChange,
   navigationTarget,
   toolbarHost,
+  sourceTypes,
 }: DocumentBodyEditorProps): ReactElement {
+  const [citationPreview, setCitationPreview] = useState<{
+    citation: EditorCitation;
+    number: string;
+    anchor: HTMLAnchorElement;
+  } | null>(null);
+  const openCitation = (anchor: HTMLAnchorElement): void => {
+    const metadata = anchor.dataset['citation'];
+    if (metadata === undefined) return;
+    setCitationPreview({
+      citation: JSON.parse(metadata) as EditorCitation,
+      number: anchor.dataset['citationNumber'] ?? '?',
+      anchor,
+    });
+  };
   // Read through a ref, so a new callback from the parent does not need a new editor.
   const onChangeRef = useRef(onChange);
   const selectionRef = useRef(onSelectionChange);
@@ -159,18 +177,42 @@ export function DocumentBodyEditor({
     editor.commands.focus(undefined, { scrollIntoView: false });
   }, [editor, navigationTarget]);
 
+  useEffect(() => {
+    const styleCitations = (): void => {
+      editor.view.dom.querySelectorAll<HTMLAnchorElement>('a[data-citation]').forEach((anchor) => {
+        const citation = JSON.parse(anchor.dataset['citation']!) as EditorCitation;
+        anchor.dataset['citationVariant'] = citationVariant(sourceTypes?.get(citation.sourceId));
+      });
+    };
+    styleCitations();
+    editor.on('transaction', styleCitations);
+    return () => { editor.off('transaction', styleCitations); };
+  }, [editor, sourceTypes]);
+
   return (
     <div
       className={styles.editor}
+      onKeyDown={(event) => {
+        if (event.key !== ' ' && event.key !== 'Enter') return;
+        const target = event.target;
+        const anchor =
+          target instanceof Element
+            ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
+            : null;
+        if (anchor !== null) {
+          event.preventDefault();
+          openCitation(anchor);
+        }
+      }}
       onClick={(event) => {
         const target = event.target;
         const anchor =
           target instanceof Element
             ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
             : null;
-        if (anchor !== null && onOpenCitation !== undefined) {
+        if (anchor !== null) {
           event.preventDefault();
-          onOpenCitation(anchor.getAttribute('href') ?? '');
+          openCitation(anchor);
         }
       }}
     >
@@ -182,6 +224,13 @@ export function DocumentBodyEditor({
         )
       ) : null}
       <EditorContent editor={editor} />
+      {citationPreview === null ? null : (
+        <CitationPopover
+          {...citationPreview}
+          onClose={() => setCitationPreview(null)}
+          onNavigate={onOpenCitation}
+        />
+      )}
     </div>
   );
 }
