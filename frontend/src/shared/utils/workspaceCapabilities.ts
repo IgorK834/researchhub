@@ -2,6 +2,7 @@ export interface WorkspaceCapabilities {
   readonly canRead: boolean;
   readonly canEditContent: boolean;
   readonly canManage: boolean;
+  readonly canViewSettings: boolean;
 }
 
 /** UI affordances for an already server-authorized membership; never an authorization guard. */
@@ -14,6 +15,7 @@ export function workspaceCapabilities(
     canRead: role !== undefined && role.trim().length > 0,
     canEditContent: !archived && (role === 'OWNER' || role === 'EDITOR'),
     canManage: !archived && role === 'OWNER',
+    canViewSettings: role === 'OWNER' || role === 'EDITOR',
   };
 }
 

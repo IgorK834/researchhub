@@ -15,11 +15,13 @@ it.each([
       canRead,
       canEditContent,
       canManage,
+      canViewSettings: role === 'OWNER' || role === 'EDITOR',
     });
     expect(workspaceCapabilities(role, true)).toEqual({
       canRead,
       canEditContent: false,
       canManage: false,
+      canViewSettings: role === 'OWNER' || role === 'EDITOR',
     });
   },
 );
