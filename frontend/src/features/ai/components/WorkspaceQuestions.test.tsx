@@ -73,6 +73,33 @@ it('asks all sources by default and renders escaped claims with actual versioned
     question: 'What is kinetic energy?',
   });
 });
+
+it('opens Ask source with only that source selected and submits the existing question contract', async () => {
+  const mock = requests(supported, [ready, { ...ready, id: 's2', displayName: 'Notes' }]);
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <WorkspaceQuestions workspaceId="w1" initialSourceId="s1" />
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByLabelText('Lecture')).toHaveProperty('checked', true);
+  expect(screen.getByLabelText('Notes')).toHaveProperty('checked', false);
+  expect(screen.getByLabelText('Question')).toHaveProperty('value', '');
+  expect(mock.mock.calls.some(([url]) => String(url).endsWith('/questions'))).toBe(false);
+  await submit('Summarize this source');
+  await waitFor(() =>
+    expect(mock.mock.calls.some(([url]) => String(url).endsWith('/questions'))).toBe(
+      true,
+    ),
+  );
+  const request = mock.mock.calls.find(([url]) => String(url).endsWith('/questions'));
+  expect(JSON.parse((request?.[1] as RequestInit).body as string)).toEqual({
+    question: 'Summarize this source',
+    selectedSourceIds: ['s1'],
+  });
+});
 it('searches only chosen READY sources and preserves an explicit empty selection', async () => {
   const mock = requests(empty, [
     ready,

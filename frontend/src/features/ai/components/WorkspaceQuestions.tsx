@@ -1,9 +1,15 @@
+import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { describeError } from '../../../shared/api';
 import { useSourcesQuery } from '../../sources/api/useSources';
 import { askWorkspaceQuestion, type WorkspaceQuestion } from '../api/questionApi';
 import { StructuredResponse } from './StructuredResponse';
+import { Button } from '../../../shared/components/Button';
+import { Textarea } from '../../../shared/components/forms';
+import { Badge } from '../../../shared/components/identity';
+import { IconTile } from '../../../shared/components/content';
+import styles from './WorkspaceQuestions.module.css';
 
 /** A dataset the user chose to analyze: the question starts scoped to that source. */
 export interface QuestionFocus {
@@ -24,14 +30,29 @@ function starterQuestion(focus: QuestionFocus | undefined): string {
 export function WorkspaceQuestions({
   workspaceId,
   focus,
+  variant = 'full',
+  onAsk,
+  initialQuestion,
+  onInitialQuestionUsed,
+  initialSourceId,
 }: {
   readonly workspaceId: string;
   readonly focus?: QuestionFocus;
+  readonly variant?: 'full' | 'overview';
+  readonly onAsk?: (question: WorkspaceQuestion) => void;
+  readonly initialQuestion?: WorkspaceQuestion;
+  readonly onInitialQuestionUsed?: () => void;
+  readonly initialSourceId?: string;
 }): ReactElement {
   return (
     <QuestionForm
-      key={`${workspaceId}:${focus?.sourceId ?? ''}:${focus?.sheetName ?? ''}`}
+      key={`${workspaceId}:${initialSourceId ?? focus?.sourceId ?? ''}:${focus?.sheetName ?? ''}`}
       workspaceId={workspaceId}
+      variant={variant}
+      onAsk={onAsk}
+      initialQuestion={initialQuestion}
+      onInitialQuestionUsed={onInitialQuestionUsed}
+      initialSourceId={initialSourceId}
       {...(focus === undefined ? {} : { focus })}
     />
   );
@@ -40,18 +61,42 @@ export function WorkspaceQuestions({
 function QuestionForm({
   workspaceId,
   focus,
+  variant,
+  onAsk,
+  initialQuestion,
+  onInitialQuestionUsed,
+  initialSourceId,
 }: {
   readonly workspaceId: string;
   readonly focus?: QuestionFocus;
+  readonly variant: 'full' | 'overview';
+  readonly onAsk?: (question: WorkspaceQuestion) => void;
+  readonly initialQuestion?: WorkspaceQuestion;
+  readonly onInitialQuestionUsed?: () => void;
+  readonly initialSourceId?: string;
 }): ReactElement {
   const sources = useSourcesQuery(workspaceId);
-  const [question, setQuestion] = useState(() => starterQuestion(focus));
-  const [scope, setScope] = useState(focus === undefined ? 'all' : 'selected');
+  const [question, setQuestion] = useState(
+    () => initialQuestion?.question ?? starterQuestion(focus),
+  );
+  const [scope, setScope] = useState(
+    (initialQuestion?.selectedSourceIds !== undefined &&
+      initialQuestion.selectedSourceIds !== null) ||
+      focus !== undefined ||
+      initialSourceId !== undefined
+      ? 'selected'
+      : 'all',
+  );
   const [selected, setSelected] = useState<readonly string[]>(
-    focus === undefined ? [] : [focus.sourceId],
+    initialQuestion?.selectedSourceIds ??
+      (initialSourceId !== undefined
+        ? [initialSourceId]
+        : focus === undefined
+          ? []
+          : [focus.sourceId]),
   );
   const questionInput = useRef<HTMLTextAreaElement>(null);
-  const focusedSource = focus?.sourceId;
+  const focusedSource = initialSourceId ?? focus?.sourceId;
   // Only when a dataset was chosen, and not again for unrelated re-renders of the parent.
   useEffect(() => {
     if (focusedSource !== undefined) questionInput.current?.focus();
@@ -61,11 +106,48 @@ function QuestionForm({
     mutationFn: (input: WorkspaceQuestion) => askWorkspaceQuestion(workspaceId, input),
   });
   const ready = sources.data?.filter((source) => source.status === 'READY') ?? [];
+  const initialAsked = useRef(false);
+  const mutateQuestion = ask.mutate;
+  useEffect(() => {
+    // Consume a question from the overview exactly once, including StrictMode effect replay.
+    if (
+      initialQuestion === undefined ||
+      initialAsked.current ||
+      sources.isPending ||
+      sources.error !== null
+    )
+      return;
+    initialAsked.current = true;
+    mutateQuestion(initialQuestion);
+    onInitialQuestionUsed?.();
+  }, [
+    initialQuestion,
+    sources.isPending,
+    sources.error,
+    mutateQuestion,
+    onInitialQuestionUsed,
+  ]);
+  const submitContent =
+    variant === 'overview'
+      ? {
+          iconOnly: true as const,
+          icon: 'arrowUp' as const,
+          'aria-label': 'Ask question',
+        }
+      : { icon: 'sparkle' as const, children: 'Ask question' };
 
   return (
-    <section aria-labelledby="workspace-questions-heading">
-      <h2 id="workspace-questions-heading">Ask workspace sources</h2>
-      <p>
+    <section
+      aria-labelledby="workspace-questions-heading"
+      className={variant === 'overview' ? styles.overview : styles.full}
+    >
+      <h2
+        id="workspace-questions-heading"
+        className={variant === 'overview' ? 'visually-hidden' : undefined}
+      >
+        {variant === 'overview' ? 'Ask across this workspace' : 'Ask workspace sources'}
+      </h2>
+      <p className={variant === 'overview' ? 'visually-hidden' : undefined}>
         Answers use searchable sources in this workspace and include links to supporting
         passages.
       </p>
@@ -81,87 +163,129 @@ function QuestionForm({
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          if (ask.isPending) return;
           if (!question.trim()) {
             setValidation('Enter a question.');
             return;
           }
           setValidation(null);
-          ask.mutate({
+          const input: WorkspaceQuestion = {
             question: question.trim(),
             ...(scope === 'selected' ? { selectedSourceIds: selected } : {}),
-          });
+          };
+          if (onAsk !== undefined) onAsk(input);
+          else ask.mutate(input);
         }}
       >
-        <p>
-          <label htmlFor="workspace-question">Question</label>
-          <textarea
+        {variant === 'overview' ? (
+          <span className={styles.askIcon} aria-hidden="true">
+            <IconTile icon="sparkle" tone="lavender" />
+          </span>
+        ) : null}
+        <div className={styles.question}>
+          <Textarea
+            label="Question"
             id="workspace-question"
             ref={questionInput}
             maxLength={2000}
             value={question}
+            placeholder={
+              variant === 'overview' ? 'Ask across this workspace…' : undefined
+            }
+            aria-invalid={validation !== null}
+            aria-describedby={
+              validation !== null ? 'workspace-question-error' : undefined
+            }
             disabled={ask.isPending}
             onChange={(event) => setQuestion(event.target.value)}
           />
-        </p>
-        <fieldset disabled={ask.isPending}>
-          <legend>Sources to search</legend>
-          <label>
-            <input
-              type="radio"
-              name="question-scope"
-              value="all"
-              checked={scope === 'all'}
-              onChange={() => setScope('all')}
-            />
-            All workspace sources
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="question-scope"
-              value="selected"
-              checked={scope === 'selected'}
-              onChange={() => setScope('selected')}
-            />
-            Selected sources
-          </label>
-          {scope === 'selected' ? (
-            <div>
-              {ready.map((source) => (
-                <label key={source.id}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(source.id)}
-                    onChange={(event) =>
-                      setSelected((current) =>
-                        event.target.checked
-                          ? [...current, source.id]
-                          : current.filter((id) => id !== source.id),
-                      )
-                    }
-                  />
-                  {source.displayName}
-                </label>
-              ))}
-              {selected.length === 0 ? (
-                <p>No sources selected. The answer will have no evidence.</p>
-              ) : null}
-            </div>
-          ) : null}
-        </fieldset>
-        {validation !== null ? <p role="alert">{validation}</p> : null}
+        </div>
+        <div className={styles.scope}>
+          <Badge
+            icon="book"
+            tone="blue"
+            label={
+              scope === 'all'
+                ? 'All workspace sources'
+                : `Selected sources · ${selected.length}`
+            }
+          />
+        </div>
+        <details className={styles.scopeOptions} open={variant === 'full'}>
+          <summary>Choose source scope</summary>
+          <fieldset disabled={ask.isPending}>
+            <legend>Sources to search</legend>
+            <label>
+              <input
+                type="radio"
+                name="question-scope"
+                value="all"
+                checked={scope === 'all'}
+                onChange={() => setScope('all')}
+              />
+              All workspace sources
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="question-scope"
+                value="selected"
+                checked={scope === 'selected'}
+                onChange={() => setScope('selected')}
+              />
+              Selected sources
+            </label>
+            {scope === 'selected' ? (
+              <div>
+                {ready.map((source) => (
+                  <label key={source.id}>
+                    <input
+                      type="checkbox"
+                      aria-label={source.displayName}
+                      checked={selected.includes(source.id)}
+                      onChange={(event) =>
+                        setSelected((current) =>
+                          event.target.checked
+                            ? [...current, source.id]
+                            : current.filter((id) => id !== source.id),
+                        )
+                      }
+                    />
+                    {source.displayName}{' '}
+                    {source.sourceType ? (
+                      <span aria-hidden="true">
+                        <SourceTypeBadge sourceType={source.sourceType} />
+                      </span>
+                    ) : null}
+                  </label>
+                ))}
+                {selected.length === 0 ? (
+                  <p>No sources selected. The answer will have no evidence.</p>
+                ) : null}
+              </div>
+            ) : null}
+          </fieldset>
+        </details>
+        {validation !== null ? (
+          <p id="workspace-question-error" role="alert">
+            {validation}
+          </p>
+        ) : null}
         {ask.error !== null ? <p role="alert">{describeError(ask.error)}</p> : null}
         {ask.isPending ? (
           <p role="status" aria-live="polite">
             Searching sources and answering…
           </p>
         ) : null}
-        <button
+        <Button
+          {...submitContent}
+          className={styles.submit}
           type="submit"
           disabled={ask.isPending || sources.isPending || sources.error !== null}
-        >
-          {ask.isPending ? 'Answering…' : 'Ask question'}
-        </button>
+          busy={ask.isPending}
+          busyLabel="Answering…"
+          aria-label={ask.isPending ? 'Answering…' : 'Ask question'}
+        />
       </form>
       {ask.data !== undefined && !ask.isPending && ask.error === null ? (
         <section aria-label="Workspace answer" aria-live="polite">
