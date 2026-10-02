@@ -1,0 +1,155 @@
+/*
+ * RH-265 public token contract. Source: Brand&system.pdf pp.2,4;
+ * Components&states.pdf p.1; DESIGN_SPEC.md §1. See README.md for roles,
+ * contrast-safe pairings and the measured/inferred values below. Light mode only.
+ */
+:root {
+  /* Neutrals (stated). Accents below are fills/marks, never body text. */
+  --color-background: #fbf9f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f2ec;
+  --color-border: #ece8e0;
+  --color-border-strong: #d9d3c7;
+  --color-text-primary: #1b1a17;
+  --color-text-secondary: #5e5a52;
+  --color-text-muted: #77726a;
+  /* Accessible small text on all three neutral surfaces; see contrast tests. */
+  --color-text-subtle: #706b63;
+
+  /* Brand: base / large-surface tint / measured mid-tint / text-on-tint ink. */
+  --color-brand-blue: #8cc8ff;
+  --color-brand-blue-tint: #e8f4ff;
+  --color-brand-blue-mid: #d1eaff;
+  --color-brand-blue-ink: #1f6aa8;
+  --color-brand-coral: #ff8f87;
+  --color-brand-coral-tint: #ffedeb;
+  --color-brand-coral-mid: #ffdcda;
+  --color-brand-coral-ink: #b8352c;
+  --color-brand-lavender: #ddb8ff;
+  --color-brand-lavender-tint: #f5ecff;
+  --color-brand-lavender-mid: #ebd9ff;
+  --color-brand-lavender-ink: #6b3fa0;
+  --color-brand-mint: #b7e7c1;
+  --color-brand-mint-tint: #e6f6ea;
+  --color-brand-mint-mid: #d8f1de;
+  --color-brand-mint-ink: #1f6b3a;
+  --color-brand-yellow: #ffd166;
+  --color-brand-yellow-tint: #fff4d6;
+  --color-brand-yellow-mid: #ffe9ad;
+  --color-brand-yellow-ink: #7a5600;
+
+  /* Status bases are marks. Use inks for status text and always add a word. */
+  --color-success: #2f8f5b;
+  --color-success-ink: var(--color-brand-mint-ink);
+  --color-success-tint: var(--color-brand-mint-tint);
+  --color-warning: #e0a100;
+  --color-warning-ink: var(--color-brand-yellow-ink);
+  --color-warning-tint: var(--color-brand-yellow-tint);
+  --color-error: #d9483b;
+  --color-error-ink: var(--color-brand-coral-ink);
+  --color-error-tint: var(--color-brand-coral-tint);
+
+  /* Component state colors measured from p.1; error ink is authoritative. */
+  --color-action-hover: #3a3833;
+  --color-danger-hover: #912b29;
+  --color-selection: #cfe6fb;
+  --color-scrim: rgb(27 26 23 / 42%);
+  --color-focus-halo: rgb(140 200 255 / 45%);
+  --color-shadow: 27 26 23;
+
+  /* Named faces only; variable fonts contain every specified weight. */
+  --font-ui: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+  --font-paper: 'Source Serif 4 Variable', Georgia, serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --type-display-size: 3.5rem;
+  --type-display-weight: var(--font-weight-extrabold);
+  --type-h1-size: 2rem;
+  --type-h1-weight: var(--font-weight-extrabold);
+  --type-h2-size: 1.5rem;
+  --type-h2-weight: var(--font-weight-bold);
+  --type-h3-size: 1.125rem;
+  --type-h3-weight: var(--font-weight-bold);
+  --type-body-size: 0.9375rem;
+  --type-body-weight: var(--font-weight-regular);
+  --type-label-size: 0.8125rem;
+  --type-label-weight: var(--font-weight-semibold);
+  --type-caption-size: 0.75rem;
+  --type-caption-weight: var(--font-weight-medium);
+  --type-paper-title-size: 1.75rem;
+  --type-paper-title-weight: var(--font-weight-semibold);
+  /* Line heights are implementation defaults; the PDF names sizes/weights only. */
+  --line-height-heading: 1.2;
+  --line-height-body: 1.6;
+  --line-height-control: 1.25;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --control-height-compact: 34px;
+  --control-height-default: 36px;
+  --control-height-large: 44px;
+
+  /* e0 is stated as border only. e1-e3 shadow geometry/opacity is inferred. */
+  --elevation-e0: none;
+  --elevation-e1:
+    0 1px 2px rgb(var(--color-shadow) / 6%), 0 2px 8px rgb(var(--color-shadow) / 8%);
+  --elevation-e2: 0 8px 24px rgb(var(--color-shadow) / 10%);
+  --elevation-e3: 0 24px 64px rgb(var(--color-shadow) / 18%);
+  --focus-ring-width: 2px;
+  --focus-ring-gap: 2px;
+  --focus-ring-color: var(--color-text-primary);
+  --focus-ring: var(--focus-ring-width) solid var(--focus-ring-color);
+  --focus-field-halo: 0 0 0 3px var(--color-focus-halo);
+  --opacity-disabled: 0.4;
+
+  /* RH-270: overlays nested in a modal inherit its stacking context. */
+  --layer-content: 0;
+  --layer-popover: 100;
+  --layer-slide-over: 200;
+  --layer-modal: 300;
+  --layer-toast: 400;
+
+  /* Motion from p.4; control easing/durations and busy rotation are defaults. */
+  --motion-fast: 120ms;
+  --motion-standard: 180ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0, 1);
+  --motion-blink-duration: 120ms;
+  --motion-blink-interval-min: 5s;
+  --motion-blink-interval-max: 7s;
+  --motion-blink-scale-y: 0.1;
+  --motion-paper-duration: 2.4s;
+  --motion-paper-rise: 6px;
+  --motion-paper-tilt: 3deg;
+  --motion-highlight-duration: 400ms;
+  --motion-busy-duration: 1s;
+  --motion-iteration-count: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-standard: 0ms;
+    --motion-blink-duration: 0ms;
+    --motion-paper-duration: 0ms;
+    --motion-highlight-duration: 0ms;
+    --motion-busy-duration: 0ms;
+    --motion-paper-rise: 0px;
+    --motion-paper-tilt: 0deg;
+    --motion-blink-scale-y: 1;
+  }
+}

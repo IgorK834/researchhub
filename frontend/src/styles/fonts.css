@@ -1,0 +1,8 @@
+/* OFL-1.1, pinned Fontsource packages. Webpack emits WOFF2 from the app origin.
+ * All provided subsets are retained for multilingual research; unicode-range
+ * lets the browser fetch only the glyph ranges it uses. font-display: swap.
+ */
+@import '@fontsource-variable/plus-jakarta-sans/wght.css';
+@import '@fontsource-variable/plus-jakarta-sans/wght-italic.css';
+@import '@fontsource-variable/source-serif-4/wght.css';
+@import '@fontsource-variable/source-serif-4/wght-italic.css';

@@ -1,0 +1,177 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  font-family: var(--font-ui);
+  line-height: var(--line-height-body);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+body {
+  margin: 0;
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: var(--line-height-heading);
+  margin-block: var(--space-5) var(--space-3);
+  overflow-wrap: break-word;
+}
+
+h1 {
+  font-size: var(--type-h1-size);
+  font-weight: var(--type-h1-weight);
+}
+
+h2 {
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+}
+
+p,
+ul,
+ol,
+blockquote {
+  margin-block: 0 var(--space-4);
+}
+
+a {
+  color: var(--color-brand-blue-ink);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--color-text-primary);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+input:not(
+  [type='checkbox'],
+  [type='radio'],
+  [type='range'],
+  [type='color'],
+  [type='file']
+),
+textarea,
+select {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+input::placeholder,
+textarea::placeholder,
+small,
+figcaption {
+  color: var(--color-text-subtle);
+  opacity: 1;
+}
+
+small,
+figcaption {
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-caption-weight);
+}
+
+label {
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+}
+
+strong,
+b {
+  font-weight: var(--font-weight-bold);
+}
+
+blockquote {
+  font-family: var(--font-paper);
+}
+
+mark {
+  background: var(--color-brand-yellow-tint);
+  color: var(--color-text-primary);
+}
+
+/* eslint-disable-next-line css/use-baseline -- Progressive enhancement; unstyled selection remains readable. */
+::selection {
+  background: var(--color-selection);
+  color: var(--color-text-primary);
+}
+
+img,
+video {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: start;
+}
+
+/* Every native focusable control, including feature controls not migrated yet. */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-gap);
+}
+
+input:not(
+    [type='checkbox'],
+    [type='radio'],
+    [type='range'],
+    [type='color'],
+    [type='file']
+  ):focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-text-primary);
+  box-shadow: var(--focus-field-halo);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
