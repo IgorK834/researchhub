@@ -1,0 +1,65 @@
+.tool {
+  position: relative;
+  display: flex;
+  min-height: calc(100dvh - 56px);
+  min-width: 0;
+}
+.secondary {
+  flex: 0 0 260px;
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+  border-right: var(--border-width) solid var(--color-border);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tool[data-secondary-width='240'] .secondary {
+  flex-basis: 240px;
+}
+.tool[data-secondary-width='280'] .secondary {
+  flex-basis: 280px;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-5);
+  overflow-wrap: anywhere;
+}
+.context {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 340px;
+  background: var(--color-surface);
+  border-left: var(--border-width) solid var(--color-border);
+}
+.tool:has(.context) {
+  padding-right: 340px;
+}
+.contextContents {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 56px);
+  position: sticky;
+  top: 56px;
+}
+.contextBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+.contextFooter {
+  padding: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.contextTrigger {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-5);
+}
+.tool:has(.contextTrigger) .main {
+  padding-top: var(--space-8);
+}

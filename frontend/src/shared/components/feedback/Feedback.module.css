@@ -1,0 +1,225 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--type-label-size);
+  color: var(--color-text-primary);
+}
+.banner > svg {
+  flex-shrink: 0;
+  margin-block-start: 3px;
+}
+.message {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.message > span {
+  color: var(--color-text-secondary);
+}
+.info {
+  background: var(--color-surface-muted);
+}
+.warning {
+  background: var(--color-brand-yellow-tint);
+  border-color: var(--color-brand-yellow);
+}
+.error {
+  background: var(--color-brand-coral-tint);
+  border-color: var(--color-brand-coral);
+}
+.success {
+  background: var(--color-brand-mint-tint);
+  border-color: var(--color-brand-mint);
+}
+.note {
+  background: transparent;
+  border-style: dashed;
+  border-radius: var(--radius-lg);
+}
+.action {
+  flex-shrink: 0;
+}
+.action a,
+.action button {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.spinner > svg {
+  animation: spin var(--motion-busy-duration) linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.progressLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--type-caption-size);
+}
+.progressLabel > span:last-child:not(:first-of-type) {
+  margin-inline-start: auto;
+}
+.track {
+  block-size: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+}
+.fill {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+}
+.blue {
+  background: var(--color-brand-blue);
+}
+.yellow {
+  background: var(--color-brand-yellow);
+}
+.indeterminate {
+  animation: progress var(--motion-paper-duration) var(--motion-easing) infinite alternate;
+}
+@keyframes progress {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(150%);
+  }
+}
+.steps {
+  display: flex;
+  gap: var(--space-1);
+}
+.step {
+  flex: 1;
+  block-size: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+}
+.done {
+  background: var(--color-brand-mint);
+}
+.current {
+  background: var(--color-brand-yellow);
+}
+.skeleton {
+  display: block;
+  background: var(--color-surface-muted);
+}
+.text {
+  border-radius: var(--radius-pill);
+}
+.block {
+  border-radius: var(--radius-md);
+}
+.circle {
+  border-radius: var(--radius-pill);
+}
+.toastHost {
+  position: fixed;
+  inset-inline-end: var(--space-5);
+  inset-block-end: var(--space-5);
+  z-index: var(--layer-toast);
+  inline-size: 390px;
+  max-inline-size: calc(100vw - 32px);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  margin-block-start: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-e2);
+  font-size: var(--type-caption-size);
+  pointer-events: auto;
+}
+.successToast {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+.blocking {
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  border-color: var(--color-text-primary);
+}
+.blocking .message > span {
+  color: var(--color-surface);
+}
+.toastIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-mint);
+  color: var(--color-text-primary);
+}
+.blocking .toastIcon {
+  background: var(--color-brand-coral);
+}
+.toastAction {
+  border: 0;
+  padding: var(--space-1);
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.dismiss {
+  color: inherit;
+  flex-shrink: 0;
+  min-inline-size: 22px;
+  inline-size: 22px;
+  block-size: 22px;
+  padding: 0;
+}
+.blocking .dismiss:hover {
+  background: var(--color-action-hover);
+}
+.blocking :focus-visible {
+  outline-color: var(--color-surface);
+}
+@media (max-width: 600px) {
+  .banner {
+    flex-wrap: wrap;
+  }
+  .action {
+    margin-inline-start: 24px;
+  }
+  .toastHost {
+    inset-inline-end: var(--space-4);
+    inset-block-end: var(--space-4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner > svg,
+  .indeterminate {
+    animation: none;
+  }
+}

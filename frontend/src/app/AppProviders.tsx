@@ -2,6 +2,7 @@ import { useState, type ReactElement, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { createQueryClient } from './queryClient';
+import { ToastProvider } from '../shared/components/feedback';
 
 interface AppProvidersProps {
   readonly children: ReactNode;
@@ -16,5 +17,9 @@ export function AppProviders({ children }: AppProvidersProps): ReactElement {
   // tests or a future server-render.
   const [queryClient] = useState(createQueryClient);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>{children}</ToastProvider>
+    </QueryClientProvider>
+  );
 }

@@ -1,0 +1,216 @@
+.shell {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+.sidebarScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3);
+  min-height: 0;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: 1.0625rem;
+  font-weight: var(--font-weight-extrabold);
+}
+.brand a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.sticker {
+  margin: var(--space-5) var(--space-2);
+}
+.sidebarBottom {
+  flex-shrink: 0;
+  padding: var(--space-3);
+}
+.user {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  border-top: var(--border-width) solid var(--color-border-strong);
+}
+.userText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--type-caption-size);
+}
+.userText strong,
+.userText span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userText span {
+  color: var(--color-text-subtle);
+}
+.signOut {
+  padding-left: 44px;
+}
+.mainColumn {
+  min-width: 0;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: 0 var(--space-5);
+  background: var(--color-background);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+.content {
+  max-width: 1176px;
+  margin: 0 auto;
+  padding: 40px;
+}
+.skip {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--layer-toast);
+  transform: translateY(-200%);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-md);
+}
+.skip:focus {
+  transform: none;
+}
+.mark {
+  flex-shrink: 0;
+  overflow: visible;
+}
+.mark rect {
+  stroke: var(--color-surface-muted);
+  stroke-width: 1;
+}
+.markBlue {
+  fill: var(--color-brand-blue);
+}
+.markCoral {
+  fill: var(--color-brand-coral);
+}
+.markYellow {
+  fill: var(--color-brand-yellow);
+}
+.markMint {
+  fill: var(--color-brand-mint);
+}
+.markLavender {
+  fill: var(--color-brand-lavender);
+}
+
+.content [id] {
+  scroll-margin-top: 80px;
+}
+
+.shell[data-tool] {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+.shell[data-tool] .content {
+  padding: 0;
+  max-width: none;
+}
+.shell[data-tool] .sidebarScroll,
+.shell[data-tool] .sidebarBottom {
+  padding: var(--space-2);
+}
+.shell[data-tool] .brand {
+  padding: var(--space-1);
+}
+.shell[data-tool] .brand a > span,
+.shell[data-tool] .sticker {
+  display: none;
+}
+.shell[data-tool] .user {
+  padding: var(--space-3) var(--space-2);
+}
+.shell[data-tool] .userText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.shell[data-tool] .signOut {
+  padding: 0;
+}
+.shell[data-tool] .signOut button {
+  width: 44px;
+  padding: var(--space-2);
+}
+.shell[data-tool] .signOut [data-rh-label] {
+  display: none;
+}
+@media (max-width: 1280px) {
+  .shell {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .sidebarScroll,
+  .sidebarBottom {
+    padding: var(--space-2);
+  }
+  .brand {
+    padding: var(--space-1);
+  }
+  .brand a > span,
+  .sticker {
+    display: none;
+  }
+  .user {
+    padding: var(--space-3) var(--space-2);
+  }
+  .userText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .signOut {
+    padding: 0;
+  }
+  .signOut button {
+    width: 44px;
+    padding: var(--space-2);
+  }
+  .signOut [data-rh-label] {
+    display: none;
+  }
+  .content {
+    padding: var(--space-5);
+  }
+}

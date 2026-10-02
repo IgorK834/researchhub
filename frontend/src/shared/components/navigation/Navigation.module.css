@@ -1,0 +1,100 @@
+.tabs {
+  display: flex;
+  gap: var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+.vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--control-height-default);
+  padding: var(--space-2) 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--color-text-primary);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+.tab:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.count {
+  color: var(--color-text-subtle);
+  font-size: var(--type-caption-size);
+  font-weight: var(--font-weight-medium);
+}
+.tabPanel {
+  padding: var(--space-4) var(--space-1);
+}
+.filter {
+  min-height: var(--control-height-compact);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.filter:hover {
+  background: var(--color-surface-muted);
+}
+.filter[aria-pressed='true'] {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: var(--color-surface);
+}
+.filter:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.breadcrumb {
+  min-width: 0;
+  color: var(--color-text-subtle);
+  font-size: var(--type-label-size);
+}
+.breadcrumb ol {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  min-width: 0;
+}
+.breadcrumb li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.breadcrumb svg {
+  flex-shrink: 0;
+}
+.breadcrumb a,
+.breadcrumb span {
+  display: block;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+}
+.breadcrumb [aria-current='page'] {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
