@@ -1,0 +1,52 @@
+.picker {
+  min-inline-size: 0;
+  border: 0;
+  padding: 0;
+  margin-block: var(--space-3);
+}
+.picker legend {
+  font-weight: 600;
+  margin-block-end: var(--space-2);
+}
+.sources {
+  list-style: none;
+  padding: 0;
+  margin-block: var(--space-3);
+}
+.sources li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+.sources label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-inline-size: 150px;
+}
+.sources input {
+  flex-shrink: 0;
+}
+.title {
+  overflow-wrap: anywhere;
+  flex: 1;
+  font-weight: 500;
+}
+.sources p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: var(--type-caption-size);
+}
+.sources li[data-unavailable] .title {
+  color: var(--color-text-subtle);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
