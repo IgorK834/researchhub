@@ -50,6 +50,25 @@ export const queryKeys = {
   documentVersion: (workspaceId: string, documentId: string, versionId: string) =>
     ['documents', workspaceId, documentId, 'versions', versionId] as const,
 
+  citationFragment: (
+    workspaceId: string,
+    sourceId: string,
+    processingVersion: string,
+    chunkId: string,
+    sourceVersionId: string | null,
+    contentHash: string,
+  ) =>
+    [
+      'sources',
+      workspaceId,
+      sourceId,
+      'retrieval',
+      processingVersion,
+      chunkId,
+      sourceVersionId,
+      contentHash,
+    ] as const,
+
   sources: (workspaceId: string) => ['sources', workspaceId] as const,
   source: (workspaceId: string, sourceId: string) =>
     ['sources', workspaceId, sourceId] as const,

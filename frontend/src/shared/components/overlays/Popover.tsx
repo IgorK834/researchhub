@@ -1,6 +1,7 @@
 import {
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactElement,
@@ -16,7 +17,7 @@ import styles from './Overlays.module.css';
 
 function usePosition(
   open: boolean,
-  trigger: RefObject<HTMLButtonElement | null>,
+  trigger: RefObject<HTMLElement | null>,
   surface: RefObject<HTMLDivElement | null>,
 ): void {
   useLayoutEffect(() => {
@@ -55,6 +56,64 @@ export interface PopoverProps {
   readonly triggerLabel: string;
   readonly title: string;
   readonly children: ReactNode;
+}
+/** Controlled surface for inline entities, including ProseMirror-owned citation anchors. */
+export function AnchoredPopover({
+  anchor,
+  title,
+  children,
+  onClose,
+  className,
+}: {
+  readonly anchor: HTMLElement;
+  readonly title: string;
+  readonly children: ReactNode;
+  readonly onClose: () => void;
+  readonly className?: string;
+}): ReactElement {
+  const id = useId();
+  const trigger = useMemo(() => ({ current: anchor }), [anchor]);
+  useLayoutEffect(() => {
+    anchor.setAttribute('aria-expanded', 'true');
+    return () => { anchor.setAttribute('aria-expanded', 'false'); };
+  }, [anchor]);
+  const host = useRef<HTMLDivElement>(null);
+  const surface = useRef<HTMLDivElement>(null);
+  useOverlay({
+    open: true,
+    onClose,
+    modal: false,
+    dismissible: true,
+    triggerRef: trigger,
+    hostRef: host,
+    surfaceRef: surface,
+  });
+  usePosition(true, trigger, surface);
+  return createPortal(
+    <div ref={host} className={styles.popoverLayer} data-rh-overlay="">
+      <div
+        ref={surface}
+        id={id}
+        role="dialog"
+        aria-label={title}
+        tabIndex={-1}
+        className={[styles.popover, className].filter(Boolean).join(' ')}
+      >
+        <header className={styles.popoverHeader}>
+          <strong>{title}</strong>
+          <Button
+            variant="ghost"
+            iconOnly
+            icon="x"
+            aria-label={`Close ${title}`}
+            onClick={onClose}
+          />
+        </header>
+        {children}
+      </div>
+    </div>,
+    anchor.closest('[data-rh-overlay-surface]') ?? document.body,
+  );
 }
 /** Non-modal content surface. Tab uses the document sequence; Escape and outside clicks close it. */
 export function Popover({ triggerLabel, title, children }: PopoverProps): ReactElement {
