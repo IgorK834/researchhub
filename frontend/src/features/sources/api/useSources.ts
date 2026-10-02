@@ -26,6 +26,12 @@ export function useSourcesQuery(
     enabled,
     queryKey: queryKeys.sources(workspaceId),
     queryFn: ({ signal }) => fetchSources(workspaceId, signal),
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (source) => source.status === 'UPLOADED' || source.status === 'PROCESSING',
+      )
+        ? 2000
+        : false,
   });
 }
 

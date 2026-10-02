@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 
 import { describeError } from '../../../shared/api';
 import { sourceVersionContentPath, type SourceVersion } from '../api/sourceApi';
-import { SOURCE_STATUS_LABELS } from '../api/sourceTypes';
+import { SourceStatusChip } from './SourceVisuals';
 import { useSourceVersionsQuery } from '../api/useSources';
 
 const TABULAR = new Set(['CSV', 'XLSX']);
@@ -88,7 +88,9 @@ function VersionRow({
       </th>
       <td>{version.originalFilename}</td>
       <td>{version.sizeBytes.toLocaleString()} bytes</td>
-      <td>{SOURCE_STATUS_LABELS[version.status]}</td>
+      <td>
+        <SourceStatusChip status={version.status} />
+      </td>
       <td>
         <time dateTime={version.createdAt}>
           {new Intl.DateTimeFormat(undefined, {

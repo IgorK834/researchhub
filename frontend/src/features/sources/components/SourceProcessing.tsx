@@ -27,7 +27,8 @@ export function SourceProcessing({
   const processing = useQuery({
     enabled: busy,
     queryKey: queryKeys.sourceProcessing(workspaceId, sourceId),
-    queryFn: ({ signal }) => fetchSourceProcessing(workspaceId, sourceId, signal),
+    queryFn: async ({ signal }) =>
+      (await fetchSourceProcessing(workspaceId, sourceId, signal)) ?? null,
     refetchInterval: busy ? 2000 : false,
   });
   const stageLabels = {

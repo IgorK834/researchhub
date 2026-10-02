@@ -1,3 +1,4 @@
+import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
 import { useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -100,6 +101,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
             <label key={source.id}>
               <input
                 type="checkbox"
+                aria-label={source.displayName}
                 checked={selected.includes(source.id)}
                 onChange={(event) =>
                   setSelected(
@@ -109,7 +111,12 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
                   )
                 }
               />
-              {source.displayName}
+              {source.displayName}{' '}
+              {source.sourceType ? (
+                <span aria-hidden="true">
+                  <SourceTypeBadge sourceType={source.sourceType} />
+                </span>
+              ) : null}
             </label>
           ))}
           {sources.data?.length === 0 ? (

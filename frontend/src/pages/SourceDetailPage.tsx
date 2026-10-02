@@ -9,7 +9,10 @@ import { queryKeys } from '../shared/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { SourceExtractionPreview } from '../features/sources/components/SourceExtractionPreview';
 import { sourceContentPath } from '../features/sources/api/sourceApi';
-import { SOURCE_STATUS_LABELS } from '../features/sources/api/sourceTypes';
+import {
+  SourceTypeBadge,
+  SourceStatusChip,
+} from '../features/sources/components/SourceVisuals';
 import {
   useSourceQuery,
   useSourceVersionsQuery,
@@ -145,11 +148,15 @@ function SourceDetail({
       ) : null}
       <dl>
         <dt>Type</dt>
-        <dd>{source.sourceType}</dd>
+        <dd>
+          <SourceTypeBadge sourceType={source.sourceType} />
+        </dd>
         <dt>Version</dt>
         <dd>{source.activeVersionNumber} (latest)</dd>
         <dt>Status</dt>
-        <dd>{SOURCE_STATUS_LABELS[source.status]}</dd>
+        <dd>
+          <SourceStatusChip status={source.status} />
+        </dd>
         <dt>Uploaded by</dt>
         <dd>{uploader}</dd>
         <dt>Uploaded on</dt>

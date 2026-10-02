@@ -1,3 +1,4 @@
+import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
 import { useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -306,6 +307,7 @@ export function AuthoringPanel({
                 <label key={source.id}>
                   <input
                     type="checkbox"
+                    aria-label={source.displayName}
                     checked={selected.includes(source.id)}
                     onChange={(event) =>
                       setSelected((current) =>
@@ -315,7 +317,12 @@ export function AuthoringPanel({
                       )
                     }
                   />
-                  {source.displayName}
+                  {source.displayName}{' '}
+                  {source.sourceType ? (
+                    <span aria-hidden="true">
+                      <SourceTypeBadge sourceType={source.sourceType} />
+                    </span>
+                  ) : null}
                 </label>
               ))}
               {ready.length === 0 ? <p>No ready sources available.</p> : null}

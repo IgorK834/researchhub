@@ -8,6 +8,9 @@
  * does not look like its extension, and the UI must show that `UNSUPPORTED_FILE_TYPE` detail as it arrives.
  */
 
+import type { BadgeTone } from '../../../shared/components/identity';
+import type { IconName } from '../../../shared/components/icons';
+
 export const SOURCE_TYPES = ['PDF', 'DOCX', 'XLSX', 'CSV', 'TXT'] as const;
 
 export type SourceType = (typeof SOURCE_TYPES)[number];
@@ -20,6 +23,27 @@ export const SOURCE_STATUS_LABELS: Readonly<Record<SourceStatus, string>> = {
   PROCESSING: 'Processing',
   READY: 'Ready',
   FAILED: 'Failed',
+};
+
+export interface SourceVisual {
+  readonly icon: IconName;
+  readonly tone: BadgeTone;
+}
+
+/** Exhaustive presentation maps: adding a server-supported type/state requires a visual. */
+export const SOURCE_TYPE_VISUALS: Readonly<Record<SourceType, SourceVisual>> = {
+  PDF: { icon: 'file', tone: 'coral' },
+  DOCX: { icon: 'text', tone: 'blue' },
+  XLSX: { icon: 'table', tone: 'mint' },
+  CSV: { icon: 'grid', tone: 'mint' },
+  TXT: { icon: 'text', tone: 'yellow' },
+};
+
+export const SOURCE_STATUS_VISUALS: Readonly<Record<SourceStatus, SourceVisual>> = {
+  UPLOADED: { icon: 'upload', tone: 'neutral' },
+  PROCESSING: { icon: 'refresh', tone: 'yellow' },
+  READY: { icon: 'check', tone: 'mint' },
+  FAILED: { icon: 'alert', tone: 'coral' },
 };
 
 interface SourceTypeRule {
