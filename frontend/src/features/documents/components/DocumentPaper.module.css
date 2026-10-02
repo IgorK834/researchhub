@@ -1,0 +1,210 @@
+.writingSurface {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.toolbarHost {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto var(--space-5);
+  min-height: 40px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  width: fit-content;
+  margin: 0 auto var(--space-4);
+}
+.toolbarHost .toolbar {
+  margin: 0;
+}
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: var(--type-caption-size);
+  padding: var(--space-1) var(--space-2);
+}
+.toolbar button:hover,
+.toolbar button[aria-pressed='true'] {
+  background: var(--color-surface-muted);
+}
+.toolbar button:disabled {
+  opacity: var(--opacity-disabled);
+}
+.toolbar label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.paper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7) var(--space-8);
+  box-shadow: var(--elevation-e0);
+}
+.paper .title {
+  display: block;
+  width: 100%;
+  /* eslint-disable-next-line css/use-baseline -- Progressive enhancement for the autosizing title. */
+  resize: none;
+  overflow: hidden;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  border: 0;
+  border-radius: 0;
+  font-family: var(--font-paper);
+  font-size: 2.25rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  background: transparent;
+}
+.editor [role='textbox'] {
+  min-height: 220px;
+  font-size: 1rem;
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+.editor [role='textbox'][aria-readonly='true'] {
+  min-height: 0;
+}
+.editor [role='textbox']:focus {
+  outline: 0;
+}
+.editor h1 {
+  font-size: 1.75rem;
+}
+.editor h2 {
+  font-size: 1.375rem;
+}
+.editor h3 {
+  font-size: 1.125rem;
+}
+.editor h1,
+.editor h2,
+.editor h3,
+.editor h4,
+.editor h5,
+.editor h6 {
+  margin: var(--space-6) 0 var(--space-3);
+  scroll-margin-top: 100px;
+}
+.editor p {
+  margin: 0 0 var(--space-4);
+}
+.editor ul,
+.editor ol {
+  padding-left: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+.editor li p {
+  margin-bottom: var(--space-1);
+}
+.editor blockquote {
+  margin: var(--space-5) 0;
+  border-left: 3px solid var(--color-border-strong);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-paper);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+.editor blockquote p:last-child {
+  margin-bottom: 0;
+}
+.editor table {
+  table-layout: fixed;
+  width: 100%;
+  margin: var(--space-5) 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: var(--type-label-size);
+}
+.editor th,
+.editor td {
+  position: relative;
+  min-width: 60px;
+  padding: var(--space-2) var(--space-3);
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+.editor th {
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-surface-muted);
+}
+.editor td + td,
+.editor th + th {
+  border-left: 1px solid var(--color-border);
+}
+.editor tr:last-child td,
+.editor tr:last-child th {
+  border-bottom: 0;
+}
+.editor td p,
+.editor th p {
+  margin: 0;
+}
+.editor pre {
+  white-space: pre-wrap;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  font-size: var(--type-label-size);
+}
+.editor figure {
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.editor figcaption {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+.editor a[data-research-citation] {
+  display: inline;
+  background: var(--color-brand-blue-mid);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-1);
+  font-family: var(--font-ui);
+  font-size: var(--type-caption-size);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  /* eslint-disable-next-line css/use-baseline -- Wrapped chips remain readable without cloned padding. */
+  box-decoration-break: clone;
+}
+.editor a[data-research-citation]:hover {
+  background: var(--color-brand-blue);
+}
+.saveVersion {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+}
+@media (max-width: 1000px) {
+  .paper {
+    padding: var(--space-5);
+  }
+  .paper .title {
+    font-size: 1.75rem;
+  }
+}

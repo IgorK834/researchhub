@@ -1,4 +1,5 @@
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
@@ -11,11 +12,32 @@ import {
 import { useArchiveDocument } from '../api/useDocuments';
 import { useDocumentAutosave } from '../autosave/useDocumentAutosave';
 import { DocumentBodyEditor, type AuthoringSelection } from './DocumentBodyEditor';
-import { AuthoringPanel } from '../../ai/components/AuthoringPanel';
+import type { DocumentNavigation } from '../api/documentNavigation';
+import styles from './DocumentPaper.module.css';
+import { Button } from '../../../shared/components/Button';
 import { DocumentHistory } from './DocumentHistory';
 import { SaveStatus } from './SaveStatus';
+import { DocumentViewerNotice } from './DocumentViewerNotice';
 
-interface DocumentEditorFormProps {
+export interface DocumentAuthoringContext {
+  readonly workspaceId: string;
+  readonly documentId: string;
+  readonly revision: number;
+  readonly settled: boolean;
+  readonly selection: AuthoringSelection;
+  readonly blockCount: number;
+  readonly onBusy: (busy: boolean) => void;
+  readonly onAccepted: (document: WorkspaceDocument) => void;
+  readonly onReload: () => void;
+}
+
+export interface DocumentEditorFormProps {
+  readonly renderAuthoring?: (context: DocumentAuthoringContext) => ReactNode;
+  readonly historyHost?: HTMLElement;
+  readonly historyExpanded?: boolean;
+  readonly statusHost?: HTMLElement;
+  readonly onNavigationChange?: (navigation: DocumentNavigation) => void;
+  readonly navigationTarget?: { readonly position: number } | null;
   readonly workspaceId: string;
   readonly document: WorkspaceDocument;
   /**
@@ -26,6 +48,8 @@ interface DocumentEditorFormProps {
    * archived workspace still gets `409`.
    */
   readonly canEdit: boolean;
+  readonly isViewer?: boolean;
+  readonly authors?: readonly { readonly userId: string; readonly name: string }[];
   /** Reloads the document and discards local edits. Offered only after a conflict. */
   readonly onDiscardLocalChanges: () => void;
   /** The stored document was replaced by a restore; the caller shows the new one in a fresh editor. */
@@ -52,8 +76,16 @@ export function DocumentEditorForm({
   workspaceId,
   document,
   canEdit,
+  isViewer = false,
+  authors = [],
   onDiscardLocalChanges,
   onReplaced,
+  renderAuthoring,
+  historyHost,
+  historyExpanded,
+  statusHost,
+  onNavigationChange,
+  navigationTarget,
 }: DocumentEditorFormProps): ReactElement {
   const navigate = useNavigate();
   const archive = useArchiveDocument(workspaceId, document.id);
@@ -62,6 +94,9 @@ export function DocumentEditorForm({
   // faithfully, and editing it would risk saving an emptied or altered copy over it.
   const [storedBody] = useState(() => readStoredDocument(document.content));
   const [title, setTitle] = useState(document.title);
+  const [toolbarHost] = useState(() => window.document.createElement('div'));
+  const [previewHost] = useState(() => window.document.createElement('div'));
+  const [previewing, setPreviewing] = useState(false);
   const [body, setBody] = useState<ProseMirrorDocument>(
     () => storedBody ?? EMPTY_DOCUMENT,
   );
@@ -71,6 +106,7 @@ export function DocumentEditorForm({
     document.id,
     { title: document.title, content: storedBody ?? EMPTY_DOCUMENT },
     document.revision,
+    document.updatedAt,
   );
 
   const [aiBusy, setAiBusy] = useState(false);
@@ -95,12 +131,15 @@ export function DocumentEditorForm({
   const settled = autosave.status === 'saved';
 
   return (
-    <>
+    <div className={styles.writingSurface}>
       <SaveStatus
         state={autosave}
+        savedAt={autosave.savedAt}
         onRetry={autosave.retry}
         onDiscardLocalChanges={onDiscardLocalChanges}
+        statusHost={statusHost}
       />
+      {isViewer ? <DocumentViewerNotice statusHost={statusHost} /> : null}
 
       {archiveFailure !== null ? <p role="alert">{archiveFailure}</p> : null}
 
@@ -111,103 +150,147 @@ export function DocumentEditorForm({
         </p>
       ) : null}
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          autosave.saveNow();
+      <div
+        ref={(element) => {
+          if (element) element.appendChild(previewHost);
         }}
-        noValidate
-      >
-        <p>
-          <label htmlFor="document-editor-title">Title</label>
-          <input
-            id="document-editor-title"
-            name="document-editor-title"
-            type="text"
-            value={title}
-            autoComplete="off"
-            readOnly={!editable}
-            aria-invalid={titleError !== undefined}
-            {...(titleError === undefined
-              ? {}
-              : { 'aria-describedby': 'document-editor-title-error' })}
-            onChange={(event) => {
-              setTitle(event.target.value);
-              autosave.edit({ title: event.target.value, content: body });
+        hidden={!previewing}
+      />
+      <div hidden={previewing}>
+        {editable ? (
+          <div
+            className={styles.toolbarHost}
+            ref={(element) => {
+              if (element) element.appendChild(toolbarHost);
             }}
           />
-          {titleError === undefined ? null : (
-            <span id="document-editor-title-error">{titleError}</span>
-          )}
-        </p>
-
-        <div>
-          <span id="document-editor-text-label">Text</span>
-          {storedBody === null ? null : (
-            <DocumentBodyEditor
-              onOpenCitation={(path) => {
-                void navigate(path);
-              }}
-              initialContent={storedBody}
-              editable={editable}
-              onSelectionChange={setSelection}
-              onChange={(content) => {
-                setBody(content);
-                autosave.edit({ title, content });
-              }}
-              labelId="document-editor-text-label"
-              {...(contentError === undefined
-                ? {}
-                : { errorId: 'document-editor-text-error' })}
-            />
-          )}
-          {contentError === undefined ? null : (
-            <span id="document-editor-text-error">{contentError}</span>
-          )}
-        </div>
-
-        {editable ? (
-          <p>
-            <button
-              type="submit"
-              disabled={autosave.blocked || autosave.status === 'conflict'}
-            >
-              Save version
-            </button>{' '}
-            Changes save automatically. Save a version to keep a restore point you can
-            return to.
-          </p>
         ) : null}
-      </form>
+        <form
+          className={styles.paper}
+          onSubmit={(event) => {
+            event.preventDefault();
+            autosave.saveNow();
+          }}
+          noValidate
+        >
+          <div>
+            <label htmlFor="document-editor-title" className="visually-hidden">
+              Title
+            </label>
+            <textarea
+              className={styles.title}
+              rows={2}
+              ref={(element) => {
+                if (element) {
+                  element.style.height = '0px';
+                  element.style.height = `${Math.max(element.scrollHeight, 44)}px`;
+                }
+              }}
+              id="document-editor-title"
+              name="document-editor-title"
+              value={title}
+              autoComplete="off"
+              readOnly={!editable}
+              aria-invalid={titleError !== undefined}
+              {...(titleError === undefined
+                ? {}
+                : { 'aria-describedby': 'document-editor-title-error' })}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                autosave.edit({ title: event.target.value, content: body });
+              }}
+            />
+            {titleError === undefined ? null : (
+              <span id="document-editor-title-error">{titleError}</span>
+            )}
+          </div>
 
-      {authoringAvailable ? (
-        <AuthoringPanel
-          workspaceId={workspaceId}
-          documentId={document.id}
-          revision={autosave.revision}
-          settled={settled}
-          selection={selection}
-          blockCount={body.content?.length ?? 0}
-          onBusy={setAiBusy}
-          onAccepted={onReplaced}
-          onReload={onDiscardLocalChanges}
-        />
-      ) : null}
+          <div>
+            <span id="document-editor-text-label" className="visually-hidden">
+              Text
+            </span>
+            {storedBody === null ? null : (
+              <DocumentBodyEditor
+                onOpenCitation={(path) => {
+                  void navigate(path);
+                }}
+                initialContent={storedBody}
+                toolbarHost={toolbarHost}
+                onNavigationChange={onNavigationChange}
+                navigationTarget={navigationTarget}
+                editable={editable}
+                onSelectionChange={setSelection}
+                onChange={(content) => {
+                  setBody(content);
+                  autosave.edit({ title, content });
+                }}
+                labelId="document-editor-text-label"
+                {...(contentError === undefined
+                  ? {}
+                  : { errorId: 'document-editor-text-error' })}
+              />
+            )}
+            {contentError === undefined ? null : (
+              <span id="document-editor-text-error">{contentError}</span>
+            )}
+          </div>
 
-      <DocumentHistory
-        workspaceId={workspaceId}
-        documentId={document.id}
-        revision={autosave.revision}
-        canRestore={editable}
-        restoreBlockedReason={
-          settled ? null : 'Restoring is available once your changes are saved.'
-        }
-        onRestored={onReplaced}
-      />
+          {editable ? (
+            <div className={styles.saveVersion}>
+              <Button
+                variant="secondary"
+                type="submit"
+                disabled={autosave.blocked || autosave.status === 'conflict'}
+              >
+                Save version
+              </Button>{' '}
+              Changes save automatically. Save a version to keep a restore point you can
+              return to.
+            </div>
+          ) : null}
+        </form>
+      </div>
+
+      {authoringAvailable
+        ? renderAuthoring?.({
+            workspaceId,
+            documentId: document.id,
+            revision: autosave.revision,
+            settled,
+            selection,
+            blockCount: body.content?.length ?? 0,
+            onBusy: setAiBusy,
+            onAccepted: onReplaced,
+            onReload: onDiscardLocalChanges,
+          })
+        : null}
+
+      {(() => {
+        const history = (
+          <DocumentHistory
+            workspaceId={workspaceId}
+            documentId={document.id}
+            revision={autosave.revision}
+            currentDocument={document}
+            authors={authors}
+            previewHost={previewHost}
+            onPreviewChange={setPreviewing}
+            canRestore={editable}
+            restoreBlockedReason={
+              settled ? null : 'Restoring is available once your changes are saved.'
+            }
+            onRestored={onReplaced}
+            expanded={historyExpanded}
+          />
+        );
+        return historyHost === undefined ? history : createPortal(history, historyHost);
+      })()}
 
       {canEdit && !isArchived ? (
         <p>
-          <button
+          <Button
+            variant="ghost"
+            icon="archive"
             type="button"
             disabled={archive.isPending || !settled || aiBusy}
             onClick={() => {
@@ -215,10 +298,10 @@ export function DocumentEditorForm({
             }}
           >
             {archive.isPending ? 'Archiving…' : 'Archive document'}
-          </button>
+          </Button>
           {settled ? null : ' Archiving is available once your changes are saved.'}
         </p>
       ) : null}
-    </>
+    </div>
   );
 }

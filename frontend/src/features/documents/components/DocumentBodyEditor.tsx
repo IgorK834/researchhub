@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, type ReactElement } from 'react';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
+import { createPortal } from 'react-dom';
 
 import {
   documentExtensions,
   savedDocumentOf,
   type ProseMirrorDocument,
 } from '../api/documentContent';
+import { documentNavigation, type DocumentNavigation } from '../api/documentNavigation';
+import { Icon, type IconName } from '../../../shared/components/icons';
+import styles from './DocumentPaper.module.css';
 
 export interface AuthoringSelection {
   readonly from: number;
@@ -15,6 +19,9 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly toolbarHost?: HTMLElement;
+  readonly onNavigationChange?: (navigation: DocumentNavigation) => void;
+  readonly navigationTarget?: { readonly position: number } | null;
   readonly onOpenCitation?: (path: string) => void;
   readonly onSelectionChange?: (selection: AuthoringSelection) => void;
   /**
@@ -55,13 +62,18 @@ export function DocumentBodyEditor({
   labelId,
   label,
   errorId,
+  onNavigationChange,
+  navigationTarget,
+  toolbarHost,
 }: DocumentBodyEditorProps): ReactElement {
   // Read through a ref, so a new callback from the parent does not need a new editor.
   const onChangeRef = useRef(onChange);
   const selectionRef = useRef(onSelectionChange);
+  const navigationRef = useRef(onNavigationChange);
   useEffect(() => {
     onChangeRef.current = onChange;
     selectionRef.current = onSelectionChange;
+    navigationRef.current = onNavigationChange;
   });
 
   // The editable element is a div, so the accessible name and state are set on it directly. Memoised so the
@@ -108,8 +120,48 @@ export function DocumentBodyEditor({
     }
   }, [editor, editable]);
 
+  useEffect(() => {
+    const publish = (): void =>
+      navigationRef.current?.(
+        documentNavigation(editor.state.doc, editor.state.selection.from),
+      );
+    publish();
+    editor.on('transaction', publish);
+    const onScroll = (): void => {
+      const navigation = documentNavigation(
+        editor.state.doc,
+        editor.state.selection.from,
+      );
+      const current = navigation.headings
+        .filter((heading) => {
+          const node = editor.view.nodeDOM(heading.position);
+          return node instanceof HTMLElement && node.getBoundingClientRect().top <= 140;
+        })
+        .at(-1);
+      navigationRef.current?.({
+        ...navigation,
+        activePosition: current?.position ?? null,
+      });
+    };
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      editor.off('transaction', publish);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    if (navigationTarget === null || navigationTarget === undefined) return;
+    const position = navigationTarget.position;
+    editor.commands.setTextSelection(position + 1);
+    const node = editor.view.nodeDOM(position);
+    if (node instanceof HTMLElement) node.scrollIntoView?.({ block: 'start' });
+    editor.commands.focus(undefined, { scrollIntoView: false });
+  }, [editor, navigationTarget]);
+
   return (
     <div
+      className={styles.editor}
       onClick={(event) => {
         const target = event.target;
         const anchor =
@@ -122,7 +174,13 @@ export function DocumentBodyEditor({
         }
       }}
     >
-      {editable ? <DocumentToolbar editor={editor} /> : null}
+      {editable ? (
+        toolbarHost === undefined ? (
+          <DocumentToolbar editor={editor} />
+        ) : (
+          createPortal(<DocumentToolbar editor={editor} />, toolbarHost)
+        )
+      ) : null}
       <EditorContent editor={editor} />
     </div>
   );
@@ -142,6 +200,7 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
       heading2: current.isActive('heading', { level: 2 }),
       bulletList: current.isActive('bulletList'),
       orderedList: current.isActive('orderedList'),
+      blockquote: current.isActive('blockquote'),
       inTable: current.isActive('table'),
       citation: current.isActive('researchCitation'),
       canUndo: current.can().undo(),
@@ -150,7 +209,25 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
   });
 
   return (
-    <div role="toolbar" aria-label="Formatting">
+    <div role="toolbar" aria-label="Formatting" className={styles.toolbar}>
+      <button
+        type="button"
+        aria-label="Undo"
+        title="Undo"
+        disabled={!state.canUndo}
+        onClick={() => editor.chain().focus().undo().run()}
+      >
+        <Icon name="undo" />
+      </button>
+      <button
+        type="button"
+        aria-label="Redo"
+        title="Redo"
+        disabled={!state.canRedo}
+        onClick={() => editor.chain().focus().redo().run()}
+      >
+        <Icon name="redo" />
+      </button>
       <ToggleButton
         label="Bold"
         pressed={state.bold}
@@ -183,6 +260,8 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
       />
       <button
         type="button"
+        aria-label="Insert table"
+        title="Insert table"
         onClick={() =>
           editor
             .chain()
@@ -191,29 +270,35 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
             .run()
         }
       >
-        Insert table
+        <Icon name="table" />
       </button>
-      <button
-        type="button"
-        disabled={!state.inTable}
-        onClick={() => editor.chain().focus().addRowAfter().run()}
-      >
-        Add row
-      </button>
-      <button
-        type="button"
-        disabled={!state.inTable}
-        onClick={() => editor.chain().focus().addColumnAfter().run()}
-      >
-        Add column
-      </button>
-      <button
-        type="button"
-        disabled={!state.inTable}
-        onClick={() => editor.chain().focus().deleteTable().run()}
-      >
-        Delete table
-      </button>
+      <ToggleButton
+        label="Quote"
+        pressed={state.blockquote}
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+      />
+      {state.inTable ? (
+        <>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+          >
+            Add row
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+          >
+            Add column
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+          >
+            Delete table
+          </button>
+        </>
+      ) : null}
       {state.citation ? (
         <label>
           Citation display
@@ -243,20 +328,6 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
           </select>
         </label>
       ) : null}
-      <button
-        type="button"
-        disabled={!state.canUndo}
-        onClick={() => editor.chain().focus().undo().run()}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        disabled={!state.canRedo}
-        onClick={() => editor.chain().focus().redo().run()}
-      >
-        Redo
-      </button>
     </div>
   );
 }
@@ -271,8 +342,33 @@ function ToggleButton({
   readonly onClick: () => void;
 }): ReactElement {
   return (
-    <button type="button" aria-pressed={pressed} onClick={onClick}>
-      {label}
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+    >
+      <Icon
+        name={
+          (
+            {
+              Bold: 'bold',
+              Italic: 'italic',
+              'Heading 1': 'heading',
+              'Heading 2': 'heading',
+              'Bullet list': 'list',
+              'Numbered list': 'list',
+              Quote: 'quote',
+            } as Record<string, IconName>
+          )[label]!
+        }
+      />
+      {label === 'Heading 1' || label === 'Heading 2' ? (
+        <span>{label.slice(-1)}</span>
+      ) : label === 'Numbered list' ? (
+        <span>1.</span>
+      ) : null}
     </button>
   );
 }

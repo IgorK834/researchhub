@@ -1,6 +1,9 @@
-import { useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { createPortal } from 'react-dom';
 
 import { describeError } from '../../../shared/api';
+import { Button } from '../../../shared/components/Button';
+import { Icon, type IconName } from '../../../shared/components/icons';
 import type { DocumentVersionReason, WorkspaceDocument } from '../api/documentApi';
 import { readStoredDocument } from '../api/documentContent';
 import {
@@ -9,20 +12,22 @@ import {
   useRestoreDocumentVersion,
 } from '../api/useDocuments';
 import { DocumentBodyEditor } from './DocumentBodyEditor';
+import { DocumentVersionDiff } from './DocumentVersionDiff';
+import styles from './DocumentHistory.module.css';
 
-interface DocumentHistoryProps {
+export interface DocumentHistoryProps {
+  readonly expanded?: boolean;
   readonly workspaceId: string;
   readonly documentId: string;
-  /** The revision on screen, sent with a restore so it cannot replace text the user has not seen. */
+  /** The revision acknowledged by autosave, used for the optimistic restore check. */
   readonly revision: number;
-  /** Whether the restore action is offered at all: an editor, on an active document. */
+  /** Last server response. Comparison never uses the writer's unsaved draft. */
+  readonly currentDocument: WorkspaceDocument;
+  readonly authors: readonly { readonly userId: string; readonly name: string }[];
+  readonly previewHost?: HTMLElement;
+  readonly onPreviewChange?: (previewing: boolean) => void;
   readonly canRestore: boolean;
-  /**
-   * Why restoring is not possible right now even though `canRestore` is true — unsaved edits, for example — or
-   * `null` when it is.
-   */
   readonly restoreBlockedReason: string | null;
-  /** Called with the document a restore produced. The page shows it in place of the editor's content. */
   readonly onRestored: (document: WorkspaceDocument) => void;
 }
 
@@ -33,48 +38,91 @@ const REASONS: Readonly<Record<DocumentVersionReason, string>> = {
   RESTORE: 'Restored',
   AI_ACCEPTANCE: 'AI suggestion accepted',
 };
-
+const REASON_ICONS: Readonly<Record<DocumentVersionReason, IconName>> = {
+  CREATED: 'file',
+  MANUAL_SAVE: 'bookmark',
+  AUTOSAVE_CHECKPOINT: 'history',
+  RESTORE: 'undo',
+  AI_ACCEPTANCE: 'sparkle',
+};
 function formatTime(iso: string): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
 }
 
-/**
- * The document's restore points, collapsed until opened.
- *
- * Every member can read the history. Restoring is for editors, and it never deletes anything: the old text
- * becomes the next revision, and the list gains a "Restored" entry rather than losing the ones after it. Restoring
- * asks for confirmation first, and is unavailable while the editor has unsaved changes, because it would replace
- * them.
- */
+/** Immutable restore points. Confirmation keeps the existing revision check and never discards unsaved edits. */
 export function DocumentHistory({
   workspaceId,
   documentId,
   revision,
+  currentDocument,
+  authors,
   canRestore,
   restoreBlockedReason,
   onRestored,
+  expanded,
+  previewHost,
+  onPreviewChange,
 }: DocumentHistoryProps): ReactElement {
   const [open, setOpen] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-
-  const versions = useDocumentVersionsQuery(workspaceId, documentId, open);
+  const isOpen = expanded ?? open;
+  const versions = useDocumentVersionsQuery(workspaceId, documentId, isOpen);
   const preview = useDocumentVersionQuery(workspaceId, documentId, previewId);
   const restore = useRestoreDocumentVersion(workspaceId, documentId);
+  const previewBody = useMemo(
+    () => (preview.data === undefined ? null : readStoredDocument(preview.data.content)),
+    [preview.data],
+  );
+  const currentBody = useMemo(
+    () => readStoredDocument(currentDocument.content),
+    [currentDocument.content],
+  );
+  useEffect(() => {
+    onPreviewChange?.(isOpen && previewId !== null);
+    return () => onPreviewChange?.(false);
+  }, [isOpen, previewId, onPreviewChange]);
+  const closePreview = (): void => setPreviewId(null);
+  const comparison =
+    previewId === null || !isOpen ? null : (
+      <div>
+        {preview.isPending ? <p role="status">Loading this version…</p> : null}
+        {preview.error !== null ? (
+          <p role="alert">Could not load this version: {describeError(preview.error)}</p>
+        ) : null}
+        {preview.data !== undefined && previewBody === null ? (
+          <p>This version contains content this editor cannot display.</p>
+        ) : null}
+        {previewBody !== null && currentBody === null ? (
+          <p>
+            The current document contains content this editor cannot compare. Nothing has
+            been changed.
+          </p>
+        ) : null}
+        {previewBody !== null && currentBody !== null && preview.data !== undefined ? (
+          <DocumentVersionDiff
+            selected={previewBody}
+            current={currentBody}
+            selectedRevision={preview.data.revision}
+            currentRevision={currentDocument.revision}
+            title={currentDocument.title}
+            onClose={closePreview}
+          />
+        ) : (
+          <Button variant="secondary" onClick={closePreview}>
+            Close version preview
+          </Button>
+        )}
+      </div>
+    );
 
-  const previewBody =
-    preview.data === undefined ? null : readStoredDocument(preview.data.content);
-
-  return (
-    <details
-      onToggle={(event) => {
-        setOpen(event.currentTarget.open);
-      }}
-    >
-      <summary>Version history</summary>
-
-      {versions.isPending && open ? (
+  const contents = (
+    <>
+      <p className={styles.description}>
+        Pick a version to preview it — nothing changes until you restore.
+      </p>
+      {versions.isPending && isOpen ? (
         <p role="status" aria-live="polite">
           Loading versions…
         </p>
@@ -85,93 +133,102 @@ export function DocumentHistory({
       {restore.error !== null ? (
         <p role="alert">Could not restore: {describeError(restore.error)}</p>
       ) : null}
-      {canRestore && restoreBlockedReason !== null ? <p>{restoreBlockedReason}</p> : null}
-
+      {canRestore && restoreBlockedReason !== null ? (
+        <p className={styles.blocked}>{restoreBlockedReason}</p>
+      ) : null}
+      {versions.data?.length === 0 ? <p>No versions yet.</p> : null}
       {versions.data === undefined ? null : (
-        <ol aria-label="Versions">
+        <ol aria-label="Versions" className={styles.versions}>
           {versions.data.map((version) => {
             const label = `revision ${String(version.revision)}`;
+            const selected = previewId === version.id;
+            const author =
+              authors.find((member) => member.userId === version.createdBy)?.name ??
+              'Unknown author';
             return (
-              <li key={version.id}>
-                <span>
-                  Revision {version.revision} · {REASONS[version.reason]} ·{' '}
-                  {formatTime(version.createdAt)}
-                </span>{' '}
-                <button
-                  type="button"
-                  aria-label={`Preview ${label}`}
-                  aria-pressed={previewId === version.id}
-                  onClick={() => {
-                    setPreviewId(previewId === version.id ? null : version.id);
-                  }}
-                >
-                  Preview
-                </button>
-                {canRestore && confirmingId !== version.id ? (
-                  <button
-                    type="button"
-                    aria-label={`Restore ${label}`}
-                    disabled={restoreBlockedReason !== null || restore.isPending}
-                    onClick={() => {
-                      setConfirmingId(version.id);
-                    }}
+              <li key={version.id} className={styles.version} data-selected={selected}>
+                <div className={styles.versionHeading}>
+                  <Icon name={REASON_ICONS[version.reason]} size={16} />
+                  <strong>{REASONS[version.reason]}</strong>
+                  <span className={styles.revision}>v{version.revision}</span>
+                  <span className="visually-hidden">
+                    Revision {version.revision} · {REASONS[version.reason]}
+                  </span>
+                </div>
+                <span className={styles.meta}>
+                  {author} ·{' '}
+                  <time dateTime={version.createdAt}>
+                    {formatTime(version.createdAt)}
+                  </time>
+                </span>
+                <div className={styles.actions}>
+                  <Button
+                    variant="ghost"
+                    icon="eye"
+                    aria-label={`Preview ${label}`}
+                    aria-pressed={selected}
+                    onClick={() => setPreviewId(selected ? null : version.id)}
                   >
-                    Restore
-                  </button>
-                ) : null}
-                {canRestore && confirmingId === version.id ? (
-                  <span>
-                    {' '}
-                    Replace the current text with {label}? It becomes revision{' '}
-                    {revision + 1}; nothing is deleted.{' '}
-                    <button
-                      type="button"
+                    Preview
+                  </Button>
+                  {canRestore && confirmingId !== version.id ? (
+                    <Button
+                      variant={selected ? 'primary' : 'secondary'}
+                      icon="history"
+                      aria-label={`Restore ${label}`}
                       disabled={restoreBlockedReason !== null || restore.isPending}
                       onClick={() => {
-                        restore.mutate(
-                          { versionId: version.id, revision },
-                          {
-                            onSuccess: (restored) => {
-                              setConfirmingId(null);
-                              onRestored(restored);
+                        setConfirmingId(version.id);
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  ) : null}
+                </div>
+                {canRestore && confirmingId === version.id ? (
+                  <div className={styles.confirmation}>
+                    <p>
+                      Replace the current text with {label}? It becomes revision{' '}
+                      {revision + 1}; nothing is deleted.
+                    </p>
+                    <div className={styles.actions}>
+                      <Button
+                        disabled={restoreBlockedReason !== null || restore.isPending}
+                        onClick={() => {
+                          restore.mutate(
+                            { versionId: version.id, revision },
+                            {
+                              onSuccess: (restored) => {
+                                setConfirmingId(null);
+                                setPreviewId(null);
+                                onRestored(restored);
+                              },
                             },
-                          },
-                        );
-                      }}
-                    >
-                      {restore.isPending ? 'Restoring…' : `Confirm restore of ${label}`}
-                    </button>{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfirmingId(null);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </span>
+                          );
+                        }}
+                      >
+                        {restore.isPending ? 'Restoring…' : `Confirm restore of ${label}`}
+                      </Button>
+                      <Button variant="secondary" onClick={() => setConfirmingId(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
                 ) : null}
-                {previewId === version.id ? (
+                {selected ? (
                   <div aria-label={`Contents of ${label}`} role="region">
-                    {preview.isPending ? (
-                      <p role="status">Loading this version…</p>
-                    ) : null}
-                    {preview.error !== null ? (
-                      <p role="alert">
-                        Could not load this version: {describeError(preview.error)}
-                      </p>
-                    ) : null}
-                    {preview.data !== undefined && previewBody === null ? (
-                      <p>This version contains content this editor cannot display.</p>
-                    ) : null}
+                    {previewHost === undefined ? comparison : null}
                     {previewBody === null ? null : (
-                      <DocumentBodyEditor
-                        key={version.id}
-                        initialContent={previewBody}
-                        editable={false}
-                        onChange={() => undefined}
-                        label={`Text of ${label}`}
-                      />
+                      <details className={styles.original}>
+                        <summary>Stored version content</summary>
+                        <DocumentBodyEditor
+                          key={version.id}
+                          initialContent={previewBody}
+                          editable={false}
+                          onChange={() => undefined}
+                          label={`Text of ${label}`}
+                        />
+                      </details>
                     )}
                   </div>
                 ) : null}
@@ -180,6 +237,26 @@ export function DocumentHistory({
           })}
         </ol>
       )}
+      <p className={styles.safety}>
+        Restoring creates a new revision. Nothing is deleted, and later versions remain in
+        the history.
+      </p>
+      {previewHost === undefined ? null : createPortal(comparison, previewHost)}
+    </>
+  );
+  return expanded === undefined ? (
+    <details
+      className={styles.history}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>Version history</summary>
+      {contents}
     </details>
+  ) : (
+    <section className={styles.history} aria-label="Version history">
+      <h2>Version history</h2>
+      {contents}
+    </section>
   );
 }

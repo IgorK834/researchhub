@@ -4,6 +4,9 @@ import { describeError, fieldErrorsByName } from '../../../shared/api';
 import type { WorkspaceDocument } from '../api/documentApi';
 import { EMPTY_DOCUMENT } from '../api/documentContent';
 import { useCreateDocument } from '../api/useDocuments';
+import { Button } from '../../../shared/components/Button';
+import { TextField } from '../../../shared/components/forms';
+import styles from './Documents.module.css';
 
 interface CreateDocumentFormProps {
   readonly workspaceId: string;
@@ -47,10 +50,9 @@ export function CreateDocumentForm({
   };
 
   return (
-    <section aria-labelledby="create-document-heading">
-      <h2 id="create-document-heading">New document</h2>
-
+    <section aria-label="New document" id="create-document-heading">
       <form
+        className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -59,28 +61,25 @@ export function CreateDocumentForm({
       >
         {formMessage !== null ? <p role="alert">{formMessage}</p> : null}
 
-        <p>
-          <label htmlFor="document-title">Document title</label>
-          <input
-            id="document-title"
-            name="document-title"
-            type="text"
-            value={title}
-            autoComplete="off"
-            aria-invalid={titleError !== undefined}
-            {...(titleError === undefined
-              ? {}
-              : { 'aria-describedby': 'document-title-error' })}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-          {titleError === undefined ? null : (
-            <span id="document-title-error">{titleError}</span>
-          )}
-        </p>
-
-        <button type="submit" disabled={isPending}>
-          {isPending ? 'Creating…' : 'Create document'}
-        </button>
+        <TextField
+          label="Document title"
+          id="document-title"
+          name="document-title"
+          type="text"
+          value={title}
+          autoComplete="off"
+          disabled={isPending}
+          error={titleError}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        <Button
+          type="submit"
+          disabled={!title.trim()}
+          busy={isPending}
+          busyLabel="Creating…"
+        >
+          Create document
+        </Button>
       </form>
     </section>
   );
