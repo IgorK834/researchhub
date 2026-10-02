@@ -18,13 +18,13 @@ import { SourceRoutePage } from '../pages/SourceRoutePage';
 // Feature behavior and immutable citations are covered by their existing page/flow tests.
 // Here the actual route tree, section pages, shell and responsive source overlay are exercised.
 jest.mock('../pages/SourceDetailPage', () => ({
-  SourceDetailPage: () => {
+  SourceDetailPage: ({ embedded }: { embedded?: boolean }) => {
     const router =
       jest.requireActual<typeof import('react-router-dom')>('react-router-dom');
     const location = router.useLocation();
     const { sourceId } = router.useParams();
     return (
-      <section>
+      <section aria-label={embedded ? undefined : 'Source reader'}>
         <h1>Source {sourceId}</h1>
         <output aria-label="Source query">{location.search}</output>
         <input aria-label="Source action" />
@@ -124,7 +124,7 @@ it.each([
   ['', 'Overview', 'Recent documents'],
   ['/documents', 'Documents', 'Documents'],
   ['/sources', 'Sources', 'Sources'],
-  ['/ask', 'Ask AI', 'Ask workspace sources'],
+  ['/ask', 'Ask AI', 'Ask AI'],
   ['/members', 'Members', 'Members table'],
   ['/settings', 'Settings', 'General'],
 ])(
@@ -133,7 +133,7 @@ it.each([
     setup(`/app/workspaces/w1${suffix}`);
     await screen.findByRole('heading', {
       name:
-        suffix === '/documents' || suffix === '/sources'
+        suffix === '/documents' || suffix === '/sources' || suffix === '/ask'
           ? name
           : suffix === '/members'
             ? 'Members'
