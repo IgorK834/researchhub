@@ -1,5 +1,7 @@
 import { useState, type ReactElement } from 'react';
 
+import { DataTable } from '../../../shared/components/content';
+
 import { describeError, hasApiErrorCode } from '../../../shared/api';
 import type {
   DatasetPreview,
@@ -266,33 +268,34 @@ function SheetCounts({ sheet }: { readonly sheet: PreviewSheet }): ReactElement 
 function ColumnTable({ sheet }: { readonly sheet: PreviewSheet }): ReactElement {
   if (sheet.columns.length === 0) return <p>This sheet has no columns to describe.</p>;
   return (
-    <table aria-label={`${sheet.name} column types`}>
-      <caption>Columns and inferred types</caption>
-      <thead>
-        <tr>
-          <th scope="col">#</th>
-          <th scope="col">Column</th>
-          <th scope="col">Type</th>
-          <th scope="col">Missing values</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sheet.columns.map((column) => (
-          <tr key={column.index}>
-            <td>{column.index}</td>
-            <th scope="row">{column.name}</th>
-            <td>{TYPE_LABELS[column.inferredType]}</td>
-            <td>
-              {column.profiledValues === 0
-                ? '—'
-                : `${count(column.missingValues)} of ${count(column.profiledValues)}${
-                    column.missingValuesExact ? '' : ' sampled'
-                  }`}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <DataTable
+      label={`${sheet.name} column types`}
+      caption="Columns and inferred types"
+      rows={sheet.columns}
+      rowKey={(column) => column.index}
+      columns={[
+        { id: 'index', header: '#', render: (column) => column.index },
+        {
+          id: 'name',
+          header: 'Column',
+          rowHeader: true,
+          render: (column) => column.name,
+        },
+        {
+          id: 'type',
+          header: 'Type',
+          render: (column) => TYPE_LABELS[column.inferredType],
+        },
+        {
+          id: 'missing',
+          header: 'Missing values',
+          render: (column) =>
+            column.profiledValues === 0
+              ? '—'
+              : `${count(column.missingValues)} of ${count(column.profiledValues)}${column.missingValuesExact ? '' : ' sampled'}`,
+        },
+      ]}
+    />
   );
 }
 
@@ -302,41 +305,20 @@ function SampleTable({ sheet }: { readonly sheet: PreviewSheet }): ReactElement 
   }
   const total = sheet.dimensions.dataRowCount;
   return (
-    <div
-      role="region"
-      aria-label={`${sheet.name} sample rows`}
-      tabIndex={0}
-      style={{ overflow: 'auto' }}
-    >
-      <table aria-label={`${sheet.name} dataset preview`}>
-        <caption>
-          Sample rows ({sheet.sampleRows.length}
-          {total === null
-            ? ''
-            : ` of ${sheet.dimensions.rowCountEstimated ? 'about ' : ''}${count(total)}`}
-          )
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Row</th>
-            {sheet.columns.map((column) => (
-              <th scope="col" key={column.index}>
-                {column.name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sheet.sampleRows.map((row) => (
-            <tr key={row.rowNumber}>
-              <th scope="row">{row.rowNumber}</th>
-              {sheet.columns.map((column, position) => (
-                <td key={column.index}>{row.cells[position] ?? ''}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      label={`${sheet.name} dataset preview`}
+      scrollLabel={`${sheet.name} sample rows`}
+      caption={`Sample rows (${sheet.sampleRows.length}${total === null ? '' : ` of ${sheet.dimensions.rowCountEstimated ? 'about ' : ''}${count(total)}`})`}
+      rows={sheet.sampleRows}
+      rowKey={(row) => row.rowNumber}
+      columns={[
+        { id: 'row', header: 'Row', rowHeader: true, render: (row) => row.rowNumber },
+        ...sheet.columns.map((column, position) => ({
+          id: `column-${column.index}`,
+          header: column.name,
+          render: (row: PreviewSheet['sampleRows'][number]) => row.cells[position] ?? '',
+        })),
+      ]}
+    />
   );
 }

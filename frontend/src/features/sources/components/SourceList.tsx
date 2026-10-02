@@ -2,6 +2,8 @@ import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
 import { describeError } from '../../../shared/api';
+import { DataTable, type TableColumn } from '../../../shared/components/content';
+import type { WorkspaceSource } from '../api/sourceApi';
 import { sourceContentPath } from '../api/sourceApi';
 import { SOURCE_STATUS_LABELS, type SourceStatus } from '../api/sourceTypes';
 import { useSourcesQuery } from '../api/useSources';
@@ -30,10 +32,10 @@ const STATUS_STYLE = {
 } as const;
 
 const STATUS_COLORS: Readonly<Record<SourceStatus, string>> = {
-  UPLOADED: '#475569',
-  PROCESSING: '#92400e',
-  READY: '#166534',
-  FAILED: '#b91c1c',
+  UPLOADED: 'var(--color-text-secondary)',
+  PROCESSING: 'var(--color-warning-ink)',
+  READY: 'var(--color-success-ink)',
+  FAILED: 'var(--color-error-ink)',
 };
 
 /** Every workspace member can see and download the immutable research inputs. */
@@ -52,6 +54,61 @@ export function SourceList({
     refetch,
   } = useSourcesQuery(workspaceId);
 
+  const columns: readonly TableColumn<WorkspaceSource>[] = [
+    {
+      id: 'name',
+      header: 'Name',
+      rowHeader: true,
+      render: (source) => (
+        <>
+          <Link to={`/app/workspaces/${workspaceId}/sources/${source.id}`}>
+            {source.displayName}
+          </Link>
+          <p>
+            {source.sourceType}, {formatBytes(source.sizeBytes)}
+          </p>
+          {source.failureSummary === null ? null : (
+            <p>Failure: {source.failureSummary}</p>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'uploader',
+      header: 'Uploaded by',
+      priority: 'metadata',
+      render: (source) => uploaderNames.get(source.uploadedBy) ?? source.uploadedBy,
+    },
+    {
+      id: 'date',
+      header: 'Date',
+      priority: 'metadata',
+      render: (source) => (
+        <time dateTime={source.createdAt}>{formatDate(source.createdAt)}</time>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      render: (source) => (
+        <span
+          aria-label={`Source status: ${SOURCE_STATUS_LABELS[source.status]}`}
+          style={{ ...STATUS_STYLE, color: STATUS_COLORS[source.status] }}
+        >
+          {SOURCE_STATUS_LABELS[source.status]}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      render: (source) => (
+        <a href={sourceContentPath(workspaceId, source.id)} download={source.displayName}>
+          Download
+        </a>
+      ),
+    },
+  ];
   return (
     <section aria-labelledby="workspace-sources-heading">
       <h2 id="workspace-sources-heading">Sources</h2>
@@ -76,34 +133,12 @@ export function SourceList({
         sources.length === 0 ? (
           <p>No sources yet.</p>
         ) : (
-          <ul>
-            {sources.map((source) => (
-              <li key={source.id}>
-                <Link to={`/app/workspaces/${workspaceId}/sources/${source.id}`}>
-                  {source.displayName}
-                </Link>{' '}
-                — {source.sourceType}, {formatBytes(source.sizeBytes)},{' '}
-                <span
-                  aria-label={`Source status: ${SOURCE_STATUS_LABELS[source.status]}`}
-                  style={{ ...STATUS_STYLE, color: STATUS_COLORS[source.status] }}
-                >
-                  {SOURCE_STATUS_LABELS[source.status]}
-                </span>{' '}
-                · Uploaded by {uploaderNames.get(source.uploadedBy) ?? source.uploadedBy}{' '}
-                on <time dateTime={source.createdAt}>{formatDate(source.createdAt)}</time>{' '}
-                ·{' '}
-                <a
-                  href={sourceContentPath(workspaceId, source.id)}
-                  download={source.displayName}
-                >
-                  Download
-                </a>
-                {source.failureSummary !== null ? (
-                  <p>Failure: {source.failureSummary}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <DataTable
+            columns={columns}
+            rows={sources}
+            rowKey={(source) => source.id}
+            caption="Workspace sources"
+          />
         )
       ) : null}
     </section>

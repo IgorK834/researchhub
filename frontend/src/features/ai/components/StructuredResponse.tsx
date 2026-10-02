@@ -33,7 +33,7 @@ export function StructuredResponse({
                         href={citationPath(citation)}
                         style={{
                           display: 'inline-block',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--color-border)',
                           borderRadius: '1rem',
                           padding: '0.2rem 0.55rem',
                         }}

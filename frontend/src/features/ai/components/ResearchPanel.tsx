@@ -197,7 +197,11 @@ function Panel({
   return (
     <section
       aria-label="AI research panel"
-      style={{ border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '1rem' }}
+      style={{
+        border: '1px solid var(--color-border)',
+        borderRadius: '0.75rem',
+        padding: '1rem',
+      }}
     >
       <h2>Research conversation</h2>
       <p>Ask about workspace sources. Answers link to the passages that support them.</p>
@@ -444,7 +448,7 @@ function MessageView({
       aria-label={
         message.role === 'USER' ? 'Research question message' : 'Research answer message'
       }
-      style={{ padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}
+      style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--color-border)' }}
     >
       <strong>{message.role === 'USER' ? 'Question' : 'Answer'}</strong>{' '}
       <time dateTime={message.createdAt}>
