@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ResearchPanel, type ResearchSources } from './ResearchPanel';
 import * as api from '../api/conversationApi';
+import { fetchCitationFragment } from '../api/citationEvidence';
 import { ApiError, ApiTransportError } from '../../../shared/api';
 import fixture from '../../../../../contracts/ai/conversations/v1/completed.json';
 import conversationFixture from '../../../../../contracts/ai/conversations/v1/conversation.json';
@@ -10,6 +11,7 @@ import emptyFixture from '../../../../../contracts/ai/questions/v1/no-evidence.j
 import type { QuestionResponse } from '../api/questionApi';
 
 jest.mock('../api/conversationApi');
+jest.mock('../api/citationEvidence');
 const turn = fixture as api.ConversationTurn;
 const conversation = conversationFixture as api.Conversation;
 const fetchList = jest.mocked(api.fetchConversations);
@@ -58,6 +60,10 @@ async function submit(question = '  What is kinetic energy?  ') {
 }
 beforeEach(() => {
   jest.resetAllMocks();
+  jest.mocked(fetchCitationFragment).mockImplementation(async (citation) => ({
+    ...citation,
+    content: 'Kinetic energy is half the mass times speed squared.',
+  }));
   fetchList.mockResolvedValue({ items: [], nextOffset: null });
   fetchHistory.mockResolvedValue({
     conversation,
@@ -176,7 +182,7 @@ it('shows retrieval progress and answer preview, then keeps only the complete an
   );
   await act(async () => finish(turn));
   expect(screen.queryByLabelText('Answer preview')).toBeNull();
-  expect(screen.getByRole('link')).not.toBeNull();
+  expect(screen.getByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
 });
 it('preserves an empty selection, selects only READY sources and displays explicit no-evidence answers', async () => {
   const emptyTurn: api.ConversationTurn = {
@@ -190,7 +196,7 @@ it('preserves an empty selection, selects only READY sources and displays explic
   stream.mockResolvedValue(emptyTurn);
   panel();
   fireEvent.click(screen.getByLabelText('Selected sources'));
-  expect(screen.queryByLabelText('Processing')).toBeNull();
+  expect(screen.getByLabelText('Processing')).toHaveProperty('disabled', true);
   await submit();
   expect(await screen.findByText(emptyFixture.answer)).not.toBeNull();
   expect(stream.mock.calls[0]?.[2].selectedSourceIds).toEqual([]);
@@ -219,7 +225,7 @@ it('retries a transient failure using the same request identity and no partial a
   );
   expect(screen.queryByLabelText('Answer preview')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));
-  expect(await screen.findByRole('link')).not.toBeNull();
+  expect(await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
   expect(create).toHaveBeenCalledTimes(1);
   expect(stream.mock.calls[1]?.[2]).toEqual(stream.mock.calls[0]?.[2]);
 });
@@ -246,7 +252,7 @@ it('stops a stream, ignores its late result and safely retries after a disconnec
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));
   expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Disconnected');
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));
-  expect(await screen.findByRole('link')).not.toBeNull();
+  expect(await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
 });
 it('clears private state across workspaces and after switching away from an active request', async () => {
   let finish!: (result: api.ConversationTurn) => void;
@@ -295,7 +301,7 @@ it('handles local validation, source loading/errors and revoked history without 
     nextBeforeSequence: null,
   });
   panel();
-  expect(await screen.findByRole('link')).not.toBeNull();
+  expect(await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
   fetchHistory.mockRejectedValue(failure('RESOURCE_NOT_FOUND'));
   fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
   expect(await screen.findByRole('alert')).toHaveProperty(

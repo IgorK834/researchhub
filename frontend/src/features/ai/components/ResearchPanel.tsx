@@ -1,5 +1,12 @@
-import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
-import { useEffect, useRef, useState, type ReactElement } from 'react';
+import { SourceTypeTile } from '../../sources/components/SourceVisuals';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type ReactElement,
+} from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
@@ -17,7 +24,22 @@ import {
   type ConversationMessage,
 } from '../api/conversationApi';
 import { useConversationsQuery } from '../api/useConversations';
-import { StructuredResponse } from './StructuredResponse';
+import { Button } from '../../../shared/components/Button';
+import { ScopeChip } from '../../../shared/components/ScopeChip';
+import { AnswerState } from './GroundedAnswer';
+import { Card } from '../../../shared/components/content';
+import { Banner } from '../../../shared/components/feedback';
+import { Select, Textarea } from '../../../shared/components/forms';
+import { ToolShell } from '../../../shared/components/shell';
+import { ResearchAnswer, CitationPanel, type SelectedCitation } from './ResearchEvidence';
+import {
+  Investigations,
+  ResearchScopePanel,
+  scopeLabel,
+  type ResearchScope,
+} from './ResearchNavigation';
+import type { WorkspaceQuestion } from '../api/questionApi';
+import styles from './Research.module.css';
 
 export interface ResearchSources {
   readonly sources: readonly {
@@ -25,18 +47,23 @@ export interface ResearchSources {
     readonly title: string;
     readonly ready: boolean;
     readonly sourceType?: string;
+    readonly status?: string;
   }[];
   readonly loading: boolean;
   readonly error: string | null;
 }
-export function ResearchPanel({
-  workspaceId,
-  sources,
-}: {
+export interface ResearchPanelProps {
   readonly workspaceId: string;
   readonly sources: ResearchSources;
-}): ReactElement {
-  return <Panel key={workspaceId} workspaceId={workspaceId} sources={sources} />;
+  readonly variant?: 'panel' | 'page';
+  readonly actions?: ReactNode;
+  readonly initialSourceId?: string;
+  readonly initialQuestion?: WorkspaceQuestion;
+  readonly starterQuestion?: string;
+  readonly onInitialQuestionUsed?: () => void;
+}
+export function ResearchPanel(props: ResearchPanelProps): ReactElement {
+  return <Panel key={`${props.workspaceId}:${props.initialSourceId ?? ''}`} {...props} />;
 }
 interface Attempt {
   readonly conversationId: string | null;
@@ -45,15 +72,39 @@ interface Attempt {
 function Panel({
   workspaceId,
   sources,
-}: {
-  readonly workspaceId: string;
-  readonly sources: ResearchSources;
-}): ReactElement {
+  variant = 'panel',
+  initialSourceId,
+  initialQuestion,
+  starterQuestion,
+  onInitialQuestionUsed,
+  actions,
+}: ResearchPanelProps): ReactElement {
   const cache = useQueryClient();
-  const [chosen, setChosen] = useState<string | null | undefined>(undefined);
-  const [question, setQuestion] = useState('');
-  const [scope, setScope] = useState('all');
-  const [selected, setSelected] = useState<readonly string[]>([]);
+  const [chosen, setChosen] = useState<string | null | undefined>(
+    initialQuestion !== undefined || initialSourceId !== undefined ? null : undefined,
+  );
+  const [question, setQuestion] = useState(
+    initialQuestion?.question ?? starterQuestion ?? '',
+  );
+  const [scopeChoice, setScope] = useState<ResearchScope | null>(
+    initialSourceId !== undefined
+      ? 'source'
+      : initialQuestion?.selectedSourceIds !== undefined &&
+          initialQuestion.selectedSourceIds !== null
+        ? 'selected'
+        : variant === 'page'
+          ? null
+          : 'all',
+  );
+  const [selectedChoice, setSelected] = useState<readonly string[] | null>(
+    initialSourceId !== undefined
+      ? [initialSourceId]
+      : (initialQuestion?.selectedSourceIds ?? null),
+  );
+  const [selectedCitation, setSelectedCitation] = useState<SelectedCitation | null>(null);
+  const [contextOpen, setContextOpen] = useState(false);
+  const initialUsed = useRef(false);
+  const questionInput = useRef<HTMLTextAreaElement>(null);
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState('');
   const [delta, setDelta] = useState('');
@@ -103,12 +154,15 @@ function Panel({
     (isApiTransportError(error) ||
       hasApiErrorCode(error, 'AI_UNAVAILABLE') ||
       notice !== '');
-  const refresh = async (id: string): Promise<void> => {
-    await Promise.all([
-      cache.invalidateQueries({ queryKey: queryKeys.aiConversations(workspaceId) }),
-      cache.invalidateQueries({ queryKey: queryKeys.aiConversation(workspaceId, id) }),
-    ]);
-  };
+  const refresh = useCallback(
+    async (id: string): Promise<void> => {
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: queryKeys.aiConversations(workspaceId) }),
+        cache.invalidateQueries({ queryKey: queryKeys.aiConversation(workspaceId, id) }),
+      ]);
+    },
+    [cache, workspaceId],
+  );
   const stop = (): void => {
     requestNumber.current++;
     connection.current?.abort();
@@ -125,125 +179,300 @@ function Panel({
     setAttempt(null);
     setNotice('');
     setQuestion('');
+    setSelectedCitation(null);
+    if (variant === 'page') {
+      setScope(null);
+      setSelected(null);
+    }
   };
-  const run = async (input: Attempt): Promise<void> => {
-    const current = ++requestNumber.current;
-    const abort = new AbortController();
-    connection.current = abort;
-    setPending(true);
-    setError(null);
-    setNotice('');
-    setDelta('');
-    setCompletion(null);
-    setProgress('Starting research question…');
-    setAttempt(input);
-    let id = input.conversationId;
-    try {
-      if (id === null) {
-        const created = await createConversation(
+  const run = useCallback(
+    async (input: Attempt): Promise<void> => {
+      const current = ++requestNumber.current;
+      const abort = new AbortController();
+      connection.current = abort;
+      setPending(true);
+      setError(null);
+      setNotice('');
+      setDelta('');
+      setCompletion(null);
+      setSelectedCitation(null);
+      setProgress('Starting research question…');
+      setAttempt(input);
+      let id = input.conversationId;
+      try {
+        if (id === null) {
+          const created = await createConversation(
+            workspaceId,
+            [...input.question.question].slice(0, 80).join(''),
+            abort.signal,
+          );
+          if (current !== requestNumber.current) return;
+          id = created.id;
+          setChosen(id);
+          setAttempt({ ...input, conversationId: id });
+          void cache.invalidateQueries({
+            queryKey: queryKeys.aiConversations(workspaceId),
+          });
+        }
+        const saved = await streamConversationQuestion(
           workspaceId,
-          [...input.question.question].slice(0, 80).join(''),
+          id,
+          input.question,
+          (event) => {
+            if (current !== requestNumber.current) return;
+            if (event.event === 'started') setProgress('Searching authorized sources…');
+            if (event.event === 'retrieval_completed')
+              setProgress(
+                event.data.chunkCount === 0
+                  ? 'No relevant passages found.'
+                  : 'Preparing a grounded answer…',
+              );
+            if (event.event === 'delta') setDelta((text) => text + event.data.text);
+          },
           abort.signal,
         );
         if (current !== requestNumber.current) return;
-        id = created.id;
-        setChosen(id);
-        setAttempt({ ...input, conversationId: id });
-        void cache.invalidateQueries({
-          queryKey: queryKeys.aiConversations(workspaceId),
-        });
-      }
-      const saved = await streamConversationQuestion(
-        workspaceId,
-        id,
-        input.question,
-        (event) => {
-          if (current !== requestNumber.current) return;
-          if (event.event === 'started') setProgress('Searching authorized sources…');
-          if (event.event === 'retrieval_completed')
-            setProgress(
-              event.data.chunkCount === 0
-                ? 'No relevant passages found.'
-                : 'Preparing a grounded answer…',
-            );
-          if (event.event === 'delta') setDelta((text) => text + event.data.text);
-        },
-        abort.signal,
-      );
-      if (current !== requestNumber.current) return;
-      setCompletion(saved);
-      setQuestion('');
-      setDelta('');
-      await refresh(id);
-    } catch (failure) {
-      if (current === requestNumber.current) {
-        setError(failure);
+        setCompletion(saved);
+        setQuestion('');
         setDelta('');
-        if (id !== null) await refresh(id);
+        await refresh(id);
+      } catch (failure) {
+        if (current === requestNumber.current) {
+          setError(failure);
+          setDelta('');
+          if (id !== null) await refresh(id);
+        }
+      } finally {
+        if (current === requestNumber.current) {
+          setPending(false);
+          setProgress('');
+          connection.current = null;
+        }
       }
-    } finally {
-      if (current === requestNumber.current) {
-        setPending(false);
-        setProgress('');
-        connection.current = null;
-      }
-    }
+    },
+    [workspaceId, cache, refresh],
+  );
+  useEffect(() => {
+    if (starterQuestion !== undefined) questionInput.current?.focus();
+  }, [starterQuestion]);
+  useEffect(() => {
+    if (
+      initialQuestion === undefined ||
+      initialUsed.current ||
+      sources.loading ||
+      sources.error !== null ||
+      conversations.isPending ||
+      conversations.error !== null
+    )
+      return;
+    let cancelled = false;
+    // Deferring prevents the StrictMode effect rehearsal from sending a duplicate request.
+    void Promise.resolve().then(() => {
+      if (cancelled || initialUsed.current) return;
+      initialUsed.current = true;
+      void run({
+        conversationId: null,
+        question: { ...initialQuestion, clientRequestId: crypto.randomUUID() },
+      });
+      onInitialQuestionUsed?.();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    initialQuestion,
+    sources.loading,
+    sources.error,
+    conversations.isPending,
+    conversations.error,
+    run,
+    onInitialQuestionUsed,
+  ]);
+  const recordedScope = [...messages]
+    .reverse()
+    .find((message) => message.role === 'USER')?.selectedSourceIds;
+  const selected =
+    selectedChoice ??
+    recordedScope ??
+    (initialSourceId === undefined ? [] : [initialSourceId]);
+  const scope =
+    scopeChoice ??
+    (recordedScope === null
+      ? 'all'
+      : recordedScope === undefined
+        ? initialSourceId === undefined
+          ? 'all'
+          : 'source'
+        : recordedScope.length === 1 && recordedScope[0] === initialSourceId
+          ? 'source'
+          : 'selected');
+  const unavailable =
+    pending ||
+    conversations.isPending ||
+    (conversationId !== null && history.isPending) ||
+    sources.loading ||
+    sources.error !== null ||
+    conversations.error !== null ||
+    history.error !== null;
+  const lastQuestion =
+    completion?.user.content ??
+    [...messages].reverse().find((message) => message.role === 'USER')?.content;
+  const scopeName = scopeLabel(scope, selected, sources, initialSourceId);
+  const source = sources.sources.find((item) => item.id === initialSourceId);
+  const send = (text: string, nextScope = scope, ids = selected): void => {
+    void run({
+      conversationId,
+      question: {
+        clientRequestId: crypto.randomUUID(),
+        question: text.trim(),
+        ...(nextScope === 'all'
+          ? {}
+          : {
+              selectedSourceIds: nextScope === 'source' ? [initialSourceId ?? ''] : ids,
+            }),
+      },
+    });
   };
-  return (
+  const changeScope = (next: ResearchScope, ids = selected): void => {
+    setScope(next);
+    if (next === 'source') setSelected([initialSourceId ?? '']);
+    if (next === 'selected') setSelected(ids);
+    if (lastQuestion !== undefined && !unavailable) send(lastQuestion, next, ids);
+  };
+  const scopePanel = (
+    <ResearchScopePanel
+      sources={sources}
+      scope={scope}
+      selected={selected}
+      sourceId={initialSourceId}
+      disabled={unavailable}
+      onScope={changeScope}
+      onSelected={setSelected}
+      onApply={() => {
+        if (lastQuestion !== undefined) send(lastQuestion);
+      }}
+      canApply={lastQuestion !== undefined}
+    />
+  );
+  const inspected = history.error === null ? selectedCitation : null;
+  const inspect = (citation: SelectedCitation): void => {
+    setSelectedCitation(citation);
+    setContextOpen(true);
+  };
+  const messageView = (message: ConversationMessage): ReactElement => (
+    <MessageView
+      key={message.id}
+      message={message}
+      sources={sources}
+      selected={inspected}
+      onInspect={inspect}
+      sourceView={initialSourceId !== undefined}
+      onAskAll={() => changeScope('all')}
+      disabled={unavailable}
+    />
+  );
+  const investigations = (
+    <Investigations
+      items={items}
+      current={conversationId}
+      onChoose={choose}
+      loading={conversations.isPending}
+      error={conversations.error === null ? null : describeError(conversations.error)}
+      hasMore={conversations.hasNextPage}
+      morePending={conversations.isFetchingNextPage}
+      onMore={() => {
+        void conversations.fetchNextPage();
+      }}
+    />
+  );
+  const content = (
     <section
       aria-label="AI research panel"
-      style={{
-        border: '1px solid var(--color-border)',
-        borderRadius: '0.75rem',
-        padding: '1rem',
-      }}
+      className={variant === 'page' ? styles.page : styles.panel}
     >
-      <h2>Research conversation</h2>
-      <p>Ask about workspace sources. Answers link to the passages that support them.</p>
-      {conversations.isPending ? (
-        <p role="status">Loading research conversations…</p>
-      ) : null}
-      {conversations.error !== null ? (
-        <p role="alert">
-          Could not load conversations: {describeError(conversations.error)}
-        </p>
-      ) : null}
-      {conversations.error === null ? (
+      {variant === 'page' ? (
         <>
-          <label htmlFor="research-conversation">Conversation</label>
-          <select
-            id="research-conversation"
-            value={conversationId ?? ''}
-            disabled={pending}
-            onChange={(event) => choose(event.target.value || null)}
-          >
-            <option value="">New conversation</option>
-            {items.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-          <button type="button" onClick={() => choose(null)}>
-            New conversation
-          </button>
-          {conversations.hasNextPage ? (
-            <button
-              type="button"
-              disabled={conversations.isFetchingNextPage}
-              onClick={() => {
-                void conversations.fetchNextPage();
-              }}
+          <div className={styles.banner}>
+            <div>
+              {scope === 'source' && source ? (
+                <>
+                  <div className={styles.sourceHeading}>
+                    <SourceTypeTile sourceType={source.sourceType ?? 'Source'} />
+                    <div>
+                      <small>ASKING</small>
+                      <strong>{source.title}</strong>
+                    </div>
+                  </div>
+                  <p>Only this source is used.</p>
+                </>
+              ) : (
+                <ScopeChip
+                  selectedSourceIds={scope === 'all' ? null : selected}
+                  readyCount={sources.sources.filter((item) => item.ready).length}
+                />
+              )}
+            </div>
+            <Button
+              variant="secondary"
+              size="compact"
+              onClick={() => setContextOpen(true)}
             >
-              More conversations
-            </button>
-          ) : null}
+              Change scope
+            </Button>
+          </div>
+          <div className={styles.actions}>
+            <h1>{lastQuestion ?? 'Ask AI'}</h1>
+            {actions}
+          </div>
         </>
-      ) : null}
-      <div
-        aria-label="Conversation history"
-        style={{ maxHeight: '30rem', overflowY: 'auto' }}
-      >
+      ) : (
+        <>
+          <h2>Research conversation</h2>
+          <p>
+            Ask about workspace sources. Answers link to the passages that support them.
+          </p>
+          {conversations.isPending ? (
+            <p role="status">Loading research conversations…</p>
+          ) : null}
+          {conversations.error !== null ? (
+            <p role="alert">
+              Could not load conversations: {describeError(conversations.error)}
+            </p>
+          ) : (
+            <>
+              <Select
+                label="Conversation"
+                id="research-conversation"
+                value={conversationId ?? ''}
+                disabled={pending}
+                onChange={(event) => choose(event.target.value || null)}
+              >
+                <option value="">New conversation</option>
+                {items.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </Select>
+              <Button variant="secondary" icon="plus" onClick={() => choose(null)}>
+                New conversation
+              </Button>
+              {conversations.hasNextPage ? (
+                <Button
+                  variant="ghost"
+                  disabled={conversations.isFetchingNextPage}
+                  onClick={() => {
+                    void conversations.fetchNextPage();
+                  }}
+                >
+                  More conversations
+                </Button>
+              ) : null}
+            </>
+          )}
+        </>
+      )}
+      <div aria-label="Conversation history" className={styles.history}>
         {conversationId !== null && history.isPending ? (
           <p role="status">Loading conversation history…</p>
         ) : null}
@@ -252,33 +481,76 @@ function Panel({
         ) : (
           <>
             {history.hasNextPage ? (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 disabled={history.isFetchingNextPage}
                 onClick={() => {
                   void history.fetchNextPage();
                 }}
               >
                 Load older messages
-              </button>
+              </Button>
             ) : null}
-            {messages.map((message) => (
-              <MessageView key={message.id} message={message} />
-            ))}
+            {messages.map(messageView)}
             {visibleCompletion !== null ? (
               <>
-                {messages.some(
-                  (message) => message.id === visibleCompletion.user.id,
-                ) ? null : (
-                  <MessageView message={visibleCompletion.user} />
-                )}
-                <MessageView message={visibleCompletion.assistant} />
+                {messages.some((message) => message.id === visibleCompletion.user.id)
+                  ? null
+                  : messageView(visibleCompletion.user)}
+                {messageView(visibleCompletion.assistant)}
               </>
             ) : null}
           </>
         )}
       </div>
+      {sources.loading ? <p role="status">Loading sources for research…</p> : null}
+      {sources.error !== null ? <p role="alert">{sources.error}</p> : null}
+      {!sources.loading &&
+      sources.error === null &&
+      !sources.sources.some((item) => item.ready) ? (
+        <p>No ready sources are available yet.</p>
+      ) : null}
+      {initialSourceId !== undefined &&
+      scope === 'source' &&
+      !sources.loading &&
+      !source?.ready ? (
+        <Banner tone="note" lead="This source is not ready for questions.">
+          Change scope to ask other ready sources.
+        </Banner>
+      ) : null}
+      {error !== null ? (
+        <AnswerState
+          state="failed"
+          message={describeError(error)}
+          retryLabel="Retry answer"
+          onRetry={
+            retryable && attempt !== null
+              ? () => {
+                  void run(attempt);
+                }
+              : undefined
+          }
+        />
+      ) : null}
+      {notice ? <Banner lead={notice} /> : null}
+      {pending ? (
+        <AnswerState
+          state={delta ? 'streaming' : 'thinking'}
+          message={progress}
+          preview={delta}
+          stopLabel="Stop answer"
+          onStop={() => {
+            stop();
+            setNotice(
+              'Stopped receiving the answer. Refresh history to see whether it completed.',
+            );
+            if (conversationId !== null) void refresh(conversationId);
+          }}
+        />
+      ) : null}
+
       <form
+        className={styles.composer}
         onSubmit={(event) => {
           event.preventDefault();
           if (!question.trim()) {
@@ -294,171 +566,131 @@ function Panel({
             );
             return;
           }
-          void run({
-            conversationId,
-            question: {
-              clientRequestId: crypto.randomUUID(),
-              question: question.trim(),
-              ...(scope === 'selected' ? { selectedSourceIds: selected } : {}),
-            },
-          });
+          send(question);
         }}
       >
-        <p>
-          <label htmlFor="research-question">Research question</label>
-          <textarea
-            id="research-question"
-            value={question}
-            maxLength={2000}
-            disabled={pending}
-            onChange={(event) => setQuestion(event.target.value)}
-            style={{ width: '100%', minHeight: '5rem', boxSizing: 'border-box' }}
+        <Textarea
+          ref={questionInput}
+          label="Research question"
+          id="research-question"
+          value={question}
+          maxLength={2000}
+          disabled={pending}
+          placeholder="Ask a question about your research…"
+          onChange={(event) => setQuestion(event.target.value)}
+        />
+        <div className={styles.actions}>
+          <ScopeChip
+            selectedSourceIds={scope === 'all' ? null : selected}
+            readyCount={sources.sources.filter((item) => item.ready).length}
+            sourceLabel={scope === 'source' ? source?.title : undefined}
           />
-        </p>
-        <fieldset disabled={pending}>
-          <legend>Research scope</legend>
-          <label>
-            <input
-              type="radio"
-              name="research-scope"
-              checked={scope === 'all'}
-              onChange={() => setScope('all')}
-            />
-            All workspace sources
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="research-scope"
-              checked={scope === 'selected'}
-              onChange={() => setScope('selected')}
-            />
-            Selected sources
-          </label>
-          {scope === 'selected' ? (
-            <div>
-              {sources.sources
-                .filter((source) => source.ready)
-                .map((source) => (
-                  <label key={source.id} style={{ display: 'block' }}>
-                    <input
-                      type="checkbox"
-                      aria-label={source.title}
-                      checked={selected.includes(source.id)}
-                      onChange={(event) =>
-                        setSelected((current) =>
-                          event.target.checked
-                            ? [...current, source.id]
-                            : current.filter((id) => id !== source.id),
-                        )
-                      }
-                    />
-                    {source.title}{' '}
-                    {source.sourceType ? (
-                      <span aria-hidden="true">
-                        <SourceTypeBadge sourceType={source.sourceType} />
-                      </span>
-                    ) : null}
-                  </label>
-                ))}
-              {selected.length === 0 ? (
-                <p>No sources selected. The answer will have no evidence.</p>
-              ) : null}
-            </div>
+          <Button
+            type="submit"
+            icon="send"
+            disabled={unavailable || (scope === 'source' && !source?.ready)}
+          >
+            Ask research question
+          </Button>
+          {!pending && retryable && error === null ? (
+            <Button
+              variant="secondary"
+              icon="refresh"
+              onClick={() => {
+                if (attempt !== null) void run(attempt);
+              }}
+            >
+              Retry answer
+            </Button>
           ) : null}
-        </fieldset>
-        {sources.loading ? <p role="status">Loading sources for research…</p> : null}
-        {sources.error !== null ? <p role="alert">{sources.error}</p> : null}
-        {!sources.loading &&
-        sources.error === null &&
-        !sources.sources.some((source) => source.ready) ? (
-          <p>No ready sources are available yet.</p>
-        ) : null}
-        {error !== null ? <p role="alert">{describeError(error)}</p> : null}
-        {notice ? <p role="status">{notice}</p> : null}
-        {pending ? (
-          <p role="status" aria-live="polite">
-            {progress}
-          </p>
-        ) : null}
-        {delta ? (
-          <p aria-label="Answer preview" aria-live="polite">
-            {delta}
-          </p>
-        ) : null}
-        <button
-          type="submit"
-          disabled={
-            pending ||
-            conversations.isPending ||
-            (conversationId !== null && history.isPending) ||
-            sources.loading ||
-            sources.error !== null ||
-            conversations.error !== null ||
-            history.error !== null
-          }
-        >
-          Ask research question
-        </button>
-        {pending ? (
-          <button
-            type="button"
-            onClick={() => {
-              stop();
-              setNotice(
-                'Stopped receiving the answer. Refresh history to see whether it completed.',
-              );
-              if (conversationId !== null) void refresh(conversationId);
-            }}
-          >
-            Stop answer
-          </button>
-        ) : null}
-        {!pending && retryable ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (attempt !== null) void run(attempt);
-            }}
-          >
-            Retry answer
-          </button>
-        ) : null}
+        </div>
       </form>
+      {variant === 'panel' ? (
+        <>
+          {scopePanel}
+          {inspected === null ? null : <CitationPanel selected={inspected} />}
+        </>
+      ) : null}
       {conversationId !== null ? (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          icon="refresh"
           disabled={pending || history.isFetching}
           onClick={() => {
             void refresh(conversationId);
           }}
         >
           Refresh history
-        </button>
+        </Button>
       ) : null}
     </section>
+  );
+  return variant === 'page' ? (
+    <ToolShell
+      label="Ask AI"
+      secondaryLabel="Investigations"
+      secondary={investigations}
+      contextTitle="Research context"
+      contextOpen={contextOpen}
+      onContextOpenChange={setContextOpen}
+      context={
+        <div className={styles.context}>
+          {scopePanel}
+          <CitationPanel selected={inspected} />
+        </div>
+      }
+    >
+      {content}
+    </ToolShell>
+  ) : (
+    content
   );
 }
 function MessageView({
   message,
+  sources,
+  selected,
+  onInspect,
+  sourceView,
+  onAskAll,
+  disabled,
 }: {
   readonly message: ConversationMessage;
+  readonly sources: ResearchSources;
+  readonly selected: SelectedCitation | null;
+  readonly onInspect: (citation: SelectedCitation) => void;
+  readonly sourceView: boolean;
+  readonly onAskAll: () => void;
+  readonly disabled: boolean;
 }): ReactElement {
   return (
     <article
       aria-label={
         message.role === 'USER' ? 'Research question message' : 'Research answer message'
       }
-      style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--color-border)' }}
+      className={styles.message}
     >
       <strong>{message.role === 'USER' ? 'Question' : 'Answer'}</strong>{' '}
       <time dateTime={message.createdAt}>
         {new Date(message.createdAt).toLocaleString()}
       </time>
-      {message.role === 'ASSISTANT' &&
-      message.response !== null &&
-      message.response.generation !== null ? (
-        <StructuredResponse response={message.response.generation} />
+      {message.role === 'USER' ? (
+        <p className={styles.messageScope}>
+          {message.selectedSourceIds === null
+            ? 'Scope: All workspace sources'
+            : `Scope: ${message.selectedSourceIds.map((id) => sources.sources.find((source) => source.id === id)?.title ?? id).join(', ') || 'No sources selected'}`}
+        </p>
+      ) : null}
+      {message.role === 'ASSISTANT' && message.response !== null ? (
+        <ResearchAnswer
+          response={message.response}
+          sources={sources}
+          selected={selected}
+          onInspect={onInspect}
+          sourceView={sourceView}
+          onAskAll={onAskAll}
+          disabled={disabled}
+        />
       ) : (
         <p>{message.content}</p>
       )}
