@@ -10,6 +10,7 @@ import {
 } from './documentAutosave';
 
 export interface UseDocumentAutosave extends AutosaveState {
+  readonly savedAt: string;
   /** Records an edit. Saving is scheduled, never immediate. */
   readonly edit: (draft: DocumentDraft) => void;
   /** An explicit save, recorded as a version. */
@@ -37,8 +38,10 @@ export function useDocumentAutosave(
   documentId: string,
   initialDraft: DocumentDraft,
   initialRevision: number,
+  initialSavedAt: string,
 ): UseDocumentAutosave {
   const save = useSaveDocument(workspaceId, documentId);
+  const [savedAt, setSavedAt] = useState(initialSavedAt);
 
   const [state, setState] = useState<AutosaveState>(() => ({
     status: 'saved',
@@ -53,8 +56,16 @@ export function useDocumentAutosave(
         initialDraft,
         initialRevision,
         timing: AUTOSAVE_TIMING,
-        save: (draft, revision, saveKind) =>
-          save({ title: draft.title, content: draft.content, revision, saveKind }),
+        save: async (draft, revision, saveKind) => {
+          const stored = await save({
+            title: draft.title,
+            content: draft.content,
+            revision,
+            saveKind,
+          });
+          setSavedAt(stored.updatedAt);
+          return stored;
+        },
         isConflict: (error) => hasApiErrorCode(error, 'CONFLICT'),
         onChange: setState,
       }),
@@ -87,6 +98,7 @@ export function useDocumentAutosave(
 
   return {
     ...state,
+    savedAt,
     edit: (draft) => controller.edit(draft),
     saveNow: () => controller.saveNow(),
     retry: () => controller.retry(),

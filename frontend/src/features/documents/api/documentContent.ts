@@ -2,6 +2,7 @@ import { getSchema, type Editor, type Extensions, type JSONContent } from '@tipt
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
 import { ResearchCitation } from './researchCitation';
+import { DocumentFigure, FigureCaption } from './documentFigure';
 
 /**
  * The stored document format, and the one place that decides which nodes and marks it may contain.
@@ -41,6 +42,8 @@ export const documentExtensions: Extensions = [
   TableHeader,
   TableCell,
   ResearchCitation,
+  DocumentFigure,
+  FigureCaption,
 ];
 
 const documentSchema = getSchema(documentExtensions);
