@@ -1,3 +1,4 @@
+import { SourceTypeBadge } from '../../sources/components/SourceVisuals';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,13 +10,13 @@ import {
 } from '../../../shared/api';
 import {
   createConversation,
-  fetchConversations,
   fetchConversationHistory,
   streamConversationQuestion,
   type ConversationQuestion,
   type ConversationTurn,
   type ConversationMessage,
 } from '../api/conversationApi';
+import { useConversationsQuery } from '../api/useConversations';
 import { StructuredResponse } from './StructuredResponse';
 
 export interface ResearchSources {
@@ -23,6 +24,7 @@ export interface ResearchSources {
     readonly id: string;
     readonly title: string;
     readonly ready: boolean;
+    readonly sourceType?: string;
   }[];
   readonly loading: boolean;
   readonly error: string | null;
@@ -68,14 +70,7 @@ function Panel({
     },
     [],
   );
-  const conversations = useInfiniteQuery({
-    queryKey: queryKeys.aiConversations(workspaceId),
-    initialPageParam: 0,
-    queryFn: ({ pageParam, signal }) =>
-      fetchConversations(workspaceId, pageParam, signal),
-    getNextPageParam: (page) => page.nextOffset ?? undefined,
-    staleTime: 0,
-  });
+  const conversations = useConversationsQuery(workspaceId);
   const items = conversations.data?.pages.flatMap((page) => page.items) ?? [];
   const conversationId = chosen === undefined ? (items[0]?.id ?? null) : chosen;
   const history = useInfiniteQuery({
@@ -348,6 +343,7 @@ function Panel({
                   <label key={source.id} style={{ display: 'block' }}>
                     <input
                       type="checkbox"
+                      aria-label={source.title}
                       checked={selected.includes(source.id)}
                       onChange={(event) =>
                         setSelected((current) =>
@@ -357,7 +353,12 @@ function Panel({
                         )
                       }
                     />
-                    {source.title}
+                    {source.title}{' '}
+                    {source.sourceType ? (
+                      <span aria-hidden="true">
+                        <SourceTypeBadge sourceType={source.sourceType} />
+                      </span>
+                    ) : null}
                   </label>
                 ))}
               {selected.length === 0 ? (
