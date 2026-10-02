@@ -1,0 +1,288 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-block-end: var(--space-4);
+  min-inline-size: 0;
+}
+.chrome {
+  position: relative;
+  display: flex;
+}
+.control {
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 40px;
+  font-size: 0.875rem;
+  line-height: var(--line-height-control);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+.default {
+  block-size: 40px;
+}
+.large {
+  block-size: var(--control-height-large);
+}
+.control[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+.control:disabled,
+.control[readonly] {
+  background: var(--color-surface-muted);
+  color: var(--color-text-subtle);
+}
+.control:focus-visible {
+  border-color: var(--color-text-primary);
+  box-shadow: var(--focus-field-halo);
+}
+.control.withIcon {
+  padding-inline-start: 36px;
+}
+.control.withKeycap {
+  padding-inline-end: 64px;
+}
+.leading,
+.trailing {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: var(--color-text-secondary);
+}
+.leading {
+  inset-inline-start: var(--space-3);
+}
+.trailing {
+  inset-inline-end: var(--space-3);
+}
+.keycap {
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-1);
+  color: var(--color-text-subtle);
+  font: inherit;
+  font-size: var(--type-caption-size);
+  pointer-events: none;
+}
+.textarea {
+  block-size: auto;
+  min-block-size: 100px;
+  /* eslint-disable-next-line css/use-baseline -- Optional native resizing; fixed minimum height remains usable. */
+  resize: vertical;
+}
+.select {
+  appearance: none;
+  padding-inline-end: 36px;
+  font-weight: var(--font-weight-semibold);
+}
+.hint {
+  color: var(--color-text-subtle);
+  font-size: var(--type-caption-size);
+}
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font-size: var(--type-caption-size);
+  color: var(--color-error-ink);
+}
+.error svg {
+  flex-shrink: 0;
+  margin-block-start: 2px;
+}
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+.checkChrome {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.checkbox,
+.toggle {
+  appearance: none;
+  margin: 0;
+  cursor: pointer;
+  border: var(--border-width) solid var(--color-border-strong);
+}
+.checkbox {
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.checkbox:checked {
+  border-color: var(--color-brand-mint);
+  background: var(--color-brand-mint-tint);
+}
+.checkmark {
+  position: absolute;
+  inset: 2px;
+  pointer-events: none;
+  color: var(--color-brand-mint-ink);
+  visibility: hidden;
+}
+.checkbox:checked + .checkmark {
+  visibility: visible;
+}
+.toggle {
+  inline-size: 36px;
+  block-size: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+.toggle::before {
+  content: '';
+  display: block;
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 1px;
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+  transition: transform var(--motion-fast) var(--motion-easing);
+}
+.toggle:checked {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+.toggle:checked::before {
+  transform: translateX(16px);
+}
+.toggle:dir(rtl):checked::before {
+  transform: translateX(-16px);
+}
+.checkbox:disabled,
+.toggle:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+.checkbox[aria-invalid='true'],
+.toggle[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+.group {
+  border: 0;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  min-inline-size: 0;
+}
+.legend {
+  padding: 0;
+  margin-block-end: 6px;
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-semibold);
+}
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  padding: var(--space-1);
+  gap: var(--space-1);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.segment,
+.card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-inline-size: max-content;
+  cursor: pointer;
+}
+.radio {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.choiceContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+.choiceLabel {
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-bold);
+}
+.segment .radio:checked + .choiceContent {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--elevation-e1);
+}
+.card .choiceContent {
+  position: relative;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-5);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+}
+.card .radio:checked + .choiceContent {
+  border-color: var(--color-text-primary);
+  background: var(--color-brand-lavender-tint);
+  color: var(--color-text-primary);
+}
+.selectedMark {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  visibility: hidden;
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  border-radius: var(--radius-pill);
+}
+.radio:checked + .choiceContent .selectedMark {
+  visibility: visible;
+}
+.radio:focus-visible {
+  outline: none;
+}
+.radio:focus-visible + .choiceContent {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-gap);
+}
+.radio:disabled + .choiceContent,
+.group:disabled .choiceContent {
+  opacity: var(--opacity-disabled);
+}
+.group[aria-invalid='true'] .segments,
+.group[aria-invalid='true'] .card .choiceContent {
+  border: var(--border-width) solid var(--color-error);
+}
+@media (forced-colors: active) {
+  .checkbox,
+  .toggle {
+    appearance: auto;
+  }
+  .checkbox + .checkmark,
+  .toggle::before {
+    display: none;
+  }
+  .radio:checked + .choiceContent {
+    outline: 2px solid Highlight;
+  }
+}

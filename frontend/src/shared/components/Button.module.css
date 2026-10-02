@@ -1,0 +1,180 @@
+.button {
+  --button-height: var(--control-height-default);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  min-block-size: var(--button-height);
+  block-size: var(--button-height);
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: var(--line-height-control);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--motion-easing),
+    border-color var(--motion-fast) var(--motion-easing);
+}
+
+.content,
+.busy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.primary {
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+}
+
+.primary:hover:where(:not(:disabled, [aria-disabled='true'])) {
+  background: var(--color-action-hover);
+  color: var(--color-surface);
+}
+
+.secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.secondary:hover:where(:not(:disabled, [aria-disabled='true'])),
+.ghost:hover:where(:not(:disabled, [aria-disabled='true'])) {
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
+}
+
+.danger {
+  background: var(--color-error-ink);
+  color: var(--color-surface);
+}
+
+.danger:hover:where(:not(:disabled, [aria-disabled='true'])) {
+  background: var(--color-danger-hover);
+  color: var(--color-surface);
+}
+
+.danger-soft {
+  background: var(--color-error-tint);
+  border-color: var(--color-brand-coral);
+  color: var(--color-error-ink);
+}
+
+.danger-soft:hover:where(:not(:disabled, [aria-disabled='true'])) {
+  background: var(--color-brand-coral-mid);
+  color: var(--color-error-ink);
+}
+
+.button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-gap);
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.primary:disabled,
+.primary[aria-disabled='true'],
+.danger:disabled,
+.danger[aria-disabled='true'],
+.danger-soft:disabled,
+.danger-soft[aria-disabled='true'] {
+  opacity: var(--opacity-disabled);
+}
+
+/* Preserve disabled link colors when the global a:hover rule also matches. */
+.primary[aria-disabled='true'],
+.danger[aria-disabled='true'] {
+  color: var(--color-surface);
+}
+
+.danger-soft[aria-disabled='true'] {
+  color: var(--color-error-ink);
+}
+
+.secondary:disabled,
+.secondary[aria-disabled='true'] {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-subtle);
+}
+
+.ghost:disabled,
+.ghost[aria-disabled='true'] {
+  background: transparent;
+  color: var(--color-text-subtle);
+}
+
+.compact {
+  --button-height: var(--control-height-compact);
+}
+
+.default {
+  --button-height: var(--control-height-default);
+}
+
+.large {
+  --button-height: var(--control-height-large);
+  padding-inline: var(--space-4);
+}
+
+.iconOnly {
+  inline-size: var(--button-height);
+  block-size: var(--button-height);
+  padding: 0;
+}
+
+.button[data-busy='true'] {
+  opacity: 1;
+  cursor: wait;
+}
+
+.primary[data-busy='true'] {
+  background: var(--color-action-hover);
+  color: var(--color-surface);
+}
+
+.button[data-busy='true'] .content {
+  /* Keeps width even when the progress copy is longer than the action label. */
+  /* Opacity retains the original accessible name, including rich children. */
+  opacity: 0;
+}
+
+.busy {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding-inline: var(--space-2);
+}
+
+.spinner {
+  flex-shrink: 0;
+  animation: spin var(--motion-busy-duration) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
