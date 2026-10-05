@@ -44,6 +44,24 @@ def create_app(
     embeddings = embedding_provider or configured_provider()
     models = model_gateway or configured_gateway()
 
+    @app.post("/internal/analysis/plan", include_in_schema=False)
+    async def plan_computation(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        try:
+            from .analysis.contracts import PlanningRequest
+            command = PlanningRequest.model_validate(await _request_json(request, limit=512 * 1024))
+        except (ContractError, ValueError):
+            return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
+        try:
+            result = await run_in_threadpool(models.plan_computation, command)
+            return result.model_dump(mode='json', by_alias=True)
+        except ProviderError as error:
+            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+                                content={"code": error.code})
+        except Exception:
+            return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
+
     @app.get("/internal/ai/model", include_in_schema=False)
     async def model_metadata(request: Request):
         if not _authorized(request, expected_token):

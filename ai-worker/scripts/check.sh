@@ -6,3 +6,4 @@ uv run --frozen coverage report --include='src/researchhub_worker/ai/*' --fail-u
 uv run --frozen coverage report --include='src/researchhub_worker/ai/context.py' --fail-under=80
 uv run --frozen coverage report --include='src/researchhub_worker/parsing/csv.py,src/researchhub_worker/tabular_contracts.py' --fail-under=80
 uv run --frozen coverage report --include='src/researchhub_worker/data/*' --fail-under=80
+uv run --frozen coverage report --include='src/researchhub_worker/analysis/*' --fail-under=80

@@ -86,7 +86,8 @@ class FoundryModelProvider:
         return self._metadata
 
     def complete(self, input_request, schema, schema_name):
-        contextual = input_request if isinstance(input_request, ContextualRequest) else None
+        from ..analysis.contracts import PlanningRequest
+        contextual = input_request if isinstance(input_request, (ContextualRequest, PlanningRequest)) else None
         request = contextual.request if contextual is not None else input_request
         body = {'model': self._deployment, 'stream': False, 'store': False,
             'messages': [{'role': 'system', 'content': request.system_instruction},
@@ -167,6 +168,10 @@ class ModelGateway:
             raise ProviderError('AI_OUTPUT_INVALID') from None
         except Exception:
             raise ProviderError('AI_PROVIDER_ERROR') from None
+
+    def plan_computation(self, request):
+        from ..analysis.planner import generate_candidate
+        return generate_candidate(self._provider, request)
 
     def generate_structured(self, request):
         # Revalidate typed objects too, before the first provider call (including model_copy inputs).
