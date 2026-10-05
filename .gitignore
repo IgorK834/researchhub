@@ -40,6 +40,8 @@ logs/
 # Local sandbox execution artifacts
 sandbox/tmp/
 sandbox/output/
+sandbox/.pytest_cache/
+sandbox/.coverage-sandbox
 
 # Frontend coverage reports
 /frontend/coverage/

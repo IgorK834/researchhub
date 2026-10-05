@@ -1,0 +1,12 @@
+[project]
+name = "researchhub-sandbox-tests"
+version = "1.0.0"
+requires-python = "==3.13.3"
+
+[tool.pytest.ini_options]
+pythonpath = ["runtime"]
+testpaths = ["tests"]
+addopts = "--strict-markers --cov=runtime --cov-branch --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+data_file = ".coverage-sandbox"
