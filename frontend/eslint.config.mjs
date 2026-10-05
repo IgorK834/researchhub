@@ -96,7 +96,7 @@ export default [
 
   // Node-based tooling files use CommonJS and Node globals.
   {
-    files: ['*.cjs'],
+    files: ['*.cjs', 'e2e/*.cjs'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {
