@@ -229,3 +229,9 @@ updated. RH-156 adds [mixed source/computed evidence](contracts/ai/questions/v2/
 persisted conversation scope. RH-305 provides [typed presentation components](frontend/src/features/analysis/components/README.md)
 with dedicated coverage gates and no planner, sandbox, fetching or plotting dependencies.
 See [analysis references and computed evidence](docs/development/analysis-references.md) for behavior and E2E verification.
+
+RH-160–RH-166: opt-in [realtime document authoring](collaboration/README.md) uses an independent
+Hocuspocus/Yjs Node service with short-lived document credentials from Spring. Every accepted edit is committed
+before broadcast; the binary CRDT state and editor JSON are stored atomically in PostgreSQL (Flyway V25–V26).
+[ADR-007](docs/adr/ADR-007-realtime-document-authoring.md) defines authorization, legacy-save migration,
+consistent reads and crash recovery. Install/build `collaboration/` before running backend E2E tests.

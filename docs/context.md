@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI authoring is implemented through RH-120–122; computation requests and structured plans are implemented through RH-140/141; execution and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI authoring is implemented through RH-120–122; computation requests and structured plans are implemented through RH-140/141; execution is implemented and realtime collaborative editing is opt-in through RH-160–162. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
 
 RH-092 recognizes CSV as a data asset with bounded primitive-type/missing-value profiles, structured
 row previews and schema-only retrieval. Inference can be wrong; original values remain strings and
@@ -236,8 +236,7 @@ the source preview displays the response's citation mapping. See
 RH-112 now connects authorized workspace/source selection, ranked retrieval, grounded context and
 structured generation into a question endpoint and workspace UI. Empty/unanswerable evidence produces
 explicit insufficiency; citations and saved generation metadata refer only to retrieved source chunks.
-See [development/workspace-questions.md](development/workspace-questions.md). AI authoring is implemented through RH-120–122; computation requests and structured plans are implemented through RH-140/141; execution and
-realtime collaborative editing remain planned.
+See [development/workspace-questions.md](development/workspace-questions.md). AI authoring is implemented through RH-120–122; computation requests and structured plans are implemented through RH-140/141; execution is implemented and realtime collaborative editing is opt-in through RH-160–162.
 
 RH-113–RH-115 add shared authorized conversation history with model/template/usage provenance, an AI
 panel beside the document editor, and independent POST SSE progress. Only complete validated answers
@@ -507,13 +506,13 @@ Potential realtime backend: Hocuspocus.
 
 Do not implement CRDT from scratch.
 
-**Implemented so far: a structured editor, not collaboration.** A document is stored per workspace with a title, a JSON body, and a revision; it is created, read, saved, and soft-archived through `/api/workspaces/{workspaceId}/documents`. The stored format is a ProseMirror document node (`content_format` `PROSEMIRROR_JSON`), and the editor is Tiptap on ProseMirror: StarterKit (paragraphs, headings, bold, italic, bullet and numbered lists, undo and redo, plus quotes, code, and rules) and Tiptap's official table extensions, which the toolbar uses to insert a small table. Link is turned off. The title is a separate input outside the editor. A save sends `editor.getJSON()`, never HTML, so the column holds exactly what Tiptap produced. Documents written by the earlier textarea editor are a `doc` of paragraphs and open unchanged; no row was rewritten. A body that does not fit the editor's schema is not opened for editing, because Tiptap would otherwise show it empty and a save would overwrite it.
+**Structured editor with opt-in simultaneous Yjs authoring.** A document is stored per workspace with a title, a JSON body, and a revision; it is created, read, saved, and soft-archived through `/api/workspaces/{workspaceId}/documents`. The stored format is a ProseMirror document node (`content_format` `PROSEMIRROR_JSON`), and the editor is Tiptap on ProseMirror: StarterKit (paragraphs, headings, bold, italic, bullet and numbered lists, undo and redo, plus quotes, code, and rules) and Tiptap's official table extensions, which the toolbar uses to insert a small table. Link is turned off. The title is a separate input outside the editor. A save sends `editor.getJSON()`, never HTML, so the column holds exactly what Tiptap produced. Documents written by the earlier textarea editor are a `doc` of paragraphs and open unchanged; no row was rewritten. A body that does not fit the editor's schema is not opened for editing, because Tiptap would otherwise show it empty and a save would overwrite it.
 
 **Saving is automatic.** The editor saves after typing pauses (1.5 seconds, and at least every ten seconds while typing continues), with at most one request in flight, and shows `Saving`, `Saved`, `Save failed`, or `Conflict`. A failed save keeps the text and retries on the next edit, on "Retry saving", or when the browser comes back online; leaving the document flushes pending edits, and closing the tab with unsaved edits asks first. A save response only advances the revision, so it can never overwrite newer local typing.
 
 **Coarse history exists; collaborative history does not.** `document_versions` keeps immutable restore points: the created revision, every manual "Save version", an autosave checkpoint at most every ten minutes, and every restore. Restoring makes the old text the next revision and records where it came from; nothing is deleted. See [development/persistence.md](development/persistence.md#document-versions).
 
-None of Yjs, Hocuspocus, a websocket, or presence exists yet, and `@tiptap/extension-collaboration` is not installed. Concurrent edits are still handled by the revision: a save carrying a stale revision is refused with `409 CONFLICT` and a `currentRevision` member, and the second writer's editor keeps their text until they choose to load the latest version, rather than being merged or silently replaced. That is the honest single-writer answer. When Yjs arrives it replaces the revision as the authority for concurrent edits and replaces the save transport; the persistence boundary today is only "`getJSON()` plus a revision-checked PATCH", so that swap does not need a second stored format beside this one. Routes and error codes: [development/backend-architecture.md](development/backend-architecture.md), [development/api-errors.md](development/api-errors.md).
+RH-160–164 now provide opt-in Yjs/Hocuspocus authoring and the collaboration extension; see [ADR-007](adr/ADR-007-realtime-document-authoring.md) and [service setup](../collaboration/README.md). Presence UI remains a later task. The following revision-conflict behavior applies to documents that have not activated realtime. Concurrent edits are still handled by the revision: a save carrying a stale revision is refused with `409 CONFLICT` and a `currentRevision` member, and the second writer's editor keeps their text until they choose to load the latest version, rather than being merged or silently replaced. That is the honest single-writer answer. For activated documents Yjs replaces revision as the authority for concurrent edits and the save transport; a durable binary Yjs snapshot and JSON/title projection are committed atomically; revision PATCH is permanently blocked after activation. Routes and error codes: [development/backend-architecture.md](development/backend-architecture.md), [development/api-errors.md](development/api-errors.md).
 
 ---
 
@@ -1079,7 +1078,9 @@ Do not implement it before there is an actual event-delivery problem to solve.
 
 ## 25. Realtime collaboration
 
-Long-term:
+RH-160–164 implement opt-in simultaneous document authoring. [ADR-007](adr/ADR-007-realtime-document-authoring.md) is the accepted decision; [service setup](../collaboration/README.md) describes independent startup, feature flags and E2E verification.
+
+Implemented topology:
 
 ```text
 User A ----\
@@ -1096,13 +1097,7 @@ Features:
 - offline/local updates,
 - conflict-free synchronization.
 
-Likely tools:
-
-```text
-Yjs
-Hocuspocus
-WebSocket
-```
+Selected tools: Tiptap/ProseMirror, Yjs and an independent Hocuspocus/WebSocket Node service. Spring owns authorization and atomically persists binary state, editor projection and version metadata. Presence/cursor UI remains future work; IndexedDB retains unacknowledged local updates while disconnected, and editing resumes after authorized synchronization.
 
 Azure Web PubSub may be evaluated later.
 
@@ -1550,3 +1545,5 @@ references automatically. RH-156 lets questions combine source evidence [S1] wit
 computed evidence [A1], retaining both provenance and conversation scope in Flyway V24. RH-305 supplies typed,
 inert presentation components independent of the planner/sandbox. See
 [analysis references and computed evidence](development/analysis-references.md) for contracts and verification.
+
+RH-160–162 implement durable simultaneous body/title authoring via Yjs and Hocuspocus. Spring owns scoped short-lived credentials, workspace authorization and atomic binary/JSON persistence. Realtime requires explicit backend/frontend enablement; viewers retain authorized REST reads. Activated documents reject revision replacement; AI acceptance/restore through CRDT transactions and presence UI remain follow-up work.

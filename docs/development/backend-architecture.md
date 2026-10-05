@@ -298,3 +298,13 @@ Module: auth | user | workspace | document | source | processing | ai | analysis
 ```
 
 Use `shared` only when the change is cross-cutting. A feature that touches a workspace resource is `workspace` even if it also returns an error from `shared`.
+
+## Collaboration module (RH-160–162)
+
+`collaboration.api` uses `auth.application.CurrentUserResolver` only for public credential/checkpoint requests.
+`collaboration.application` calls `document.application.DocumentService` for document/workspace authorization,
+row locking, provenance validation, editor projections and history; its infrastructure owns only collaboration
+binary snapshots and hashed expiring credentials. `document.application.DocumentWriteGuard` is a public extension
+port implemented by collaboration infrastructure, preventing legacy replacement after activation without importing
+collaboration into the document module. Browser session security and the private service-token filter use separate,
+narrowly matched chains. Contract and recovery: [ADR-007](../adr/ADR-007-realtime-document-authoring.md).
