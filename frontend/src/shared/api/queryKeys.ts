@@ -76,6 +76,13 @@ export const queryKeys = {
     ['sources', workspaceId, sourceId, 'versions'] as const,
   datasetPreview: (workspaceId: string, sourceId: string, versionId?: string) =>
     ['analysis', workspaceId, 'datasets', sourceId, versionId ?? 'active'] as const,
+  analyses: (workspaceId: string) => ['analyses', workspaceId] as const,
+  analysis: (workspaceId: string, analysisId: string) =>
+    ['analyses', workspaceId, analysisId] as const,
+  executions: (workspaceId: string, analysisId: string) =>
+    ['analyses', workspaceId, analysisId, 'executions'] as const,
+  executionRecord: (workspaceId: string, analysisId: string, executionId: string) =>
+    ['analyses', workspaceId, analysisId, 'executions', executionId, 'record'] as const,
 
   sourceExtraction: (workspaceId: string, sourceId: string, revision?: string) =>
     (revision === undefined

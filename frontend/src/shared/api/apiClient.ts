@@ -246,6 +246,22 @@ export async function request<TResponse>(
 export const apiClient = {
   get: <TResponse>(path: string, options?: ApiRequestOptions): Promise<TResponse> =>
     request<TResponse>('GET', path, options),
+  getBlob: async (
+    path: string,
+    options?: Pick<ApiRequestOptions, 'signal'>,
+  ): Promise<Blob> => {
+    const response = await fetchResponse(path, {
+      method: 'GET',
+      headers: { Accept: 'image/png, image/svg+xml' },
+      ...(options?.signal === undefined ? {} : { signal: options.signal }),
+    });
+    if (!response.ok) throw await toApiError(response);
+    try {
+      return await response.blob();
+    } catch (cause) {
+      throw new ApiTransportError('The artifact could not be read', { cause });
+    }
+  },
   post: <TResponse>(path: string, options?: ApiRequestOptions): Promise<TResponse> =>
     request<TResponse>('POST', path, options),
   put: <TResponse>(path: string, options?: ApiRequestOptions): Promise<TResponse> =>
