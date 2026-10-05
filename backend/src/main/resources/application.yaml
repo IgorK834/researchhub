@@ -1,4 +1,17 @@
 researchhub:
+  analysis:
+    execution:
+      dispatcher:
+        enabled: ${ANALYSIS_EXECUTION_DISPATCHER_ENABLED:true}
+        fixed-delay: ${ANALYSIS_EXECUTION_FIXED_DELAY:PT1S}
+    sandbox:
+      # Local Docker is an explicit trusted dependency; image/tag and security flags are fixed in the adapter.
+      enabled: ${ANALYSIS_SANDBOX_ENABLED:false}
+      socket-path: ${ANALYSIS_SANDBOX_SOCKET_PATH:/var/run/docker.sock}
+      timeout: ${ANALYSIS_SANDBOX_TIMEOUT:PT45S}
+      memory-mi-b: ${ANALYSIS_SANDBOX_MEMORY_MIB:256}
+      cpus: ${ANALYSIS_SANDBOX_CPUS:1}
+      pids: ${ANALYSIS_SANDBOX_PIDS:64}
   auth:
     password:
       # Minimum password length, enforced in one place: dev.researchhub.user.application.PasswordPolicy,
