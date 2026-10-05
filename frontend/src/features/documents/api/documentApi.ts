@@ -37,7 +37,7 @@ export interface DocumentSummary {
  * Named `WorkspaceDocument` rather than `Document` on purpose: `Document` is a DOM global, and shadowing it in
  * a browser codebase is the kind of name collision that produces a baffling type error months later.
  *
- * `content` is `unknown` because it is arbitrary JSON the backend does not interpret. Use `readStoredDocument`
+ * `content` is `unknown` because it is editor JSON; the backend validates reserved analysis references. Use `readStoredDocument`
  * to check it against the editor's schema rather than indexing into it at a call site.
  */
 export interface WorkspaceDocument extends DocumentSummary {

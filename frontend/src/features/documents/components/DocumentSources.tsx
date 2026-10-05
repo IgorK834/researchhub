@@ -13,6 +13,8 @@ export interface DocumentSourcesProps {
     readonly sourceType?: string;
   }[];
   readonly references: DocumentNavigation['references'];
+  readonly analyses?: DocumentNavigation['analyses'];
+  readonly workspaceId?: string;
   readonly citationHref: (
     citation: DocumentNavigation['references'][number]['citation'],
   ) => string;
@@ -25,6 +27,8 @@ export function DocumentSources({
   citationHref,
   loading,
   error,
+  analyses = [],
+  workspaceId,
 }: DocumentSourcesProps): ReactElement {
   const cited = new Map<string, DocumentNavigation['references'][number][]>();
   for (const reference of references) {
@@ -35,6 +39,35 @@ export function DocumentSources({
   const notCited = sources.filter((source) => !cited.has(source.id));
   return (
     <div className={styles.sourceLists}>
+      {analyses.length && workspaceId ? (
+        <section aria-label="Analysis blocks in this document">
+          <h2>Analysis blocks in this document</h2>
+          <ul>
+            {analyses.map(({ attrs }) => (
+              <li key={attrs.blockId}>
+                <span className={`${styles.citationNumber} ${styles.analysisNumber}`}>
+                  A
+                </span>
+                <div>
+                  <Link
+                    to={`/app/workspaces/${workspaceId}/analyses/${attrs.reference.analysisId}?execution=${encodeURIComponent(attrs.reference.executionId)}`}
+                  >
+                    {attrs.caption || attrs.reference.outputId}
+                  </Link>
+                  <p className={styles.meta}>
+                    Execution {attrs.reference.executionId.slice(0, 8)} ·{' '}
+                    {attrs.reference.renderMode.toLowerCase()}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p>
+            Each block keeps its selected historical execution. Use Update reference on
+            the block to choose another saved result.
+          </p>
+        </section>
+      ) : null}
       <section aria-labelledby="document-cited-heading">
         <h2 id="document-cited-heading">
           Cited in this document{' '}

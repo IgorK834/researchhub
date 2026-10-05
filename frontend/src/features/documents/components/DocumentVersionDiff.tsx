@@ -4,6 +4,7 @@ import { Icon } from '../../../shared/components/icons';
 import type { ProseMirrorDocument } from '../api/documentContent';
 import { compareStoredDocuments, type DocumentDiffNode } from '../api/documentDiff';
 import type { EditorCitation } from '../api/researchCitation';
+import { isAnalysisBlockAttrs } from '../api/analysisReference';
 import styles from './DocumentHistory.module.css';
 import paper from './DocumentPaper.module.css';
 
@@ -39,6 +40,14 @@ function renderNode(
       </span>
     );
   }
+  if (node.type === 'analysisResult' && isAnalysisBlockAttrs(node.attrs))
+    return (
+      <div {...props}>
+        Analysis result: {node.attrs.caption || node.attrs.reference.outputId} · Execution{' '}
+        {node.attrs.reference.executionId} ·{' '}
+        {node.attrs.reference.renderMode.toLowerCase()}
+      </div>
+    );
   if (node.type === 'hardBreak')
     return (
       <span {...props}>

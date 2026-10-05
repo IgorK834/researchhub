@@ -222,6 +222,7 @@ export function DocumentHistory({
                       <details className={styles.original}>
                         <summary>Stored version content</summary>
                         <DocumentBodyEditor
+                          workspaceId={workspaceId}
                           key={version.id}
                           initialContent={previewBody}
                           editable={false}

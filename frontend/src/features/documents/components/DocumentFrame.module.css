@@ -189,6 +189,10 @@
   font-size: var(--type-caption-size);
   font-weight: var(--font-weight-bold);
 }
+.analysisNumber {
+  background: var(--color-brand-yellow-tint);
+  color: var(--color-brand-yellow-ink);
+}
 .citationLocations {
   display: flex;
   flex-wrap: wrap;

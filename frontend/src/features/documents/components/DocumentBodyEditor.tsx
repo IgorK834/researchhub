@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
-import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
+import {
+  EditorContent,
+  useEditor,
+  useEditorState,
+  ReactNodeViewRenderer,
+  type Editor,
+} from '@tiptap/react';
 import { createPortal } from 'react-dom';
 
 import {
@@ -15,6 +21,7 @@ import { CitationPopover, citationVariant } from '../../ai/components/Citations'
 import type { SelectionAction } from '../../ai/api/authoringActions';
 import { SelectionToolbar } from './SelectionToolbar';
 import { blockBoundary, draftDecoration } from '../api/draftDecoration';
+import { DocumentAnalysisBlock } from './DocumentAnalysisBlock';
 
 export interface AuthoringSelection {
   readonly from: number;
@@ -24,6 +31,7 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly workspaceId?: string;
   readonly selectionActionsEnabled?: boolean;
   readonly onSelectionAction?: (
     action: SelectionAction,
@@ -69,6 +77,7 @@ interface DocumentBodyEditorProps {
  * and it can, because the boundary here is only "a ProseMirror document goes out".
  */
 export function DocumentBodyEditor({
+  workspaceId,
   initialContent,
   editable,
   onChange,
@@ -130,7 +139,14 @@ export function DocumentBodyEditor({
   );
 
   const editor = useEditor({
-    extensions: documentExtensions,
+    extensions: documentExtensions.map((extension) =>
+      extension.name === 'analysisResult'
+        ? extension.extend({
+            addOptions: () => ({ workspaceId }),
+            addNodeView: () => ReactNodeViewRenderer(DocumentAnalysisBlock),
+          })
+        : extension,
+    ),
     content: initialContent,
     editable,
     editorProps,
@@ -153,6 +169,8 @@ export function DocumentBodyEditor({
   useEffect(() => {
     if (editor.isEditable !== editable) {
       editor.setEditable(editable, false);
+      // Notify editor-state subscribers without changing content or triggering a save.
+      editor.view.dispatch(editor.state.tr.setMeta('editableChanged', true));
     }
   }, [editor, editable]);
 

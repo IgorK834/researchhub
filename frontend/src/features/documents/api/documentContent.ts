@@ -3,12 +3,14 @@ import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table
 import StarterKit from '@tiptap/starter-kit';
 import { ResearchCitation } from './researchCitation';
 import { DocumentFigure, FigureCaption } from './documentFigure';
+import { AnalysisResultBlock, validateAnalysisNodes } from './analysisReference';
 
 /**
  * The stored document format, and the one place that decides which nodes and marks it may contain.
  *
  * The backend stores a ProseMirror document node as JSON (`content_format` `PROSEMIRROR_JSON`) and does not
- * interpret it. The editor is Tiptap, which is ProseMirror underneath, so what it produces with `getJSON()` is
+ * interpret authored prose. Reserved analysis references are validated against saved, authorized executions
+ * on the server. The editor is Tiptap, so what it produces with `getJSON()` is
  * already that shape — there is no conversion on the way in or out, and in particular no HTML in either
  * direction. What this module adds is the schema both sides agree on, a check that stored content fits it
  * before the editor sees it, and the value a save sends.
@@ -44,6 +46,7 @@ export const documentExtensions: Extensions = [
   ResearchCitation,
   DocumentFigure,
   FigureCaption,
+  AnalysisResultBlock,
 ];
 
 const documentSchema = getSchema(documentExtensions);
@@ -82,6 +85,7 @@ export function readStoredDocument(content: unknown): ProseMirrorDocument | null
   }
 
   try {
+    validateAnalysisNodes(content);
     const node = documentSchema.nodeFromJSON(content);
     node.check();
     return toSavedDocument(node.toJSON() as JSONContent);
@@ -101,6 +105,7 @@ export function toSavedDocument(json: JSONContent): ProseMirrorDocument {
   if (!isRecord(json) || json.type !== 'doc') {
     throw new Error('The editor did not produce a document node');
   }
+  validateAnalysisNodes(json);
   return json as ProseMirrorDocument;
 }
 

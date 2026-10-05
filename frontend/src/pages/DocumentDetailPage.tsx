@@ -1,6 +1,12 @@
 import { useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import {
+  Link,
+  useNavigate,
+  useOutletContext,
+  useParams,
+  useLocation,
+} from 'react-router-dom';
 
 import type { AppOutletContext } from '../app/AppOutletContext';
 import { ResearchPanel } from '../features/ai/components/ResearchPanel';
@@ -91,7 +97,12 @@ function DocumentScreen({
   const navigate = useNavigate();
   const outlet = useOutletContext<AppOutletContext | null>();
   const [reloadCount, setReloadCount] = useState(0);
-  const [focusBlock, setFocusBlock] = useState<number | undefined>();
+  const location = useLocation();
+  const [focusBlock, setFocusBlock] = useState<number | undefined>(() =>
+    typeof location.state?.focusBlock === 'number'
+      ? (location.state.focusBlock as number)
+      : undefined,
+  );
   const [navigation, setNavigation] = useState(EMPTY_NAVIGATION);
   const [navigationTarget, setNavigationTarget] = useState<{ position: number } | null>(
     null,
@@ -205,6 +216,8 @@ function DocumentScreen({
                   label: 'Sources',
                   content: (
                     <DocumentSources
+                      workspaceId={workspaceId}
+                      analyses={navigation.analyses}
                       references={navigation.references}
                       citationHref={(citation) =>
                         citationPath({ ...citation, chunkId: citation.chunkId ?? '' })

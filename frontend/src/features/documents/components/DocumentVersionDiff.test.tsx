@@ -143,3 +143,40 @@ it('offers the viewer chip, information and dismissible toast without requiring 
   render(<DocumentViewerNotice />);
   expect(screen.getByText('Read-only')).not.toBeNull();
 });
+it('shows a changed semantic execution reference as inert version metadata', () => {
+  const ref = {
+    analysisId: '11111111-1111-4111-8111-111111111111',
+    executionId: '22222222-2222-4222-8222-222222222222',
+    outputId: 'plot',
+    renderMode: 'CHART',
+  };
+  const block = {
+    type: 'analysisResult',
+    attrs: {
+      blockId: '44444444-4444-4444-8444-444444444444',
+      reference: ref,
+      caption: '',
+    },
+  };
+  render(
+    <DocumentVersionDiff
+      selected={doc(block)}
+      current={doc({
+        ...block,
+        attrs: {
+          ...block.attrs,
+          caption: '<script>inert caption</script>',
+          reference: { ...ref, executionId: '33333333-3333-4333-8333-333333333333' },
+        },
+      })}
+      selectedRevision={1}
+      currentRevision={2}
+      title="Report"
+      onClose={jest.fn()}
+    />,
+  );
+  expect(screen.getByText(/22222222/)).toBeTruthy();
+  expect(screen.getByText(/33333333/)).toBeTruthy();
+  expect(document.querySelector('script')).toBeNull();
+  expect(screen.queryByRole('img')).toBeNull();
+});

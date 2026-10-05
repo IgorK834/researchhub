@@ -237,6 +237,7 @@ export function DocumentEditorForm({
             </span>
             {storedBody === null ? null : (
               <DocumentBodyEditor
+                workspaceId={workspaceId}
                 selectionActionsEnabled={
                   settled && !previewing && !reviewing && renderAuthoring !== undefined
                 }
