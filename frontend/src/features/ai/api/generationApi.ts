@@ -1,4 +1,28 @@
 import { apiClient, CSRF_PRIMING_PATH } from '../../../shared/api';
+import type { ExecutionRecord } from '../../analysis/api/analysisApi';
+
+export interface AnalysisEvidenceReference {
+  readonly analysisId: string;
+  readonly executionId: string;
+  readonly outputId: string;
+}
+export interface AnalysisCitation extends AnalysisEvidenceReference {
+  readonly evidenceId: string;
+  readonly workspaceId: string;
+  readonly title: string;
+  readonly executionHash: string;
+  readonly contentHash: string;
+  readonly codeSha256: string;
+  readonly executedAt: string;
+  readonly runtimeVersion: string | null;
+  readonly inputSources: ExecutionRecord['snapshot']['inputs'];
+  readonly provenanceUrl: string;
+  readonly detailsUrl: string;
+  readonly truncated: boolean;
+}
+export function analysisCitationPath(citation: AnalysisCitation): string {
+  return `/app/workspaces/${encodeURIComponent(citation.workspaceId)}/analyses/${encodeURIComponent(citation.analysisId)}?execution=${encodeURIComponent(citation.executionId)}`;
+}
 
 export interface ModelMetadata {
   readonly provider: string;
@@ -33,7 +57,7 @@ export interface Citation extends EvidenceReference {
 export interface GeneratedResponse {
   /** Absent/null on historical RH-110 responses. Contains no prompt text. */
   readonly context?: {
-    readonly builderVersion: '1.0';
+    readonly builderVersion: '1.0' | '2.0';
     readonly tokenPolicy: 'utf8-conservative-v1';
     readonly budget: {
       readonly maxTokens: number;
@@ -71,6 +95,7 @@ export interface GeneratedResponse {
     };
   };
   readonly evidence: readonly Citation[];
+  readonly analysisEvidence?: readonly AnalysisCitation[];
 }
 const aiPath = (workspaceId: string): string =>
   `/api/workspaces/${encodeURIComponent(workspaceId)}/ai`;

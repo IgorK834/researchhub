@@ -1,16 +1,23 @@
 import { apiClient, CSRF_PRIMING_PATH } from '../../../shared/api';
-import type { Citation, GeneratedResponse } from './generationApi';
+import type {
+  Citation,
+  GeneratedResponse,
+  AnalysisEvidenceReference,
+  AnalysisCitation,
+} from './generationApi';
 
 export interface WorkspaceQuestion {
   readonly question: string;
   /** Omitted/null searches all authorized sources; [] deliberately searches none. */
   readonly selectedSourceIds?: readonly string[] | null;
+  readonly selectedAnalysisOutputs?: readonly AnalysisEvidenceReference[];
 }
 export interface QuestionResponse {
   readonly status: 'SUPPORTED' | 'INSUFFICIENT_EVIDENCE';
   readonly reason: 'NO_RETRIEVED_EVIDENCE' | 'INSUFFICIENT_RETRIEVED_EVIDENCE' | null;
   readonly answer: string;
   readonly citations: readonly Citation[];
+  readonly analysisCitations?: readonly AnalysisCitation[];
   readonly generation: GeneratedResponse | null;
 }
 

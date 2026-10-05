@@ -27,6 +27,8 @@ import { useConversationsQuery } from '../api/useConversations';
 import { Button } from '../../../shared/components/Button';
 import { ScopeChip } from '../../../shared/components/ScopeChip';
 import { AnswerState } from './GroundedAnswer';
+import { AnalysisEvidencePicker } from './AnalysisEvidencePicker';
+import type { AnalysisEvidenceReference } from '../api/generationApi';
 import { Card } from '../../../shared/components/content';
 import { Banner } from '../../../shared/components/feedback';
 import { Select, Textarea } from '../../../shared/components/forms';
@@ -102,6 +104,9 @@ function Panel({
       : (initialQuestion?.selectedSourceIds ?? null),
   );
   const [selectedCitation, setSelectedCitation] = useState<SelectedCitation | null>(null);
+  const [computedChoice, setComputedChoice] = useState<
+    readonly AnalysisEvidenceReference[] | null
+  >(initialQuestion?.selectedAnalysisOutputs ?? null);
   const [contextOpen, setContextOpen] = useState(false);
   const initialUsed = useRef(false);
   const questionInput = useRef<HTMLTextAreaElement>(null);
@@ -180,6 +185,7 @@ function Panel({
     setNotice('');
     setQuestion('');
     setSelectedCitation(null);
+    setComputedChoice(null);
     if (variant === 'page') {
       setScope(null);
       setSelected(null);
@@ -224,7 +230,9 @@ function Panel({
             if (event.event === 'retrieval_completed')
               setProgress(
                 event.data.chunkCount === 0
-                  ? 'No relevant passages found.'
+                  ? input.question.selectedAnalysisOutputs?.length
+                    ? 'Preparing saved computation evidence…'
+                    : 'No relevant passages found.'
                   : 'Preparing a grounded answer…',
               );
             if (event.event === 'delta') setDelta((text) => text + event.data.text);
@@ -325,6 +333,20 @@ function Panel({
       question: {
         clientRequestId: crypto.randomUUID(),
         question: text.trim(),
+        ...((
+          computedChoice ??
+          [...messages].reverse().find((message) => message.role === 'USER')
+            ?.selectedAnalysisOutputs ??
+          []
+        ).length
+          ? {
+              selectedAnalysisOutputs:
+                computedChoice ??
+                [...messages].reverse().find((message) => message.role === 'USER')
+                  ?.selectedAnalysisOutputs ??
+                [],
+            }
+          : {}),
         ...(nextScope === 'all'
           ? {}
           : {
@@ -578,6 +600,17 @@ function Panel({
           disabled={pending}
           placeholder="Ask a question about your research…"
           onChange={(event) => setQuestion(event.target.value)}
+        />
+        <AnalysisEvidencePicker
+          workspaceId={workspaceId}
+          value={
+            computedChoice ??
+            [...messages].reverse().find((message) => message.role === 'USER')
+              ?.selectedAnalysisOutputs ??
+            []
+          }
+          onChange={setComputedChoice}
+          disabled={unavailable}
         />
         <div className={styles.actions}>
           <ScopeChip

@@ -70,6 +70,7 @@ export function ResearchAnswer({
       answer={response.answer}
       reason={response.reason}
       generation={response.generation}
+      analysisEvidence={response.analysisCitations ?? []}
       evidence={response.citations.map((citation, index) => ({
         citation,
         label:

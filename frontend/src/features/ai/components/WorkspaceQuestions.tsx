@@ -10,6 +10,8 @@ import { Button } from '../../../shared/components/Button';
 import { Textarea } from '../../../shared/components/forms';
 import { IconTile } from '../../../shared/components/content';
 import styles from './WorkspaceQuestions.module.css';
+import { AnalysisEvidencePicker } from './AnalysisEvidencePicker';
+import type { AnalysisEvidenceReference } from '../api/generationApi';
 
 /** A dataset the user chose to analyze: the question starts scoped to that source. */
 export interface QuestionFocus {
@@ -96,6 +98,9 @@ function QuestionForm({
           : [focus.sourceId]),
   );
   const questionInput = useRef<HTMLTextAreaElement>(null);
+  const [computed, setComputed] = useState<readonly AnalysisEvidenceReference[]>(
+    initialQuestion?.selectedAnalysisOutputs ?? [],
+  );
   const focusedSource = initialSourceId ?? focus?.sourceId;
   // Only when a dataset was chosen, and not again for unrelated re-renders of the parent.
   useEffect(() => {
@@ -158,7 +163,10 @@ function QuestionForm({
         </p>
       ) : null}
       {!sources.isPending && sources.error === null && ready.length === 0 ? (
-        <p>No ready sources are available. Questions will return a no-evidence result.</p>
+        <p>
+          No ready sources are available. You can select saved analysis outputs as
+          computed evidence.
+        </p>
       ) : null}
       <form
         onSubmit={(event) => {
@@ -172,6 +180,7 @@ function QuestionForm({
           const input: WorkspaceQuestion = {
             question: question.trim(),
             ...(scope === 'selected' ? { selectedSourceIds: selected } : {}),
+            ...(computed.length ? { selectedAnalysisOutputs: computed } : {}),
           };
           if (onAsk !== undefined) onAsk(input);
           else ask.mutate(input);
@@ -245,6 +254,14 @@ function QuestionForm({
             />
           </fieldset>
         </details>
+        {variant === 'full' ? (
+          <AnalysisEvidencePicker
+            workspaceId={workspaceId}
+            value={computed}
+            onChange={setComputed}
+            disabled={ask.isPending}
+          />
+        ) : null}
         {validation !== null ? (
           <p id="workspace-question-error" role="alert">
             {validation}
@@ -280,6 +297,7 @@ function QuestionForm({
             reason={ask.data.reason}
             answer={ask.data.answer}
             generation={ask.data.generation}
+            analysisEvidence={ask.data.analysisCitations ?? []}
             evidence={ask.data.citations.map((citation, index) => ({
               citation,
               label:

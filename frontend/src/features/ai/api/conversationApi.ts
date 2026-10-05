@@ -9,6 +9,7 @@ import {
   type ServerEvent,
 } from '../../../shared/api';
 import type { QuestionResponse } from './questionApi';
+import type { AnalysisEvidenceReference } from './generationApi';
 
 export interface Conversation {
   readonly id: string;
@@ -31,6 +32,7 @@ export interface ConversationMessage {
   readonly authorId: string | null;
   readonly content: string;
   readonly selectedSourceIds: readonly string[] | null;
+  readonly selectedAnalysisOutputs?: readonly AnalysisEvidenceReference[];
   readonly response: QuestionResponse | null;
   readonly errorCode: ApiErrorCode | null;
   readonly createdAt: string;
@@ -49,6 +51,7 @@ export interface ConversationQuestion {
   readonly clientRequestId: string;
   readonly question: string;
   readonly selectedSourceIds?: readonly string[] | null;
+  readonly selectedAnalysisOutputs?: readonly AnalysisEvidenceReference[];
 }
 export type ResearchEvent =
   | {

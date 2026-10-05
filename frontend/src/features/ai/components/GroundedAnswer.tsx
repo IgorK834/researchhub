@@ -2,7 +2,9 @@ import type { ReactElement, ReactNode } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { Card, Panel } from '../../../shared/components/content';
 import { Banner } from '../../../shared/components/feedback';
-import type { Citation, GeneratedResponse } from '../api/generationApi';
+import type { Citation, GeneratedResponse, AnalysisCitation } from '../api/generationApi';
+import { analysisCitationPath } from '../api/generationApi';
+import { Link } from 'react-router-dom';
 import { citationPath } from '../api/generationApi';
 import type { QuestionResponse } from '../api/questionApi';
 import {
@@ -173,6 +175,7 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
   sourceView,
   insufficientAction,
   fullLocation,
+  analysisEvidence = [],
 }: {
   readonly status: QuestionResponse['status'];
   readonly answer?: string;
@@ -184,6 +187,7 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
   readonly sourceView?: boolean;
   readonly insufficientAction?: ReactNode;
   readonly fullLocation?: boolean;
+  readonly analysisEvidence?: readonly AnalysisCitation[];
 }): ReactElement {
   return (
     <section aria-label="Source-grounded response" className={styles.response}>
@@ -204,12 +208,32 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
                 {claim.text}{' '}
                 {claim.evidenceIds.map((id) => {
                   const support = evidence.find((item) => item.citation.chunkId === id);
-                  if (support === undefined)
+                  if (support === undefined) {
+                    const computed = analysisEvidence.find(
+                      (item) => item.evidenceId === id,
+                    );
+                    if (computed) {
+                      const label =
+                        generation.context?.citations.find(
+                          (binding) => binding.chunkId === id,
+                        )?.citationKey ?? `A${analysisEvidence.indexOf(computed) + 1}`;
+                      return (
+                        <Link
+                          key={id}
+                          to={analysisCitationPath(computed)}
+                          className={styles.analysisCitation}
+                          aria-label={`Open analysis evidence ${label}`}
+                        >
+                          [{label}]
+                        </Link>
+                      );
+                    }
                     return (
                       <span key={id} role="alert">
                         Source reference is unavailable.
                       </span>
                     );
+                  }
                   return (
                     <CitationReference
                       key={id}
@@ -236,6 +260,43 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
         sourceView={sourceView}
         fullLocation={fullLocation}
       />
+      {analysisEvidence.length ? (
+        <Panel title="Computed evidence">
+          <p>
+            Values were supplied from saved execution outputs. This answer did not run a
+            new calculation.
+          </p>
+          <ol>
+            {analysisEvidence.map((citation, index) => (
+              <li key={citation.evidenceId}>
+                <strong>
+                  {generation?.context?.citations.find(
+                    (binding) => binding.chunkId === citation.evidenceId,
+                  )?.citationKey ?? `A${index + 1}`}{' '}
+                  · {citation.title}
+                </strong>
+                <p>
+                  Execution {citation.executionId} · {citation.outputId} ·{' '}
+                  {citation.executedAt}
+                </p>
+                <p>
+                  Inputs:{' '}
+                  {citation.inputSources
+                    .map((input) => `${input.originalFilename} · v${input.versionNumber}`)
+                    .join('; ')}
+                </p>
+                {citation.truncated ? (
+                  <p>
+                    Only a bounded subset of saved rows was supplied. Missing rows and
+                    statistics were not inferred.
+                  </p>
+                ) : null}
+                <Link to={analysisCitationPath(citation)}>Open analysis provenance</Link>
+              </li>
+            ))}
+          </ol>
+        </Panel>
+      ) : null}
       {generation === null ? null : <GenerationDetails generation={generation} />}
     </section>
   );
