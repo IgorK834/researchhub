@@ -37,6 +37,51 @@ def result(outputs, value=None):
     return value
 
 
+def rich_result(outputs):
+    value = {'schemaVersion': '2.0', 'outputs': [
+        {'name': 'chart', 'kind': 'CHART', 'file': 'chart.png', 'title': 'Impedance versus frequency',
+         'xAxis': {'label': 'Frequency', 'unit': 'Hz', 'scale': 'LOG'},
+         'yAxis': {'label': 'Magnitude', 'unit': 'Ω', 'scale': 'LOG'},
+         'series': [{'name': 'Z', 'tableName': 'table', 'xColumn': 'f', 'yColumn': 'Z', 'yTransform': 'ABS'}]},
+        {'name': 'table', 'kind': 'TABLE', 'columns': ['f', 'Z'], 'rows': [[1, -2], [2, 4], [None, 2]]},
+        {'name': 'text', 'kind': 'TEXT', 'text': 'Calculated.'}]}
+    result(outputs, value)
+    return value
+
+
+def test_rich_chart_references_actual_saved_columns_and_accepts_legacy_results(layout):
+    _, _, outputs, manifest = layout
+    expected = rich_result(outputs)
+    assert p.validate_result(manifest, outputs) == expected
+    expected['outputs'][0]['series'][0]['yTransform'] = 'IDENTITY'
+    expected['outputs'][1]['rows'] = [[1, 2]]
+    result(outputs, expected)
+    assert p.validate_result(manifest, outputs) == expected
+    expected['outputs'][0]['series'] = []
+    expected['outputs'][0]['xAxis']['unit'] = None
+    result(outputs, expected)
+    assert p.validate_result(manifest, outputs) == expected
+
+
+@pytest.mark.parametrize('mutate', [
+    lambda chart, table: chart.update(title=' '), lambda chart, table: chart.update(sourceAnalysisId='forged'),
+    lambda chart, table: chart['xAxis'].update(scale='PYTHON'), lambda chart, table: chart['yAxis'].update(unit={}),
+    lambda chart, table: chart.update(series={}), lambda chart, table: chart.update(series=chart['series'] * 11),
+    lambda chart, table: chart['series'][0].update(tableName='unknown'), lambda chart, table: chart['series'][0].update(xColumn='unknown'),
+    lambda chart, table: chart['series'][0].update(yTransform='PYTHON'), lambda chart, table: chart['series'][0].update(pointCount=42),
+    lambda chart, table: chart['series'].append(copy.deepcopy(chart['series'][0])),
+    lambda chart, table: table.update(rows=[[0, 4]]), lambda chart, table: table.update(rows=[[1, 'text']]),
+    lambda chart, table: chart['series'][0].update(yTransform='IDENTITY'),
+])
+def test_rich_chart_rejects_invalid_metadata_and_unbound_or_non_numeric_series(layout, mutate):
+    _, _, outputs, manifest = layout
+    value = rich_result(outputs)
+    mutate(value['outputs'][0], value['outputs'][1])
+    result(outputs, value)
+    with pytest.raises(p.ProtocolError):
+        p.validate_result(manifest, outputs)
+
+
 def test_valid_manifest_result_and_xlsx(layout):
     execution, inputs, outputs, manifest = layout
     assert p.validate_manifest(execution / 'manifest.json', inputs) == manifest

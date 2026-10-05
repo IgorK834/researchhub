@@ -140,6 +140,45 @@ def scalar(value):
     reject()
 
 
+def axis(value):
+    keys(value, ('label', 'unit', 'scale'))
+    string(value['label'], 128)
+    if value['unit'] is not None:
+        string(value['unit'], 40)
+    if value['scale'] not in ('LINEAR', 'LOG'):
+        reject()
+
+
+def chart_metadata(item, tables):
+    string(item['title'], 200)
+    axis(item['xAxis'])
+    axis(item['yAxis'])
+    series = item['series']
+    if type(series) is not list or len(series) > 10:
+        reject()
+    names = set()
+    for reference in series:
+        keys(reference, ('name', 'tableName', 'xColumn', 'yColumn', 'yTransform'))
+        name = string(reference['name'], 128)
+        if name in names or reference['yTransform'] not in ('IDENTITY', 'ABS'):
+            reject()
+        names.add(name)
+        table = tables.get(string(reference['tableName'], 100))
+        x, y = string(reference['xColumn'], 256), string(reference['yColumn'], 256)
+        if table is None or x not in table['columns'] or y not in table['columns']:
+            reject()
+        for row in table['rows']:
+            xv, yv = row[table['columns'].index(x)], row[table['columns'].index(y)]
+            if xv is None or yv is None:
+                continue
+            if type(xv) not in (int, float) or type(yv) not in (int, float):
+                reject()
+            if reference['yTransform'] == 'ABS':
+                yv = abs(yv)
+            if item['xAxis']['scale'] == 'LOG' and xv <= 0 or item['yAxis']['scale'] == 'LOG' and yv <= 0:
+                reject()
+
+
 def validate_result(manifest, outputs_root=Path('/outputs')):
     result_path = outputs_root / 'result.json'
     raw = regular_file(result_path, MAX_RESULT_BYTES)
@@ -147,7 +186,7 @@ def validate_result(manifest, outputs_root=Path('/outputs')):
     keys(result, ('schemaVersion', 'outputs'))
     outputs = result['outputs']
     expected = {item['name']: item['kind'] for item in manifest['outputs']}
-    if result['schemaVersion'] != '1.0' or type(outputs) is not list or len(outputs) != len(expected):
+    if result['schemaVersion'] not in ('1.0', '2.0') or type(outputs) is not list or len(outputs) != len(expected):
         reject()
     names, files = set(), {'result.json'}
     total, cells = len(raw), 0
@@ -180,7 +219,8 @@ def validate_result(manifest, outputs_root=Path('/outputs')):
             keys(item, ('name', 'kind', 'text'))
             string(item['text'], 65_536, False)
         elif kind == 'CHART':
-            keys(item, ('name', 'kind', 'file'))
+            keys(item, ('name', 'kind', 'file', 'title', 'xAxis', 'yAxis', 'series')
+                 if result['schemaVersion'] == '2.0' else ('name', 'kind', 'file'))
             filename = string(item['file'], 100)
             if not FILE_NAME.fullmatch(filename) or filename in files:
                 reject()
@@ -190,6 +230,11 @@ def validate_result(manifest, outputs_root=Path('/outputs')):
             chart(content, Path(filename).suffix)
         else:
             reject()
+    if result['schemaVersion'] == '2.0':
+        tables = {item['name']: item for item in outputs if item['kind'] == 'TABLE'}
+        for item in outputs:
+            if item['kind'] == 'CHART':
+                chart_metadata(item, tables)
     if total > MAX_TOTAL_BYTES or {path.name for path in outputs_root.iterdir()} != files:
         reject()
     return result

@@ -7,14 +7,14 @@ its code is safe. The trusted Java runner independently enforces the execution b
 ## Build and enable
 
 ```bash
-docker build -t researchhub-sandbox:1.0.0 sandbox
+docker build -t researchhub-sandbox:1.1.0 sandbox
 ```
 
 The base is Python **3.13.3**, pinned to an image digest in `Dockerfile`. Initial libraries are pandas **2.2.3**,
 NumPy **2.2.4**, SciPy **1.15.2**, matplotlib **3.10.1** and openpyxl **3.1.5**; every transitive dependency is pinned
 in `requirements.lock`. Installation happens only during image build, from binary wheels, and pip is removed.
 Add packages through a reviewed lock/image change. There is no runtime install endpoint or prompt-controlled package
-list. The image declares runtime version **1.0.0**.
+list. The image declares runtime version **1.1.0**.
 
 After building, enable the backend's local adapter with `ANALYSIS_SANDBOX_ENABLED=true`. The fixed image tag cannot
 be supplied by a request. The adapter resolves it to a `sha256:` image ID and launches that exact ID with automatic
