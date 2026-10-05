@@ -1,0 +1,236 @@
+{
+  "$defs": {
+    "Code": {
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "const": "PYTHON",
+          "title": "Language",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 32000,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "language",
+        "source"
+      ],
+      "title": "Code",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "TABLE",
+            "CHART",
+            "TEXT"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "sourceVersionIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Sourceversionids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "description",
+        "sourceVersionIds"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "PlanInput": {
+      "additionalProperties": false,
+      "properties": {
+        "sourceVersionId": {
+          "format": "uuid",
+          "title": "Sourceversionid",
+          "type": "string"
+        },
+        "sheetName": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Sheetname",
+          "type": "string"
+        },
+        "requiredColumns": {
+          "items": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Requiredcolumns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sourceVersionId",
+        "sheetName",
+        "requiredColumns"
+      ],
+      "title": "PlanInput",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "sourceVersionId": {
+          "format": "uuid",
+          "title": "Sourceversionid",
+          "type": "string"
+        },
+        "sheetName": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Sheetname",
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "sourceVersionId",
+        "sheetName",
+        "columns"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/PlanInput"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Inputs",
+      "type": "array"
+    },
+    "transformations": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 20,
+      "title": "Transformations",
+      "type": "array"
+    },
+    "statisticalOperations": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 20,
+      "title": "Statisticaloperations",
+      "type": "array"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/Output"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Outputs",
+      "type": "array"
+    },
+    "assumptions": {
+      "items": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Warnings",
+      "type": "array"
+    },
+    "code": {
+      "$ref": "#/$defs/Code"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "summary",
+    "inputs",
+    "transformations",
+    "statisticalOperations",
+    "outputs",
+    "assumptions",
+    "warnings",
+    "code"
+  ],
+  "title": "Plan",
+  "type": "object"
+}

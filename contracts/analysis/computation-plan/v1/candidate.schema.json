@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "ModelMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "structuredOutput": {
+          "const": true,
+          "default": true,
+          "title": "Structuredoutput",
+          "type": "boolean"
+        },
+        "streaming": {
+          "const": false,
+          "default": false,
+          "title": "Streaming",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "provider",
+        "name",
+        "version"
+      ],
+      "title": "ModelMetadata",
+      "type": "object"
+    },
+    "UsageMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": {
+          "maximum": 20000000,
+          "minimum": 0,
+          "title": "Inputtokens",
+          "type": "integer"
+        },
+        "outputTokens": {
+          "maximum": 20000000,
+          "minimum": 0,
+          "title": "Outputtokens",
+          "type": "integer"
+        },
+        "totalTokens": {
+          "maximum": 40000000,
+          "minimum": 0,
+          "title": "Totaltokens",
+          "type": "integer"
+        },
+        "estimated": {
+          "title": "Estimated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "totalTokens",
+        "estimated"
+      ],
+      "title": "UsageMetadata",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "requestId": {
+      "format": "uuid",
+      "title": "Requestid",
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelMetadata"
+    },
+    "usage": {
+      "$ref": "#/$defs/UsageMetadata"
+    },
+    "providerRequestId": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Providerrequestid",
+      "type": "string"
+    },
+    "output": {
+      "maxLength": 64000,
+      "minLength": 1,
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "model",
+    "usage",
+    "providerRequestId",
+    "output"
+  ],
+  "title": "Candidate",
+  "type": "object"
+}

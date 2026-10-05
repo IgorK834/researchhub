@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "summary": "Select the requested input columns for a result table.",
+  "inputs": [
+    {
+      "sourceVersionId": "00000000-0000-4000-8000-0000000000a1",
+      "sheetName": "CSV",
+      "requiredColumns": [
+        1,
+        2
+      ]
+    }
+  ],
+  "transformations": [
+    {
+      "name": "Select columns",
+      "description": "Use physical columns 1 and 2.",
+      "sourceVersionId": "00000000-0000-4000-8000-0000000000a1",
+      "sheetName": "CSV",
+      "columns": [
+        1,
+        2
+      ]
+    }
+  ],
+  "statisticalOperations": [],
+  "outputs": [
+    {
+      "kind": "TABLE",
+      "name": "selected-data",
+      "description": "A table using the selected input columns.",
+      "sourceVersionIds": [
+        "00000000-0000-4000-8000-0000000000a1"
+      ]
+    }
+  ],
+  "assumptions": [
+    "The inspected types are estimates from a bounded profile."
+  ],
+  "warnings": [
+    "Generated code remains untrusted and has not run."
+  ],
+  "code": {
+    "language": "PYTHON",
+    "source": "raise RuntimeError('untrusted fixture code; must not execute')"
+  }
+}

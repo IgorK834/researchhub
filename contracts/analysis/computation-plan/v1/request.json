@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0",
+  "analysisId": "00000000-0000-4000-8000-0000000000b1",
+  "request": {
+    "schemaVersion": "1.0",
+    "requestId": "00000000-0000-4000-8000-0000000000b2",
+    "templateId": "computation-plan:1",
+    "templateHash": "dbad42f579819f4ff6bb71b874e6623d9a714c303e333ef799549f11e9dfd1dd",
+    "systemInstruction": "Create a structured computation plan from inspected inputs only.",
+    "instruction": "Select the first two columns.",
+    "parameters": {
+      "temperature": 0.0,
+      "maxOutputTokens": 8192
+    },
+    "evidence": []
+  },
+  "inputs": [
+    {
+      "selection": {
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "sourceVersionId": "00000000-0000-4000-8000-0000000000a1",
+        "sheetName": "CSV",
+        "columns": [
+          1,
+          2
+        ]
+      },
+      "preview": {
+        "schemaVersion": "1.0",
+        "sourceId": "018f1f7a-13a5-7d54-a210-57f87bbcf682",
+        "sourceVersionId": "00000000-0000-4000-8000-0000000000a1",
+        "versionNumber": 2,
+        "originalFilename": "people.csv",
+        "sizeBytes": 2048,
+        "contentSha256": "abababababababababababababababababababababababababababababababab",
+        "format": "CSV",
+        "formulasEvaluated": false,
+        "truncated": false,
+        "limits": {
+          "maxResponseBytes": 65536,
+          "maxSheets": 10,
+          "maxColumns": 100,
+          "maxSampleRows": 10,
+          "maxCells": 300,
+          "maxCellBytes": 96
+        },
+        "warnings": [
+          {
+            "code": "TYPES_INFERRED",
+            "sheet": null,
+            "message": "Column types are inferred from a bounded sample and may be wrong."
+          }
+        ],
+        "sheets": [
+          {
+            "name": "CSV",
+            "state": "visible",
+            "headerRow": 1,
+            "formulaPresence": false,
+            "dimensions": {
+              "usedRange": null,
+              "rowCount": 3,
+              "dataRowCount": 2,
+              "rowCountEstimated": false,
+              "scannedRows": 3,
+              "columnCount": 4
+            },
+            "columns": [
+              {
+                "index": 1,
+                "name": "name",
+                "inferredType": "TEXT",
+                "missingValues": 0,
+                "profiledValues": 2,
+                "missingValuesExact": true
+              },
+              {
+                "index": 2,
+                "name": "age",
+                "inferredType": "INTEGER",
+                "missingValues": 1,
+                "profiledValues": 2,
+                "missingValuesExact": true
+              },
+              {
+                "index": 3,
+                "name": "active",
+                "inferredType": "BOOLEAN",
+                "missingValues": 0,
+                "profiledValues": 2,
+                "missingValuesExact": true
+              },
+              {
+                "index": 4,
+                "name": "missing",
+                "inferredType": "UNKNOWN",
+                "missingValues": 2,
+                "profiledValues": 2,
+                "missingValuesExact": true
+              }
+            ],
+            "sampleRows": [
+              {
+                "rowNumber": 2,
+                "cells": [
+                  "Ada",
+                  "37",
+                  "true",
+                  ""
+                ]
+              },
+              {
+                "rowNumber": 3,
+                "cells": [
+                  "Bob",
+                  "",
+                  "false",
+                  " "
+                ]
+              }
+            ],
+            "truncated": false
+          }
+        ]
+      }
+    }
+  ],
+  "repairHints": []
+}
