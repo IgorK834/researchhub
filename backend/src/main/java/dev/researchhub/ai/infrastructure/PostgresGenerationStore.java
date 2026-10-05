@@ -18,12 +18,16 @@ public class PostgresGenerationStore implements GenerationStore {
     public PostgresGenerationStore(JdbcTemplate jdbc, ObjectMapper json) { this.jdbc = jdbc; this.json = json; }
     @Override @Transactional
     public void begin(UUID workspaceId, UUID callerId, ContextContracts.ContextualRequest contextual, List<Citation> evidence) {
+        beginComputed(workspaceId,callerId,contextual,evidence,List.of());
+    }
+    @Override @Transactional public void beginComputed(UUID workspaceId,UUID callerId,ContextContracts.ContextualRequest contextual,List<Citation> evidence,
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Citation> computed) {
         var request = contextual.request();
         jdbc.update("""
             INSERT INTO ai_generation_runs(request_id, workspace_id, caller_id, feature_id, template_id, template_hash,
-                request_hash, parameters, evidence, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, 'REQUESTED')
+                request_hash, parameters, evidence, analysis_evidence, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, 'REQUESTED')
             """, request.requestId(), workspaceId, callerId, request.templateId().substring(0, request.templateId().lastIndexOf(':')), request.templateId(), request.templateHash(),
-            RetrievalIdentity.hash(json.writeValueAsString(contextual)), json.writeValueAsString(Map.of("model", request.parameters(), "context", contextual.context().summary().budget())), json.writeValueAsString(evidence));
+            RetrievalIdentity.hash(json.writeValueAsString(contextual)), json.writeValueAsString(Map.of("model", request.parameters(), "context", contextual.context().summary().budget())), json.writeValueAsString(evidence),json.writeValueAsString(computed));
     }
     @Override @Transactional
     public void succeed(UUID workspaceId, GeneratedResponse response) {

@@ -16,9 +16,12 @@ public class ConversationService {
     private final WorkspaceAuthorizationService authorization;
     private final SourceReadScope sources;
     private final WorkspaceQuestionService questions;
+    private final dev.researchhub.analysis.application.AnalysisEvidenceService computed;
     public ConversationService(ConversationStore store, WorkspaceAuthorizationService authorization,
-                               SourceReadScope sources, WorkspaceQuestionService questions) {
+                               SourceReadScope sources, WorkspaceQuestionService questions,
+                               dev.researchhub.analysis.application.AnalysisEvidenceService computed) {
         this.store=store; this.authorization=authorization; this.sources=sources; this.questions=questions;
+        this.computed=computed;
     }
     public Conversation create(UUID workspaceId, UUID callerId, Create command) {
         authorize(workspaceId,callerId);
@@ -42,6 +45,7 @@ public class ConversationService {
         authorize(workspaceId,callerId);
         store.find(workspaceId,conversationId);
         if (send.selectedSourceIds() != null) sources.requireSources(workspaceId,callerId,send.selectedSourceIds());
+        if (!send.selectedAnalysisOutputs().isEmpty()) computed.resolve(workspaceId,callerId,send.selectedAnalysisOutputs());
     }
     public Completion send(UUID workspaceId, UUID callerId, UUID conversationId, Send send, QuestionExecution execution) {
         requireSend(workspaceId,callerId,conversationId,send);

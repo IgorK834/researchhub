@@ -24,6 +24,49 @@ def command():
     return ContextualRequest.model_validate(payload())
 
 
+MIXED_FIXTURES = FIXTURES.parent / 'questions' / 'v2'
+
+
+def mixed_payload():
+    return json.loads((MIXED_FIXTURES / 'model-request.json').read_text())
+
+
+def test_mixed_context_preserves_persisted_values_and_separate_citation_namespaces():
+    request = ContextualRequest.model_validate(mixed_payload())
+    source, computed = request.blocks()
+    assert source.page_start == 38
+    assert computed.output_id == 'fit'
+    assert json.loads(computed.text)['rows'] == [[0.94]]
+    expected = json.loads((MIXED_FIXTURES / 'response.json').read_text())
+    assert str(computed.execution_id) == expected['analysisCitations'][0]['executionId']
+    answer = local_cloud_payload(['S1', 'A1'])
+    provider, opener = cloud(json.dumps(answer).encode())
+    response = ModelGateway(provider).generate_structured(request)
+    assert response.answer.claims[0].evidence_ids == [item.chunk_id for item in request.request.evidence]
+    user = json.loads(json.loads(opener.open.call_args.args[0].data)['messages'][1]['content'])
+    assert user['context'] == request.context.text
+    assert 'Never claim that you performed a calculation' in request.request.system_instruction
+
+
+@pytest.mark.parametrize('builder,key,reference', [
+    ('1.0','A1',None), ('2.0','A2',None), ('2.0','A1','S1'),
+])
+def test_mixed_context_requires_versioned_independent_analysis_binding(builder, key, reference):
+    value = mixed_payload()
+    value['context']['summary']['builderVersion'] = builder
+    value['context']['summary']['citations'][1]['citationKey'] = key
+    value['context']['summary']['citations'][1]['textReference'] = reference
+    with pytest.raises(ValidationError):
+        ContextualRequest.model_validate(value)
+
+
+@pytest.mark.parametrize('key', ['A2','S2','[A1]'])
+def test_model_cannot_cite_an_execution_that_was_not_supplied(key):
+    provider, _ = cloud(json.dumps(local_cloud_payload([key])).encode())
+    with pytest.raises(ProviderError):
+        ModelGateway(provider).generate_structured(ContextualRequest.model_validate(mixed_payload()))
+
+
 def local_cloud_payload(keys=None):
     result = cloud_payload()
     result['choices'][0]['message']['content'] = json.dumps({'status':'SUPPORTED',

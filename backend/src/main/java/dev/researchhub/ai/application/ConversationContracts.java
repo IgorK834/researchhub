@@ -12,12 +12,15 @@ public final class ConversationContracts {
             GenerationContracts.text(title,160);
         }
     }
-    public record Send(UUID clientRequestId, String question, List<UUID> selectedSourceIds) {
+    public record Send(UUID clientRequestId, String question, List<UUID> selectedSourceIds,
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs) {
         public Send {
             GenerationContracts.require(clientRequestId != null);
-            selectedSourceIds = new QuestionContracts.Question(question,selectedSourceIds).selectedSourceIds();
+            var command=new QuestionContracts.Question(question,selectedSourceIds,selectedAnalysisOutputs);
+            selectedSourceIds=command.selectedSourceIds();selectedAnalysisOutputs=command.selectedAnalysisOutputs();
         }
-        public QuestionContracts.Question asQuestion() { return new QuestionContracts.Question(question,selectedSourceIds); }
+        public Send(UUID clientRequestId,String question,List<UUID> selectedSourceIds) { this(clientRequestId,question,selectedSourceIds,List.of()); }
+        public QuestionContracts.Question asQuestion() { return new QuestionContracts.Question(question,selectedSourceIds,selectedAnalysisOutputs); }
     }
     public record Conversation(UUID id, UUID workspaceId, UUID createdBy, String title, Instant createdAt, Instant updatedAt) {}
     public record ConversationPage(List<Conversation> items, Integer nextOffset) {
@@ -25,7 +28,13 @@ public final class ConversationContracts {
     }
     public record Message(UUID id, UUID clientRequestId, long sequence, String role, String status, UUID authorId,
                           String content, List<UUID> selectedSourceIds, QuestionContracts.Response response,
-                          String errorCode, Instant createdAt, Instant completedAt) {}
+                          String errorCode, Instant createdAt, Instant completedAt,
+                          @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)
+                          List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs) {
+        public Message { selectedAnalysisOutputs=selectedAnalysisOutputs==null ? List.of() : List.copyOf(selectedAnalysisOutputs); }
+        public Message(UUID id,UUID clientRequestId,long sequence,String role,String status,UUID authorId,String content,List<UUID> selectedSourceIds,QuestionContracts.Response response,
+            String errorCode,Instant createdAt,Instant completedAt) { this(id,clientRequestId,sequence,role,status,authorId,content,selectedSourceIds,response,errorCode,createdAt,completedAt,List.of()); }
+    }
     public record History(Conversation conversation, List<Message> messages, Long nextBeforeSequence) {
         public History { messages = List.copyOf(messages); }
     }

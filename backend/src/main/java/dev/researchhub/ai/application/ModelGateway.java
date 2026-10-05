@@ -21,30 +21,43 @@ public class ModelGateway {
     private final GroundedContextBuilder contexts;
     private final ContextProperties contextProperties;
     private final dev.researchhub.source.application.SourceService sources;
+    private final dev.researchhub.analysis.application.AnalysisEvidenceService computed;
     public ModelGateway(ModelProvider provider, SourceRetrievalService retrieval, WorkspaceAuthorizationService authorization,
                         GenerationFeature feature, GenerationStore store, GroundedContextBuilder contexts, ContextProperties contextProperties,
                         dev.researchhub.source.application.SourceService sources, AuthoringModelProvider authoringProvider,
-                        SourceAnalysisModelProvider analysisProvider) {
+                        SourceAnalysisModelProvider analysisProvider, dev.researchhub.analysis.application.AnalysisEvidenceService computed) {
         this.analysisProvider = analysisProvider;
         this.authoringProvider = authoringProvider;
         this.provider = provider; this.retrieval = retrieval; this.authorization = authorization; this.feature = feature; this.store = store;
         this.contexts = contexts; this.contextProperties = contextProperties; this.sources = sources;
+        this.computed=computed;
     }
     public GeneratedResponse generate(UUID workspaceId, UUID callerId, Command command) {
         return generate(workspaceId, callerId, command, feature);
     }
     GeneratedResponse generate(UUID workspaceId, UUID callerId, Command command, GenerationPolicy policy) {
+        return generate(workspaceId,callerId,command,policy,List.of());
+    }
+    GeneratedResponse generate(UUID workspaceId, UUID callerId, Command command, GenerationPolicy policy,
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> analysisReferences) {
         authorization.requireContentReader(workspaceId, callerId);
         var chunks = resolve(workspaceId, callerId, command);
+        var resolved=analysisReferences.isEmpty() ? List.<dev.researchhub.analysis.application.AnalysisEvidenceService.Resolved>of() : computed.resolve(workspaceId,callerId,analysisReferences);
+        var evidence=new ArrayList<Evidence>(chunks.stream().map(c -> new Evidence(c.chunkId(), c.contentHash(), c.content())).toList());
+        resolved.forEach(item -> evidence.add(item.evidence()));
         var request = new Request("1.0", UUID.randomUUID(), policy.templateId(), policy.templateHash(), policy.systemInstruction(),
-            command.instruction(), policy.parameters(), chunks.stream().map(c -> new Evidence(c.chunkId(), c.contentHash(), c.content())).toList());
+            command.instruction(), policy.parameters(), evidence);
         var titles = new HashMap<UUID, String>();
         chunks.forEach(c -> titles.computeIfAbsent(c.sourceId(), id -> sources.findOne(workspaceId, callerId, id).displayName()));
         var citations = chunks.stream().map(c -> Citation.from(c, titles.get(c.sourceId()))).toList();
         if (citations.stream().mapToInt(c -> c.spans().size()).sum() > 1024)
             throw new ApiException(ApiErrorCode.VALIDATION_FAILED, "Selected evidence exceeds the provenance limit; select fewer chunks");
-        var contextual = contexts.build(request, citations, contextProperties.budget());
-        store.begin(workspaceId, callerId, contextual, citations);
+        var analysisCitations=resolved.stream().map(dev.researchhub.analysis.application.AnalysisEvidenceService.Resolved::citation).toList();
+        if (new tools.jackson.databind.ObjectMapper().writeValueAsBytes(analysisCitations).length>131072)
+            throw new ApiException(ApiErrorCode.AI_CONTEXT_TOO_LARGE,"Selected computation provenance exceeds the evidence budget; choose fewer outputs");
+        var contextual = contexts.build(request, citations,analysisCitations, contextProperties.budget());
+        if (analysisReferences.isEmpty()) store.begin(workspaceId, callerId, contextual, citations);
+        else store.beginComputed(workspaceId,callerId,contextual,citations,analysisCitations);
         try {
             Result result;
             try { result = provider.generateStructured(contextual); }
@@ -55,7 +68,8 @@ public class ModelGateway {
             // A source may have been reprocessed/deleted or membership revoked during a remote model call.
             authorization.requireContentReader(workspaceId, callerId);
             if (!chunks.equals(resolve(workspaceId, callerId, command))) throw new ConflictException("Source evidence has changed; refresh its chunks");
-            var response = new GeneratedResponse(result, citations, contextual.context().summary());
+            if (!analysisReferences.isEmpty() && !resolved.equals(computed.resolve(workspaceId,callerId,analysisReferences))) throw new ConflictException("Computed evidence changed; inspect the selected execution");
+            var response = new GeneratedResponse(result, citations, contextual.context().summary(),analysisCitations);
             store.succeed(workspaceId, response);
             return response;
         } catch (ApiException failure) {

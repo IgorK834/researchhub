@@ -17,6 +17,7 @@ class ModelGatewayTest {
     private final SourceRetrievalService retrieval = mock(SourceRetrievalService.class);
     private final WorkspaceAuthorizationService auth = mock(WorkspaceAuthorizationService.class);
     private final GenerationStore store = mock(GenerationStore.class);
+    private final dev.researchhub.analysis.application.AnalysisEvidenceService computed=mock(dev.researchhub.analysis.application.AnalysisEvidenceService.class);
     private ModelGateway gateway;
     private final dev.researchhub.source.application.SourceService sources = mock(dev.researchhub.source.application.SourceService.class);
     private RetrievalChunk chunk;
@@ -25,7 +26,7 @@ class ModelGatewayTest {
 
     @BeforeEach void prepare() throws Exception {
         feature = new GenerationFeature("grounded-response:2", "0", 1024);
-        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class));
+        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,24576,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class),computed);
         chunk = new RetrievalChunk("a".repeat(64), source, workspace, null, 0, "Supported fact.", 2, 2, "Theory",
             RetrievalIdentity.hash("Supported fact."), "retrieval-1:test", List.of(new SourceSpan("unit-2", 0, 15)));
         when(sources.findOne(workspace, caller, source)).thenReturn(new dev.researchhub.source.application.SourceSummary(source, workspace, "lecture.pdf", "Lecture", "application/pdf", "PDF", 20, "hash", "READY", null, caller, java.time.Instant.now(), java.time.Instant.now(), UUID.randomUUID(), 1));
@@ -37,6 +38,26 @@ class ModelGatewayTest {
         return new Result("1.0", request.requestId(), request.templateId(), request.templateHash(),
             new ModelMetadata("alternate-cloud", "model", "immutable-1", true, false), new Usage(20, 10, 30, false), "provider-request",
             new Answer("SUPPORTED", List.of(new Claim("Supported fact.", List.of(evidenceId)))));
+    }
+    @Test void mixedContextSeparatesTextualAndComputedEvidenceAndRevalidatesBeforePublishing() {
+        var a=UUID.randomUUID();var e=UUID.randomUUID();
+        var ref=new dev.researchhub.analysis.application.AnalysisEvidenceService.Reference(a,e,"fit");
+        String text="{\"kind\":\"TABLE\",\"rows\":[[0.94]]}",id="e".repeat(64),hash=RetrievalIdentity.hash(text);
+        var citation=new dev.researchhub.analysis.application.AnalysisEvidenceService.Citation(id,workspace,a,e,"fit","Saved fit","f".repeat(64),hash,"c".repeat(64),"2026-10-05T12:00:00Z","1.1.0",List.of(),"/provenance","/details",false);
+        var resolved=List.of(new dev.researchhub.analysis.application.AnalysisEvidenceService.Resolved(new Evidence(id,hash,text),citation));
+        when(computed.resolve(workspace,caller,List.of(ref))).thenReturn(resolved);
+        when(provider.generateStructured(any(ContextualRequest.class))).thenAnswer(i -> result(((ContextualRequest)i.getArgument(0)).request(),id));
+        var response=gateway.generate(workspace,caller,command,feature,List.of(ref));
+        assertEquals(List.of("S1","A1"),response.context().citations().stream().map(Binding::citationKey).toList());
+        assertEquals(List.of(citation),response.analysisEvidence());assertEquals("2.0",response.context().builderVersion());
+        var contextual=ArgumentCaptor.forClass(ContextualRequest.class);verify(provider).generateStructured(contextual.capture());
+        assertTrue(contextual.getValue().context().text().contains("[A1]"));assertTrue(contextual.getValue().context().text().contains("0.94"));
+        verify(store).beginComputed(eq(workspace),eq(caller),any(),eq(response.evidence()),eq(List.of(citation)));
+        verify(computed,times(2)).resolve(workspace,caller,List.of(ref));
+        clearInvocations(store);
+        when(computed.resolve(workspace,caller,List.of(ref))).thenReturn(resolved).thenThrow(new ResourceNotFoundException("Access revoked"));
+        assertThrows(ResourceNotFoundException.class,() -> gateway.generate(workspace,caller,command,feature,List.of(ref)));
+        verify(store,never()).succeed(any(),any());verify(store).fail(eq(workspace),any(),eq(ApiErrorCode.RESOURCE_NOT_FOUND));
     }
     @Test void resolvesAuthorizedEvidenceUsesFeatureConfigurationAndPersistsAttributableResponse() {
         var response = gateway.generate(workspace, caller, command);
@@ -78,7 +99,7 @@ class ModelGatewayTest {
         assertEquals(ApiErrorCode.AI_OUTPUT_INVALID, assertThrows(ModelFailure.class, () -> gateway.generate(workspace, caller, command)).code());
     }
     @Test void contextOverflowStopsBeforeProviderAndAuditAndMetadataCalls() {
-        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,64,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class));
+        gateway = new ModelGateway(provider, retrieval, auth, feature, store, new GroundedContextBuilder(), new ContextProperties(32768,64,true), sources, mock(AuthoringModelProvider.class), mock(SourceAnalysisModelProvider.class),null);
         assertEquals(ApiErrorCode.AI_CONTEXT_TOO_LARGE, assertThrows(ApiException.class, () -> gateway.generate(workspace, caller, command)).code());
         verifyNoInteractions(provider, store);
     }
@@ -135,7 +156,7 @@ class ModelGatewayTest {
         var criteria=result.answer().rows().getFirst().cells().stream().map(SourceAnalysisContracts.Cell::criterion).toList();
         var mapping=Map.of("a".repeat(64),ids.getFirst(),"b".repeat(64),ids.getLast());
         var analyses=mock(SourceAnalysisModelProvider.class);
-        gateway=new ModelGateway(provider,retrieval,auth,feature,store,new GroundedContextBuilder(),new ContextProperties(32768,24576,true),sources,mock(AuthoringModelProvider.class),analyses);
+        gateway=new ModelGateway(provider,retrieval,auth,feature,store,new GroundedContextBuilder(),new ContextProperties(32768,24576,true),sources,mock(AuthoringModelProvider.class),analyses,null);
         when(analyses.analyze(request)).thenReturn(result);
         assertEquals(result,gateway.analyze(workspace,caller,request,SourceAnalysisContracts.Kind.COMPARISON,ids,criteria,mapping));
         when(analyses.analyze(request)).thenReturn(null);

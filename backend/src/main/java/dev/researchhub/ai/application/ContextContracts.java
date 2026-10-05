@@ -11,7 +11,7 @@ public final class ContextContracts {
     }
     public record Binding(String citationKey, String chunkId, String textReference) {
         public Binding {
-            require(citationKey != null && citationKey.matches("S(?:[1-9]|1[0-2])")); hash(chunkId);
+            require(citationKey != null && citationKey.matches("[SA](?:[1-9]|1[0-2])")); hash(chunkId);
             require(textReference == null || textReference.matches("S(?:[1-9]|1[0-2])"));
         }
     }
@@ -19,13 +19,16 @@ public final class ContextContracts {
     public record Summary(String builderVersion, String tokenPolicy, Budget budget, String contextHash,
                           int contextBytes, long tokenUpperBound, List<Binding> citations) {
         public Summary {
-            require("1.0".equals(builderVersion) && "utf8-conservative-v1".equals(tokenPolicy) && budget != null);
+            require(Set.of("1.0","2.0").contains(builderVersion) && "utf8-conservative-v1".equals(tokenPolicy) && budget != null);
             hash(contextHash); require(contextBytes >= 0 && contextBytes <= budget.maxBytes() && tokenUpperBound >= 0 && tokenUpperBound <= budget.maxTokens());
             citations = bounded(citations, 12);
             var keys = new HashSet<String>(); var chunks = new HashSet<String>();
+            int source=0,analysis=0;
             for (int index = 0; index < citations.size(); index++) {
                 var binding = citations.get(index);
-                require(binding.citationKey().equals("S" + (index + 1)) && chunks.add(binding.chunkId()));
+                boolean computed=binding.citationKey().startsWith("A");
+                require(binding.citationKey().equals(computed ? "A"+(++analysis) : "S"+(++source)) && chunks.add(binding.chunkId()));
+                require(!computed || "2.0".equals(builderVersion) && binding.textReference()==null);
                 require(binding.textReference() == null || keys.contains(binding.textReference()));
                 keys.add(binding.citationKey());
             }

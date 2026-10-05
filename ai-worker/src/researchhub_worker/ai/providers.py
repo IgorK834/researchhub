@@ -38,7 +38,7 @@ class FakeModelProvider:
         if contextual is not None:
             request = contextual.request
         selected = list(enumerate(request.evidence))
-        if request.template_id == 'workspace-question:1':
+        if request.template_id in {'workspace-question:1', 'workspace-question:2'}:
             # Offline fixture only: quote lexically relevant evidence, never invent an answer.
             # This is intentionally not a semantic entailment classifier or production LLM.
             terms = set(re.findall(r'\w+', request.instruction.casefold())) - {

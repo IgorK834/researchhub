@@ -17,10 +17,10 @@ public class QuestionFeature implements GenerationPolicy {
         if (topK < 1 || topK > 12) throw new IllegalArgumentException("Question top-k must be between 1 and 12");
         this.topK = topK;
         this.parameters = new GenerationContracts.Parameters("none".equals(temperature) ? null : Double.valueOf(temperature), maxOutputTokens);
-        this.instruction = GenerationFeature.loadInstruction("workspace-question-v1.txt");
+        this.instruction = GenerationFeature.loadInstruction("workspace-question-v2.txt");
     }
     public int topK() { return topK; }
-    public String templateId() { return "workspace-question:1"; }
+    public String templateId() { return "workspace-question:2"; }
     public String templateHash() { return RetrievalIdentity.hash(instruction); }
     public String systemInstruction() { return instruction; }
     public GenerationContracts.Parameters parameters() { return parameters; }

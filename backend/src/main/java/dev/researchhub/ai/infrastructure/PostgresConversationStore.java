@@ -33,7 +33,8 @@ public class PostgresConversationStore implements ConversationStore {
             row.getString("role"),row.getString("status"),row.getObject("author_id",UUID.class),row.getString("content"),
             selected == null ? null : List.of(json.readValue(selected,UUID[].class)),
             response == null ? null : json.readValue(response,QuestionContracts.Response.class),row.getString("error_code"),
-            row.getTimestamp("created_at").toInstant(),completed == null ? null : completed.toInstant());
+            row.getTimestamp("created_at").toInstant(),completed == null ? null : completed.toInstant(),
+            List.of(json.readValue(row.getString("selected_analysis_outputs"),dev.researchhub.analysis.application.AnalysisEvidenceService.Reference[].class)));
     }
     @Override @Transactional
     public Conversation create(UUID workspaceId,UUID callerId,String title) {
@@ -89,7 +90,8 @@ public class PostgresConversationStore implements ConversationStore {
         UUID attempt=UUID.randomUUID();
         if (!rows.isEmpty()) {
             var existing=rows.getFirst();
-            if (!existing.message().content().equals(send.question()) || !Objects.equals(existing.message().selectedSourceIds(),send.selectedSourceIds()))
+            if (!existing.message().content().equals(send.question()) || !Objects.equals(existing.message().selectedSourceIds(),send.selectedSourceIds())
+                || !existing.message().selectedAnalysisOutputs().equals(send.selectedAnalysisOutputs()))
                 throw new ConflictException("The request identity belongs to a different question");
             if ("COMPLETED".equals(existing.message().status())) {
                 var assistant=jdbc.query("SELECT * FROM ai_messages WHERE workspace_id=? AND conversation_id=? AND client_request_id=? AND role='ASSISTANT'",
@@ -106,10 +108,10 @@ public class PostgresConversationStore implements ConversationStore {
         long sequence=Objects.requireNonNull(jdbc.queryForObject("UPDATE ai_conversations SET next_sequence=next_sequence+2,updated_at=now() WHERE workspace_id=? AND id=? RETURNING next_sequence-2",
             Long.class,workspaceId,conversationId));
         jdbc.update("""
-            INSERT INTO ai_messages(id,workspace_id,conversation_id,client_request_id,sequence,role,status,author_id,content,selected_source_ids,attempt_id,started_at)
-            VALUES (?,?,?,?,?,'USER','PENDING',?,?,?::jsonb,?,now())
+            INSERT INTO ai_messages(id,workspace_id,conversation_id,client_request_id,sequence,role,status,author_id,content,selected_source_ids,selected_analysis_outputs,attempt_id,started_at)
+            VALUES (?,?,?,?,?,'USER','PENDING',?,?,?::jsonb,?::jsonb,?,now())
             """,UUID.randomUUID(),workspaceId,conversationId,send.clientRequestId(),sequence,callerId,send.question(),
-            send.selectedSourceIds() == null ? null : json.writeValueAsString(send.selectedSourceIds()),attempt);
+            send.selectedSourceIds() == null ? null : json.writeValueAsString(send.selectedSourceIds()),json.writeValueAsString(send.selectedAnalysisOutputs()),attempt);
         return new Claim(attempt,user(workspaceId,conversationId,send.clientRequestId()),null);
     }
     private Message user(UUID workspaceId,UUID conversationId,UUID requestId) {

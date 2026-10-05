@@ -11,7 +11,7 @@ from ..contract_model import ContractModel
 from .contracts import GenerationRequest, Hash, Claim, StructuredAnswer
 from ..retrieval.contracts import SourceSpan
 
-CitationKey = Annotated[str, StringConstraints(pattern=r'^S(?:[1-9]|1[0-2])$')]
+CitationKey = Annotated[str, StringConstraints(pattern=r'^[SA](?:[1-9]|1[0-2])$')]
 FRAMING_RESERVE = 2048
 
 
@@ -28,7 +28,7 @@ class CitationBinding(ContractModel):
 
 
 class ContextSummary(ContractModel):
-    builder_version: Literal['1.0']
+    builder_version: Literal['1.0', '2.0']
     token_policy: Literal['utf8-conservative-v1']
     budget: ContextBudget
     context_hash: Hash
@@ -55,6 +55,19 @@ class ContextBlock(ContractModel):
     text_reference: CitationKey | None
 
 
+class AnalysisContextBlock(ContractModel):
+    kind: Literal['ANALYSIS']
+    chunk_id: Hash
+    analysis_id: UUID
+    execution_id: UUID
+    output_id: str = Field(min_length=1, max_length=100)
+    title: str = Field(min_length=1, max_length=1000)
+    execution_hash: Hash
+    executed_at: str = Field(min_length=1, max_length=100)
+    text: str = Field(min_length=1, max_length=8000)
+    text_reference: None
+
+
 class ContextualRequest(ContractModel):
     schema_version: Literal['2.0']
     request: GenerationRequest
@@ -68,7 +81,8 @@ class ContextualRequest(ContractModel):
         for index, binding in enumerate(self.context.summary.citations):
             if lines[2 * index] != f'[{binding.citation_key}]':
                 raise ValueError('Invalid local citation label')
-            result.append(ContextBlock.model_validate_json(lines[2 * index + 1]))
+            model = AnalysisContextBlock if binding.citation_key.startswith('A') else ContextBlock
+            result.append(model.model_validate_json(lines[2 * index + 1]))
         return result
 
     def user_message(self):
@@ -83,14 +97,24 @@ class ContextualRequest(ContractModel):
                 or expected_tokens != summary.token_upper_bound or len(raw) > summary.budget.max_bytes
                 or expected_tokens > summary.budget.max_tokens
                 or [item.chunk_id for item in summary.citations] != [item.chunk_id for item in self.request.evidence]
-                or sum(len(block.spans) for block in self.blocks()) > 1024):
+                or sum(len(block.spans) for block in self.blocks() if isinstance(block, ContextBlock)) > 1024):
             raise ValueError('Invalid context hash, budget or evidence mapping')
         previous = {}
+        source_count, analysis_count = 0, 0
         for index, (binding, block, evidence) in enumerate(zip(summary.citations, self.blocks(), self.request.evidence)):
-            if (binding.citation_key != f'S{index + 1}' or block.chunk_id != evidence.chunk_id
+            computed = isinstance(block, AnalysisContextBlock)
+            if computed:
+                analysis_count += 1
+                expected_key = f'A{analysis_count}'
+                if summary.builder_version != '2.0' or binding.text_reference is not None:
+                    raise ValueError('Computed context requires an independent analysis citation')
+            else:
+                source_count += 1
+                expected_key = f'S{source_count}'
+            if (binding.citation_key != expected_key or block.chunk_id != evidence.chunk_id
                     or not block.title.strip() or block.text_reference != binding.text_reference
-                    or (block.page_start is None) != (block.page_end is None)
-                    or block.page_start is not None and block.page_end < block.page_start):
+                    or not computed and ((block.page_start is None) != (block.page_end is None)
+                    or block.page_start is not None and block.page_end < block.page_start)):
                 raise ValueError('Invalid context location or citation')
             if binding.text_reference is None:
                 if block.text != evidence.content:

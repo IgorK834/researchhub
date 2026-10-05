@@ -51,7 +51,7 @@ class WorkspaceQuestionServiceTest {
         order.verify(retrieval).search("What is in Lecture?", workspace, List.of(source), 2, caller);
         order.verify(gateway).generate(eq(workspace), eq(caller), command.capture(), same(feature));
         assertEquals(hits.stream().map(h -> new EvidenceReference(h.chunk().sourceId(), h.chunk().chunkId(), h.chunk().processingVersion())).toList(), command.getValue().evidence());
-        assertEquals("workspace-question:1", feature.templateId()); assertEquals(new Parameters(0.0,512), feature.parameters());
+        assertEquals("workspace-question:2", feature.templateId()); assertEquals(new Parameters(0.0,512), feature.parameters());
         assertTrue(feature.systemInstruction().contains("INSUFFICIENT_EVIDENCE"));
     }
     @Test void authorizationAndSelectedSourceErrorsStopBeforeGeneration() {
@@ -115,8 +115,8 @@ class WorkspaceQuestionServiceTest {
         var expected = json.readValue(java.nio.file.Files.readString(folder.resolve("response.json")),Response.class);
         var question = json.readValue(java.nio.file.Files.readString(folder.resolve("request.json")),Question.class);
         feature = new QuestionFeature(6,"0",1024);
-        assertEquals(feature.systemInstruction(),contextual.request().systemInstruction());
-        assertEquals(feature.templateHash(),contextual.request().templateHash());
+        assertEquals(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/resources/ai/templates/workspace-question-v1.txt")),contextual.request().systemInstruction());
+        assertEquals(RetrievalIdentity.hash(contextual.request().systemInstruction()),contextual.request().templateHash());
         assertEquals(feature.parameters(),contextual.request().parameters());
         assertEquals(contextual,new GroundedContextBuilder().build(contextual.request(),expected.generation().evidence(),contextual.context().summary().budget()));
         var citation = expected.citations().getFirst();
@@ -128,5 +128,33 @@ class WorkspaceQuestionServiceTest {
         var actual = new WorkspaceQuestionService(authorization,retrieval,gateway,feature).answer(citation.workspaceId(),caller,question);
         assertEquals(expected,actual);
         assertEquals("NO_RETRIEVED_EVIDENCE",json.readValue(java.nio.file.Files.readString(folder.resolve("no-evidence.json")),Response.class).reason());
+    }
+    @Test void sharedMixedFixtureUsesExactSavedOutputAndIndependentSourceAndAnalysisLabels() throws Exception {
+        var json=new tools.jackson.databind.ObjectMapper();
+        var folder=java.nio.file.Path.of("../contracts/ai/questions/v2");
+        var contextual=json.readValue(java.nio.file.Files.readString(folder.resolve("model-request.json")),ContextContracts.ContextualRequest.class);
+        var expected=json.readValue(java.nio.file.Files.readString(folder.resolve("response.json")),Response.class);
+        var question=json.readValue(java.nio.file.Files.readString(folder.resolve("request.json")),Question.class);
+        feature=new QuestionFeature(12,"0",1024);
+        assertEquals(feature.systemInstruction(),contextual.request().systemInstruction());assertEquals(feature.templateHash(),contextual.request().templateHash());
+        assertEquals(contextual,new GroundedContextBuilder().build(contextual.request(),expected.generation().evidence(),expected.generation().analysisEvidence(),contextual.context().summary().budget()));
+        var c=expected.citations().getFirst();
+        var chunk=new RetrievalChunk(c.chunkId(),c.sourceId(),c.workspaceId(),c.sourceVersionId(),0,contextual.request().evidence().getFirst().content(),c.pageStart(),c.pageEnd(),c.sectionTitle(),c.contentHash(),c.processingVersion(),c.spans());
+        when(retrieval.search(question.question(),c.workspaceId(),question.selectedSourceIds(),11,caller)).thenReturn(List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fake","model","1",4))));
+        when(gateway.generate(eq(c.workspaceId()),eq(caller),any(),same(feature),eq(question.selectedAnalysisOutputs()))).thenReturn(expected.generation());
+        var actual=new WorkspaceQuestionService(authorization,retrieval,gateway,feature).answer(c.workspaceId(),caller,question);
+        assertEquals(expected,actual);assertEquals("A1",actual.generation().context().citations().getLast().citationKey());
+        var result=actual.generation().result();
+        var insufficient=new GeneratedResponse(new Result(result.schemaVersion(),result.requestId(),result.templateId(),result.templateHash(),result.model(),result.usage(),result.providerRequestId(),new Answer("INSUFFICIENT_EVIDENCE",List.of())),actual.generation().evidence(),actual.generation().context(),actual.generation().analysisEvidence());
+        when(gateway.generate(eq(c.workspaceId()),eq(caller),any(),same(feature),eq(question.selectedAnalysisOutputs()))).thenReturn(insufficient);
+        var unavailable=new WorkspaceQuestionService(authorization,retrieval,gateway,feature).answer(c.workspaceId(),caller,question);
+        assertTrue(unavailable.answer().contains("supplied evidence"));
+        assertTrue(unavailable.citations().isEmpty());assertTrue(unavailable.analysisCitations().isEmpty());
+        assertEquals(actual.generation().analysisEvidence(),unavailable.generation().analysisEvidence());
+        assertThrows(IllegalArgumentException.class,() -> new Question("Compare",null,Collections.nCopies(7,question.selectedAnalysisOutputs().getFirst())));
+        assertThrows(IllegalArgumentException.class,() -> new Question("Compare",null,Collections.nCopies(2,question.selectedAnalysisOutputs().getFirst())));
+        var forged=actual.analysisCitations().getFirst();var foreign=new dev.researchhub.analysis.application.AnalysisEvidenceService.Citation(forged.evidenceId(),UUID.randomUUID(),forged.analysisId(),forged.executionId(),forged.outputId(),forged.title(),forged.executionHash(),forged.contentHash(),forged.codeSha256(),forged.executedAt(),forged.runtimeVersion(),forged.inputSources(),forged.provenanceUrl(),forged.detailsUrl(),false);
+        when(gateway.generate(eq(c.workspaceId()),eq(caller),any(),same(feature),eq(question.selectedAnalysisOutputs()))).thenReturn(new GeneratedResponse(actual.generation().result(),actual.generation().evidence(),actual.generation().context(),List.of(foreign)));
+        assertThrows(ModelFailure.class,() -> new WorkspaceQuestionService(authorization,retrieval,gateway,feature).answer(c.workspaceId(),caller,question));
     }
 }

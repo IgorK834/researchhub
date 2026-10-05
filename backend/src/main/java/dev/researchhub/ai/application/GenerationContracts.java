@@ -77,9 +77,12 @@ public final class GenerationContracts {
         }
     }
     /** Provenance is assembled by the application, never supplied by the model. */
-    public record GeneratedResponse(Result result, List<Citation> evidence, ContextContracts.Summary context) {
-        public GeneratedResponse { Objects.requireNonNull(result); evidence = bounded(evidence, 12); }
-        public GeneratedResponse(Result result, List<Citation> evidence) { this(result, evidence, null); }
+    public record GeneratedResponse(Result result, List<Citation> evidence, ContextContracts.Summary context,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Citation> analysisEvidence) {
+        public GeneratedResponse { Objects.requireNonNull(result); evidence = bounded(evidence, 12);analysisEvidence=bounded(analysisEvidence==null ? List.of() : analysisEvidence,6);require(evidence.size()+analysisEvidence.size()<=12); }
+        public GeneratedResponse(Result result, List<Citation> evidence, ContextContracts.Summary context) { this(result,evidence,context,List.of()); }
+        public GeneratedResponse(Result result, List<Citation> evidence) { this(result, evidence, null,List.of()); }
     }
     public record EvidenceReference(UUID sourceId, String chunkId, String processingVersion) {
         public EvidenceReference { require(sourceId != null); hash(chunkId); identifier(processingVersion); }

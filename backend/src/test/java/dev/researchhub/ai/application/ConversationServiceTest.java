@@ -18,7 +18,8 @@ class ConversationServiceTest {
     private final WorkspaceAuthorizationService authorization=mock(WorkspaceAuthorizationService.class);
     private final SourceReadScope sources=mock(SourceReadScope.class);
     private final WorkspaceQuestionService questions=mock(WorkspaceQuestionService.class);
-    private final ConversationService service=new ConversationService(store,authorization,sources,questions);
+    private final dev.researchhub.analysis.application.AnalysisEvidenceService computed=mock(dev.researchhub.analysis.application.AnalysisEvidenceService.class);
+    private final ConversationService service=new ConversationService(store,authorization,sources,questions,computed);
     private final Send send=new Send(UUID.randomUUID(),"Visible question",List.of(UUID.randomUUID()));
     private final Message user=new Message(UUID.randomUUID(),send.clientRequestId(),1,"USER","PENDING",caller,send.question(),send.selectedSourceIds(),null,null,Instant.now(),null);
     private final QuestionContracts.Response response=new QuestionContracts.Response("INSUFFICIENT_EVIDENCE","NO_RETRIEVED_EVIDENCE",WorkspaceQuestionService.NO_EVIDENCE,List.of(),null);
