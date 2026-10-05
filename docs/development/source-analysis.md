@@ -133,3 +133,28 @@ statement/branch coverage. Maven JAR, Webpack production bundle and the pinned w
 built successfully. Both source-analysis fixtures also passed authenticated HTTP smoke tests in
 the built worker image. Frontend lint/typecheck/format checks pass; Webpack retains its bundle-size
 performance warnings.
+
+## Comparison review (RH-303)
+
+The comparison dialog uses removable source chips and the shared ready-source picker
+with a five-source cap. Compare still requires two to five current ready sources and
+the existing one-to-five criteria. Selecting/removing sources clears the previous
+comparison and disagreement result. No criteria are renamed: the defaults remain
+method, dataset, metric, main result and limitations.
+
+The focusable scroll region contains a semantic table with a sticky criteria column
+and sticky source headers. Each reported cell and summary statement exposes its stored
+citation chips with only returned locations. Missing cells remain explicitly missing,
+including absent rows or null values; source metadata is never synthesized. Source
+headers retain the consumed version number and offer Open only when a returned citation
+provides a location. The lavender summary and yellow Differences worth a look card
+reuse the immutable analysis and existing disagreement endpoint.
+
+Comparison requests remain `{selectedSourceIds, criteria, instruction}`. Follow-up
+requests remain `{instruction, versionSelection}` with ORIGINAL as the default and
+LATEST only after an explicit choice; uploaded replacement versions never silently
+replace the comparison's evidence. Synchronous guards prevent duplicate submissions.
+Loading, request errors, no supported summary, insufficient evidence and unavailable
+references stay explicit. No export/insertion action, schema, runtime dependency or
+backend changes are introduced. The comparison component's Jest gate now enforces
+80% coverage for branches in addition to lines, functions and statements.

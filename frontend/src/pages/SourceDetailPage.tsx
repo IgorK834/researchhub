@@ -146,9 +146,16 @@ function SourceDetail({
   const previewVersionId = previewedVersion?.id ?? source.activeVersionId;
   const previewType = previewedVersion?.sourceType ?? source.sourceType;
   const previewStatus = previewedVersion?.status ?? source.status;
+  const hasDatasetPreview =
+    (previewType === 'CSV' || previewType === 'XLSX') &&
+    previewStatus === 'READY' &&
+    Boolean(previewVersionId);
+  const askSourcePath = `/app/workspaces/${encodeURIComponent(workspaceId)}/ask?askSource=${encodeURIComponent(sourceId)}`;
 
   const metadata = (
-    <div className={styles.metadata}>
+    <div
+      className={`${styles.metadata} ${hasDatasetPreview ? styles.datasetMetadata : ''}`}
+    >
       <Panel title="Source information">
         <dl>
           <dt>Type</dt>
@@ -176,11 +183,7 @@ function SourceDetail({
           <dd>{source.sizeBytes.toLocaleString()} bytes</dd>
         </dl>
       </Panel>
-      <Button
-        href={`/app/workspaces/${encodeURIComponent(workspaceId)}/ask?askSource=${encodeURIComponent(sourceId)}`}
-        icon="sparkle"
-        disabled={source.status !== 'READY'}
-      >
+      <Button href={askSourcePath} icon="sparkle" disabled={source.status !== 'READY'}>
         Ask this source
       </Button>
       <Button
@@ -193,23 +196,33 @@ function SourceDetail({
       </Button>
     </div>
   );
+  const processing = (
+    <SourceProcessing
+      workspaceId={workspaceId}
+      sourceId={sourceId}
+      status={source.status}
+      canEdit={canEditContent}
+    />
+  );
   return (
     <SourceDetailFrame
       embedded={embedded}
-      metadata={metadata}
+      metadata={hasDatasetPreview ? undefined : metadata}
       header={
         <>
           <Link to={`/app/workspaces/${workspaceId}`}>Back to the workspace</Link>
-          <header className={styles.header}>
-            <SourceTypeTile sourceType={source.sourceType} />
-            <div className={styles.heading}>
-              <h1>{source.displayName}</h1>
-              <div className={styles.badges}>
-                <SourceTypeBadge sourceType={source.sourceType} />
-                <SourceStatusChip status={source.status} />
+          {hasDatasetPreview ? null : (
+            <header className={styles.header}>
+              <SourceTypeTile sourceType={source.sourceType} />
+              <div className={styles.heading}>
+                <h1>{source.displayName}</h1>
+                <div className={styles.badges}>
+                  <SourceTypeBadge sourceType={source.sourceType} />
+                  <SourceStatusChip status={source.status} />
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
+          )}
         </>
       }
     >
@@ -224,23 +237,22 @@ function SourceDetail({
       {source.failureSummary === null ? null : (
         <Banner tone="error" lead={`Failure: ${source.failureSummary}`} />
       )}
-      <SourceProcessing
-        workspaceId={workspaceId}
-        sourceId={sourceId}
-        status={source.status}
-        canEdit={canEditContent}
-      />
-      {(previewType === 'CSV' || previewType === 'XLSX') &&
-      previewStatus === 'READY' &&
-      previewVersionId ? (
+      {hasDatasetPreview ? null : processing}
+      {hasDatasetPreview && previewVersionId ? (
         <DatasetPreviewPanel
           workspaceId={workspaceId}
           sourceId={sourceId}
           sourceVersionId={previewVersionId}
+          sourceName={source.displayName}
+          sourceInfo={metadata}
           isLatestVersion={previewVersionId === source.activeVersionId}
           onAnalyze={analyze}
+          onAsk={() => {
+            void navigate(askSourcePath);
+          }}
         />
       ) : null}
+      {hasDatasetPreview ? processing : null}
       {source.sourceType === 'PDF' ? (
         <PdfSourcePreview
           workspaceId={workspaceId}

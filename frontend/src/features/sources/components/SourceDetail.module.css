@@ -3,8 +3,13 @@
 }
 .sections {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--space-5);
   margin-block: var(--space-5);
+}
+.sections input[type='file'] {
+  max-width: 100%;
 }
 .header {
   display: flex;
@@ -32,6 +37,9 @@
   display: grid;
   gap: var(--space-4);
   padding: var(--space-5);
+}
+.datasetMetadata {
+  padding: 0;
 }
 .metadata dl {
   display: grid;

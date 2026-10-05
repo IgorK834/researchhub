@@ -5,6 +5,7 @@ planner. The browser never downloads or parses the workbook; the Spring API neve
 profile the Python worker already produced when the version was processed.
 
 Related: [source-versions.md](source-versions.md) (the immutable version being described),
+[computation-planning.md](computation-planning.md) (authorized requests and structured plans),
 [csv-data-assets.md](csv-data-assets.md) (the CSV profile it is built from),
 [source-extraction.md](source-extraction.md) (workbook metadata), and the shared contract
 [`contracts/analysis/dataset-preview/v1`](../../contracts/analysis/dataset-preview/v1/README.md).
@@ -70,18 +71,27 @@ inside the existing modular monolith (`analysis` module, see [backend-architectu
 
 `DatasetPreviewPanel` is rendered on the source page for a `READY` CSV/XLSX version:
 
-* **source header** – file, format, version (`latest` or `older version`), size and short SHA-256;
-* **sheet selector** – only when there is more than one sheet; hidden sheets are labelled; starts on the first visible one;
+* **source header** – type tile, display name, selected sheet/counts, original filename, format, version (`latest` or
+  `older version`), size and short SHA-256;
+* **sheet tabs** – keyboard navigation with arrows/Home/End, exact data-row counts when known, hidden sheets labelled;
+  starts on the first visible sheet (or the first available one). Switching sheets uses the cached bounded response;
 * **counts** – data rows (`about` when estimated, "unknown (the first N rows were scanned)" when not known), columns
   (`10 of 120 shown`), used range and header row;
 * **column types** – a table of name, inferred type and missing values (`2 of 5 sampled` unless exact);
-* **table preview** – the sample rows under the column names, in a keyboard-scrollable region;
-* **warnings** – a "This preview is truncated" notice listing every cut, and notes about estimates and inferred types;
+* **table preview** – inert sample values under typed column headers (numeric/text badges), physical row numbers,
+  sticky headers and a keyboard-scrollable region. The sheet details sit beside the grid on a wide screen and below it
+  on a narrow screen; unknown totals stay unknown;
+* **warnings** – always-visible banners above the grid listing every cut and notes about estimates and inferred types.
+  The six server limits and the fact that formulas are never calculated remain visible, including for empty sheets;
 * **Analyze this data** – hands `{sourceId, sourceVersionId, sheetName}` to the page, which opens the workspace questions
   with that source already selected (`?analyzeSource=…&analyzeVersion=…&analyzeSheet=…`) and a starter question. It is
-  disabled for an older version because search and questions use the latest.
+  disabled for an older version because search and questions use the latest;
+* **Ask about data** – opens the existing source-scoped questions page (`/ask?askSource=…`), also disabled for an older
+  preview. Existing source metadata, download and source-level question actions remain available.
 
 A very large file renders the same few rows as a small one, so the page stays responsive. The panel makes one request.
+The RH-304 layout follows `design-reference/Sources.pdf`, page 4, without load-more controls, histograms, added statistics
+or changes to the preview API, processing limits, dependencies or schema.
 
 ## Verification
 

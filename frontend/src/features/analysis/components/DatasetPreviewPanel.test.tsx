@@ -64,8 +64,8 @@ it('shows the source header, counts, column types and a data-only sample for a C
     '/api/workspaces/w/analysis/datasets/s/versions/v/preview',
   );
 
-  expect(screen.getByText('people.csv')).not.toBeNull();
-  expect(screen.getByText('CSV')).not.toBeNull();
+  expect(screen.getByRole('heading', { name: 'people.csv' })).not.toBeNull();
+  expect(screen.getByText(/CSV · 1 sheet in this preview/)).not.toBeNull();
   expect(screen.getByText('2 (latest)')).not.toBeNull();
   expect(screen.getByText('2,048 bytes')).not.toBeNull();
   expect(screen.getByTitle(csv.contentSha256).textContent).toBe('abababababab…');
@@ -84,11 +84,12 @@ it('shows the source header, counts, column types and a data-only sample for a C
 
   const sample = screen.getByRole('table', { name: 'CSV dataset preview' });
   expect(within(sample).getByText('Sample rows (2 of 2)')).not.toBeNull();
-  expect(
-    within(sample)
-      .getAllByRole('columnheader')
-      .map((cell) => cell.textContent),
-  ).toEqual(['Row', 'name', 'age', 'active', 'missing']);
+  const headers = within(sample).getAllByRole('columnheader');
+  expect(headers[0]?.textContent).toBe('Row');
+  for (const column of csv.sheets[0]!.columns)
+    expect(within(sample).getByText(column.name)).not.toBeNull();
+  expect(within(sample).getByLabelText('Inferred type: integer').textContent).toBe('123');
+  expect(within(sample).getByLabelText('Inferred type: text').textContent).toBe('abc');
   const rows = within(sample).getAllByRole('row').slice(1);
   expect(rows).toHaveLength(2);
   expect(within(rows[0] as HTMLElement).getByText('Ada')).not.toBeNull();
@@ -96,7 +97,7 @@ it('shows the source header, counts, column types and a data-only sample for a C
   // The preview is complete and exact, so there is no truncation notice and no analyze button without a handler.
   expect(screen.queryByLabelText('Preview limits')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Analyze this data' })).toBeNull();
-  expect(screen.queryByLabelText('Sheet')).toBeNull();
+  expect(screen.getByRole('tab', { name: 'CSV 2', selected: true })).toBeTruthy();
   expect(
     screen.getByText(/Formulas are shown as text and are never calculated/),
   ).not.toBeNull();
@@ -106,13 +107,19 @@ it('lists every sheet, labels hidden ones, defaults to the first visible sheet a
   mockFetch(() => response(xlsx));
   render(panel());
 
-  const selector = (await screen.findByLabelText('Sheet')) as HTMLSelectElement;
-  expect(selector.value).toBe('Measurements');
-  expect(Array.from(selector.options).map((option) => option.textContent)).toEqual([
-    'Measurements',
-    'Hidden (hidden)',
-    'Internal (very hidden)',
-    'Empty',
+  const tabs = await screen.findByRole('tablist', { name: 'Sheets' });
+  expect(
+    within(tabs).getByRole('tab', { name: 'Measurements 5', selected: true }),
+  ).toBeTruthy();
+  expect(
+    within(tabs)
+      .getAllByRole('tab')
+      .map((tab) => tab.textContent),
+  ).toEqual([
+    'Measurements 5',
+    'Hidden (hidden) 0',
+    'Internal (very hidden) 0',
+    'Empty 0',
   ]);
   expect(screen.getByText('A1:E6')).not.toBeNull();
   expect(screen.getAllByText('=B2*2', { selector: 'td' })).toHaveLength(5);
@@ -124,12 +131,15 @@ it('lists every sheet, labels hidden ones, defaults to the first visible sheet a
     'Column types are inferred from a bounded sample',
   );
 
-  fireEvent.change(selector, { target: { value: 'Hidden' } });
+  fireEvent.click(screen.getByRole('tab', { name: 'Hidden (hidden) 0' }));
   expect(screen.getByRole('table', { name: 'Hidden column types' })).not.toBeNull();
   expect(screen.getByText('No sample rows are available for this sheet.')).not.toBeNull();
-  fireEvent.change(selector, { target: { value: 'Empty' } });
+  fireEvent.click(screen.getByRole('tab', { name: 'Empty 0' }));
   expect(screen.getByText('none')).not.toBeNull();
-  expect(screen.getByText('0')).not.toBeNull();
+  expect(
+    within(screen.getByLabelText('Sheet size')).getByText('Data rows').nextElementSibling
+      ?.textContent,
+  ).toBe('0');
 });
 
 it('names every truncation, estimate and unknown count instead of passing a sample off as the whole file', async () => {
@@ -157,8 +167,12 @@ it('names every truncation, estimate and unknown count instead of passing a samp
     "The row count is an estimate from the file's declared dimensions.",
   );
 
-  fireEvent.change(screen.getByLabelText('Sheet'), { target: { value: 'Unknown' } });
-  expect(screen.getByText('unknown (the first 12 rows were scanned)')).not.toBeNull();
+  fireEvent.click(screen.getByRole('tab', { name: 'Unknown' }));
+  expect(
+    within(screen.getByLabelText('Sheet size')).getByText(
+      'unknown (the first 12 rows were scanned)',
+    ),
+  ).not.toBeNull();
   expect(screen.getByLabelText('Notes about this preview').textContent).toContain(
     'The total row count is unknown; at least 12 rows were scanned.',
   );
@@ -198,9 +212,7 @@ it('hands the exact version and sheet to "Analyze this data" and refuses it for 
   const onAnalyze = jest.fn();
   const { rerender } = render(panel({ onAnalyze }));
 
-  fireEvent.change(await screen.findByLabelText('Sheet'), {
-    target: { value: 'Hidden' },
-  });
+  fireEvent.click(await screen.findByRole('tab', { name: 'Hidden (hidden) 0' }));
   fireEvent.click(screen.getByRole('button', { name: 'Analyze this data' }));
   expect(onAnalyze).toHaveBeenCalledWith({
     sourceId: xlsx.sourceId,
@@ -214,7 +226,7 @@ it('hands the exact version and sheet to "Analyze this data" and refuses it for 
   })) as HTMLButtonElement;
   expect(button.disabled).toBe(true);
   expect(
-    screen.getByText(/Analysis uses the latest version of this source/),
+    screen.getByText(/Analysis and questions use the latest version of this source/),
   ).not.toBeNull();
   expect(screen.getByText('2 (older version)')).not.toBeNull();
 });
@@ -281,14 +293,268 @@ it('caches an immutable version instead of fetching it again, and starts a new v
   const fetchMock = mockFetch(() => response(xlsx));
   const queryClient = client();
   const first = render(panel({}, queryClient));
-  fireEvent.change(await screen.findByLabelText('Sheet'), {
-    target: { value: 'Hidden' },
-  });
+  fireEvent.click(await screen.findByRole('tab', { name: 'Hidden (hidden) 0' }));
   first.unmount();
 
   render(panel({}, queryClient));
-  expect(((await screen.findByLabelText('Sheet')) as HTMLSelectElement).value).toBe(
-    'Measurements',
+  expect(
+    await screen.findByRole('tab', { name: 'Measurements 5', selected: true }),
+  ).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it('supports keyboard sheet navigation without refetching or duplicating hidden tables', async () => {
+  const fetchMock = mockFetch(() => response(xlsx));
+  render(panel());
+  const selected = await screen.findByRole('tab', {
+    name: 'Measurements 5',
+    selected: true,
+  });
+  selected.focus();
+  fireEvent.keyDown(selected, { key: 'ArrowRight' });
+  const hidden = screen.getByRole('tab', { name: 'Hidden (hidden) 0', selected: true });
+  expect(document.activeElement).toBe(hidden);
+  expect(
+    screen.queryByRole('table', { name: 'Measurements dataset preview', hidden: true }),
+  ).toBeNull();
+  expect(screen.getByRole('table', { name: 'Hidden column types' })).toBeTruthy();
+  fireEvent.keyDown(hidden, { key: 'End' });
+  expect(screen.getByRole('tab', { name: 'Empty 0', selected: true })).toBe(
+    document.activeElement,
+  );
+  fireEvent.keyDown(document.activeElement!, { key: 'Home' });
+  expect(screen.getByRole('tab', { name: 'Measurements 5', selected: true })).toBe(
+    document.activeElement,
+  );
+  expect(screen.getByRole('region', { name: 'Measurements sample rows' })).toHaveProperty(
+    'tabIndex',
+    0,
   );
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it('names the selected sheet, retains version provenance and wires both existing header actions', async () => {
+  mockFetch(() => response(xlsx));
+  const onAnalyze = jest.fn(),
+    onAsk = jest.fn();
+  const { rerender } = render(
+    panel({
+      sourceName: 'Research data',
+      sourceInfo: <p>Known source metadata</p>,
+      onAnalyze,
+      onAsk,
+    }),
+  );
+  expect(await screen.findByRole('heading', { name: 'Research data' })).toBeTruthy();
+  expect(
+    within(await screen.findByLabelText('Source version')).getByText('measurements.xlsx'),
+  ).toBeTruthy();
+  expect(screen.getByText('Known source metadata')).toBeTruthy();
+  const details = within(screen.getByRole('region', { name: 'Sheet details' }));
+  expect(details.getByText('Sheet').nextElementSibling?.textContent).toBe('Measurements');
+  fireEvent.click(screen.getByRole('button', { name: 'Ask about data' }));
+  expect(onAsk).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Analyze this data' }));
+  expect(onAnalyze).toHaveBeenCalledWith({
+    sourceId: xlsx.sourceId,
+    sourceVersionId: xlsx.sourceVersionId,
+    sheetName: 'Measurements',
+  });
+  rerender(panel({ onAnalyze, onAsk, isLatestVersion: false }));
+  expect(screen.getByRole('button', { name: 'Ask about data' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  expect(screen.getByRole('button', { name: 'Analyze this data' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Ask about data' }));
+  expect(onAsk).toHaveBeenCalledTimes(1);
+});
+
+it('resets sheet selection only when opening another immutable version', async () => {
+  let reply = xlsx;
+  const fetchMock = mockFetch(() => response(reply));
+  const queryClient = client();
+  const view = render(panel({}, queryClient));
+  fireEvent.click(await screen.findByRole('tab', { name: 'Hidden (hidden) 0' }));
+  view.rerender(panel({ sourceName: 'Renamed source' }, queryClient));
+  expect(
+    screen.getByRole('tab', { name: 'Hidden (hidden) 0', selected: true }),
+  ).toBeTruthy();
+  reply = { ...xlsx, sourceVersionId: 'new-version', versionNumber: 3 };
+  view.rerender(panel({ sourceVersionId: 'new-version' }, queryClient));
+  expect(
+    await screen.findByRole('tab', { name: 'Measurements 5', selected: true }),
+  ).toBeTruthy();
+  expect(
+    within(screen.getByLabelText('Source version')).getByText('3 (latest)'),
+  ).toBeTruthy();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it('keeps all limit banners and notes visible while switching sheets, with the server caps unchanged', async () => {
+  const fetchMock = mockFetch(() => response(large));
+  render(panel());
+  await screen.findByLabelText('Preview limits');
+  for (const name of ['Wide', 'Unknown', 'Wide']) {
+    fireEvent.click(screen.getByRole('tab', { name }));
+    const limits = screen.getByLabelText('Preview limits');
+    expect(limits.getAttribute('role')).toBe('status');
+    for (const warning of large.warnings.filter((warning) =>
+      [
+        'SHEETS_OMITTED',
+        'ROWS_TRUNCATED',
+        'COLUMNS_TRUNCATED',
+        'VALUES_SHORTENED',
+      ].includes(warning.code),
+    ))
+      expect(limits.textContent).toContain(warning.message);
+    expect(screen.getByLabelText('Notes about this preview').getAttribute('role')).toBe(
+      'status',
+    );
+    expect(
+      screen.getByText(
+        /limited to 10 rows per sheet, 100 columns per sheet, 10 sheets, 300 cells and 65,536 bytes/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/Each value is limited to 96 UTF-8 bytes/)).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: /Load more|Create analysis|Check before/ }),
+    ).toBeNull();
+  }
+  const data = screen.getByRole('table', { name: 'Wide dataset preview' });
+  expect(within(data).getAllByRole('row')).toHaveLength(
+    large.sheets[0]!.sampleRows.length + 1,
+  );
+  expect(within(data).getAllByRole('columnheader')).toHaveLength(
+    large.sheets[0]!.columns.length + 1,
+  );
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it('shows null dimensions as unknown, retains only reported types, and leaves absent cell text empty', async () => {
+  const sheet = csv.sheets[0]!;
+  const data: DatasetPreview = {
+    ...csv,
+    sheets: [
+      {
+        ...sheet,
+        dimensions: { ...sheet.dimensions, columnCount: null },
+        columns: ['ERROR', 'MIXED', 'UNKNOWN'].map((inferredType, index) => ({
+          ...sheet.columns[0]!,
+          inferredType: inferredType as 'ERROR' | 'MIXED' | 'UNKNOWN',
+          index: index + 1,
+          name: 'Column ' + index,
+          profiledValues: 0,
+        })),
+        sampleRows: [{ rowNumber: 2, cells: ['#VALUE!', 'https://example.test'] }],
+      },
+    ],
+  };
+  mockFetch(() => response(data));
+  render(panel());
+  const grid = await screen.findByRole('table', { name: 'CSV dataset preview' });
+  expect(
+    within(screen.getByLabelText('Sheet size')).getByText('3 shown (total unknown)'),
+  ).toBeTruthy();
+  expect(within(grid).getByLabelText('Inferred type: error value')).toBeTruthy();
+  expect(within(grid).getByLabelText('Inferred type: mixed')).toBeTruthy();
+  expect(within(grid).getByLabelText('Inferred type: unknown')).toBeTruthy();
+  expect(within(grid).getAllByRole('cell')[2]?.textContent).toBe('');
+  expect(within(grid).queryByRole('link')).toBeNull();
+  expect(
+    within(screen.getByRole('table', { name: 'CSV column types' })).getAllByText('—'),
+  ).toHaveLength(3);
+});
+
+it('uses the first available sheet when all sheets are hidden and keeps no-sheet actions bounded', async () => {
+  mockFetch(() =>
+    response({
+      ...xlsx,
+      sheets: xlsx.sheets.filter((sheet) => sheet.state !== 'visible'),
+    }),
+  );
+  const view = render(panel());
+  expect(
+    await screen.findByRole('tab', { name: 'Hidden (hidden) 0', selected: true }),
+  ).toBeTruthy();
+  view.unmount();
+  mockFetch(() => response({ ...xlsx, sheets: [] }));
+  render(panel({ onAnalyze: jest.fn(), onAsk: jest.fn(), isLatestVersion: false }));
+  await screen.findByText('This file contains no sheets to preview.');
+  expect(screen.getByRole('button', { name: 'Analyze this data' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  expect(screen.getByRole('button', { name: 'Ask about data' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  expect(screen.queryByRole('tab')).toBeNull();
+  expect(screen.getByLabelText('Notes about this preview').textContent).toContain(
+    'never calculated',
+  );
+});
+
+it('never hides a response-size warning even when no sample rows remain', async () => {
+  mockFetch(() =>
+    response({
+      ...csv,
+      truncated: false,
+      warnings: [
+        {
+          code: 'RESPONSE_SIZE_CAPPED',
+          sheet: null,
+          message: 'Sample rows were omitted to keep the preview under the byte cap.',
+        },
+      ],
+      sheets: [{ ...csv.sheets[0]!, sampleRows: [] }],
+    }),
+  );
+  render(panel());
+  expect((await screen.findByLabelText('Preview limits')).textContent).toContain(
+    'Sample rows were omitted to keep the preview under the byte cap.',
+  );
+  expect(screen.getByText('No sample rows are available for this sheet.')).toBeTruthy();
+});
+
+it('escapes file, sheet, header, warning and formula-looking values without creating executable or navigable content', async () => {
+  const formula = '=HYPERLINK("javascript:alert(1)","click")';
+  const name = '<img src=x onerror=alert(1)>';
+  mockFetch(() =>
+    response({
+      ...csv,
+      originalFilename: name,
+      warnings: [
+        {
+          code: 'TYPES_INFERRED',
+          sheet: null,
+          message: '<iframe src="https://example.test"></iframe>',
+        },
+      ],
+      sheets: [
+        {
+          ...csv.sheets[0]!,
+          name: '<script>alert(1)</script>',
+          columns: [
+            {
+              ...csv.sheets[0]!.columns[0]!,
+              name: '<a href="javascript:alert(1)">click</a>',
+              inferredType: 'FORMULA',
+            },
+          ],
+          sampleRows: [{ rowNumber: 2, cells: [formula] }],
+        },
+      ],
+    }),
+  );
+  const { container } = render(panel());
+  expect(await screen.findByText(formula)).toBeTruthy();
+  expect(screen.getByRole('heading', { name })).toBeTruthy();
+  expect(screen.getByLabelText('Notes about this preview').textContent).toContain(
+    '<iframe',
+  );
+  expect(container.querySelector('img, script, iframe, a, input, object')).toBeNull();
 });

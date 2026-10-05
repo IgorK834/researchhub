@@ -126,6 +126,7 @@ function renderPage({
             element={children}
           />
           <Route path="/app/workspaces/:workspaceId" element={<Probe />} />
+          <Route path="/app/workspaces/:workspaceId/ask" element={<Probe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -248,6 +249,28 @@ it('"Analyze this data" opens the workspace questions scoped to this source and 
   expect((await screen.findByTestId('workspace-page')).textContent).toBe(
     '/app/workspaces/w-1?analyzeSource=s-1&analyzeVersion=v2&analyzeSheet=CSV',
   );
+});
+
+it('the viewer header asks about the same source through the existing Ask route', async () => {
+  renderPage();
+  fireEvent.click(await screen.findByRole('button', { name: 'Ask about data' }));
+  expect((await screen.findByTestId('workspace-page')).textContent).toBe(
+    '/app/workspaces/w-1/ask?askSource=s-1',
+  );
+});
+
+it('keeps one dataset name and an inline sheet-details panel without a duplicate reader sidebar', async () => {
+  renderPage();
+  await screen.findByRole('table', { name: 'CSV dataset preview' });
+  expect(screen.getAllByRole('heading', { name: 'people.csv' })).toHaveLength(1);
+  expect(screen.getByRole('region', { name: 'Sheet details' })).toBeTruthy();
+  expect(screen.queryByRole('complementary', { name: 'Source metadata' })).toBeNull();
+  expect(
+    within(screen.getByRole('complementary', { name: 'Dataset details' })).getByRole(
+      'region',
+      { name: 'Source information' },
+    ),
+  ).toBeTruthy();
 });
 
 it('shows no data preview for a document source', async () => {

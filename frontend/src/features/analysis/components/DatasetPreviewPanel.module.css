@@ -1,0 +1,205 @@
+.viewer {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.header {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.title {
+  flex: 1;
+  min-width: 240px;
+}
+.viewer h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-h1-size);
+  overflow-wrap: anywhere;
+}
+.title > p,
+.columnInfo > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-label-size);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.actions p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+}
+.version {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--type-caption-size);
+}
+.version dt {
+  color: var(--color-text-secondary);
+}
+.version dd {
+  margin: 0 var(--space-3) 0 0;
+  overflow-wrap: anywhere;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: var(--space-5);
+}
+.main,
+.details,
+.sheets {
+  min-width: 0;
+}
+.details {
+  display: grid;
+  gap: var(--space-4);
+}
+.counts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--type-label-size);
+}
+.counts dt {
+  color: var(--color-text-secondary);
+}
+.counts dd {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-brand-yellow-tint);
+  border: 1px solid var(--color-brand-yellow-mid);
+  border-radius: var(--radius-md);
+  font-size: var(--type-label-size);
+}
+.banner > svg {
+  flex-shrink: 0;
+  margin-top: var(--space-1);
+}
+.banner p,
+.banner ul {
+  margin: 0;
+}
+.banner ul {
+  margin-top: var(--space-2);
+  padding-left: var(--space-4);
+}
+.banner li {
+  overflow-wrap: anywhere;
+}
+.sheets [role='tablist'] {
+  overflow-x: auto;
+  gap: var(--space-2);
+  border-bottom: 0;
+  padding: var(--space-1);
+}
+.sheets [role='tab'] {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.sheets [role='tab'][aria-selected='true'] {
+  background: var(--color-surface);
+  border-bottom-color: var(--color-text-primary);
+}
+.sheets [role='tabpanel'] {
+  padding: 0;
+}
+.grid {
+  max-height: 65vh;
+  overflow: auto;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.grid table {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+  text-align: start;
+  font-size: var(--type-label-size);
+}
+.grid caption {
+  caption-side: bottom;
+  padding: var(--space-3) var(--space-4);
+  text-align: start;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+}
+.grid th,
+.grid td {
+  min-width: 140px;
+  max-width: 360px;
+  vertical-align: top;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  border-inline-end: 1px solid var(--color-border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface-muted);
+}
+.grid tr > th:first-child {
+  position: sticky;
+  left: 0;
+  min-width: 72px;
+  max-width: 88px;
+  white-space: nowrap;
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+}
+.grid thead th:first-child {
+  z-index: 2;
+}
+.columnHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.type {
+  flex-shrink: 0;
+  padding: 1px var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-yellow-tint);
+  font-size: var(--type-caption-size);
+}
+.type[data-type='INTEGER'],
+.type[data-type='NUMBER'] {
+  background: var(--color-brand-mint-mid);
+}
+.columnInfo {
+  margin-top: var(--space-5);
+}
+.columnInfo h2 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--type-h3-size);
+}
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
