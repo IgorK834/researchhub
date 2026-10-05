@@ -37,7 +37,8 @@ the resulting chunks in pgvector.
 researchhub/
 ├── backend/       Spring Boot application (dev.researchhub)
 ├── frontend/      React + TypeScript application
-├── ai-worker/     Internal Python processing worker
+├── ai-worker/     Internal Python processing and planning worker
+├── sandbox/       Pinned, isolated scientific Python runtime
 ├── contracts/     Versioned Java/Python processing fixtures
 ├── docs/          Project context and development docs
 ├── compose.yaml   Local PostgreSQL, Azurite, and AI worker
@@ -85,9 +86,11 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw test` needs Docker. Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do
-not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
-processing and AI/retrieval modules.
+`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.0.0` first with
+`docker build -t researchhub-sandbox:1.0.0 sandbox` from the repository root for the real computation E2E tests.
+Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
+processing, AI/retrieval and analysis modules. `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify` additionally enables
+the real Docker runner attack/cleanup tests.
 `./mvnw spring-boot:run` still uses Compose.
 
 `./mvnw spring-boot:run` starts `dev.researchhub.BackendApplication` on the `local` profile, which does need the PostgreSQL container above running. No server port is set in `application.yaml`, so Spring Boot serves HTTP on port 8080.
@@ -203,3 +206,10 @@ version (sheets, dimensions, header, inferred types, missing values, sample rows
 by the Spring API from the worker's stored profile and shown on the source page with an **Analyze this data** action.
 Shared Java/Python contract and fixtures: [`contracts/analysis/dataset-preview/v1`](contracts/analysis/dataset-preview/v1/README.md).
 Existing databases are upgraded by Flyway V19 (existing sources become version 1; no blobs move).
+
+
+RH-143–RH-145: [isolated scientific computations](docs/development/analysis-execution.md) add a pinned scientific
+Python image, a trusted Docker runner with filesystem/network/resource limits, durable authorized execution attempts,
+computed table/chart results and immutable provenance. The real CSV/XLSX impedance example runs against source-version
+bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.0.0` and explicitly enable the local runner as
+described in [sandbox/README.md](sandbox/README.md).

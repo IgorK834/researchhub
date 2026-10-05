@@ -154,7 +154,7 @@ analysis #17 — measurements.xlsx
 
 AI-generated Python code must never execute inside the Spring Boot application process or the main AI worker process.
 
-Code execution must happen in a separate isolated sandbox with CPU/memory/time limits, restricted filesystem, no secrets, restricted networking, controlled input files, and controlled outputs.
+Code execution must happen in a separate isolated sandbox with CPU/memory/time limits, restricted filesystem, no secrets, restricted networking, controlled input files, and controlled outputs. RH-140/141 now provide persisted workspace computation requests and structured, audited plans; see [computation-planning.md](development/computation-planning.md). Execution remains a subsequent task.
 
 ---
 
@@ -215,7 +215,7 @@ frontend/dist/
 .env and .env.*          # .env.example may be tracked
 ```
 
-The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI authoring is implemented through RH-120–122; analysis and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
+The project has left pure scaffolding. Implemented so far: accounts with session authentication, workspaces with membership roles enforced on the backend, workspace documents with a Tiptap editor, revision-checked autosave and version restore, workspace source upload/read backed by Azure Blob Storage (Azurite locally), and durable source-ingest jobs dispatched from PostgreSQL to an internal Python worker. PDF/DOCX/CSV/XLSX extraction, previews, versioned reprocessing, and a structure-aware retrieval chunk substrate are implemented. Workspace-scoped hybrid retrieval and end-to-end searchable ingestion are implemented. Workspace source questions are implemented. AI authoring is implemented through RH-120–122; computation requests and structured plans are implemented through RH-140/141; execution and realtime collaborative editing remain planned. Check [development/backend-architecture.md](development/backend-architecture.md), [development/persistence.md](development/persistence.md), and [development/processing.md](development/processing.md) for what actually exists before assuming a feature is available.
 
 RH-092 recognizes CSV as a data asset with bounded primitive-type/missing-value profiles, structured
 row previews and schema-only retrieval. Inference can be wrong; original values remain strings and
@@ -236,7 +236,7 @@ the source preview displays the response's citation mapping. See
 RH-112 now connects authorized workspace/source selection, ranked retrieval, grounded context and
 structured generation into a question endpoint and workspace UI. Empty/unanswerable evidence produces
 explicit insufficiency; citations and saved generation metadata refer only to retrieved source chunks.
-See [development/workspace-questions.md](development/workspace-questions.md). AI authoring is implemented through RH-120–122; analysis and
+See [development/workspace-questions.md](development/workspace-questions.md). AI authoring is implemented through RH-120–122; computation requests and structured plans are implemented through RH-140/141; execution and
 realtime collaborative editing remain planned.
 
 RH-113–RH-115 add shared authorized conversation history with model/template/usage provenance, an AI
@@ -960,7 +960,7 @@ Membership management is implemented on the same footing. An owner adds an exist
 
 There is no email delivery, no pending-invite table, and no endpoint that lists or searches users. An address with no active account is `404` with one stable detail, identical for an unknown address and a disabled account, so adding a member cannot be used to find out who has an account here.
 
-Documents and sources use that same capability check: `VIEW_CONTENT` to read, and `EDIT_CONTENT` to create or upload. Source downloads resolve both the workspace and source id, so a cross-workspace lookup returns the same `404` as a missing resource. Research conversation history and SSE use the same workspace content-reader check, including revocation on fresh reads and during active streams. Per-resource checks for analyses remain planned and will reuse this capability check. There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
+Documents and sources use that same capability check: `VIEW_CONTENT` to read, and `EDIT_CONTENT` to create or upload. Source downloads resolve both the workspace and source id, so a cross-workspace lookup returns the same `404` as a missing resource. Research conversation history and SSE use the same workspace content-reader check, including revocation on fresh reads and during active streams. Computation requests and plan audits reuse this capability check for every workspace-scoped read and mutation (RH-140/141). There is also no hard delete, by design: see the archive and authorship rules in [development/persistence.md](development/persistence.md).
 
 Initial mechanism:
 
@@ -1525,3 +1525,9 @@ Epic 11 — Azure deployment
 
 RH-090–RH-093: PDF/DOCX/CSV/XLSX extraction is implemented end to end. See
 [Source extraction](development/source-extraction.md) for provenance, parser limits, cloud OCR evaluation and verification.
+
+
+RH-143–RH-145 implement [isolated scientific computations](development/analysis-execution.md): Spring persists and
+authorizes immutable inputs, audited plans, execution attempts and computed artifacts; the Python worker only plans,
+and generated code runs in the separate pinned `sandbox/` image through a trusted local Docker adapter. Explicit
+retries preserve previous results, image/code/input hashes and failure evidence.
