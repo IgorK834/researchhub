@@ -10,6 +10,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { SourceRoutePage } from '../pages/SourceRoutePage';
 import { WorkspaceDetailPage } from '../pages/WorkspaceDetailPage';
 import { WorkspaceListPage } from '../pages/WorkspaceListPage';
+import { AnalysisPage } from '../pages/AnalysisPage';
 
 export const appRoutes: RouteObject[] = [
   // Public: reaching these is how someone becomes authenticated, so they must not be behind the guard.
@@ -29,12 +30,16 @@ export const appRoutes: RouteObject[] = [
           { index: true, element: <WorkspaceListPage /> },
           { path: 'workspaces', element: <WorkspaceListPage /> },
           { path: 'workspaces/:workspaceId', element: <WorkspaceDetailPage /> },
-          ...(['documents', 'sources', 'ask', 'members', 'settings'] as const).map(
-            (section) => ({
-              path: `workspaces/:workspaceId/${section}`,
-              element: <WorkspaceDetailPage section={section} />,
-            }),
-          ),
+          ...(
+            ['documents', 'sources', 'ask', 'analyses', 'members', 'settings'] as const
+          ).map((section) => ({
+            path: `workspaces/:workspaceId/${section}`,
+            element: <WorkspaceDetailPage section={section} />,
+          })),
+          {
+            path: 'workspaces/:workspaceId/analyses/:analysisId',
+            element: <AnalysisPage />,
+          },
           {
             path: 'workspaces/:workspaceId/sources/:sourceId',
             element: <SourceRoutePage />,

@@ -22,7 +22,7 @@ module.exports = {
     'src/shared/components/**/*.{ts,tsx}',
     'src/shared/hooks/**/*.{ts,tsx}',
     'src/shared/utils/**/*.ts',
-    'src/pages/{AppLayoutPage,WorkspaceDetailPage,WorkspaceOverview,AskAIPage,WorkspaceListPage,SourceRoutePage,SourceDetailPage,DocumentDetailPage,LoginPage,RegisterPage}.tsx',
+    'src/pages/{AppLayoutPage,WorkspaceDetailPage,WorkspaceOverview,AskAIPage,AnalysisPage,WorkspaceListPage,SourceRoutePage,SourceDetailPage,DocumentDetailPage,LoginPage,RegisterPage}.tsx',
     'src/features/workspaces/components/{WorkspaceCard,WorkspaceList,CreateWorkspaceForm,CreateWorkspaceDialog,MemberList,AddMemberForm,RoleInformation,EditWorkspaceForm,ArchiveWorkspaceButton}.tsx',
     'src/features/auth/components/AuthLayout.tsx',
     'src/app/{AppRouter,workspaceRoutes}.{ts,tsx}',
@@ -32,8 +32,15 @@ module.exports = {
     'src/features/analysis/**/*.{ts,tsx}',
     'src/features/ai/**/*.{ts,tsx}',
     'src/features/documents/**/*.{ts,tsx}',
+    '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/pages/AnalysisPage.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/sources/components/SourceVisuals.tsx': {
       lines: 80,
       branches: 80,
@@ -473,5 +480,35 @@ module.exports = {
       statements: 80,
     },
     'src/features/analysis/': { lines: 80, branches: 80, functions: 80, statements: 80 },
+    'src/features/analysis/components/AnalysisWidgets.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/analysis/components/AnalysisOutputPicker.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/analysis/components/InsertAnalysisResult.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/documents/components/DocumentAnalysisBlock.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/ai/components/AnalysisEvidencePicker.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
   },
 };

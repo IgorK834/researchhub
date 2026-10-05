@@ -4,6 +4,7 @@ export const WORKSPACE_SECTIONS = {
   documents: 'Documents',
   sources: 'Sources',
   ask: 'Ask AI',
+  analyses: 'Analyses',
   members: 'Members',
   settings: 'Settings',
 } as const;

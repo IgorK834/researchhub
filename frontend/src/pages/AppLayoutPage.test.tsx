@@ -141,6 +141,7 @@ function setup(path = '/app/workspaces/w1', options: Options = {}) {
           { id: 'failed', status: 'FAILED' },
         ]),
       );
+    if (route.includes('/analyses?offset=')) return Promise.resolve(response([]));
     throw new Error(`Unexpected request: ${route}`);
   });
   globalThis.fetch = fetch as unknown as typeof globalThis.fetch;
@@ -201,7 +202,10 @@ it('renders landmarks, server counts, role, member identities and ready-source g
   );
   expect(screen.getByTitle('adam@uni.edu')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy();
-  for (const absent of ['Search', 'Analyses', 'Help', 'Notifications'])
+  expect(
+    within(navigation()).getByRole('link', { name: 'Analyses 0' }).getAttribute('href'),
+  ).toBe('/app/workspaces/w1/analyses#workspace-analyses-heading');
+  for (const absent of ['Search', 'Help', 'Notifications'])
     expect(screen.queryByRole('link', { name: absent })).toBeNull();
   expect(fetch.mock.calls.some(([url]) => String(url).includes('/health'))).toBe(false);
 });

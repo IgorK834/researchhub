@@ -8,6 +8,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { AskAIPage } from './AskAIPage';
+import { AnalysisList } from '../features/analysis/components/AnalysisList';
 
 import { DocumentList } from '../features/documents/components/DocumentList';
 import { SourceList } from '../features/sources/components/SourceList';
@@ -134,6 +135,14 @@ function WorkspaceDetail({
   );
 
   if (section === 'overview') return <WorkspaceOverview workspace={workspace} />;
+  if (section === 'analyses')
+    return (
+      <AnalysisList
+        key={workspace.id}
+        workspaceId={workspace.id}
+        canEdit={canEditContent}
+      />
+    );
   // Presentation routing only: the backend continues to enforce membership and workspace writes.
   if (section === 'settings' && !canViewSettings)
     return <Navigate replace to={workspaceSectionPath(workspace.id, 'overview')} />;

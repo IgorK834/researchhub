@@ -6,6 +6,7 @@ import type { AuthenticatedUser } from '../features/auth/api/authApi';
 import { LogoutButton } from '../features/auth/components/LogoutButton';
 import { useDocumentsQuery } from '../features/documents/api/useDocuments';
 import { useSourcesQuery } from '../features/sources/api/useSources';
+import { useAnalysesQuery } from '../features/analysis/api/useAnalyses';
 import {
   useWorkspaceMembersQuery,
   useWorkspaceQuery,
@@ -40,6 +41,7 @@ interface WorkspaceNavigation {
   readonly members?: readonly AvatarPerson[];
   readonly documents?: number;
   readonly sources?: number;
+  readonly analyses?: number;
   readonly readySources?: number;
   readonly documentTitle?: string;
   readonly sourceTitle?: string;
@@ -55,6 +57,7 @@ export function AppLayoutPage(): ReactElement | null {
   const members = useWorkspaceMembersQuery(workspaceId ?? '', authorized);
   const documents = useDocumentsQuery(workspaceId ?? '', authorized);
   const sources = useSourcesQuery(workspaceId ?? '', authorized);
+  const analyses = useAnalysesQuery(workspaceId ?? '', authorized);
   const documentData = documents.error === null ? documents.data : undefined;
   const sourceData = sources.error === null ? sources.data : undefined;
   if (!user) return null;
@@ -70,6 +73,10 @@ export function AppLayoutPage(): ReactElement | null {
             : undefined,
         documents: documentData?.length,
         sources: sourceData?.length,
+        analyses:
+          analyses.error === null && analyses.data && analyses.data.length < 50
+            ? analyses.data.length
+            : undefined,
         readySources: sourceData?.filter((source) => source.status === 'READY').length,
         documentTitle: documentData?.find((document) => document.id === documentId)
           ?.title,
@@ -114,7 +121,7 @@ interface NavEntryProps {
   readonly label: string;
   readonly icon: IconName;
   readonly selected: boolean;
-  readonly tone?: 'blue' | 'coral' | 'lavender' | 'yellow';
+  readonly tone?: 'blue' | 'coral' | 'lavender' | 'yellow' | 'mint';
   readonly count?: number;
 }
 function NavEntry({
@@ -220,7 +227,7 @@ function ShellContent({
   const workspaces = useWorkspacesQuery();
   const location = useLocation();
   const navigate = useNavigate();
-  const { workspaceId, documentId, sourceId } = useParams();
+  const { workspaceId, documentId, sourceId, analysisId } = useParams();
   useSectionFocus();
   const [documentTopbarHost] = useState(() => document.createElement('div'));
   const base = `/app/workspaces/${workspaceId}`;
@@ -235,7 +242,8 @@ function ShellContent({
   const tool =
     documentId !== undefined ||
     (sourceId !== undefined && !narrow) ||
-    sectionKey === 'ask';
+    sectionKey === 'ask' ||
+    analysisId !== undefined;
   const {
     canManage,
     canEditContent: canEdit,
@@ -259,7 +267,9 @@ function ShellContent({
               ? [{ label: context.documentTitle ?? 'Document' }]
               : sourceId
                 ? [{ label: context.sourceTitle ?? 'Source' }]
-                : []),
+                : analysisId
+                  ? [{ label: analysisId === 'new' ? 'New analysis' : 'Analysis' }]
+                  : []),
           ];
   let action: ReactElement | undefined;
   if (workspaceId === undefined)
@@ -416,6 +426,14 @@ function ShellContent({
                     icon="sparkle"
                     tone="lavender"
                     selected={section === 'Ask AI'}
+                  />
+                  <NavEntry
+                    href={`${base}/analyses#workspace-analyses-heading`}
+                    label="Analyses"
+                    icon="lineChart"
+                    tone="mint"
+                    count={context.analyses}
+                    selected={section === 'Analyses'}
                   />
                   <NavEntry
                     href={`${base}/members#workspace-members-heading`}

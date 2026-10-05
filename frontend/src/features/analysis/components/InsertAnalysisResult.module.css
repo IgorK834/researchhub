@@ -1,0 +1,54 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+.form fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.form label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+.form select,
+.form input:not([type='radio']) {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+.formats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.formats label {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.formats label[data-selected='true'] {
+  border: 2px solid var(--color-text-primary);
+  background: var(--color-surface-muted);
+}
+.formats span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-width: 720px;
+}

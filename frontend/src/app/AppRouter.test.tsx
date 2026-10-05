@@ -125,6 +125,7 @@ it.each([
   ['/documents', 'Documents', 'Documents'],
   ['/sources', 'Sources', 'Sources'],
   ['/ask', 'Ask AI', 'Ask AI'],
+  ['/analyses', 'Analyses', 'Analyses'],
   ['/members', 'Members', 'Members table'],
   ['/settings', 'Settings', 'General'],
 ])(
@@ -133,7 +134,10 @@ it.each([
     setup(`/app/workspaces/w1${suffix}`);
     await screen.findByRole('heading', {
       name:
-        suffix === '/documents' || suffix === '/sources' || suffix === '/ask'
+        suffix === '/documents' ||
+        suffix === '/sources' ||
+        suffix === '/ask' ||
+        suffix === '/analyses'
           ? name
           : suffix === '/members'
             ? 'Members'
@@ -196,19 +200,16 @@ it('redirects legacy section fragments, preserving their query and focus target'
   expect(router.state.location.search).toBe('?version=v2');
   await waitFor(() => expect(document.activeElement?.id).toBe('create-document-heading'));
 });
-it.each([
-  'unknown',
-  'analyses',
-  'activity',
-  'sources/s1/unknown',
-  'documents/d1/unknown',
-])('renders Not Found for unknown section %s', async (section) => {
-  setup(`/app/workspaces/w1/${section}`);
-  expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Go back home' }).getAttribute('href')).toBe(
-    '/app',
-  );
-});
+it.each(['unknown', 'activity', 'sources/s1/unknown', 'documents/d1/unknown'])(
+  'renders Not Found for unknown section %s',
+  async (section) => {
+    setup(`/app/workspaces/w1/${section}`);
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Go back home' }).getAttribute('href')).toBe(
+      '/app',
+    );
+  },
+);
 it('keeps document and citation URLs unchanged', async () => {
   const router = setup('/app/workspaces/w1/documents/d1');
   expect(await screen.findByRole('heading', { name: 'Document d1' })).toBeTruthy();
