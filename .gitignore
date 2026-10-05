@@ -45,3 +45,8 @@ sandbox/.coverage-sandbox
 
 # Frontend coverage reports
 /frontend/coverage/
+
+# Dedicated realtime service
+collaboration/node_modules/
+collaboration/dist/
+collaboration/coverage/
