@@ -1,0 +1,190 @@
+{
+  "status": "SUPPORTED",
+  "reason": null,
+  "answer": "Lecture 2: kinetic energy equals half the mass times velocity squared.\n\nThe saved experiment reports R² = 0.94. The excerpt alone does not establish agreement.",
+  "citations": [
+    {
+      "chunkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceId": "10000000-0000-0000-0000-000000000003",
+      "title": "Lecture 5",
+      "pageStart": 38,
+      "pageEnd": 38,
+      "sectionTitle": "Energy",
+      "processingVersion": "retrieval-1:fixture",
+      "spans": [
+        {
+          "unitId": "unit-38",
+          "characterStart": 0,
+          "characterEnd": 70
+        }
+      ],
+      "workspaceId": "10000000-0000-0000-0000-000000000002",
+      "sourceVersionId": null,
+      "contentHash": "99023fdecfeb118c348ff9f1347076debe89bcfb2aa8c5b6d853d72534cae695"
+    }
+  ],
+  "generation": {
+    "result": {
+      "schemaVersion": "1.0",
+      "requestId": "10000000-0000-0000-0000-000000000001",
+      "templateId": "workspace-question:2",
+      "templateHash": "2c8aff948206d7550ca73e948975b8eb17cd91e8d8454275cfcc094d4a2c13dd",
+      "model": {
+        "provider": "deterministic",
+        "name": "extractive-fixture",
+        "version": "1",
+        "structuredOutput": true,
+        "streaming": false
+      },
+      "usage": {
+        "inputTokens": 148,
+        "outputTokens": 11,
+        "totalTokens": 159,
+        "estimated": true
+      },
+      "providerRequestId": "7795bf4fcdcd0e4c6982235af78aad3d78fa39ac271322d569069a2b3f67f401",
+      "answer": {
+        "status": "SUPPORTED",
+        "claims": [
+          {
+            "text": "Lecture 2: kinetic energy equals half the mass times velocity squared.",
+            "evidenceIds": [
+              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            ]
+          },
+          {
+            "text": "The saved experiment reports R² = 0.94. The excerpt alone does not establish agreement.",
+            "evidenceIds": [
+              "a50e207d6fde428df9e948a647b5956645c699d97d2532ef94917d60805c23c2"
+            ]
+          }
+        ]
+      }
+    },
+    "evidence": [
+      {
+        "chunkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sourceId": "10000000-0000-0000-0000-000000000003",
+        "title": "Lecture 5",
+        "pageStart": 38,
+        "pageEnd": 38,
+        "sectionTitle": "Energy",
+        "processingVersion": "retrieval-1:fixture",
+        "spans": [
+          {
+            "unitId": "unit-38",
+            "characterStart": 0,
+            "characterEnd": 70
+          }
+        ],
+        "workspaceId": "10000000-0000-0000-0000-000000000002",
+        "sourceVersionId": null,
+        "contentHash": "99023fdecfeb118c348ff9f1347076debe89bcfb2aa8c5b6d853d72534cae695"
+      }
+    ],
+    "context": {
+      "builderVersion": "2.0",
+      "tokenPolicy": "utf8-conservative-v1",
+      "budget": {
+        "maxTokens": 32768,
+        "maxBytes": 24576,
+        "collapseExactDuplicates": true
+      },
+      "contextHash": "f3f821808d4a26f6d39a96ff9dd368a6f235a38c6691962c28d50ae6ef804838",
+      "contextBytes": 936,
+      "tokenUpperBound": 5707,
+      "citations": [
+        {
+          "citationKey": "S1",
+          "chunkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "textReference": null
+        },
+        {
+          "citationKey": "A1",
+          "chunkId": "a50e207d6fde428df9e948a647b5956645c699d97d2532ef94917d60805c23c2",
+          "textReference": null
+        }
+      ]
+    },
+    "analysisEvidence": [
+      {
+        "evidenceId": "a50e207d6fde428df9e948a647b5956645c699d97d2532ef94917d60805c23c2",
+        "workspaceId": "10000000-0000-0000-0000-000000000002",
+        "analysisId": "11111111-1111-4111-8111-111111111111",
+        "executionId": "22222222-2222-4222-8222-222222222222",
+        "outputId": "fit",
+        "title": "Saved experimental fit",
+        "executionHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "contentHash": "eec022dbd11229b555ef1cc0b4685d0de05ba683aa3e2b13ce4a3b132c088bf7",
+        "codeSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "executedAt": "2026-10-05T12:00:00Z",
+        "runtimeVersion": "1.1.0",
+        "inputSources": [
+          {
+            "sourceId": "33333333-3333-4333-8333-333333333333",
+            "sourceVersionId": "44444444-4444-4444-8444-444444444444",
+            "versionNumber": 1,
+            "originalFilename": "experiment.csv",
+            "format": "CSV",
+            "sizeBytes": 20,
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sheets": [
+              {
+                "name": "CSV",
+                "columns": [
+                  {
+                    "index": 1,
+                    "label": "R²"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "provenanceUrl": "/provenance",
+        "detailsUrl": "/details",
+        "truncated": false
+      }
+    ]
+  },
+  "analysisCitations": [
+    {
+      "evidenceId": "a50e207d6fde428df9e948a647b5956645c699d97d2532ef94917d60805c23c2",
+      "workspaceId": "10000000-0000-0000-0000-000000000002",
+      "analysisId": "11111111-1111-4111-8111-111111111111",
+      "executionId": "22222222-2222-4222-8222-222222222222",
+      "outputId": "fit",
+      "title": "Saved experimental fit",
+      "executionHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "contentHash": "eec022dbd11229b555ef1cc0b4685d0de05ba683aa3e2b13ce4a3b132c088bf7",
+      "codeSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "executedAt": "2026-10-05T12:00:00Z",
+      "runtimeVersion": "1.1.0",
+      "inputSources": [
+        {
+          "sourceId": "33333333-3333-4333-8333-333333333333",
+          "sourceVersionId": "44444444-4444-4444-8444-444444444444",
+          "versionNumber": 1,
+          "originalFilename": "experiment.csv",
+          "format": "CSV",
+          "sizeBytes": 20,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sheets": [
+            {
+              "name": "CSV",
+              "columns": [
+                {
+                  "index": 1,
+                  "label": "R²"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "provenanceUrl": "/provenance",
+      "detailsUrl": "/details",
+      "truncated": false
+    }
+  ]
+}

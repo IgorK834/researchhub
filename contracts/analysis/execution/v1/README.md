@@ -1,5 +1,9 @@
 # Execution v1
 
+The controlled manifest remains current. New scientific plans produce [result v2](../v2/README.md), adding
+structured chart metadata while retaining v1 result compatibility. Durable inspection uses the
+[execution record v1](../../record/v1/README.md).
+
 This boundary consumes an accepted immutable computation plan. The trusted Java runner constructs the manifest;
 clients and generated Python cannot set images, host paths, secrets, mounts, networking or container options.
 
