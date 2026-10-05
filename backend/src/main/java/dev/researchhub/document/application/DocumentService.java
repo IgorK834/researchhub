@@ -62,16 +62,18 @@ public class DocumentService {
     private final WorkspaceAuthorizationService authorization;
     private final Clock clock;
     private final List<DocumentReferenceValidator> referenceValidators;
+    private final List<DocumentWriteGuard> writeGuards;
 
     public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
                            CheckpointPolicy checkpoints, WorkspaceAuthorizationService authorization,
-                           Clock clock, List<DocumentReferenceValidator> referenceValidators) {
+                           Clock clock, List<DocumentReferenceValidator> referenceValidators, List<DocumentWriteGuard> writeGuards) {
         this.documents = documents;
         this.versions = versions;
         this.checkpoints = checkpoints;
         this.authorization = authorization;
         this.clock = clock;
         this.referenceValidators = List.copyOf(referenceValidators);
+        this.writeGuards = List.copyOf(writeGuards);
     }
 
     /**
@@ -154,13 +156,13 @@ public class DocumentService {
     @Transactional
     public DocumentDetail revise(UUID workspaceId, UUID callerId, UUID documentId,
                                  ReviseDocumentCommand command) {
-        return reviseWithReason(workspaceId, callerId, documentId, command, null);
+        return reviseWithReason(workspaceId, callerId, documentId, command, null, false);
     }
 
     /** Explicit AI acceptance: a visible milestone, never selectable through ordinary save requests. */
     @Transactional
     public DocumentDetail reviseFromAi(UUID workspaceId, UUID callerId, UUID documentId, ReviseDocumentCommand command) {
-        return reviseWithReason(workspaceId, callerId, documentId, command, DocumentVersionReason.AI_ACCEPTANCE);
+        return reviseWithReason(workspaceId, callerId, documentId, command, DocumentVersionReason.AI_ACCEPTANCE, false);
     }
 
     /** Public application boundary for revision conflicts; other modules do not import document domain types. */
@@ -169,10 +171,11 @@ public class DocumentService {
     }
 
     private DocumentDetail reviseWithReason(UUID workspaceId, UUID callerId, UUID documentId,
-                                            ReviseDocumentCommand command, DocumentVersionReason forcedReason) {
+                                            ReviseDocumentCommand command, DocumentVersionReason forcedReason, boolean realtime) {
         requireEditor(workspaceId, callerId);
 
         Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
+        if (!realtime) writeGuards.forEach(guard -> guard.requireLegacyWrite(documentId));
         referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,command.content()));
         Instant now = clock.instant();
 
@@ -187,6 +190,35 @@ public class DocumentService {
         log.info("event=document.revised workspaceId={} documentId={} revision={} saveKind={} userId={}",
                 workspaceId, documentId, saved.getRevision(), command.saveKind(), callerId);
         return detailOf(saved);
+    }
+
+    /** Internal application boundary: locks the same row as legacy writers during activation/persistence. */
+    @Transactional
+    public DocumentDetail lockForCollaboration(UUID workspaceId, UUID userId, UUID documentId) {
+        requireEditor(workspaceId, userId);
+        DocumentEntity row = requireDocumentForUpdate(workspaceId, documentId);
+        if (row.toDomain().isArchived()) throw new ConflictException("Document is archived");
+        return detailOf(row);
+    }
+
+    /** Persist a trusted editor projection; authorization and provenance validation still run here. */
+    @Transactional
+    public DocumentDetail persistCollaboration(UUID workspaceId, UUID userId, UUID documentId,
+                                               String title, String content, long revision) {
+        return reviseWithReason(workspaceId, userId, documentId,
+                new ReviseDocumentCommand(title, content, revision, SaveKind.AUTOSAVE), null, true);
+    }
+
+    /** A manual milestone without replacing CRDT content. */
+    @Transactional
+    public DocumentDetail checkpointCollaboration(UUID workspaceId, UUID userId, UUID documentId) {
+        DocumentDetail current = lockForCollaboration(workspaceId, userId, documentId);
+        if (versions.findByDocumentIdOrderByRevisionDesc(documentId).stream()
+                .noneMatch(version -> version.getRevision() == current.summary().revision())) {
+            snapshot(DocumentVersion.snapshotOf(requireDocument(workspaceId, documentId).toDomain(),
+                    DocumentVersionReason.MANUAL_SAVE, userId, clock.instant()));
+        }
+        return current;
     }
 
     /**
@@ -245,6 +277,7 @@ public class DocumentService {
         requireEditor(workspaceId, callerId);
 
         Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
+        writeGuards.forEach(guard -> guard.requireLegacyWrite(documentId));
         DocumentVersion source = requireVersion(documentId, versionId).toDomain();
         referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,source.content().json()));
         Instant now = clock.instant();
