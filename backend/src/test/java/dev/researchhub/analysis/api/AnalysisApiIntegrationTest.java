@@ -305,7 +305,8 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP TABLE analysis_execution_records");jdbc.execute("DROP FUNCTION validate_analysis_execution_record()");
         jdbc.execute("DROP TABLE analysis_origins");
         jdbc.execute("ALTER TABLE ai_generation_runs DROP COLUMN analysis_evidence");jdbc.execute("ALTER TABLE ai_messages DROP COLUMN selected_analysis_outputs");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24')");flyway.migrate();
+        jdbc.execute("DROP TABLE collaboration_credentials");jdbc.execute("DROP TABLE collaboration_documents");
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());
