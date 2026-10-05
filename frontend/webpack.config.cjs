@@ -115,6 +115,9 @@ module.exports = (env, argv) => {
       }),
       new webpack.DefinePlugin({
         'process.env.RESEARCHHUB_API_BASE_URL': JSON.stringify(apiBaseUrl),
+        'process.env.RESEARCHHUB_COLLABORATION_ENABLED': JSON.stringify(
+          process.env.RESEARCHHUB_COLLABORATION_ENABLED ?? 'false',
+        ),
       }),
     ],
     devServer: {

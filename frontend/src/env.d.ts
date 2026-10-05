@@ -48,5 +48,6 @@ declare const process: {
      * any other consumer of these modules does not, so readers must handle `undefined`.
      */
     readonly RESEARCHHUB_API_BASE_URL?: string;
+    readonly RESEARCHHUB_COLLABORATION_ENABLED?: string;
   };
 };
