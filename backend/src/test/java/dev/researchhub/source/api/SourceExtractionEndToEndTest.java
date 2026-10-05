@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
 @TestPropertySource(properties = {"researchhub.sources.storage.adapter=in-memory", "researchhub.processing.dispatcher.enabled=false",
+    "researchhub.analysis.execution.dispatcher.enabled=false", "researchhub.analysis.sandbox.enabled=true",
     "researchhub.ai.conversations.stream.heartbeat=PT0.1S","researchhub.ai.conversations.stream.timeout=PT5S","researchhub.ai.conversations.stream.max-concurrent=1"})
 @Import({PostgresTestcontainersConfiguration.class, SourceExtractionEndToEndTest.Configuration.class})
 class SourceExtractionEndToEndTest {
@@ -111,6 +112,7 @@ class SourceExtractionEndToEndTest {
     @Autowired SourceRepository sources;
     @Autowired dev.researchhub.ai.application.RetrievalIndex retrievalIndex;
     @Autowired dev.researchhub.ai.application.ConversationStore conversations;
+    @Autowired dev.researchhub.analysis.application.AnalysisExecutionDispatcher analysisDispatcher;
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
     dev.researchhub.ai.application.EmbeddingProvider embeddings;
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
@@ -148,6 +150,74 @@ class SourceExtractionEndToEndTest {
         new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager).dispatchAvailable();
     }
     private byte[] fixture(String name) throws Exception { return Files.readAllBytes(Path.of("src/test/resources/parsing", name)); }
+
+    @Test void computationUsesRealWorkerSandboxAndRetainsItsExactImmutableInputAcrossRetries() throws Exception {
+        String source=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        dispatch(); String version=activeVersion(source);
+        String path="/api/workspaces/"+workspaceId+"/analyses";
+        var created=owner.postJson(path,mapper.writeValueAsString(Map.of("userPrompt","Calculate impedance vs frequency", "inputs",List.of(Map.of(
+            "sourceId",source,"sourceVersionId",version,"sheetName","CSV","columns",List.of(1,2,3))))));
+        assertEquals(201,created.statusCode(),created.body());String id=owner.json(created).get("id").asString();
+        var planned=owner.postJson(path+"/"+id+"/plan","{}");assertEquals(200,planned.statusCode(),planned.body());
+        var ready=owner.json(planned);assertEquals("READY_TO_EXECUTE",ready.get("status").asString());
+        var audit=owner.json(owner.get(path+"/"+id+"/plans"));assertEquals(1,audit.size());
+        assertEquals("deterministic",audit.get(0).get("candidate").get("model").get("provider").asString());
+        assertEquals("TABLE",ready.get("plan").get("outputs").get(0).get("kind").asString());
+        assertEquals(version,ready.get("plan").get("inputs").get(0).get("sourceVersionId").asString());
+        replace(source,"new-measurements.csv","frequency,voltage,current\n300,5,1\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        assertNotEquals(version,activeVersion(source));assertEquals(ready,owner.json(owner.get(path+"/"+id)));
+        assertEquals(ready,owner.json(owner.postJson(path+"/"+id+"/plan","{}")));
+        assertEquals(audit,owner.json(owner.get(path+"/"+id+"/plans")));
+        var first=executeAnalysis(path,id);
+        var table=first.get("result").get("outputs").get(0);
+        assertEquals(2,table.get("rows").size(),"Execution consumes the historical bytes, not the replacement");
+        assertEquals(4.81/0.12,table.get("rows").get(0).get(3).asDouble(),1e-9);
+        assertEquals(4.63/0.19,table.get("rows").get(1).get(3).asDouble(),1e-9);
+        assertEquals(version,first.get("provenance").get("inputs").get(0).get("sourceVersionId").asString());
+        assertEquals(dev.researchhub.analysis.application.ExecutionOutputValidator.sha256(ready.get("plan").get("code").get("source").asString()),
+            first.get("provenance").get("codeSha256").asString());
+        assertTrue(first.get("provenance").get("imageId").asString().matches("sha256:[a-f0-9]{64}"));
+        assertEquals("1.0.0",first.get("provenance").get("runtimeVersion").asString());
+        assertEquals("SUCCEEDED",owner.json(owner.get(path+"/"+id)).get("status").asString());
+        var second=executeAnalysis(path,id);
+        assertEquals(2,second.get("attempt").asInt());
+        assertNotEquals(first.get("id"),second.get("id"));
+        assertEquals(table,second.get("result").get("outputs").get(0));
+        var history=owner.json(owner.get(path+"/"+id+"/executions"));assertEquals(2,history.size());
+        assertEquals(first,owner.json(owner.get(path+"/"+id+"/executions/"+first.get("id").asString())));
+        assertEquals(audit,owner.json(owner.get(path+"/"+id+"/plans")),"Execution retries never regenerate the accepted plan");
+    }
+
+    private tools.jackson.databind.JsonNode executeAnalysis(String path,String id) throws Exception {
+        var queued=owner.postJson(path+"/"+id+"/execute","{}");assertEquals(202,queued.statusCode(),queued.body());
+        var attempt=owner.json(queued);assertEquals("QUEUED",attempt.get("status").asString());
+        assertEquals(409,owner.postJson(path+"/"+id+"/execute","{}").statusCode());
+        analysisDispatcher.dispatchAvailable();
+        String attemptPath=path+"/"+id+"/executions/"+attempt.get("id").asString();
+        var response=owner.get(attemptPath);assertEquals(200,response.statusCode(),response.body());
+        var completed=owner.json(response);assertEquals("SUCCEEDED",completed.get("status").asString(),response.body());
+        var chart=completed.get("result").get("outputs").get(1).get("artifact");
+        var downloaded=owner.getBytes(attemptPath+"/artifacts/"+chart.get("id").asString());
+        assertEquals(200,downloaded.statusCode());assertEquals("image/png",downloaded.headers().firstValue("Content-Type").orElseThrow());
+        assertArrayEquals(new byte[]{(byte)137,80,78,71,13,10,26,10},Arrays.copyOf(downloaded.body(),8));
+        assertEquals(chart.get("sha256").asString(),dev.researchhub.analysis.application.ExecutionOutputValidator.sha256(downloaded.body()));
+        assertEquals("nosniff",downloaded.headers().firstValue("X-Content-Type-Options").orElseThrow());
+        Files.write(Path.of("target/analysis-e2e-chart.png"),downloaded.body());
+        return completed;
+    }
+
+    @Test void xlsxComputationUsesEveryRowBeyondTheInspectionAndConvertsExplicitMilliampereUnits() throws Exception {
+        String source=upload("impedance.xlsx",fixture("impedance.xlsx"));dispatch();String version=activeVersion(source);
+        String path="/api/workspaces/"+workspaceId+"/analyses";
+        var created=owner.postJson(path,mapper.writeValueAsString(Map.of("userPrompt","Calculate impedance U/I and plot impedance versus frequency", "inputs",List.of(Map.of(
+            "sourceId",source,"sourceVersionId",version,"sheetName","measurement_01","columns",List.of(1,2,3))))));
+        assertEquals(201,created.statusCode(),created.body());String id=owner.json(created).get("id").asString();
+        var planned=owner.postJson(path+"/"+id+"/plan","{}");assertEquals(200,planned.statusCode(),planned.body());
+        var completed=executeAnalysis(path,id);var rows=completed.get("result").get("outputs").get(0).get("rows");
+        assertEquals(6,rows.size(),"The preview is limited to three rows; computation must read the complete immutable workbook");
+        assertEquals(2000.0,rows.get(0).get(3).asDouble(),1e-9);assertEquals(62.5,rows.get(5).get(3).asDouble(),1e-9);
+        assertEquals(6,rows.get(5).get(0).asInt());
+    }
 
     @Test void extractsAllFormatsPersistsProvenanceAndProtectsWorkspaceAccess() throws Exception {
         String pdf = upload("lecture.pdf", fixture("lecture.pdf"));

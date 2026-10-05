@@ -53,6 +53,11 @@ public final class ApiBrowser {
         return send(HttpRequest.newBuilder(url(path)).GET().build());
     }
 
+    /** Downloads an artifact without decoding binary image bytes as text. */
+    public HttpResponse<byte[]> getBytes(String path) throws Exception {
+        return http.send(HttpRequest.newBuilder(url(path)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+    }
+
     /** POSTs JSON, priming the CSRF cookie first exactly as the frontend client does. */
     public HttpResponse<String> postJson(String path, String body) throws Exception {
         return sendWithCsrf("POST", path, body);
