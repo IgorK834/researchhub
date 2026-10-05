@@ -9,6 +9,8 @@ import { describeError, fieldErrorsByName, isApiError } from '../../../shared/ap
 import type { AutosaveState } from '../autosave/documentAutosave';
 
 export interface SaveStatusProps {
+  readonly blockedReason?: string | undefined;
+  readonly failureDetail?: string | undefined;
   readonly statusHost?: HTMLElement;
   readonly state: AutosaveState;
   /** The server timestamp of the acknowledged stored document, never the browser clock. */
@@ -39,6 +41,8 @@ export function SaveStatus({
   onDiscardLocalChanges,
   statusHost,
   savedAt,
+  blockedReason = 'a title is required before this can be saved',
+  failureDetail,
 }: SaveStatusProps): ReactElement {
   const { status, revision, error, blocked } = state;
   const hasFieldErrors = Object.keys(fieldErrorsByName(error)).length > 0;
@@ -85,9 +89,7 @@ export function SaveStatus({
           <span className="visually-hidden"> · revision {revision}</span>
         </>
       ) : null}
-      {status === 'unsaved' && blocked
-        ? ' · a title is required before this can be saved'
-        : null}
+      {status === 'unsaved' && blocked ? ` · ${blockedReason}` : null}
     </p>
   );
 
@@ -100,7 +102,7 @@ export function SaveStatus({
             <p>
               {hasFieldErrors
                 ? 'The server did not accept this version.'
-                : describeError(error)}{' '}
+                : (failureDetail ?? describeError(error))}{' '}
               Your changes are still here and have not been saved. Saving will be tried
               again when you keep editing or come back online.
             </p>

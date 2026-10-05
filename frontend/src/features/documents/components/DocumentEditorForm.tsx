@@ -1,8 +1,9 @@
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { describeError, fieldErrorsByName } from '../../../shared/api';
+import { describeError, fieldErrorsByName, queryKeys } from '../../../shared/api';
 import type { WorkspaceDocument } from '../api/documentApi';
 import {
   EMPTY_DOCUMENT,
@@ -14,8 +15,11 @@ import { useDocumentAutosave } from '../autosave/useDocumentAutosave';
 import { DocumentBodyEditor, type AuthoringSelection } from './DocumentBodyEditor';
 import type { DocumentNavigation } from '../api/documentNavigation';
 import styles from './DocumentPaper.module.css';
+import { Icon } from '../../../shared/components/icons';
 import { Button } from '../../../shared/components/Button';
+import { useRealtimeDocument } from '../collaboration/useRealtimeDocument';
 import { DocumentHistory } from './DocumentHistory';
+import { DocumentPresence } from './DocumentPresence';
 import { SaveStatus } from './SaveStatus';
 import { DocumentViewerNotice } from './DocumentViewerNotice';
 import type { SelectionAuthoringRequest } from '../../ai/api/authoringActions';
@@ -47,6 +51,7 @@ export interface DocumentEditorFormProps {
   readonly historyHost?: HTMLElement;
   readonly sourceTypes?: ReadonlyMap<string, string>;
   readonly historyExpanded?: boolean;
+  readonly presenceHost?: HTMLElement;
   readonly statusHost?: HTMLElement;
   readonly onNavigationChange?: (navigation: DocumentNavigation) => void;
   readonly navigationTarget?: { readonly position: number } | null;
@@ -68,22 +73,7 @@ export interface DocumentEditorFormProps {
   readonly onReplaced: (document: WorkspaceDocument, focusBlock?: number) => void;
 }
 
-/**
- * The document itself: its title, its body, whether they are saved, and its history.
- *
- * **Saving is automatic.** Every edit to the title or the body is handed to autosave, which saves after typing
- * pauses and reports `Saving`, `Saved`, `Save failed`, or `Conflict`. "Save version" is still there for a save
- * the user wants to be a restore point. The body is sent as the editor's `getJSON()` — the ProseMirror tree the
- * backend stores, never HTML.
- *
- * **Local state is initialised once per mounted document** and is never replaced by the server's copy. A save's
- * response only advances the revision; a refetch is ignored; a failed save or a conflict leaves the title and
- * the editor exactly as they were. The caller remounts this component, by changing its key, when the user
- * explicitly loads the latest version or restores an old one.
- *
- * There is still one writer at a time. Two people editing the same document are told about each other by a
- * `409` on save, not merged; docs/context.md section 9 describes Yjs as the later replacement for that.
- */
+/** Binds the editor to shared Yjs state when enabled; legacy documents retain revision autosave. */
 export function DocumentEditorForm({
   workspaceId,
   document,
@@ -97,18 +87,20 @@ export function DocumentEditorForm({
   sourceTypes,
   historyExpanded,
   statusHost,
+  presenceHost,
   onNavigationChange,
   navigationTarget,
   onOpenAuthoring,
   focusBlock,
 }: DocumentEditorFormProps): ReactElement {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const archive = useArchiveDocument(workspaceId, document.id);
 
   // Checked once, against the editor's schema. Null means the stored body is something this editor cannot open
   // faithfully, and editing it would risk saving an emptied or altered copy over it.
   const [storedBody] = useState(() => readStoredDocument(document.content));
-  const [title, setTitle] = useState(document.title);
+  const [legacyTitle, setTitle] = useState(document.title);
   const [toolbarHost] = useState(() => window.document.createElement('div'));
   const [previewHost] = useState(() => window.document.createElement('div'));
   const [draftHost] = useState(() => {
@@ -127,13 +119,41 @@ export function DocumentEditorForm({
     () => storedBody ?? EMPTY_DOCUMENT,
   );
 
-  const autosave = useDocumentAutosave(
+  const realtimeRequested =
+    process.env.RESEARCHHUB_COLLABORATION_ENABLED === 'true' &&
+    canEdit &&
+    document.archivedAt === null &&
+    storedBody !== null;
+  const [realtimeActivated, setRealtimeActivated] = useState(realtimeRequested);
+  // Permissions may arrive after the document. Once activated, never fall back to REST autosaves.
+  if (realtimeRequested && !realtimeActivated) setRealtimeActivated(true);
+  const realtimeEnabled = realtimeRequested || realtimeActivated;
+  const legacyAutosave = useDocumentAutosave(
     workspaceId,
     document.id,
     { title: document.title, content: storedBody ?? EMPTY_DOCUMENT },
     document.revision,
     document.updatedAt,
+    !realtimeEnabled,
   );
+
+  const realtime = useRealtimeDocument(
+    workspaceId,
+    document,
+    realtimeEnabled,
+    (stored) => {
+      queryClient.setQueryData(queryKeys.document(workspaceId, document.id), stored);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.documentVersions(workspaceId, document.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.documents(workspaceId),
+        exact: true,
+      });
+    },
+  );
+  const autosave = realtimeEnabled ? realtime.autosave : legacyAutosave;
+  const title = realtimeEnabled ? realtime.title : legacyTitle;
 
   const [aiBusy, setAiBusy] = useState(false);
   const [selection, setSelection] = useState<AuthoringSelection>({
@@ -143,8 +163,12 @@ export function DocumentEditorForm({
     placementBlock: 1,
   });
   const isArchived = document.archivedAt !== null;
-  const authoringAvailable = canEdit && !isArchived && storedBody !== null;
-  const editable = authoringAvailable && !aiBusy;
+  const authoringAvailable =
+    canEdit && !isArchived && storedBody !== null && !realtime.accessRevoked;
+  const editable =
+    authoringAvailable &&
+    !aiBusy &&
+    (!realtimeEnabled || (realtime.ready && realtime.connected));
 
   const fieldErrors =
     autosave.status === 'failed' ? fieldErrorsByName(autosave.error) : {};
@@ -158,13 +182,66 @@ export function DocumentEditorForm({
 
   return (
     <div className={styles.writingSurface}>
+      {realtimeEnabled ? (
+        presenceHost ? (
+          createPortal(<DocumentPresence people={realtime.participants} />, presenceHost)
+        ) : (
+          <DocumentPresence people={realtime.participants} />
+        )
+      ) : null}
+      {realtimeEnabled && realtime.accessRevoked ? (
+        <div role="status" className={styles.connectionBar}>
+          <Icon name="lock" size={18} />
+          <span>
+            Editing access has changed. This editor is read-only. Any unaccepted changes
+            are kept on this device.
+          </span>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
+            Check access
+          </Button>
+        </div>
+      ) : realtimeEnabled && !realtime.connected ? (
+        <div role="status" className={styles.connectionBar}>
+          <Icon name="wifiOff" size={18} />
+          <span>
+            {realtime.ready
+              ? 'Offline — changes are kept on this device. Reconnecting…'
+              : 'Connecting to collaboration…'}
+          </span>
+          <Button variant="secondary" type="button" onClick={autosave.retry}>
+            Try now
+          </Button>
+        </div>
+      ) : null}
       <SaveStatus
         state={autosave}
+        {...(realtimeEnabled
+          ? {
+              blockedReason: !realtime.connected ? 'waiting for connection' : undefined,
+              failureDetail: realtime.failureDetail,
+            }
+          : {})}
         savedAt={autosave.savedAt}
         onRetry={autosave.retry}
         onDiscardLocalChanges={onDiscardLocalChanges}
         statusHost={statusHost}
       />
+      {realtime.accessRevoked ? (
+        statusHost ? (
+          createPortal(
+            <span data-status="readonly">
+              <Icon name="eye" size={14} /> Read-only
+            </span>,
+            statusHost,
+          )
+        ) : (
+          <span data-status="readonly">Read-only</span>
+        )
+      ) : null}
       {isViewer ? <DocumentViewerNotice statusHost={statusHost} /> : null}
 
       {archiveFailure !== null ? <p role="alert">{archiveFailure}</p> : null}
@@ -178,7 +255,8 @@ export function DocumentEditorForm({
 
       <div
         ref={(element) => {
-          if (element) element.appendChild(previewHost);
+          if (element && previewHost.parentNode !== element)
+            element.appendChild(previewHost);
         }}
         hidden={!previewing}
       />
@@ -187,7 +265,8 @@ export function DocumentEditorForm({
           <div
             className={styles.toolbarHost}
             ref={(element) => {
-              if (element) element.appendChild(toolbarHost);
+              if (element && toolbarHost.parentNode !== element)
+                element.appendChild(toolbarHost);
             }}
           />
         ) : null}
@@ -206,6 +285,7 @@ export function DocumentEditorForm({
             <textarea
               className={styles.title}
               rows={2}
+              maxLength={500}
               ref={(element) => {
                 if (element) {
                   element.style.height = '0px';
@@ -235,11 +315,22 @@ export function DocumentEditorForm({
             <span id="document-editor-text-label" className="visually-hidden">
               Text
             </span>
-            {storedBody === null ? null : (
+            {storedBody === null || (realtimeEnabled && !realtime.ready) ? null : (
               <DocumentBodyEditor
                 workspaceId={workspaceId}
+                {...(realtimeEnabled
+                  ? {
+                      collaborationDocument: realtime.doc,
+                      collaborationProvider: realtime.provider,
+                      collaborationUser: realtime.user,
+                    }
+                  : {})}
                 selectionActionsEnabled={
-                  settled && !previewing && !reviewing && renderAuthoring !== undefined
+                  settled &&
+                  !previewing &&
+                  !reviewing &&
+                  renderAuthoring !== undefined &&
+                  !realtimeEnabled
                 }
                 onSelectionAction={(action, snapshot) => {
                   setSelectionRequest((previous) => ({
@@ -266,7 +357,7 @@ export function DocumentEditorForm({
                 onSelectionChange={setSelection}
                 onChange={(content) => {
                   setBody(content);
-                  autosave.edit({ title, content });
+                  if (!realtimeEnabled) autosave.edit({ title, content });
                 }}
                 labelId="document-editor-text-label"
                 {...(contentError === undefined
@@ -284,18 +375,23 @@ export function DocumentEditorForm({
               <Button
                 variant="secondary"
                 type="submit"
-                disabled={autosave.blocked || autosave.status === 'conflict'}
+                disabled={
+                  autosave.blocked ||
+                  autosave.status === 'conflict' ||
+                  (realtimeEnabled && autosave.status !== 'saved')
+                }
               >
                 Save version
               </Button>{' '}
-              Changes save automatically. Save a version to keep a restore point you can
-              return to.
+              {realtimeEnabled
+                ? 'Changes save automatically. Save a version to keep a historical snapshot.'
+                : 'Changes save automatically. Save a version to keep a restore point you can return to.'}
             </div>
           ) : null}
         </form>
       </div>
 
-      {authoringAvailable
+      {authoringAvailable && !realtimeEnabled
         ? renderAuthoring?.({
             selectionRequest,
             draftHost,
@@ -326,7 +422,7 @@ export function DocumentEditorForm({
             authors={authors}
             previewHost={previewHost}
             onPreviewChange={setPreviewing}
-            canRestore={editable}
+            canRestore={editable && !realtimeEnabled}
             restoreBlockedReason={
               settled ? null : 'Restoring is available once your changes are saved.'
             }
@@ -337,7 +433,7 @@ export function DocumentEditorForm({
         return historyHost === undefined ? history : createPortal(history, historyHost);
       })()}
 
-      {canEdit && !isArchived ? (
+      {canEdit && !isArchived && !realtime.accessRevoked ? (
         <p>
           <Button
             variant="ghost"

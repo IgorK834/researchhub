@@ -216,3 +216,38 @@
 .editor :global(a[data-citation-variant='dataset']) {
   background: var(--color-brand-mint-tint);
 }
+
+.connectionBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  font-size: var(--type-caption-size);
+}
+.connectionBar span {
+  flex: 1;
+}
+
+/* Ephemeral decorations stay outside the document layout and serialization. */
+:global(.tiptap .collaboration-carets__caret) {
+  position: relative;
+  border-left: 2px solid;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  word-break: normal;
+}
+:global(.tiptap .collaboration-carets__label) {
+  position: absolute;
+  top: -1.5em;
+  left: -2px;
+  padding: 2px 5px;
+  border-radius: 4px 4px 4px 0;
+  color: var(--color-text-primary);
+  font: 600 11px/1.2 var(--font-ui);
+  white-space: nowrap;
+}

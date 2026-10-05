@@ -7,6 +7,16 @@ import {
   type Editor,
 } from '@tiptap/react';
 import { createPortal } from 'react-dom';
+import CollaborationCaret from '@tiptap/extension-collaboration-caret';
+import type { HocuspocusProvider } from '@hocuspocus/provider';
+import {
+  renderCaret,
+  renderSelection,
+  type Collaborator,
+} from '../collaboration/presence';
+import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration';
+import { EMPTY_TEXT_ORIGIN, prepareEmptyText } from '../collaboration/emptyText';
+import type * as Y from 'yjs';
 
 import {
   documentExtensions,
@@ -31,6 +41,9 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly collaborationProvider?: HocuspocusProvider | null;
+  readonly collaborationUser?: Collaborator;
+  readonly collaborationDocument?: Y.Doc;
   readonly workspaceId?: string;
   readonly selectionActionsEnabled?: boolean;
   readonly onSelectionAction?: (
@@ -73,11 +86,13 @@ interface DocumentBodyEditorProps {
  * Tiptap owns the document while the page is open; the parent owns saving. Every change is reported as
  * `getJSON()`, never HTML, so what the parent PATCHes is the same tree the backend stores.
  *
- * There is no collaboration extension. Yjs would replace the save transport later (docs/context.md section 9),
- * and it can, because the boundary here is only "a ProseMirror document goes out".
+ * With a collaborationDocument, Yjs owns the live body and undo history. The server initializes it.
  */
 export function DocumentBodyEditor({
   workspaceId,
+  collaborationDocument,
+  collaborationProvider,
+  collaborationUser,
   initialContent,
   editable,
   onChange,
@@ -139,15 +154,44 @@ export function DocumentBodyEditor({
   );
 
   const editor = useEditor({
-    extensions: documentExtensions.map((extension) =>
-      extension.name === 'analysisResult'
-        ? extension.extend({
-            addOptions: () => ({ workspaceId }),
-            addNodeView: () => ReactNodeViewRenderer(DocumentAnalysisBlock),
-          })
-        : extension,
-    ),
-    content: initialContent,
+    extensions: documentExtensions
+      .map((extension) =>
+        extension.name === 'analysisResult'
+          ? extension.extend({
+              addOptions: () => ({ workspaceId }),
+              addNodeView: () => ReactNodeViewRenderer(DocumentAnalysisBlock),
+            })
+          : extension.name === 'starterKit' && collaborationDocument !== undefined
+            ? extension.configure({ undoRedo: false })
+            : extension,
+      )
+      .concat(
+        collaborationDocument === undefined
+          ? []
+          : [
+              Collaboration.configure({
+                document: collaborationDocument,
+                yUndoOptions: { trackedOrigins: [EMPTY_TEXT_ORIGIN] },
+              }),
+            ],
+      )
+      .concat(
+        collaborationProvider && collaborationUser
+          ? [
+              CollaborationCaret.extend({
+                addOptions() {
+                  return { ...this.parent!(), user: {} };
+                },
+              }).configure({
+                provider: collaborationProvider,
+                user: collaborationUser,
+                render: (user) => renderCaret(user as Collaborator),
+                selectionRender: (user) => renderSelection(user as Collaborator),
+              }),
+            ]
+          : [],
+      ),
+    ...(collaborationDocument === undefined ? { content: initialContent } : {}),
     editable,
     editorProps,
     onSelectionUpdate: ({ editor: changed }) => {
@@ -159,7 +203,9 @@ export function DocumentBodyEditor({
         placementBlock: $from.index(0) + 1,
       });
     },
-    onUpdate: ({ editor: changed }) => {
+    onUpdate: ({ editor: changed, transaction }) => {
+      if (collaborationDocument && !isChangeOrigin(transaction))
+        prepareEmptyText(collaborationDocument, changed.schema);
       onChangeRef.current(savedDocumentOf(changed));
     },
   });

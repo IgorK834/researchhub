@@ -39,6 +39,7 @@ export function useDocumentAutosave(
   initialDraft: DocumentDraft,
   initialRevision: number,
   initialSavedAt: string,
+  enabled = true,
 ): UseDocumentAutosave {
   const save = useSaveDocument(workspaceId, documentId);
   const [savedAt, setSavedAt] = useState(initialSavedAt);
@@ -73,13 +74,14 @@ export function useDocumentAutosave(
 
   useEffect(
     () => () => {
-      controller.flush();
+      if (enabled) controller.flush();
       controller.dispose();
     },
-    [controller],
+    [controller, enabled],
   );
 
   useEffect(() => {
+    if (!enabled) return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent): void => {
       if (controller.hasUnsavedChanges) {
         event.preventDefault();
@@ -94,13 +96,19 @@ export function useDocumentAutosave(
       window.removeEventListener('beforeunload', warnBeforeLeaving);
       window.removeEventListener('online', retryWhenOnline);
     };
-  }, [controller]);
+  }, [controller, enabled]);
 
   return {
     ...state,
     savedAt,
-    edit: (draft) => controller.edit(draft),
-    saveNow: () => controller.saveNow(),
-    retry: () => controller.retry(),
+    edit: (draft) => {
+      if (enabled) controller.edit(draft);
+    },
+    saveNow: () => {
+      if (enabled) controller.saveNow();
+    },
+    retry: () => {
+      if (enabled) controller.retry();
+    },
   };
 }

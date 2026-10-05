@@ -29,7 +29,6 @@ import {
 } from '../features/workspaces/api/useWorkspaces';
 import { describeError, hasApiErrorCode } from '../shared/api';
 import { Button } from '../shared/components/Button';
-import { AvatarStack } from '../shared/components/identity';
 import { Breadcrumb, Tabs } from '../shared/components/navigation';
 import { ToolShell } from '../shared/components/shell';
 import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
@@ -111,11 +110,12 @@ function DocumentScreen({
   const [contextOpen, setContextOpen] = useState(false);
   const [historyHost] = useState(() => window.document.createElement('div'));
   const [authoringHost] = useState(() => window.document.createElement('div'));
+  const [presenceHost] = useState(() => window.document.createElement('div'));
   const [statusHost] = useState(() => window.document.createElement('div'));
   const attach =
     (host: HTMLElement) =>
     (element: HTMLDivElement | null): void => {
-      if (element) element.appendChild(host);
+      if (element && host.parentNode !== element) element.appendChild(host);
     };
   if (document.error !== null && hasApiErrorCode(document.error, 'RESOURCE_NOT_FOUND'))
     return <DocumentNotFound workspaceId={workspaceId} />;
@@ -150,17 +150,7 @@ function DocumentScreen({
       ) : null}
       <div className={styles.topbarActions}>
         <div ref={attach(statusHost)} />
-        {outlet?.documentTopbarHost === undefined &&
-        members.data !== undefined &&
-        members.error === null ? (
-          <AvatarStack
-            people={members.data.map((member) => ({
-              userId: member.userId,
-              name: member.displayName,
-            }))}
-            label="Workspace members"
-          />
-        ) : null}
+        <div ref={attach(presenceHost)} />
         <Button variant="secondary" icon="history" onClick={() => showContext('history')}>
           History
         </Button>
@@ -301,6 +291,7 @@ function DocumentScreen({
           onOpenAuthoring={() => showContext('writing')}
           navigationTarget={navigationTarget}
           onNavigationChange={setNavigation}
+          presenceHost={presenceHost}
           statusHost={statusHost}
           historyHost={historyHost}
           historyExpanded={tab === 'history'}
@@ -322,6 +313,7 @@ function EditorArea({
   navigationTarget,
   onNavigationChange,
   statusHost,
+  presenceHost,
   historyHost,
   historyExpanded,
   authoringHost,
@@ -339,6 +331,7 @@ function EditorArea({
   readonly onReload: () => void;
   readonly navigationTarget: { readonly position: number } | null;
   readonly onNavigationChange: (navigation: DocumentNavigation) => void;
+  readonly presenceHost: HTMLElement;
   readonly statusHost: HTMLElement;
   readonly historyHost: HTMLElement;
   readonly historyExpanded: boolean;
@@ -386,6 +379,7 @@ function EditorArea({
         onOpenAuthoring={onOpenAuthoring}
         navigationTarget={navigationTarget}
         onNavigationChange={onNavigationChange}
+        presenceHost={presenceHost}
         statusHost={statusHost}
         historyHost={historyHost}
         historyExpanded={historyExpanded}

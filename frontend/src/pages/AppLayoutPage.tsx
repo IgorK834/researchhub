@@ -329,14 +329,15 @@ function ShellContent({
           )}
         />
       }
-      members={context?.members}
+      members={documentId === undefined ? context?.members : undefined}
       primaryAction={
         documentId === undefined ? (
           action
         ) : (
           <div
             ref={(element) => {
-              if (element) element.appendChild(documentTopbarHost);
+              if (element && documentTopbarHost.parentNode !== element)
+                element.appendChild(documentTopbarHost);
             }}
           />
         )
