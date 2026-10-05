@@ -1531,3 +1531,22 @@ RH-143–RH-145 implement [isolated scientific computations](development/analysi
 authorizes immutable inputs, audited plans, execution attempts and computed artifacts; the Python worker only plans,
 and generated code runs in the separate pinned `sandbox/` image through a trusted local Docker adapter. Explicit
 retries preserve previous results, image/code/input hashes and failure evidence.
+
+RH-150–RH-151 add immutable per-attempt records, a Flyway backfill for existing executions and structured
+chart metadata. The frontend can inspect exact inputs, plan, code, runtime, diagnostics and saved outputs
+after restart, select older attempts and explicitly rerun the same inputs/code. Chart details use validated
+table/series references and server-bound provenance; SVG/PNG images are served through workspace authorization.
+See the [execution record contract](../contracts/analysis/record/v1/README.md) and
+[chart result contract](../contracts/analysis/execution/v2/README.md).
+
+RH-152–RH-154 complete the result controls and safe failure presentation, introduce original/latest rerun modes
+with immutable origins and version comparisons, and expose stable computation citation/code endpoints. Original
+reruns reuse a recorded image digest when available; latest-input runs create a new audited derived analysis.
+The editor/AI citation contract is [computation provenance v1](../contracts/analysis/provenance/v1/README.md).
+
+RH-155 adds semantic report blocks bound to an exact successful execution/output. Insert result and explicit
+reference updates use the existing revision-checked document saves; newer analyses never replace historical
+references automatically. RH-156 lets questions combine source evidence [S1] with explicitly selected persisted
+computed evidence [A1], retaining both provenance and conversation scope in Flyway V24. RH-305 supplies typed,
+inert presentation components independent of the planner/sandbox. See
+[analysis references and computed evidence](development/analysis-references.md) for contracts and verification.

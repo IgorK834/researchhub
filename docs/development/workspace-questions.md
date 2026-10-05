@@ -1,8 +1,9 @@
 # Workspace source questions (RH-112)
 
-The workspace page now offers **Ask workspace sources** to every workspace content reader,
-including viewers. This is a single source-grounded question, without conversation history,
-external web knowledge or document writes. It composes the existing authorized hybrid retrieval,
+The workspace page offers **Ask workspace sources** to every workspace content reader,
+including viewers. RH-156 extends source questions with explicitly selected saved computation outputs;
+the same question use case serves the existing conversation flow. Asking does not run code or write documents.
+It composes the existing authorized hybrid retrieval,
 [context builder](grounded-context.md) and [model gateway](model-gateway.md).
 
 ## Public contract
@@ -47,7 +48,7 @@ presence before any remote query embedding. Both the presence and ranked search 
 workspace/source IDs and READY/current extraction inside SQL. Search uses the configured top-K.
 The use case rejects an adapter scope violation rather than filtering a global result set.
 
-If no published chunks exist, an explicit empty selection is supplied, or retrieval yields no hits,
+If no computed outputs are selected and source retrieval yields no hits,
 return `INSUFFICIENT_EVIDENCE`, `reason=NO_RETRIEVED_EVIDENCE`, a fixed explanatory answer, empty
 citations and `generation=null`. No embedding is requested when the scoped index is empty, and no
 model/metadata call or generation audit write occurs on the no-hit path. An unrelated workspace's
@@ -56,7 +57,7 @@ index using the configured embedding identity; never mix vector dimensions.
 
 With hits, the shared gateway resolves current chunk versions again, packs escaped untrusted context
 under local keys, checks the configured budget before inference, and validates the structured result.
-The server-owned `workspace-question:1` template requires only supplied evidence and explicitly
+The server-owned `workspace-question:2` template requires only supplied evidence and explicitly
 demands `INSUFFICIENT_EVIDENCE` with no claims when the question cannot be answered. This becomes
 `reason=INSUFFICIENT_RETRIEVED_EVIDENCE`, a fixed explanatory answer and no citations; its successful
 generation/audit is retained. The server never supplies a fabricated answer on error or insufficiency.
@@ -88,13 +89,32 @@ schema; no provider SDK or question-specific vendor call is added. The determini
 quotes passages with nontrivial lexical overlap and returns insufficiency otherwise. It is an
 offline fixture, not a semantic answer engine. Other generation templates keep their fixture behavior.
 
-The question template is an immutable versioned resource with shared Java/Python fixtures. Apply
-RH-110's Flyway V15 if not already installed; its bounded JSON audit columns already support questions
-and record `feature_id=workspace-question`. No new schema, runtime or package dependency is introduced.
+The question template is an immutable versioned resource with shared Java/Python fixtures. RH-110's Flyway V15
+stores question audits with `feature_id=workspace-question`. RH-156 adds Flyway V24 for bounded computed-evidence
+audit metadata and the exact computed scope on conversation user messages. No new runtime/package dependency is introduced.
 The question text is included in the request hash but never stored as a raw audit instruction.
 Existing RH-110/RH-111 endpoints, templates and historical responses remain compatible. As elsewhere
 in this repository, product persistence/use cases run on the local profile; cloud Spring deployment
 remains the existing scaffold while the worker provider is configurable.
+
+## Computed evidence (RH-156)
+
+Optional `selectedAnalysisOutputs` contains at most six distinct `{analysisId, executionId, outputId}` references;
+omitting it selects none. Only successful saved outputs from the authorized workspace may be selected. Together,
+textual hits and computed references occupy at most 12 context slots. A question with no textual hits can still be
+answered from its selected saved outputs. It never chooses a latest execution or starts a calculation.
+
+The gateway sends bounded saved table rows, persisted text or validated chart metadata. It omits generated code,
+diagnostic logs and image bytes, and marks truncated data explicitly. Independent S/A keys distinguish source
+passages from computed evidence. `analysisCitations` contains cited computations; `generation.analysisEvidence`
+retains the full selected computation audit, including exact input versions, execution/code hashes and runtime.
+Both identities and authorization are checked again after inference. Conversation idempotency includes this scope.
+
+S links open the existing source fragment/page view; A links open exact historical analysis provenance. The v2
+template forbids inventing calculations or deriving absent/truncated statistics. These guards enforce scope and
+provenance; evaluating semantic agreement with theory still depends on the configured production model. The
+extractive fake is for offline contract/E2E verification. See the [shared v2 fixtures](../../contracts/ai/questions/v2/README.md)
+and [report integration verification](analysis-references.md).
 
 ## Verification
 

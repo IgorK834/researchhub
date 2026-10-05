@@ -86,8 +86,8 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.0.0` first with
-`docker build -t researchhub-sandbox:1.0.0 sandbox` from the repository root for the real computation E2E tests.
+`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.1.0` first with
+`docker build -t researchhub-sandbox:1.1.0 sandbox` from the repository root for the real computation E2E tests.
 Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
 processing, AI/retrieval and analysis modules. `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify` additionally enables
 the real Docker runner attack/cleanup tests.
@@ -211,5 +211,21 @@ Existing databases are upgraded by Flyway V19 (existing sources become version 1
 RH-143–RH-145: [isolated scientific computations](docs/development/analysis-execution.md) add a pinned scientific
 Python image, a trusted Docker runner with filesystem/network/resource limits, durable authorized execution attempts,
 computed table/chart results and immutable provenance. The real CSV/XLSX impedance example runs against source-version
-bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.0.0` and explicitly enable the local runner as
+bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.1.0` and explicitly enable the local runner as
 described in [sandbox/README.md](sandbox/README.md).
+
+RH-150–RH-151 add [durable execution records](contracts/analysis/record/v1/README.md) and
+[structured charts](contracts/analysis/execution/v2/README.md), including backfilled historical attempts.
+The Analyses screen exposes saved results, exact input versions, plan/code/runtime provenance and run history.
+Results remain inspectable after restart without executing Python again.
+
+RH-152–RH-154 complete result/plan/warning/code inspection and safe failure messages, add explicit
+[original/latest-input reruns](contracts/analysis/rerun/v1/README.md) with preserved history, and provide a
+[stable computation citation endpoint](contracts/analysis/provenance/v1/README.md) for document/AI consumers.
+
+RH-155 inserts [semantic analysis blocks](contracts/analysis/document-block/v1/README.md) into reports through
+revision-checked saves. Blocks render the exact historical execution and keep its source versions until explicitly
+updated. RH-156 adds [mixed source/computed evidence](contracts/ai/questions/v2/README.md) with S/A citations and
+persisted conversation scope. RH-305 provides [typed presentation components](frontend/src/features/analysis/components/README.md)
+with dedicated coverage gates and no planner, sandbox, fetching or plotting dependencies.
+See [analysis references and computed evidence](docs/development/analysis-references.md) for behavior and E2E verification.

@@ -46,7 +46,7 @@ and unknown types/counts remain unknown. Header labels and sample values are unt
 `DRAFT → PLANNING → READY_TO_EXECUTE → QUEUED → RUNNING → SUCCEEDED`; `PLANNING`, `QUEUED` and `RUNNING` can also become `FAILED`.
 Execution retries append explicit attempts and allow `SUCCEEDED/FAILED → QUEUED` only with an accepted plan.
 The domain enum and database constrain these transitions. The worker accepts the historical `computation-plan:1`
-policy and current `computation-plan:2`; v2 describes the controlled runtime output protocol. Original prompt, inputs, authorship and an accepted plan
+policy and `computation-plan:2`, plus current `computation-plan:3`; v3 describes structured chart result v2. Original prompt, inputs, authorship and an accepted plan
 are immutable. Changing a request means creating a new analysis; replacing a source never changes the chosen version.
 
 Planning atomically claims a draft before its first remote call. Concurrent calls cannot generate twice. Calling plan

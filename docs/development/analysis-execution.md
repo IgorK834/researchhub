@@ -43,6 +43,7 @@ Routes extend `/api/workspaces/{workspaceId}/analyses`:
 | `POST /{analysisId}/execute` | Queue an explicit execution attempt; `202 Accepted` |
 | `GET /{analysisId}/executions` | Read persisted execution history |
 | `GET /{analysisId}/executions/{executionId}` | Read one attempt, computed result and provenance |
+| `GET /{analysisId}/executions/{executionId}/record` | Inspect the frozen request, inputs, plan/code, run and structured charts |
 | `GET /{analysisId}/executions/{executionId}/artifacts/{artifactId}` | Download an authorized immutable chart |
 
 Use the existing create and plan endpoints first. An execution takes the persisted accepted plan, not client-supplied
@@ -58,12 +59,42 @@ Planning retries and execution attempts remain separate audit histories.
 The local PostgreSQL dispatcher claims jobs transactionally; execution and network calls happen outside the database
 transaction. Flyway `V21` owns the execution/artifact schema and lifecycle guards. Hibernate does not create it.
 
+RH-150 adds Flyway `V22` and an immutable snapshot for each attempt, backfilling earlier executions from their saved
+intent and historical input versions. It preserves inspected column labels and physical indices, full plan/code,
+prompt and source metadata. The authenticated record endpoint reads PostgreSQL only: it works after application
+restart without contacting the model, running Python or opening a source blob. Completed results and image bytes
+remain protected from update/delete. Persisted diagnostic summaries are sanitized and limited to 8,192 characters.
+
+RH-151 introduces [result v2](../../contracts/analysis/execution/v2/README.md): chart title, labelled axes/units/scales
+and series references to saved numeric table columns. Both runtime and Java validate them; Java derives counts and
+binds analysis/execution/code provenance. Legacy charts retain their images with explicitly absent metadata.
+The server runtime is now `researchhub-sandbox:1.1.0`, preserving pinned scientific dependencies and v1 compatibility.
+
+The frontend provides `/app/workspaces/:workspaceId/analyses`, `/analyses/new`, and `/analyses/:analysisId` with an
+optional `?execution=` selector. The result view shows saved tables/images, historical attempts, exact code and a
+responsive provenance panel using the existing design tokens and tool shell. Images use the authenticated binary
+client and object URLs that are revoked on replacement/unmount; SVG is always an image, never inline arbitrary DOM.
+The minimum new-analysis form composes ready dataset versions with the existing create/plan/execute endpoints.
+Viewer/archive affordances stay read-only and every backend request reauthorizes access.
+
+RH-152 completes the result view with visible plan/warnings, explicit Show/Hide code and read-only code inspection,
+safe failure guidance and document insertion through RH-155. Failed-run tracebacks/logs are not
+rendered. RH-153 splits reproduction into original inputs/code/runtime and latest-input derived analyses; the
+latter validates selections before normal audited planning. Its frozen lineage is visible as changed/unchanged
+version comparisons, and Flyway V23 retains origins even if planning fails before execution. RH-154 exposes the
+log-free computation citation object, code access, execution hash and per-output details links. Contracts:
+[reruns](../../contracts/analysis/rerun/v1/README.md), [provenance](../../contracts/analysis/provenance/v1/README.md).
+
+RH-155/RH-156 connect these immutable results to semantic report blocks and grounded questions, while RH-305
+supplies typed presentation primitives. See [analysis references and computed evidence](analysis-references.md)
+for report save/update behavior, source/computation citations, component boundaries and current verification.
+
 ## Local setup
 
 Build the pinned image, then enable the runner in the backend's local environment:
 
 ```bash
-docker build -t researchhub-sandbox:1.0.0 sandbox
+docker build -t researchhub-sandbox:1.1.0 sandbox
 ```
 
 Runner configuration and limits are documented in `.env.example`. Execution is opt-in and fails closed when the
@@ -101,3 +132,42 @@ Verified locally on 2026-10-03 with the pinned image and a running Docker daemon
 - Real Docker acceptance suite passed, including network/secret isolation, timeout, memory/process limits,
   bounded output/logs and cleanup. API E2E computed CSV and XLSX results, retained the selected historical source
   version after replacement, persisted explicit retries and downloaded the generated PNG through authorization.
+
+RH-150/RH-151 verified locally on 2026-10-05 with `researchhub-sandbox:1.1.0`:
+
+- `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify`: 702 tests passed, zero failures/errors/skips; backend JAR built.
+- Java analysis coverage: 99.03% lines and 81.43% branches; the enforced 80% line gate passed.
+- Frontend: 86 suites / 871 tests passed with the analysis module's 80% statements/branches/functions/lines gates.
+  Analysis coverage is 99.50% lines and 93.81% branches, excluding test fixture helpers.
+  Typecheck, lint and the production Webpack build passed. Webpack retains its existing bundle-size warnings.
+- AI worker: 358 tests passed; analysis coverage gate passed. Sandbox runtime: 81 tests passed with 98.35%
+  statement/branch coverage. All 14 real Docker acceptance checks passed.
+- A restart integration test closes the complete application context, starts a new context against the same
+  PostgreSQL database and verifies identical historical record JSON and image bytes with the runner disabled.
+- A non-empty migration test applies V22 to a completed v1 attempt and verifies its exact input versions,
+  original result and explicitly absent chart metadata without rerunning code.
+- Real CSV/XLSX API E2E verifies chart titles, axes/units, table references, derived point counts and the
+  analysis/execution/code bindings. Browser QA used that real sandbox record and PNG to check image decoding,
+  the desktop provenance column and the narrow-screen details panel against the design reference.
+
+RH-152/RH-153/RH-154 verified locally on 2026-10-05:
+
+- `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify`: 711 tests passed, zero failures/errors/skips; backend JAR built.
+  Java analysis coverage: 99.13% lines and 82.21% branches, above the enforced 80% line gate.
+- Frontend: 86 suites / 886 tests passed. Analysis coverage: 99.58% lines, 92.98% branches,
+  99.61% statements and 99.28% functions; all four 80% module gates passed. Typecheck, lint,
+  formatting and the production Webpack build passed, retaining the existing bundle-size warnings.
+- Real CSV API E2E replaces a two-row source with three different measurements, reruns the original code
+  against the original version and recorded runtime image, then creates and executes a latest-input derived
+  analysis. It verifies different execution IDs/hashes, changed source-version lineage, the actual new
+  numerical results and identical original result/citation JSON after both reruns.
+- Restart verification closes the full Spring application context and compares record, citation, read-only
+  code JSON and chart bytes after a new context starts against the same PostgreSQL database with the runner
+  disabled. Reading historical results needs neither execution nor a live AI worker.
+- Tests cover CSRF, viewer/non-member access, extra rerun fields, incompatible latest selections,
+  missing original runtime images and retained derived origins after planning failure. UI tests cover
+  both explicit rerun actions, changed/unchanged versions, loading/pending submissions, historical execution
+  selection, read-only code, disabled future document insertion and safe failures without raw tracebacks.
+- Browser QA renders the real latest-input E2E record and PNG. It checks the version-change banner,
+  chart/table/provenance layout, keyboard focus and scrolling on Show code, and the provenance details
+  panel at a narrower viewport against the design reference.

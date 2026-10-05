@@ -289,7 +289,8 @@ Editors can read General settings and write content in active workspaces but can
 
 The grounding sticker counts **READY** sources, matching the existing question scope; the
 Sources navigation count includes every listed source. Member avatars describe workspace
-membership, not live presence. Search, Analyses, Help, notifications and global Settings have
+membership, not live presence. Analyses links to durable execution history and a result/provenance tool; its count is
+shown only when the bounded first page establishes the full count. Search, Help, notifications and global Settings have
 no implemented destinations and are absent. ApiStatusBanner remains a tested shared control
 but is removed from the application header. The responsive contract is documented below. Reference: `Reusable_parts.pdf` pp.1,2, `Access&home.pdf` p.3 and
 `Workspace.pdf` p.1.

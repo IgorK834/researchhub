@@ -67,8 +67,9 @@ The public auth frame and client-only password confirmation are described in the
   renders the login form from `features/auth/` (once that feature exists).
 - **`features/<name>/`** — a vertical slice for one product area. The folders that exist are
   `features/auth/`, `features/workspaces/`, `features/documents/`, `features/sources/` (the source library, uploads,
-  immutable versions and extraction previews), `features/ai/` and `features/analysis/` (the bounded dataset preview of a
-  source version, see [dataset-inspection.md](dataset-inspection.md)); name a new one after the
+  immutable versions and extraction previews), `features/ai/` and `features/analysis/` (bounded dataset previews and
+  durable computation records, see [dataset-inspection.md](dataset-inspection.md) and
+  [analysis-execution.md](analysis-execution.md)); name a new one after the
   collection it serves, matching its query key (`queryKeys.documents`, not `queryKey.document`).
   Feature code should not import from another feature; shared needs go through `shared/`. When a
   screen genuinely needs two features — the document page needs the workspace role to decide what to
@@ -167,3 +168,17 @@ column navigation, outline, citation-derived source lists and paper styles live 
 Stable portals place save/history/authoring UI into shell slots without remounting the
 editor or AI drafts. Contracts, JSON compatibility and verification commands:
 [document screens](../../frontend/src/features/documents/components/README.md).
+
+RH-150–RH-151 add the Analyses list, new-analysis flow and saved-result tool. `pages/AnalysisPage.tsx`
+composes workspace authorization and ready source metadata; feature-owned components manage immutable
+input selections, historical attempts, structured charts/tables and provenance. The chart view consumes
+the explicit record contract and authenticated image blobs, with passive SVG/PNG rendering and object-URL
+cleanup. Historical detail routes need neither a dataset preview nor a working Python runtime. Tests
+and fixtures stay inside the feature, and fixture helpers are excluded from production coverage.
+
+RH-155 adds semantic analysisResult nodes to report JSON, exact historical result rendering and explicit
+reference updates through normal revision-checked saves. RH-156 adds user-selected computed evidence and
+independent S/A navigation to the question and conversation flows. RH-305 provides pure typed presentation
+components behind the existing execution adapters. See the [analysis component boundary](../../frontend/src/features/analysis/components/README.md),
+[report reference contract](../../contracts/analysis/document-block/v1/README.md) and
+[mixed evidence contract](../../contracts/ai/questions/v2/README.md).
