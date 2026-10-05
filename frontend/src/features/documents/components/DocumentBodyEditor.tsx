@@ -12,6 +12,9 @@ import { Icon, type IconName } from '../../../shared/components/icons';
 import styles from './DocumentPaper.module.css';
 import type { EditorCitation } from '../api/researchCitation';
 import { CitationPopover, citationVariant } from '../../ai/components/Citations';
+import type { SelectionAction } from '../../ai/api/authoringActions';
+import { SelectionToolbar } from './SelectionToolbar';
+import { blockBoundary, draftDecoration } from '../api/draftDecoration';
 
 export interface AuthoringSelection {
   readonly from: number;
@@ -21,6 +24,15 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly selectionActionsEnabled?: boolean;
+  readonly onSelectionAction?: (
+    action: SelectionAction,
+    selection: AuthoringSelection,
+  ) => void;
+  readonly draftHost?: HTMLElement;
+  readonly draftPlacement?: number | null;
+  readonly reviewSelectionEnd?: number | null;
+  readonly focusBlock?: number;
   readonly toolbarHost?: HTMLElement;
   readonly sourceTypes?: ReadonlyMap<string, string>;
   readonly onNavigationChange?: (navigation: DocumentNavigation) => void;
@@ -69,6 +81,12 @@ export function DocumentBodyEditor({
   navigationTarget,
   toolbarHost,
   sourceTypes,
+  selectionActionsEnabled = false,
+  onSelectionAction,
+  draftHost,
+  draftPlacement,
+  reviewSelectionEnd,
+  focusBlock,
 }: DocumentBodyEditorProps): ReactElement {
   const [citationPreview, setCitationPreview] = useState<{
     citation: EditorCitation;
@@ -178,15 +196,45 @@ export function DocumentBodyEditor({
   }, [editor, navigationTarget]);
 
   useEffect(() => {
+    if (focusBlock === undefined) return;
+    editor.commands.setTextSelection(blockBoundary(editor.state.doc, focusBlock) + 1);
+    editor.commands.focus(undefined, { scrollIntoView: true });
+  }, [editor, focusBlock]);
+
+  useEffect(() => {
+    if (
+      draftHost === undefined ||
+      draftPlacement === null ||
+      draftPlacement === undefined
+    )
+      return;
+    const plugin = draftDecoration(
+      draftHost,
+      draftPlacement,
+      reviewSelectionEnd ?? undefined,
+    );
+    editor.registerPlugin(plugin);
+    return () => {
+      editor.unregisterPlugin(plugin.spec.key!);
+    };
+  }, [editor, draftHost, draftPlacement, reviewSelectionEnd]);
+
+  useEffect(() => {
     const styleCitations = (): void => {
-      editor.view.dom.querySelectorAll<HTMLAnchorElement>('a[data-citation]').forEach((anchor) => {
-        const citation = JSON.parse(anchor.dataset['citation']!) as EditorCitation;
-        anchor.dataset['citationVariant'] = citationVariant(sourceTypes?.get(citation.sourceId));
-      });
+      editor.view.dom
+        .querySelectorAll<HTMLAnchorElement>('a[data-citation]')
+        .forEach((anchor) => {
+          const citation = JSON.parse(anchor.dataset['citation']!) as EditorCitation;
+          anchor.dataset['citationVariant'] = citationVariant(
+            sourceTypes?.get(citation.sourceId),
+          );
+        });
     };
     styleCitations();
     editor.on('transaction', styleCitations);
-    return () => { editor.off('transaction', styleCitations); };
+    return () => {
+      editor.off('transaction', styleCitations);
+    };
   }, [editor, sourceTypes]);
 
   return (
@@ -224,6 +272,9 @@ export function DocumentBodyEditor({
         )
       ) : null}
       <EditorContent editor={editor} />
+      {editable && selectionActionsEnabled && onSelectionAction !== undefined ? (
+        <SelectionToolbar editor={editor} onAction={onSelectionAction} />
+      ) : null}
       {citationPreview === null ? null : (
         <CitationPopover
           {...citationPreview}

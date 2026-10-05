@@ -97,3 +97,69 @@ exercise both the offline fixture and Foundry wire/schema behavior without paid 
 RH-123 completes citation metadata, dynamic numbering, source navigation and display controls.
 RH-124–125 add workspace source comparisons and potential differences; see
 [structured citations and source analysis](source-analysis.md) for contracts and verification.
+
+## Selection toolbar and Generate section (RH-300, RH-301)
+
+`DocumentBodyEditor` offers Improve writing, Shorten, Expand, Explain and Find evidence
+over a nonempty selection of at most 2000 characters. Tab or Alt+F10 enters the toolbar;
+Left/Right, Home/End move between actions, and Escape returns to the selected text.
+`DocumentEditorForm` captures the selection and saved revision before opening the Writing
+context tab. The toolbar and panel use the same `authoringCommand` builder and existing
+suggestion endpoints. Clarify and Fix grammar remain in the panel. Selection actions are
+hidden for viewers, archived/unsupported documents, unsaved changes, history previews,
+in-flight requests and pending reviews.
+
+Generate section uses the shared ready-source picker, an explicit block placement,
+20–1000-word length control and the existing Academic/Concise/Plain presets. Draft
+citations are always required; no alternative citation modes or Internet control are added.
+The panel reports generating, ready, insufficient evidence and request errors. A ready
+result explicitly states that it is a suggestion and the document is unchanged.
+
+`AiDraftBlock` renders into a React portal hosted by a ProseMirror widget decoration at
+the proposed block boundary. The decoration occupies layout space but never becomes a
+document node: it is absent from `getJSON()`, autosave, undo and persisted history.
+The Grounded chip counts distinct sources in returned citations, not selected sources.
+Versioned citation links and server warnings remain available for review. An empty or
+uncited draft cannot be inserted.
+
+Insert draft and Insert and edit call the existing server approval endpoint. Insert and
+edit focuses the accepted block in the remounted editor; it never adds a second local
+insertion. Double clicks are guarded synchronously, and interrupted approvals freeze the
+same proposal ID, approval payload and focus intent until retry or reload. Regenerate
+first rejects the pending proposal, then submits its original command with the same
+sources, placement, revision and preset. Discard rejects the proposal without saving
+document content. A changed/unsaved revision blocks insertion and regeneration.
+
+No schema, worker, runtime dependency or public HTTP contract changes are needed.
+Jest enforces 80% coverage for the panel, toolbar, draft block and command builder,
+including branches. The editor and decoration have dedicated coverage gates too.
+Page integration tests cover toolbar commands, draft placement, unchanged autosave,
+explicit approval, focus after insertion and viewer/unsaved restrictions. Backend
+authoring integration tests cover real HTTP authorization, stale revisions and concurrent
+idempotent acceptance. Local Chromium verification covers the keyboard workflow,
+regeneration and insertion, with API fixtures, at desktop and narrow desktop sizes.
+
+## Suggestion and claim review (RH-302)
+
+`AiSuggestionCard` uses the same view-only editor decoration for rewrite review, placed
+after the last block in the captured selection. Coral deleted text and mint replacement
+text remain separate from the persisted document. Edit focuses a local review textarea;
+only Accept sends its text to the existing acceptance endpoint. The source note counts
+returned citation sources and does not imply grounding when no citations were returned.
+There is no inferred change explanation. Request settings remain available in the panel.
+
+`ClaimEvidencePanel` shows the returned original claim and candidate-provided source
+title, page range/section, snippet and reason. Supporting, related and insufficient
+categories retain their existing semantics; insufficient candidates cannot be inserted.
+Open navigates to the versioned source location in a new tab so the review stays open.
+Citation inspection reuses the supplied snippet. No search counts, strength scores or
+contradictory evidence are inferred. Empty or insufficient results offer Keep claim as
+it is, which rejects the proposal without updating the document.
+
+Accept/Add citation retain the saved-revision and unsaved-change guards. A failed
+approval freezes the edited text or selected citation ID; retry uses exactly the same
+proposal and payload. Reject may discard an obsolete proposal. The server continues to
+authorize workspace resources and owns idempotent approval and citation provenance.
+No API, schema, dependency or worker changes are needed. Dedicated Jest coverage gates
+require at least 80% statements, branches, functions and lines for both review components
+and the authoring panel; page tests verify that editing the card never triggers autosave.

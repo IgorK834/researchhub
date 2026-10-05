@@ -1,0 +1,27 @@
+.toolbar {
+  position: fixed;
+  z-index: var(--layer-popover);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  max-width: calc(100vw - 16px);
+  padding: var(--space-1);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-e2);
+}
+.toolbar button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  padding: var(--space-2) var(--space-3);
+  min-height: 36px;
+  font-size: var(--type-caption-size);
+  font-weight: var(--font-weight-semibold);
+}
+.toolbar button:hover,
+.toolbar button:focus-visible {
+  background: var(--color-action-hover);
+}

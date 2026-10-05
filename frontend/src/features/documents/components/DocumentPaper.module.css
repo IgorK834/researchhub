@@ -84,6 +84,10 @@
 .editor [role='textbox']:focus {
   outline: 0;
 }
+.draftHost {
+  white-space: normal;
+  margin: var(--space-5) 0;
+}
 .editor h1 {
   font-size: 1.75rem;
 }
@@ -209,4 +213,6 @@
   }
 }
 
-.editor :global(a[data-citation-variant='dataset']) { background: var(--color-brand-mint-tint); }
+.editor :global(a[data-citation-variant='dataset']) {
+  background: var(--color-brand-mint-tint);
+}

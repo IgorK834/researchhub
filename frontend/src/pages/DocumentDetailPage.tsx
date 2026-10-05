@@ -9,6 +9,7 @@ import { citationPath } from '../features/ai/api/generationApi';
 import { useSourcesQuery } from '../features/sources/api/useSources';
 import { useDocumentQuery } from '../features/documents/api/useDocuments';
 import type { DocumentNavigation } from '../features/documents/api/documentNavigation';
+import type { WorkspaceDocument } from '../features/documents/api/documentApi';
 import { DocumentEditorForm } from '../features/documents/components/DocumentEditorForm';
 import { DocumentList } from '../features/documents/components/DocumentList';
 import {
@@ -90,6 +91,7 @@ function DocumentScreen({
   const navigate = useNavigate();
   const outlet = useOutletContext<AppOutletContext | null>();
   const [reloadCount, setReloadCount] = useState(0);
+  const [focusBlock, setFocusBlock] = useState<number | undefined>();
   const [navigation, setNavigation] = useState(EMPTY_NAVIGATION);
   const [navigationTarget, setNavigationTarget] = useState<{ position: number } | null>(
     null,
@@ -263,7 +265,9 @@ function DocumentScreen({
         <EditorArea
           workspaceId={workspaceId}
           document={document}
-          sourceTypes={new Map(sources.data?.map((source) => [source.id, source.sourceType]))}
+          sourceTypes={
+            new Map(sources.data?.map((source) => [source.id, source.sourceType]))
+          }
           canEdit={canEdit}
           isViewer={authorized && workspace.data?.role === 'VIEWER'}
           authors={
@@ -276,6 +280,12 @@ function DocumentScreen({
           }
           reloadCount={reloadCount}
           onReload={() => setReloadCount((count) => count + 1)}
+          onAccepted={(_document, block) => {
+            setFocusBlock(block);
+            setReloadCount((count) => count + 1);
+          }}
+          focusBlock={focusBlock}
+          onOpenAuthoring={() => showContext('writing')}
           navigationTarget={navigationTarget}
           onNavigationChange={setNavigation}
           statusHost={statusHost}
@@ -303,6 +313,9 @@ function EditorArea({
   historyExpanded,
   authoringHost,
   sourceTypes,
+  onAccepted,
+  focusBlock,
+  onOpenAuthoring,
 }: {
   readonly workspaceId: string;
   readonly document: ReturnType<typeof useDocumentQuery>;
@@ -318,6 +331,9 @@ function EditorArea({
   readonly historyExpanded: boolean;
   readonly authoringHost: HTMLElement;
   readonly sourceTypes: ReadonlyMap<string, string>;
+  readonly onAccepted: (document: WorkspaceDocument, focusBlock?: number) => void;
+  readonly focusBlock: number | undefined;
+  readonly onOpenAuthoring: () => void;
 }): ReactElement {
   if (document.isPending)
     return (
@@ -352,7 +368,9 @@ function EditorArea({
         onDiscardLocalChanges={() => {
           void document.refetch().then(onReload);
         }}
-        onReplaced={onReload}
+        onReplaced={onAccepted}
+        focusBlock={focusBlock}
+        onOpenAuthoring={onOpenAuthoring}
         navigationTarget={navigationTarget}
         onNavigationChange={onNavigationChange}
         statusHost={statusHost}

@@ -23,7 +23,16 @@ const DOCUMENT_ID = 'd-1';
 const DOCUMENT_PATH = `/api/workspaces/${WORKSPACE_ID}/documents/${DOCUMENT_ID}`;
 const VERSIONS_PATH = `${DOCUMENT_PATH}/versions`;
 
-beforeAll(() => { globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver; });
+beforeAll(() => {
+  Range.prototype.getBoundingClientRect = () => new DOMRect(200, 250, 120, 24);
+  Range.prototype.getClientRects = () =>
+    [new DOMRect(200, 250, 120, 24)] as unknown as DOMRectList;
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+});
 const mockNavigate = jest.fn();
 
 jest.mock('react-router-dom', () => ({
@@ -191,6 +200,7 @@ const STRUCTURED_AS_SAVED: JSONContent = {
 function stubDocumentApi(options: {
   readonly document?: DocumentRow;
   readonly role?: string;
+  readonly sources?: readonly unknown[];
   readonly documentResponse?: Response;
   readonly saveResponses?: readonly Response[];
   readonly offline?: () => boolean;
@@ -246,7 +256,9 @@ function stubDocumentApi(options: {
         ),
       );
     if (path === `/api/workspaces/${WORKSPACE_ID}/sources`) {
-      return Promise.resolve(jsonResponse([], 200, 'application/json'));
+      return Promise.resolve(
+        jsonResponse(options.sources ?? [], 200, 'application/json'),
+      );
     }
     if (path === `/api/workspaces/${WORKSPACE_ID}/ai/conversations?offset=0`) {
       return Promise.resolve(
@@ -592,7 +604,11 @@ describe('DocumentDetailPage', () => {
       const reloaded = await findBody();
       expect(reloaded.querySelector('a')?.textContent).toBe(' [Paper, p. 7]');
       fireEvent.click(reloaded.querySelector('a')!);
-      fireEvent.click(within(screen.getByRole('dialog', { name: 'Citation 1' })).getByRole('link', { name: 'View context' }));
+      fireEvent.click(
+        within(screen.getByRole('dialog', { name: 'Citation 1' })).getByRole('link', {
+          name: 'View context',
+        }),
+      );
       expect(mockNavigate).toHaveBeenCalledTimes(2);
     });
 
@@ -653,6 +669,151 @@ describe('DocumentDetailPage', () => {
   });
 
   describe('autosave', () => {
+    it.each(['Insert draft', 'Insert and edit'])(
+      'keeps an in-document draft outside autosave and approves through the server with %s',
+      async (action) => {
+        const fetchMock = stubDocumentApi({
+          document: documentRow({ content: paragraphs('Measurements', 'Follow up.') }),
+          sources: [
+            {
+              id: 's-1',
+              workspaceId: WORKSPACE_ID,
+              displayName: 'Lecture',
+              sourceType: 'PDF',
+              status: 'READY',
+            },
+          ],
+        });
+        const originalFetch = globalThis.fetch;
+        let current: DocumentRow | null = null;
+        let command: Record<string, unknown> = {};
+        const approvals: Record<string, unknown>[] = [];
+        globalThis.fetch = jest.fn((url: unknown, init?: RequestInit) => {
+          const path = String(url);
+          if (path.startsWith(`${DOCUMENT_PATH}/ai/suggestions`)) {
+            const payload = JSON.parse(String(init?.body ?? '{}')) as Record<
+              string,
+              unknown
+            >;
+            if (path.endsWith('/accept')) {
+              approvals.push(payload);
+              current = documentRow({
+                revision: 2,
+                content: paragraphs('Measurements', 'Grounded section.', 'Follow up.'),
+              });
+              return Promise.resolve(
+                jsonResponse(
+                  { eventId: 'draft', acceptedRevision: 2, document: current },
+                  200,
+                  'application/json',
+                ),
+              );
+            }
+            command = payload;
+            return Promise.resolve(
+              jsonResponse(
+                {
+                  id: 'draft',
+                  workspaceId: WORKSPACE_ID,
+                  documentId: DOCUMENT_ID,
+                  createdBy: 'u-1',
+                  state: 'PENDING',
+                  command,
+                  originalText: '',
+                  generatedText: 'Grounded section.',
+                  citations: [
+                    {
+                      workspaceId: WORKSPACE_ID,
+                      sourceId: 's-1',
+                      sourceVersionId: null,
+                      chunkId: 'a'.repeat(64),
+                      processingVersion: 'v1',
+                      contentHash: 'b'.repeat(64),
+                      pageStart: 5,
+                      pageEnd: 5,
+                      sectionTitle: 'Theory',
+                      title: 'Lecture',
+                      spans: [{ unitId: 'p5', characterStart: 0, characterEnd: 30 }],
+                    },
+                  ],
+                  candidates: [],
+                  warnings: [],
+                  generation: null,
+                  acceptedRevision: null,
+                },
+                200,
+                'application/json',
+              ),
+            );
+          }
+          if (path === DOCUMENT_PATH && current !== null)
+            return Promise.resolve(jsonResponse(current, 200, 'application/json'));
+          return originalFetch(url as RequestInfo, init);
+        }) as unknown as typeof fetch;
+        renderDocumentDetailPage();
+        const body = await findBody();
+        fireEvent.click(screen.getByRole('tab', { name: 'Writing' }));
+        fireEvent.change(screen.getByLabelText('Insert section'), {
+          target: { value: '1' },
+        });
+        fireEvent.change(screen.getByLabelText('Title or instruction'), {
+          target: { value: 'Theory' },
+        });
+        fireEvent.click(await screen.findByRole('checkbox', { name: 'Lecture' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Generate draft' }));
+        await screen.findByRole('button', { name: 'Insert draft' });
+        const draft = screen.getByRole('region', { name: 'AI draft' });
+        expect(body.contains(draft)).toBe(true);
+        expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements', 'Follow up.'));
+        expect(command).toMatchObject({
+          kind: 'DRAFT',
+          expectedRevision: 1,
+          placementBlock: 1,
+          selectedSourceIds: ['s-1'],
+          citationRequired: true,
+        });
+        expect(savedBodies(fetchMock)).toHaveLength(0);
+        expect(approvals).toHaveLength(0);
+        fireEvent.click(screen.getByRole('tab', { name: 'Sources' }));
+        expect(screen.getByRole('region', { name: 'AI draft' })).toBe(draft);
+        fireEvent.click(within(draft).getByRole('button', { name: action }));
+        await waitFor(() =>
+          expect(bodyEditor().getJSON()).toEqual(
+            paragraphs('Measurements', 'Grounded section.', 'Follow up.'),
+          ),
+        );
+        expect(approvals).toEqual([
+          { expectedRevision: 1, editedText: null, citationChunkId: null },
+        ]);
+        expect(savedBodies(fetchMock)).toHaveLength(0);
+        if (action === 'Insert and edit')
+          expect(bodyEditor().state.selection.from).toBe(15);
+      },
+    );
+
+    it('hides selection actions immediately while edits are unsaved and for a viewer', async () => {
+      stubDocumentApi({});
+      const rendered = renderDocumentDetailPage();
+      await findBody();
+      act(() => {
+        bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
+      });
+      expect(screen.getByRole('toolbar', { name: /AI actions/ })).toBeTruthy();
+      fireEvent.change(screen.getByLabelText('Title'), {
+        target: { value: 'Unsaved title' },
+      });
+      expect(screen.queryByRole('toolbar', { name: /AI actions/ })).toBeNull();
+      rendered.unmount();
+      stubDocumentApi({ role: 'VIEWER' });
+      renderDocumentDetailPage();
+      await findBody();
+      act(() => {
+        bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
+      });
+      expect(screen.queryByRole('toolbar', { name: /AI actions/ })).toBeNull();
+      expect(screen.queryByRole('tab', { name: 'Writing' })).toBeNull();
+    });
+
     it('reviews a selected fragment, rejects without autosave and accepts through the server before continuing at the new revision', async () => {
       const fetchMock = stubDocumentApi({});
       const originalFetch = globalThis.fetch;
@@ -688,7 +849,7 @@ describe('DocumentDetailPage', () => {
           if (path.endsWith('/accept')) {
             acceptedDocument = documentRow({
               revision: 2,
-              content: paragraphs('Refined measurements'),
+              content: paragraphs(String(body.editedText ?? 'Refined measurements')),
             });
             return Promise.resolve(
               jsonResponse(
@@ -725,16 +886,21 @@ describe('DocumentDetailPage', () => {
       act(() => {
         bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
       });
-      fireEvent.click(screen.getByRole('tab', { name: 'Writing' }));
-      fireEvent.change(screen.getByLabelText('Operation'), {
-        target: { value: 'REWRITE' },
-      });
-      fireEvent.click(screen.getByRole('button', { name: 'Generate suggestion' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
+      expect(
+        screen.getByRole('tab', { name: 'Writing' }).getAttribute('aria-selected'),
+      ).toBe('true');
       await screen.findByRole('region', { name: 'AI suggestion' });
+      expect(
+        (await findBody()).contains(
+          screen.getByRole('region', { name: 'AI suggestion' }),
+        ),
+      ).toBe(true);
       expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
       expect(savedBodies(fetchMock)).toHaveLength(0);
       expect(aiRequests[0]?.body).toMatchObject({
         kind: 'REWRITE',
+        action: 'SHORTEN',
         from: 1,
         to: 13,
         expectedRevision: 1,
@@ -748,10 +914,23 @@ describe('DocumentDetailPage', () => {
       expect(savedBodies(fetchMock)).toHaveLength(0);
       fireEvent.click(screen.getByRole('button', { name: 'Generate suggestion' }));
       await screen.findByRole('region', { name: 'AI suggestion' });
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+      fireEvent.change(screen.getByLabelText('Edit suggestion'), {
+        target: { value: 'Reviewed measurements' },
+      });
+      expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
+      expect(savedBodies(fetchMock)).toHaveLength(0);
       fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
       await waitFor(() =>
-        expect(bodyEditor().getJSON()).toEqual(paragraphs('Refined measurements')),
+        expect(bodyEditor().getJSON()).toEqual(paragraphs('Reviewed measurements')),
       );
+      expect(
+        aiRequests.find((request) => request.path.endsWith('/accept'))?.body,
+      ).toEqual({
+        expectedRevision: 1,
+        editedText: 'Reviewed measurements',
+        citationChunkId: null,
+      });
       expect(
         aiRequests.filter((request) => request.path.endsWith('/accept')),
       ).toHaveLength(1);
@@ -759,6 +938,149 @@ describe('DocumentDetailPage', () => {
       editBody('Human continued writing');
       await waitForSaveState('Saved');
       expect(screen.getByText(/revision 3/)).not.toBeNull();
+    });
+    it('reviews claim evidence, approves only the returned citation and keeps a no-evidence claim without autosave', async () => {
+      const original = paragraphs('Human claim.');
+      const fetchMock = stubDocumentApi({ document: documentRow({ content: original }) });
+      const originalFetch = globalThis.fetch;
+      const citation = {
+        workspaceId: WORKSPACE_ID,
+        sourceId: 's-1',
+        sourceVersionId: null,
+        chunkId: 'a'.repeat(64),
+        contentHash: 'b'.repeat(64),
+        processingVersion: 'v1',
+        pageStart: 7,
+        pageEnd: 7,
+        sectionTitle: null,
+        title: 'Paper',
+        spans: [{ unitId: 'p7', characterStart: 0, characterEnd: 12 }],
+      };
+      let current: DocumentRow | null = null;
+      let noEvidence = false;
+      const approvals: Record<string, unknown>[] = [],
+        rejections: string[] = [];
+      globalThis.fetch = jest.fn((url: unknown, init?: RequestInit) => {
+        const path = String(url);
+        if (path.startsWith(`${DOCUMENT_PATH}/ai/suggestions`)) {
+          const command = JSON.parse(String(init?.body ?? '{}')) as Record<
+            string,
+            unknown
+          >;
+          if (path.endsWith('/accept')) {
+            approvals.push(command);
+            current = documentRow({
+              revision: 2,
+              content: {
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      { type: 'text', text: 'Human claim.' },
+                      {
+                        type: 'researchCitation',
+                        attrs: {
+                          citation: {
+                            ...citation,
+                            label: 'Paper',
+                            displayStyle: 'NUMERIC',
+                            locator: { pageStart: 7, pageEnd: 7, sectionTitle: null },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            });
+            return Promise.resolve(
+              jsonResponse(
+                { eventId: 'evidence', acceptedRevision: 2, document: current },
+                200,
+                'application/json',
+              ),
+            );
+          }
+          if (path.endsWith('/reject')) rejections.push(path);
+          return Promise.resolve(
+            jsonResponse(
+              {
+                id: 'evidence',
+                workspaceId: WORKSPACE_ID,
+                documentId: DOCUMENT_ID,
+                createdBy: 'u-1',
+                state: path.endsWith('/reject') ? 'REJECTED' : 'PENDING',
+                command,
+                originalText: 'Human claim.',
+                generatedText: '',
+                citations: [],
+                candidates: noEvidence
+                  ? []
+                  : [
+                      {
+                        citation,
+                        snippet: 'Returned source passage.',
+                        category: 'supporting',
+                        relevance: 0.9,
+                        reason: 'Supports the claim.',
+                      },
+                    ],
+                warnings: [],
+                generation: null,
+                acceptedRevision: null,
+              },
+              200,
+              'application/json',
+            ),
+          );
+        }
+        if (path === DOCUMENT_PATH && current !== null)
+          return Promise.resolve(jsonResponse(current, 200, 'application/json'));
+        return originalFetch(url as RequestInfo, init);
+      }) as unknown as typeof fetch;
+      renderDocumentDetailPage();
+      await findBody();
+      act(() => {
+        bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Find evidence' }));
+      await screen.findByText('Returned source passage.');
+      expect(bodyEditor().getJSON()).toEqual(original);
+      expect(savedBodies(fetchMock)).toEqual([]);
+      const open = within(screen.getByRole('article', { name: 'Evidence 1' })).getByRole(
+        'link',
+        { name: 'Open' },
+      );
+      expect(open.getAttribute('href')).toBe(
+        '/app/workspaces/w-1/sources/s-1?processingVersion=v1&unit=p7&page=7',
+      );
+      expect(open.getAttribute('target')).toBe('_blank');
+      fireEvent.click(screen.getByRole('button', { name: 'Add citation' }));
+      await waitFor(() =>
+        expect(
+          JSON.parse(JSON.stringify(bodyEditor().getJSON())).content[0].content[1].type,
+        ).toBe('researchCitation'),
+      );
+      expect(approvals).toEqual([
+        { expectedRevision: 1, editedText: null, citationChunkId: citation.chunkId },
+      ]);
+      const acceptedContent = bodyEditor().getJSON();
+      expect(JSON.parse(JSON.stringify(acceptedContent)).content[0].content[0].text).toBe(
+        'Human claim.',
+      );
+      expect(savedBodies(fetchMock)).toEqual([]);
+      noEvidence = true;
+      act(() => {
+        bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Find evidence' }));
+      await screen.findByText('No supporting evidence found.');
+      fireEvent.click(screen.getByRole('button', { name: 'Keep claim as it is' }));
+      await waitFor(() => expect(rejections).toHaveLength(1));
+      expect(approvals).toHaveLength(1);
+      expect(bodyEditor().getJSON()).toEqual(acceptedContent);
+      expect(savedBodies(fetchMock)).toEqual([]);
     });
     it('saves the editor JSON after typing pauses, as an autosave, and says so', async () => {
       const fetchMock = stubDocumentApi({});

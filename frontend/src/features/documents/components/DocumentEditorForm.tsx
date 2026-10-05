@@ -18,8 +18,17 @@ import { Button } from '../../../shared/components/Button';
 import { DocumentHistory } from './DocumentHistory';
 import { SaveStatus } from './SaveStatus';
 import { DocumentViewerNotice } from './DocumentViewerNotice';
+import type { SelectionAuthoringRequest } from '../../ai/api/authoringActions';
 
 export interface DocumentAuthoringContext {
+  readonly selectionRequest: SelectionAuthoringRequest | null;
+  readonly draftHost: HTMLElement;
+  /** View-only placement for draft and rewrite review cards. */
+  readonly onDraftPlacementChange: (
+    placement: number | null,
+    selectionEnd?: number,
+  ) => void;
+  readonly onReviewing: (reviewing: boolean) => void;
   readonly workspaceId: string;
   readonly documentId: string;
   readonly revision: number;
@@ -27,11 +36,13 @@ export interface DocumentAuthoringContext {
   readonly selection: AuthoringSelection;
   readonly blockCount: number;
   readonly onBusy: (busy: boolean) => void;
-  readonly onAccepted: (document: WorkspaceDocument) => void;
+  readonly onAccepted: (document: WorkspaceDocument, focusBlock?: number) => void;
   readonly onReload: () => void;
 }
 
 export interface DocumentEditorFormProps {
+  readonly onOpenAuthoring?: () => void;
+  readonly focusBlock?: number;
   readonly renderAuthoring?: (context: DocumentAuthoringContext) => ReactNode;
   readonly historyHost?: HTMLElement;
   readonly sourceTypes?: ReadonlyMap<string, string>;
@@ -54,7 +65,7 @@ export interface DocumentEditorFormProps {
   /** Reloads the document and discards local edits. Offered only after a conflict. */
   readonly onDiscardLocalChanges: () => void;
   /** The stored document was replaced by a restore; the caller shows the new one in a fresh editor. */
-  readonly onReplaced: (document: WorkspaceDocument) => void;
+  readonly onReplaced: (document: WorkspaceDocument, focusBlock?: number) => void;
 }
 
 /**
@@ -88,6 +99,8 @@ export function DocumentEditorForm({
   statusHost,
   onNavigationChange,
   navigationTarget,
+  onOpenAuthoring,
+  focusBlock,
 }: DocumentEditorFormProps): ReactElement {
   const navigate = useNavigate();
   const archive = useArchiveDocument(workspaceId, document.id);
@@ -98,6 +111,17 @@ export function DocumentEditorForm({
   const [title, setTitle] = useState(document.title);
   const [toolbarHost] = useState(() => window.document.createElement('div'));
   const [previewHost] = useState(() => window.document.createElement('div'));
+  const [draftHost] = useState(() => {
+    const host = window.document.createElement('div');
+    host.contentEditable = 'false';
+    host.className = styles.draftHost!;
+    return host;
+  });
+  const [draftPlacement, setDraftPlacement] = useState<number | null>(null);
+  const [reviewSelectionEnd, setReviewSelectionEnd] = useState<number | null>(null);
+  const [selectionRequest, setSelectionRequest] =
+    useState<SelectionAuthoringRequest | null>(null);
+  const [reviewing, setReviewing] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [body, setBody] = useState<ProseMirrorDocument>(
     () => storedBody ?? EMPTY_DOCUMENT,
@@ -213,6 +237,22 @@ export function DocumentEditorForm({
             </span>
             {storedBody === null ? null : (
               <DocumentBodyEditor
+                selectionActionsEnabled={
+                  settled && !previewing && !reviewing && renderAuthoring !== undefined
+                }
+                onSelectionAction={(action, snapshot) => {
+                  setSelectionRequest((previous) => ({
+                    id: (previous?.id ?? 0) + 1,
+                    action,
+                    selection: snapshot,
+                    revision: autosave.revision,
+                  }));
+                  onOpenAuthoring?.();
+                }}
+                draftHost={draftHost}
+                draftPlacement={draftPlacement}
+                reviewSelectionEnd={reviewSelectionEnd}
+                focusBlock={focusBlock}
                 sourceTypes={sourceTypes}
                 onOpenCitation={(path) => {
                   void navigate(path);
@@ -256,10 +296,17 @@ export function DocumentEditorForm({
 
       {authoringAvailable
         ? renderAuthoring?.({
+            selectionRequest,
+            draftHost,
+            onDraftPlacementChange: (placement, selectionEnd) => {
+              setDraftPlacement(placement);
+              setReviewSelectionEnd(selectionEnd ?? null);
+            },
+            onReviewing: setReviewing,
             workspaceId,
             documentId: document.id,
             revision: autosave.revision,
-            settled,
+            settled: settled && !previewing,
             selection,
             blockCount: body.content?.length ?? 0,
             onBusy: setAiBusy,
