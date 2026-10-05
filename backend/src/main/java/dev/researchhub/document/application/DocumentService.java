@@ -61,15 +61,17 @@ public class DocumentService {
     private final CheckpointPolicy checkpoints;
     private final WorkspaceAuthorizationService authorization;
     private final Clock clock;
+    private final List<DocumentReferenceValidator> referenceValidators;
 
     public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
                            CheckpointPolicy checkpoints, WorkspaceAuthorizationService authorization,
-                           Clock clock) {
+                           Clock clock, List<DocumentReferenceValidator> referenceValidators) {
         this.documents = documents;
         this.versions = versions;
         this.checkpoints = checkpoints;
         this.authorization = authorization;
         this.clock = clock;
+        this.referenceValidators = List.copyOf(referenceValidators);
     }
 
     /**
@@ -85,6 +87,8 @@ public class DocumentService {
     @Transactional
     public DocumentDetail create(UUID workspaceId, UUID callerId, CreateDocumentCommand command) {
         requireEditor(workspaceId, callerId);
+
+        referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,command.content()));
 
         Instant now = clock.instant();
         Document document = validated(() -> Document.create(
@@ -169,6 +173,7 @@ public class DocumentService {
         requireEditor(workspaceId, callerId);
 
         Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
+        referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,command.content()));
         Instant now = clock.instant();
 
         Document revised = validated(() -> stored.revise(
@@ -241,6 +246,7 @@ public class DocumentService {
 
         Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
         DocumentVersion source = requireVersion(documentId, versionId).toDomain();
+        referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,source.content().json()));
         Instant now = clock.instant();
 
         Document restored = validated(() -> stored.restore(source, expectedRevision, now));
