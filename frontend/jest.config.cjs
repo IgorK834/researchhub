@@ -35,6 +35,12 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/documents/collaboration/': {
+      lines: 80,
+      functions: 80,
+      statements: 80,
+      branches: 80,
+    },
     'src/pages/AnalysisPage.tsx': {
       lines: 80,
       branches: 80,
