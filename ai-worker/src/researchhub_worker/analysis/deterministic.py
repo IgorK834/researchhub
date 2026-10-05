@@ -141,10 +141,15 @@ axis.set_xlabel('Frequency f (Hz)')
 axis.set_ylabel('Impedance magnitude |Z| (Ω)')
 axis.set_title('Impedance magnitude versus frequency')
 axis.grid(True, which='both', alpha=0.25)
-figure.savefig('/outputs/impedance.png', dpi=120, metadata={{'Software': 'ResearchHub sandbox 1.0.0'}})
+figure.savefig('/outputs/impedance.png', dpi=120, metadata={{'Software': 'ResearchHub sandbox 1.1.0'}})
 plt.close(figure)
-result = {{'schemaVersion': '1.0', 'outputs': [
+result = {{'schemaVersion': '2.0', 'outputs': [
     {{'name': 'impedance-table', 'kind': 'TABLE', 'columns': columns, 'rows': frame.values.tolist()}},
-    {{'name': 'impedance-chart', 'kind': 'CHART', 'file': 'impedance.png'}}]}}
+    {{'name': 'impedance-chart', 'kind': 'CHART', 'file': 'impedance.png',
+      'title': 'Impedance magnitude versus frequency',
+      'xAxis': {{'label': 'Frequency f', 'unit': 'Hz', 'scale': 'LOG'}},
+      'yAxis': {{'label': 'Impedance magnitude |Z|', 'unit': 'Ω', 'scale': 'LOG' if (np.abs(frame.iloc[:, 3]) > 0).all() else 'LINEAR'}},
+      'series': [{{'name': '|Z|', 'tableName': 'impedance-table', 'xColumn': columns[0],
+                  'yColumn': columns[3], 'yTransform': 'ABS'}}]}}]}}
 Path('/outputs/result.json').write_text(json.dumps(result, allow_nan=False, separators=(',', ':')), encoding='utf-8')
 '''

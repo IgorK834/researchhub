@@ -31,6 +31,17 @@ class AnalysisApiIntegrationTest {
         @Bean SourceStorage storage() { return new InMemorySourceStorage(); }
         @Bean @Primary TestPlanner testPlanner(ObjectMapper json) { return new TestPlanner(json); }
         @Bean @Primary TestRunner testRunner() { return new TestRunner(); }
+        @Bean @Primary TestQuestionModel questionModel() { return new TestQuestionModel(); }
+    }
+    static class TestQuestionModel implements dev.researchhub.ai.application.ModelProvider {
+        dev.researchhub.ai.application.ContextContracts.ContextualRequest last;int calls;boolean invented;
+        public ModelMetadata modelMetadata() { return new ModelMetadata("deterministic","mixed-evidence-test","1",true,false); }
+        public Result generateStructured(Request request) { throw new AssertionError("Grounded context is required"); }
+        public Result generateStructured(dev.researchhub.ai.application.ContextContracts.ContextualRequest contextual) {
+            last=contextual;calls++;var request=contextual.request();
+            return new Result("1.0",request.requestId(),request.templateId(),request.templateHash(),modelMetadata(),new Usage(1,1,2,true),"test-question",
+                new Answer("SUPPORTED",List.of(new Claim("The saved mean is 19.5.",List.of(invented ? "f".repeat(64) : request.evidence().getLast().chunkId())))));
+        }
     }
     static class TestPlanner implements AnalysisPlanner {
         final ObjectMapper json; int calls; int invalidRemaining; boolean fail,chart; Runnable duringCall;
@@ -65,6 +76,8 @@ class AnalysisApiIntegrationTest {
     @Autowired SourceStorage storage;
     @Autowired AnalysisExecutionDispatcher dispatcher;
     @Autowired ExecutionStore executions;
+    @Autowired org.flywaydb.core.Flyway flyway;
+    @Autowired TestQuestionModel questionModel;
     ApiBrowser owner;
     UUID workspace,ownerId,source,version;
     String path;
@@ -72,6 +85,7 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("TRUNCATE users, workspaces CASCADE");
         planner.calls=0; planner.invalidRemaining=0; planner.fail=false; planner.chart=false; planner.duringCall=null;
         runner.calls=0;runner.failure=null;runner.files=null;runner.duringRun=null;runner.request=null;
+        questionModel.calls=0;questionModel.last=null;questionModel.invented=false;
         ((InMemorySourceStorage)storage).clear();
         owner=new ApiBrowser(port,json); ownerId=UUID.fromString(owner.signUp("owner@example.test","Owner"));
         workspace=UUID.fromString(owner.createdWorkspaceId("Lab","Data")); path="/api/workspaces/"+workspace+"/analyses";
@@ -172,6 +186,66 @@ class AnalysisApiIntegrationTest {
         assertTrue(queued.headers().firstValue("Location").orElseThrow().contains("/executions/"));
         return owner.json(queued).get("id").asString();
     }
+    String reportContent(String analysis,String execution,String mode,String output,UUID block) {
+        return json.writeValueAsString(Map.of("type","doc","content",List.of(Map.of("type","paragraph","content",List.of(Map.of("type","text","text","Experimental report"))),
+            Map.of("type","analysisResult","attrs",Map.of("blockId",block,"reference",Map.of("analysisId",analysis,"executionId",execution,"outputId",output,"renderMode",mode),"caption","Saved experimental result")))));
+    }
+    @Test void reportReferencesSurviveReloadRerunExplicitUpdateAndHistoryRestore() throws Exception {
+        String id=ready(),execution=enqueue(id);dispatcher.dispatchAvailable();UUID block=UUID.randomUUID();
+        String reports="/api/workspaces/"+workspace+"/documents",content=reportContent(id,execution,"TABLE","result",block);
+        var create=owner.postJson(reports,"{\"title\":\"Experiment\",\"content\":"+content+"}");
+        assertEquals(201,create.statusCode(),create.body());String doc=owner.json(create).get("id").asString(),docPath=reports+"/"+doc;
+        var first=owner.json(owner.get(docPath));assertEquals(json.readTree(content),first.get("content"));
+        String originalVersion=owner.json(owner.get(docPath+"/versions")).get(0).get("id").asString();
+        var rerun=owner.json(owner.postJson(path+"/"+id+"/executions/"+execution+"/rerun","{\"inputMode\":\"ORIGINAL\"}"));
+        String newer=rerun.get("execution").get("id").asString();dispatcher.dispatchAvailable();
+        assertNotEquals(execution,newer);
+        assertEquals(json.readTree(content),owner.json(owner.get(docPath)).get("content"));
+        var invalid=owner.patchJson(docPath,"{\"title\":\"Experiment\",\"revision\":1,\"saveKind\":\"MANUAL\",\"content\":"+reportContent(id,newer,"CHART","result",block)+"}");
+        assertEquals(400,invalid.statusCode(),invalid.body());assertEquals(1,owner.json(owner.get(docPath)).get("revision").asInt());
+        String updated=reportContent(id,newer,"TABLE","result",block);
+        var save=owner.patchJson(docPath,"{\"title\":\"Experiment\",\"revision\":1,\"saveKind\":\"MANUAL\",\"content\":"+updated+"}");
+        assertEquals(200,save.statusCode(),save.body());assertEquals(json.readTree(updated),owner.json(owner.get(docPath)).get("content"));
+        assertEquals(409,owner.patchJson(docPath,"{\"title\":\"Experiment\",\"revision\":1,\"content\":"+content+"}").statusCode());
+        var restore=owner.postJson(docPath+"/versions/"+originalVersion+"/restore","{\"revision\":2}");
+        assertEquals(200,restore.statusCode(),restore.body());assertEquals(json.readTree(content),owner.json(restore).get("content"));
+        assertEquals(version.toString(),owner.json(owner.get(path+"/"+id+"/executions/"+execution+"/provenance")).get("inputSources").get(0).get("sourceVersionId").asString());
+        var other=new ApiBrowser(port,json);other.signUp("outsider@example.test","Other");
+        assertEquals(404,other.get(docPath).statusCode());
+        owner.postJson("/api/workspaces/"+workspace+"/members","{\"email\":\"outsider@example.test\",\"role\":\"VIEWER\"}");
+        assertEquals(200,other.get(docPath).statusCode());assertEquals(403,other.patchJson(docPath,"{\"title\":\"Experiment\",\"revision\":3,\"content\":"+updated+"}").statusCode());
+        String foreign=owner.createdWorkspaceId("Different","Scope");
+        assertEquals(404,owner.postJson("/api/workspaces/"+foreign+"/documents","{\"title\":\"Wrong workspace\",\"content\":"+content+"}").statusCode());
+        assertEquals(403,owner.sendWithoutCsrf("PATCH",docPath,"{\"title\":\"Experiment\",\"revision\":3,\"content\":"+updated+"}").statusCode());
+        Files.writeString(Path.of("target/analysis-report-e2e.json"),json.writeValueAsString(owner.json(owner.get(docPath))));
+    }
+    @Test void computedQuestionsUsePersistedOutputsAuditAndConversationScopeWithoutRunningCode() throws Exception {
+        String id=ready(),execution=enqueue(id);dispatcher.dispatchAvailable();int runs=runner.calls;
+        String refs=json.writeValueAsString(List.of(new AnalysisEvidenceService.Reference(UUID.fromString(id),UUID.fromString(execution),"result")));
+        String question="{\"question\":\"What was the saved experimental mean?\",\"selectedSourceIds\":[],\"selectedAnalysisOutputs\":"+refs+"}";
+        String ai="/api/workspaces/"+workspace+"/ai";
+        var answered=owner.postJson(ai+"/questions",question);assertEquals(200,answered.statusCode(),answered.body());var response=owner.json(answered);
+        assertEquals("SUPPORTED",response.get("status").asString());assertEquals(0,response.get("citations").size());
+        assertEquals("A1",response.get("generation").get("context").get("citations").get(0).get("citationKey").asString());
+        assertTrue(questionModel.last.context().text().contains("19.5"));assertTrue(questionModel.last.context().text().contains("[A1]"));
+        assertFalse(questionModel.last.context().text().contains("raise RuntimeError"));
+        assertEquals(version.toString(),response.get("analysisCitations").get(0).get("inputSources").get(0).get("sourceVersionId").asString());
+        String request=response.get("generation").get("result").get("requestId").asString();
+        assertEquals(response.get("generation"),owner.json(owner.get(ai+"/generations/"+request)));
+        assertEquals(1,jdbc.queryForObject("SELECT jsonb_array_length(analysis_evidence) FROM ai_generation_runs WHERE request_id=?",Integer.class,UUID.fromString(request)));
+        String conversation=owner.json(owner.postJson(ai+"/conversations","{\"title\":\"Experiment and theory\"}")).get("id").asString();
+        String send=question.substring(0,question.length()-1)+",\"clientRequestId\":\""+UUID.randomUUID()+"\"}";
+        var completion=owner.postJson(ai+"/conversations/"+conversation+"/messages",send);assertEquals(200,completion.statusCode(),completion.body());
+        var history=owner.json(owner.get(ai+"/conversations/"+conversation));String stored=json.writeValueAsString(history);
+        assertTrue(stored.contains(execution));assertTrue(stored.contains("selectedAnalysisOutputs"));assertTrue(stored.contains("analysisCitations"));
+        int calls=questionModel.calls;assertEquals(200,owner.postJson(ai+"/conversations/"+conversation+"/messages",send).statusCode());assertEquals(calls,questionModel.calls);
+        assertEquals(runs,runner.calls,"Questions never enqueue or execute generated code");
+        questionModel.invented=true;assertEquals(502,owner.postJson(ai+"/questions",question).statusCode());
+        String failedId=ready(),failedExecution=enqueue(failedId);runner.failure="EXECUTION_FAILED";dispatcher.dispatchAvailable();calls=questionModel.calls;
+        assertEquals(409,owner.postJson(ai+"/questions",question.replace(id,failedId).replace(execution,failedExecution)).statusCode());
+        assertEquals(calls,questionModel.calls);
+        Files.writeString(Path.of("target/analysis-question-e2e.json"),json.writeValueAsString(response));
+    }
     @Test void executesImmutableInputsPublishesRuntimeTablesAndRetriesAsAppendOnlyAttempts() throws Exception {
         String draft=create();assertEquals(409,owner.postJson(path+"/"+draft+"/execute","{}").statusCode());
         String id=ready(),execution=enqueue(id);
@@ -209,6 +283,36 @@ class AnalysisApiIntegrationTest {
         var outsider=new ApiBrowser(port,json);outsider.signUp("other@example.test","Other");
         assertEquals(404,outsider.get(url).statusCode());assertEquals(404,outsider.get(path+"/"+id+"/executions").statusCode());
         assertEquals(404,owner.get(url.replace(artifact,UUID.randomUUID().toString())).statusCode());
+        var record=owner.json(owner.get(path+"/"+id+"/executions/"+execution+"/record"));
+        assertEquals(id,record.get("charts").get(0).get("sourceAnalysisId").asString());assertFalse(record.get("charts").get(0).get("metadataAvailable").asBoolean());
+        assertTrue(record.get("charts").get(0).get("xAxis").isNull());
+        assertEquals(version.toString(),record.get("snapshot").get("inputs").get(0).get("sourceVersionId").asString());
+        String content=reportContent(id,execution,"CHART","plot",UUID.randomUUID());
+        var report=owner.postJson("/api/workspaces/"+workspace+"/documents","{\"title\":\"Chart report\",\"content\":"+content+"}");
+        assertEquals(201,report.statusCode(),report.body());
+        String docId=owner.json(report).get("id").asString();
+        assertEquals(json.readTree(content),owner.json(owner.get("/api/workspaces/"+workspace+"/documents/"+docId)).get("content"));
+        assertEquals(404,outsider.get(path+"/"+id+"/executions/"+execution+"/record").statusCode());
+        assertEquals(404,owner.get(path+"/"+id+"/executions/"+UUID.randomUUID()+"/record").statusCode());
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("UPDATE analysis_execution_records SET snapshot='{}' WHERE execution_id=?",UUID.fromString(execution)));
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("DELETE FROM analysis_execution_records WHERE execution_id=?",UUID.fromString(execution)));
+    }
+    @Test void upgradingLegacyCompletedAttemptsBackfillsExactVersionsAndCodeWithoutRerunningOrInventingAxes() throws Exception {
+        String id=ready(),execution=enqueue(id);dispatcher.dispatchAvailable();
+        var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
+        // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
+        // completed evidence, then run the exact production migration against non-empty historical data.
+        jdbc.execute("DROP TABLE analysis_execution_records");jdbc.execute("DROP FUNCTION validate_analysis_execution_record()");
+        jdbc.execute("DROP TABLE analysis_origins");
+        jdbc.execute("ALTER TABLE ai_generation_runs DROP COLUMN analysis_evidence");jdbc.execute("ALTER TABLE ai_messages DROP COLUMN selected_analysis_outputs");
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24')");flyway.migrate();
+        var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
+        var record=owner.json(response);assertEquals(before,record.get("execution"));
+        assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());
+        assertEquals("data.csv",record.get("snapshot").get("inputs").get(0).get("originalFilename").asString());
+        assertEquals(version.toString(),record.get("snapshot").get("inputs").get(0).get("sourceVersionId").asString());
+        assertEquals(2,record.get("snapshot").get("inputs").get(0).get("sheets").get(0).get("columns").size());
+        assertEquals(1,runner.calls);assertEquals(1,record.get("execution").get("result").get("outputs").get(0).get("rows").size());
     }
     @Test void queuedAccessRevocationAndCorruptStorageCannotLaunchCodeOrExposeResults() throws Exception {
         var editor=new ApiBrowser(port,json);var editorId=UUID.fromString(editor.signUp("executor@example.test","Executor"));
@@ -241,5 +345,73 @@ class AnalysisApiIntegrationTest {
         assertEquals("EXECUTION_INTERRUPTED",failed.get("failureCode").asString());assertEquals("FAILED",failed.get("status").asString());
         executions.complete(claim,claim.provenance(),null,ExecutionContracts.Failure.EXECUTION_FAILED,null,claim.startedAt().plusSeconds(3));
         assertEquals(failed,owner.json(owner.get(path+"/"+id+"/executions/"+execution)));assertEquals(0,runner.calls);
+    }
+    @Test void originalRerunRetainsInputsCodeAndRuntimeAndExposesAnImmutableLogFreeCitationObject() throws Exception {
+        String id=ready(),first=enqueue(id);dispatcher.dispatchAvailable();String base=path+"/"+id+"/executions/"+first;
+        var before=owner.json(owner.get(base));var citation=owner.json(owner.get(base+"/provenance"));
+        assertEquals(first,citation.get("executionId").asString());assertEquals(id,citation.get("analysisId").asString());
+        assertEquals(version.toString(),citation.get("inputSources").get(0).get("sourceVersionId").asString());
+        assertEquals("Select the first two columns",citation.get("prompt").asString());assertFalse(citation.has("diagnostics"));
+        assertFalse(citation.toString().contains("computed stderr"));assertEquals(19.5,citation.get("result").get("outputs").get(0).get("rows").get(0).get(0).asDouble());
+        assertTrue(citation.get("executionHash").asString().matches("[a-f0-9]{64}"));
+        assertEquals(base+"/code",citation.get("code").get("url").asString());
+        var code=owner.json(owner.get(base+"/code"));assertEquals(before.get("provenance").get("codeSha256"),code.get("sha256"));
+        assertEquals(before.get("provenance").get("codeSha256").asString(),ExecutionOutputValidator.sha256(code.get("source").asString()));
+        assertTrue(citation.get("outputReferences").get(0).get("detailsUrl").asString().endsWith("?execution="+first+"#output-0"));
+        var response=owner.postJson(base+"/rerun","{\"inputMode\":\"ORIGINAL\"}");assertEquals(202,response.statusCode(),response.body());
+        String next=owner.json(response).get("execution").get("id").asString();assertNotEquals(first,next);dispatcher.dispatchAvailable();
+        assertNotNull(runner.request.savedRuntime());assertEquals(before.get("provenance").get("imageId").asString(),runner.request.savedRuntime().imageId());
+        assertEquals(before,owner.json(owner.get(base)));assertEquals(citation,owner.json(owner.get(base+"/provenance")));
+        var newCitation=owner.json(owner.get(path+"/"+id+"/executions/"+next+"/provenance"));
+        assertNotEquals(citation.get("executionHash"),newCitation.get("executionHash"));assertEquals(citation.get("code").get("sha256"),newCitation.get("code").get("sha256"));
+        assertEquals("ORIGINAL",newCitation.get("lineage").get("inputMode").asString());
+        assertNotEquals(citation.get("executionTimestamp"),newCitation.get("executionTimestamp"));
+    }
+    UUID replacement(String status) throws Exception {
+        byte[] bytes="Frequency,Resistance\n3,30\n".getBytes(StandardCharsets.UTF_8);String hash=ExecutionOutputValidator.sha256(bytes);
+        String key="sources/"+UUID.randomUUID();storage.store(new StorageKey(key),new ByteArrayInputStream(bytes),"text/csv");
+        UUID next=SourceRowFixture.addVersion(jdbc,source,2,"new-data.csv","text/csv","CSV",bytes.length,key,hash,status,Instant.now());
+        jdbc.update("INSERT INTO source_version_extractions(source_version_id,source_id,workspace_id,job_id,parser_version,content_sha256,payload,created_at,processing_version,schema_version) SELECT ?,source_id,workspace_id,job_id,parser_version,?,payload,now(),processing_version,schema_version FROM source_version_extractions WHERE source_version_id=?",next,hash,version);
+        return next;
+    }
+    @Test void latestRerunCreatesDerivedIntentWithChangedVersionAndCannotMutateOriginalEvidence() throws Exception {
+        String id=ready(),first=enqueue(id);dispatcher.dispatchAvailable();String base=path+"/"+id+"/executions/"+first;
+        var before=owner.json(owner.get(base+"/provenance"));UUID next=replacement("READY");
+        var response=owner.postJson(base+"/rerun","{\"inputMode\":\"LATEST\"}");assertEquals(202,response.statusCode(),response.body());
+        var body=owner.json(response);String derived=body.get("analysisId").asString(),run=body.get("execution").get("id").asString();
+        assertNotEquals(id,derived);assertNotEquals(first,run);assertEquals(2,planner.calls);
+        var changes=body.get("lineage").get("versions").get(0);assertEquals(version.toString(),changes.get("originalVersionId").asString());
+        assertEquals(next.toString(),changes.get("selectedVersionId").asString());assertEquals(2,changes.get("selectedVersionNumber").asInt());
+        var origin=owner.json(owner.get(path+"/"+derived+"/origin")).get("lineage");assertEquals(body.get("lineage"),origin);
+        dispatcher.dispatchAvailable();assertEquals(next,runner.request.inputs().getFirst().sourceVersionId());assertNull(runner.request.savedRuntime());
+        var citation=owner.json(owner.get(path+"/"+derived+"/executions/"+run+"/provenance"));
+        assertEquals(next.toString(),citation.get("inputSources").get(0).get("sourceVersionId").asString());assertEquals(origin,citation.get("lineage"));
+        assertEquals(before,owner.json(owner.get(base+"/provenance")));assertNotEquals(before.get("executionHash"),citation.get("executionHash"));
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("DELETE FROM analysis_origins WHERE analysis_id=?",UUID.fromString(derived)));
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("UPDATE analysis_origins SET payload='{}' WHERE analysis_id=?",UUID.fromString(derived)));
+    }
+    @Test void latestPlanningFailureKeepsDerivedRequestAndOriginAccessibleWithoutHiddenRetries() throws Exception {
+        String id=ready(),first=enqueue(id);dispatcher.dispatchAvailable();planner.fail=true;
+        var response=owner.postJson(path+"/"+id+"/executions/"+first+"/rerun","{\"inputMode\":\"LATEST\"}");
+        assertEquals(202,response.statusCode(),response.body());var body=owner.json(response);assertTrue(body.get("execution").isNull());
+        assertEquals("AI_OUTPUT_INVALID",body.get("failureCode").asString());String derived=body.get("analysisId").asString();
+        assertEquals("FAILED",owner.json(owner.get(path+"/"+derived)).get("status").asString());
+        assertEquals(first,owner.json(owner.get(path+"/"+derived+"/origin")).get("lineage").get("originExecutionId").asString());
+        assertEquals(1,runner.calls);assertEquals(0,owner.json(owner.get(path+"/"+derived+"/executions")).size());
+    }
+    @Test void rerunsRejectUnsafeBodiesActiveExecutionsIncompatibleLatestDataAndUnauthorizedAccess() throws Exception {
+        String id=ready(),first=enqueue(id);String base=path+"/"+id+"/executions/"+first;
+        for (String body:List.of("{}","{\"inputMode\":\"OTHER\"}","{\"inputMode\":true}","{\"inputMode\":\"ORIGINAL\",\"code\":\"print(99)\"}"))
+            assertEquals(400,owner.postJson(base+"/rerun",body).statusCode());
+        assertEquals(409,owner.postJson(base+"/rerun","{\"inputMode\":\"ORIGINAL\"}").statusCode());dispatcher.dispatchAvailable();
+        var outsider=new ApiBrowser(port,json);outsider.signUp("citation-other@example.test","Other");
+        for (String suffix:List.of("/provenance","/code")) assertEquals(404,outsider.get(base+suffix).statusCode());
+        assertEquals(404,outsider.postJson(base+"/rerun","{\"inputMode\":\"LATEST\"}").statusCode());
+        owner.postJson("/api/workspaces/"+workspace+"/members","{\"email\":\"citation-other@example.test\",\"role\":\"VIEWER\"}");
+        assertEquals(200,outsider.get(base+"/provenance").statusCode());assertEquals(200,outsider.get(base+"/code").statusCode());
+        assertEquals(403,outsider.postJson(base+"/rerun","{\"inputMode\":\"ORIGINAL\"}").statusCode());
+        assertEquals(403,owner.sendWithoutCsrf("POST",base+"/rerun","{\"inputMode\":\"LATEST\"}").statusCode());
+        replacement("PROCESSING");assertEquals(409,owner.postJson(base+"/rerun","{\"inputMode\":\"LATEST\"}").statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM analyses",Integer.class));
     }
 }

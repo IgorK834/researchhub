@@ -180,14 +180,18 @@ def test_impedance_fixture_generates_only_code_and_si_unit_conversion_without_pr
     assert 'numeric results are produced only by isolated execution' in plan.warnings[0]
 
 
-def test_current_execution_policy_is_accepted_without_accepting_unknown_template_versions():
+@pytest.mark.parametrize('template', ['computation-plan:1', 'computation-plan:2', 'computation-plan:3'])
+def test_current_execution_policy_is_accepted_without_accepting_unknown_template_versions(template):
     raw = impedance_request().model_dump(by_alias=True)
-    raw['request']['templateId'] = 'computation-plan:2'
+    raw['request']['templateId'] = template
     command = PlanningRequest.model_validate(raw)
     plan = Plan.model_validate_json(ModelGateway(FakeModelProvider()).plan_computation(command).output)
     plan.validate_for(command)
     assert [output.kind for output in plan.outputs] == ['TABLE', 'CHART']
-    raw['request']['templateId'] = 'computation-plan:3'
+    assert "'schemaVersion': '2.0'" in plan.code.source
+    assert "'xAxis':" in plan.code.source and "'yAxis':" in plan.code.source
+    assert "'yTransform': 'ABS'" in plan.code.source
+    raw['request']['templateId'] = 'computation-plan:4'
     with pytest.raises(ValueError):
         PlanningRequest.model_validate(raw)
 

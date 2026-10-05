@@ -6,6 +6,8 @@ import java.util.*;
 
 public interface AnalysisStore {
     Analysis create(Analysis analysis);
+    Analysis createDerived(Analysis analysis, ReproductionContracts.Lineage lineage);
+    Optional<ReproductionContracts.Lineage> origin(UUID workspaceId,UUID analysisId);
     Analysis find(UUID workspaceId,UUID id);
     List<Analysis> list(UUID workspaceId,int offset);
     boolean beginPlanning(UUID workspaceId,UUID id,Instant now);

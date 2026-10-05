@@ -31,11 +31,18 @@ public class ExecutionService {
         this.runner=runner; this.json=json; this.outputs=new ExecutionOutputValidator(json); this.clock=clock;
     }
     public Execution enqueue(UUID workspace,UUID caller,UUID analysisId) {
+        return enqueue(workspace,caller,analysisId,null);
+    }
+    public Execution enqueue(UUID workspace,UUID caller,UUID analysisId,ReproductionContracts.Lineage lineage) {
         authorization.requireContentEditor(workspace,caller);
         var analysis=analyses.find(workspace,caller,analysisId);
         if (analysis.plan()==null) throw new ConflictException("Analysis must have an accepted plan before execution");
         var provenance=provenance(analysis,caller);
-        return store.enqueue(workspace,analysisId,caller,provenance,clock.instant());
+        if (lineage==null) lineage=analyses.origin(workspace,caller,analysisId).orElse(null);
+        if (lineage!=null && lineage.requestedRuntime()!=null) provenance=new Provenance(provenance.planId(),provenance.planSha256(),
+            provenance.codeSha256(),provenance.inputs(),lineage.requestedRuntime().imageId(),lineage.requestedRuntime().runtimeVersion());
+        var snapshot=snapshot(analysis,caller);
+        return store.enqueue(workspace,analysisId,caller,provenance,new Snapshot(snapshot.userPrompt(),snapshot.plan(),snapshot.inputs(),lineage),clock.instant());
     }
     public List<Execution> list(UUID workspace,UUID caller,UUID analysisId) {
         analyses.find(workspace,caller,analysisId); return store.list(workspace,analysisId);
@@ -46,13 +53,20 @@ public class ExecutionService {
     public ArtifactContent artifact(UUID workspace,UUID caller,UUID analysisId,UUID executionId,UUID artifactId) {
         analyses.find(workspace,caller,analysisId); return store.artifact(workspace,analysisId,executionId,artifactId);
     }
+    public ExecutionRecord record(UUID workspace,UUID caller,UUID analysisId,UUID executionId) {
+        analyses.find(workspace,caller,analysisId);
+        return store.record(workspace,analysisId,executionId);
+    }
     void execute(Execution claimed) {
         Provenance provenance=claimed.provenance(); Validated validated=null; Failure failure=null; Diagnostics diagnostics=null;
         long started=System.nanoTime();
         try {
             authorization.requireContentEditor(claimed.workspaceId(),claimed.requestedBy());
             Analysis analysis=analyses.find(claimed.workspaceId(),claimed.requestedBy(),claimed.analysisId());
-            if (!provenance.equals(provenance(analysis,claimed.requestedBy()))) throw new ExecutionFailure(Failure.INPUT_CHANGED);
+            var expected=provenance(analysis,claimed.requestedBy());
+            if (!provenance.planId().equals(expected.planId()) || !provenance.planSha256().equals(expected.planSha256())
+                || !provenance.codeSha256().equals(expected.codeSha256()) || !provenance.inputs().equals(expected.inputs()))
+                throw new ExecutionFailure(Failure.INPUT_CHANGED);
             List<SandboxRunner.Input> staged=new ArrayList<>();
             for (var input:provenance.inputs()) {
                 var content=sources.openVersionContent(claimed.workspaceId(),claimed.requestedBy(),input.sourceId(),input.sourceVersionId());
@@ -66,11 +80,12 @@ public class ExecutionService {
             authorization.requireContentEditor(claimed.workspaceId(),claimed.requestedBy());
             analyses.find(claimed.workspaceId(),claimed.requestedBy(),claimed.analysisId());
             var run=runner.run(new SandboxRunner.Request(claimed.id(),analysis.planId(),analysis.plan().code().source(),staged,
-                analysis.plan().outputs().stream().map(o -> new SandboxRunner.Output(o.name(),o.kind())).toList()));
-            diagnostics=new Diagnostics(run.exitCode(),run.timedOut(),boundedLog(run.stdout()),boundedLog(run.stderr()),
-                run.stdoutTruncated() || run.stdout()!=null && run.stdout().length()>65536,
-                run.stderrTruncated() || run.stderr()!=null && run.stderr().length()>65536,
-                Math.max(0,(System.nanoTime()-started)/1_000_000),SandboxRunner.IMAGE);
+                analysis.plan().outputs().stream().map(o -> new SandboxRunner.Output(o.name(),o.kind())).toList(),
+                provenance.imageId()==null ? null : new ReproductionContracts.RuntimeIdentity(provenance.imageId(),provenance.runtimeVersion())));
+            var stdout=ExecutionLogSanitizer.summarize(run.stdout()); var stderr=ExecutionLogSanitizer.summarize(run.stderr());
+            diagnostics=new Diagnostics(run.exitCode(),run.timedOut(),stdout.text(),stderr.text(),
+                run.stdoutTruncated() || stdout.truncated(),run.stderrTruncated() || stderr.truncated(),
+                Math.max(0,(System.nanoTime()-started)/1_000_000),provenance.imageId()==null ? SandboxRunner.IMAGE : provenance.imageId());
             provenance=new Provenance(provenance.planId(),provenance.planSha256(),provenance.codeSha256(),provenance.inputs(),
                 safeRuntime(run.imageId(),200),safeRuntime(run.runtimeVersion(),100));
             if (!run.successful()) {
@@ -102,11 +117,26 @@ public class ExecutionService {
         return new Provenance(analysis.planId(),ExecutionOutputValidator.sha256(json.writeValueAsString(analysis.plan())),
             ExecutionOutputValidator.sha256(analysis.plan().code().source()),inputs,null,null);
     }
+    private Snapshot snapshot(Analysis analysis,UUID caller) {
+        var audit=analyses.attempts(analysis.workspaceId(),caller,analysis.id()).stream()
+            .filter(a -> a.id().equals(analysis.planId())).findFirst()
+            .orElseThrow(() -> new IllegalStateException("Accepted planning audit is unavailable"));
+        var inputs=audit.request().inputs().stream().map(inspected -> {
+            var preview=inspected.preview();
+            var sheets=analysis.plan().inputs().stream().filter(i -> i.sourceVersionId().equals(preview.sourceVersionId()))
+                .map(selection -> new SelectedSheet(selection.sheetName(),selection.requiredColumns().stream().map(index -> {
+                    String label=preview.sheets().stream().filter(s -> s.name().equals(selection.sheetName()))
+                        .flatMap(s -> s.columns().stream()).filter(c -> c.index()==index).map(DatasetPreview.Column::name)
+                        .findFirst().orElse(null);
+                    return new SelectedColumn(index,label);
+                }).toList())).toList();
+            return new DatasetSnapshot(preview.sourceId(),preview.sourceVersionId(),preview.versionNumber(),preview.originalFilename(),
+                preview.format(),preview.sizeBytes(),preview.contentSha256(),sheets);
+        }).toList();
+        return new Snapshot(analysis.userPrompt(),analysis.plan(),inputs);
+    }
     private static String safeRuntime(String value,int max) {
         return value!=null && value.length()<=max && value.matches("[A-Za-z0-9._:+/@-]+") ? value : null;
-    }
-    private static String boundedLog(String value) {
-        return value==null ? "" : value.substring(0,Math.min(65536,value.length()));
     }
     private static final class ExecutionFailure extends RuntimeException {
         final Failure failure;

@@ -16,8 +16,9 @@ public class AnalysisController {
     private final AnalysisService analyses;
     private final CurrentUserResolver users;
     private final ExecutionService executions;
-    public AnalysisController(AnalysisService analyses,CurrentUserResolver users,ExecutionService executions) {
-        this.analyses=analyses; this.users=users; this.executions=executions;
+    private final AnalysisReproductionService reproduction;
+    public AnalysisController(AnalysisService analyses,CurrentUserResolver users,ExecutionService executions,AnalysisReproductionService reproduction) {
+        this.analyses=analyses; this.users=users; this.executions=executions;this.reproduction=reproduction;
     }
     @PostMapping ResponseEntity<Analysis> create(@PathVariable UUID workspaceId,@RequestBody Create command) {
         var result=analyses.create(workspaceId,users.requireCurrentUser().id(),command);
@@ -55,6 +56,35 @@ public class AnalysisController {
             .contentLength(content.artifact().sizeBytes()).header(HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment().filename(content.artifact().filename()).build().toString())
             .header("X-Content-Type-Options","nosniff").header("Content-Security-Policy","sandbox; default-src 'none'").body(content.bytes());
+    }
+    @GetMapping("/{analysisId}/executions/{executionId}/record") ResponseEntity<ExecutionContracts.ExecutionRecord> record(
+        @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
+        return ok(executions.record(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
+    }
+    @PostMapping("/{analysisId}/executions/{executionId}/rerun") ResponseEntity<ReproductionContracts.RerunResult> rerun(
+        @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId,@RequestBody Map<String,Object> body) {
+        if (body==null || !body.keySet().equals(Set.of("inputMode")) || !(body.get("inputMode") instanceof String mode))
+            throw new dev.researchhub.shared.error.ApiException(dev.researchhub.shared.error.ApiErrorCode.VALIDATION_FAILED,"Only the original/latest input mode is accepted");
+        ReproductionContracts.InputMode inputMode;
+        try { inputMode=ReproductionContracts.InputMode.valueOf(mode); }
+        catch (IllegalArgumentException invalid) { throw new dev.researchhub.shared.error.ApiException(dev.researchhub.shared.error.ApiErrorCode.VALIDATION_FAILED,"Use ORIGINAL or LATEST inputs"); }
+        var command=new ReproductionContracts.Rerun(inputMode);
+        var result=reproduction.rerun(workspaceId,users.requireCurrentUser().id(),analysisId,executionId,command);
+        String location="/api/workspaces/"+workspaceId+"/analyses/"+result.analysisId();
+        if (result.execution()!=null) location+="/executions/"+result.execution().id();
+        return ResponseEntity.accepted().location(URI.create(location)).cacheControl(CacheControl.noStore()).body(result);
+    }
+    @GetMapping("/{analysisId}/origin") ResponseEntity<ReproductionContracts.Origin> origin(
+        @PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        return ok(new ReproductionContracts.Origin(analyses.origin(workspaceId,users.requireCurrentUser().id(),analysisId).orElse(null)));
+    }
+    @GetMapping("/{analysisId}/executions/{executionId}/provenance") ResponseEntity<ReproductionContracts.ComputationProvenance> provenance(
+        @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
+        return ok(reproduction.provenance(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
+    }
+    @GetMapping("/{analysisId}/executions/{executionId}/code") ResponseEntity<ReproductionContracts.SavedCode> code(
+        @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
+        return ok(reproduction.code(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
     }
     private static <T> ResponseEntity<T> ok(T body) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body); }
 }

@@ -29,6 +29,16 @@ public class PostgresAnalysisStore implements AnalysisStore {
         }
         return a;
     }
+    @Transactional public Analysis createDerived(Analysis a,ReproductionContracts.Lineage lineage) {
+        create(a);
+        jdbc.update("INSERT INTO analysis_origins(analysis_id,workspace_id,origin_analysis_id,origin_execution_id,payload,created_at) VALUES (?,?,?,?,?::jsonb,?)",
+            a.id(),a.workspaceId(),lineage.originAnalysisId(),lineage.originExecutionId(),json.writeValueAsString(lineage),Timestamp.from(a.createdAt()));
+        return a;
+    }
+    public Optional<ReproductionContracts.Lineage> origin(UUID workspace,UUID analysis) {
+        return jdbc.query("SELECT payload FROM analysis_origins WHERE workspace_id=? AND analysis_id=?",
+            (row,index) -> json.readValue(row.getString(1),ReproductionContracts.Lineage.class),workspace,analysis).stream().findFirst();
+    }
     public Analysis find(UUID workspace,UUID id) {
         return query("SELECT * FROM analyses WHERE workspace_id=? AND id=?",workspace,id).stream().findFirst()
             .orElseThrow(() -> new ResourceNotFoundException("Analysis was not found"));

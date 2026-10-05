@@ -19,8 +19,18 @@ public final class ExecutionContracts {
         public Provenance { inputs=List.copyOf(inputs); }
     }
     public record Artifact(UUID id, String filename, String mediaType, long sizeBytes, String sha256) {}
+    public record Axis(String label, String unit, String scale) {}
+    /** References persisted table columns; counts are derived by the validator, never supplied by generated code. */
+    public record Series(String name, String tableName, String xColumn, String yColumn, String yTransform,
+                         int rowCount, int pointCount) {}
+    public record ChartMetadata(String title, Axis xAxis, Axis yAxis, List<Series> series) {
+        public ChartMetadata { series=List.copyOf(series); }
+    }
     public record ComputedOutput(OutputKind kind, String name, List<String> columns, List<List<Object>> rows,
-                                 String text, Artifact artifact) {}
+                                 String text, Artifact artifact, ChartMetadata chart) {
+        public ComputedOutput(OutputKind kind, String name, List<String> columns, List<List<Object>> rows,
+                              String text, Artifact artifact) { this(kind,name,columns,rows,text,artifact,null); }
+    }
     public record Result(String schemaVersion, List<ComputedOutput> outputs) {
         public Result { outputs=List.copyOf(outputs); }
     }
@@ -31,4 +41,24 @@ public final class ExecutionContracts {
                             Result result, Failure failureCode, Diagnostics diagnostics) {}
     public record ArtifactContent(Artifact artifact, byte[] bytes) {}
     public record Validated(Result result, Map<UUID,byte[]> artifacts) {}
+    public record SelectedColumn(int index, String label) {}
+    public record SelectedSheet(String name, List<SelectedColumn> columns) {
+        public SelectedSheet { columns=List.copyOf(columns); }
+    }
+    public record DatasetSnapshot(UUID sourceId, UUID sourceVersionId, int versionNumber, String originalFilename,
+                                  String format, long sizeBytes, String sha256, List<SelectedSheet> sheets) {
+        public DatasetSnapshot { sheets=List.copyOf(sheets); }
+    }
+    /** Frozen at enqueue time and retained independently of runtime availability and the current source version. */
+    public record Snapshot(String userPrompt, AnalysisContracts.Plan plan, List<DatasetSnapshot> inputs, ReproductionContracts.Lineage lineage) {
+        public Snapshot(String userPrompt, AnalysisContracts.Plan plan, List<DatasetSnapshot> inputs) { this(userPrompt,plan,inputs,null); }
+        public Snapshot { inputs=List.copyOf(inputs); }
+    }
+    /** IDs and code reference are bound by the server, never accepted from Python output. */
+    public record Chart(String name, String title, Axis xAxis, Axis yAxis, List<Series> series,
+                        UUID sourceAnalysisId, UUID executionId, String codeSha256, Artifact image,
+                        boolean metadataAvailable) {}
+    public record ExecutionRecord(String schemaVersion, Snapshot snapshot, Execution execution, List<Chart> charts) {
+        public ExecutionRecord { charts=List.copyOf(charts); }
+    }
 }

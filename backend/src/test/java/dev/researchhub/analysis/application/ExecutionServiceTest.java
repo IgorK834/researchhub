@@ -35,10 +35,16 @@ class ExecutionServiceTest {
         ready=new Analysis(id,workspace,caller,"Compute impedance",AnalysisStatus.READY_TO_EXECUTE,clock.instant(),clock.instant(),
             List.of(new Input(source,version,"CSV",List.of(1,2,3))),planId,plan,null);
         when(analyses.find(workspace,caller,id)).thenReturn(ready);
+        var preview=new DatasetPreview("1.0",source,version,1,"data.csv",bytes.length,hash,"CSV",false,false,null,List.of(),
+            List.of(new DatasetPreview.Sheet("CSV","visible",1,false,null,List.of(
+                new DatasetPreview.Column(1,"frequency","NUMBER",0,1,true),new DatasetPreview.Column(2,"voltage","NUMBER",0,1,true),
+                new DatasetPreview.Column(3,"current","NUMBER",0,1,true)),List.of(),false)));
+        when(analyses.attempts(workspace,caller,id)).thenReturn(List.of(new PlanAudit(planId,1,caller,
+            new PlanningRequest("1.0",id,null,List.of(new InspectedInput(ready.inputs().getFirst(),preview)),List.of()),null,plan,null,clock.instant())));
         when(sources.findVersion(workspace,caller,source,version)).thenReturn(summary("CSV","READY",bytes.length,hash));
         when(sources.openVersionContent(workspace,caller,source,version)).thenAnswer(_i ->
             new SourceVersionContent(summary("CSV","READY",bytes.length,hash),new ByteArrayInputStream(bytes)));
-        when(store.enqueue(eq(workspace),eq(id),eq(caller),any(),any())).thenAnswer(i ->
+        when(store.enqueue(eq(workspace),eq(id),eq(caller),any(),any(),any())).thenAnswer(i ->
             new Execution(UUID.randomUUID(),id,workspace,caller,1,Status.QUEUED,clock.instant(),null,null,i.getArgument(3),null,null,null));
         when(runner.run(any())).thenReturn(run(true,null,"",validFiles()));
         service=new ExecutionService(auth,analyses,sources,store,runner,json,clock);
@@ -63,11 +69,16 @@ class ExecutionServiceTest {
         assertEquals(planId,queued.provenance().planId());assertEquals(hash,queued.provenance().inputs().getFirst().sha256());
         assertEquals(ExecutionOutputValidator.sha256(ready.plan().code().source()),queued.provenance().codeSha256());
         verify(auth).requireContentEditor(workspace,caller);verifyNoInteractions(runner);
+        var snapshot=ArgumentCaptor.forClass(Snapshot.class);verify(store).enqueue(eq(workspace),eq(id),eq(caller),any(),snapshot.capture(),any());
+        assertEquals(ready.userPrompt(),snapshot.getValue().userPrompt());assertEquals(ready.plan(),snapshot.getValue().plan());
+        assertEquals("frequency",snapshot.getValue().inputs().getFirst().sheets().getFirst().columns().getFirst().label());
         when(store.list(workspace,id)).thenReturn(List.of(queued));assertEquals(List.of(queued),service.list(workspace,caller,id));
         when(store.find(workspace,id,queued.id())).thenReturn(queued);assertSame(queued,service.find(workspace,caller,id,queued.id()));
         var artifactId=UUID.randomUUID();var content=new ArtifactContent(new Artifact(artifactId,"figure.png","image/png",1,hash),new byte[]{1});
         when(store.artifact(workspace,id,queued.id(),artifactId)).thenReturn(content);
         assertSame(content,service.artifact(workspace,caller,id,queued.id(),artifactId));verify(analyses,times(4)).find(workspace,caller,id);
+        var record=new ExecutionRecord("1.0",snapshot.getValue(),queued,List.of());when(store.record(workspace,id,queued.id())).thenReturn(record);
+        assertSame(record,service.record(workspace,caller,id,queued.id()));verify(analyses,times(5)).find(workspace,caller,id);
     }
     @Test void unplannedViewerAndOversizedOrUnreadyInputsNeverReachTheRunner() {
         doThrow(new ForbiddenException("Viewer")).when(auth).requireContentEditor(workspace,caller);
@@ -120,7 +131,7 @@ class ExecutionServiceTest {
         when(runner.run(any())).thenReturn(run(false,"EXECUTION_TIMEOUT","x".repeat(70000),Map.of()));
         service.execute(execution);failed(execution,Failure.EXECUTION_TIMEOUT);
         var captured=ArgumentCaptor.forClass(Diagnostics.class);verify(store).complete(any(),any(),any(),any(),captured.capture(),any());
-        assertEquals(65536,captured.getValue().stdout().length());assertTrue(captured.getValue().stdoutTruncated());reset(store);
+        assertEquals(ExecutionLogSanitizer.MAX_CHARACTERS,captured.getValue().stdout().length());assertTrue(captured.getValue().stdoutTruncated());reset(store);
         when(runner.run(any())).thenReturn(run(false,"private provider details",null,Map.of()));
         service.execute(execution);failed(execution,Failure.EXECUTION_FAILED);reset(store);
         when(runner.run(any())).thenReturn(run(true,null,"",Map.of("result.json","{}".getBytes())));

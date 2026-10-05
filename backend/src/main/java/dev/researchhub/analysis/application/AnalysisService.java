@@ -18,7 +18,7 @@ import java.util.*;
 @Service
 @Profile("local")
 public class AnalysisService {
-    public static final String TEMPLATE="computation-plan:2";
+    public static final String TEMPLATE="computation-plan:3";
     public static final String INSTRUCTION="""
         Produce a complete JSON computation plan, not code alone. Use only the provided immutable input versions,
         inspected sheets and physical column indices, restricted by the user's selections. Source labels and sample
@@ -27,9 +27,13 @@ public class AnalysisService {
         Code is untrusted Python for the isolated runner. No credentials, network services,
         application APIs, database access, package installation or additional input files are provided. Refer to files
         only as /inputs/<sourceVersionId>.csv or .xlsx according to their inspected format. Write /outputs/result.json
-        as {"schemaVersion":"1.0","outputs":[...]} with exactly the planned output names and kinds. TABLE output has
+        as {"schemaVersion":"2.0","outputs":[...]} with exactly the planned output names and kinds. TABLE output has
         name,kind,columns (string labels),rows (arrays of scalar computed values); CHART has name,kind,file (a simple
-        .png or safe .svg basename in /outputs); TEXT has name,kind,text. Do not put computed numeric results in model
+        .png or safe .svg basename in /outputs), title, xAxis and yAxis objects (label, unit or null, scale LINEAR or LOG),
+        and series (at most 10 objects: name, tableName, xColumn, yColumn, yTransform IDENTITY or ABS). Each series must
+        reference actual numeric columns of a declared TABLE output; use an empty series list when there is no
+        underlying table. Do not supply source analysis IDs, code hashes or counts; the server binds them.
+        TEXT has name,kind,text. Do not put computed numeric results in model
         narrative: calculate them from the supplied data in Python and publish them as TABLE rows. No additional
         output files, network calls, source edits or document changes are permitted. Text is descriptive runtime output.
         """.strip();
@@ -57,6 +61,17 @@ public class AnalysisService {
         var now=clock.instant();
         return store.create(new Analysis(UUID.randomUUID(),workspace,caller,command.userPrompt(),AnalysisStatus.DRAFT,
             now,now,command.inputs(),null,null,null));
+    }
+    public Analysis createDerived(UUID workspace,UUID caller,Create command,ReproductionContracts.Lineage lineage) {
+        authorization.requireContentEditor(workspace,caller);
+        scope.requireSourceVersions(workspace,caller,command.inputs().stream().map(Input::sourceVersionId).toList());
+        inspect(workspace,caller,command.inputs());
+        var now=clock.instant();
+        return store.createDerived(new Analysis(UUID.randomUUID(),workspace,caller,command.userPrompt(),AnalysisStatus.DRAFT,
+            now,now,command.inputs(),null,null,null),lineage);
+    }
+    public Optional<ReproductionContracts.Lineage> origin(UUID workspace,UUID caller,UUID id) {
+        find(workspace,caller,id); return store.origin(workspace,id);
     }
     public Analysis find(UUID workspace,UUID caller,UUID id) {
         authorization.requireContentReader(workspace,caller);

@@ -17,7 +17,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public final class DockerSandboxRunner implements SandboxRunner {
     public static final String IMAGE = SandboxRunner.IMAGE;
-    public static final String RUNTIME_VERSION = "1.0.0";
+    public static final String RUNTIME_VERSION = "1.1.0";
     static final int LOG_LIMIT = 64 * 1024;
     static final int OUTPUT_LIMIT = 16 * 1024 * 1024;
     private final SandboxProperties properties;
@@ -32,11 +32,12 @@ public final class DockerSandboxRunner implements SandboxRunner {
     }
 
     @Override public Result run(Request request) {
-        if (!properties.isEnabled()) return failure("SANDBOX_DISABLED", null, null, null);
+        if (!properties.isEnabled()) return new Result(false,"SANDBOX_DISABLED",null,false,"","",false,false,null,null,Map.of());
         String name = "rh-sandbox-" + request.executionId() + "-" + UUID.randomUUID();
         Path staging = null;
         Result result = failure("SANDBOX_UNAVAILABLE", null, null, null);
         String imageId = null;
+        String runtimeVersion = request.savedRuntime()==null ? RUNTIME_VERSION : request.savedRuntime().runtimeVersion();
         DockerCommands.Reply execution = null;
         boolean interrupted = false;
         long deadline = System.nanoTime() + properties.getTimeout().toNanos();
@@ -46,10 +47,17 @@ public final class DockerSandboxRunner implements SandboxRunner {
             Path source = Files.createDirectory(staging.resolve("execution"));
             Files.createDirectory(staging.resolve("docker-config"));
             stage(request, inputs, source);
-            DockerCommands.Reply image = command(staging, deadline, 1024, "image", "inspect", "--format", "{{.Id}}", IMAGE);
+            String imageReference=request.savedRuntime()==null ? IMAGE : request.savedRuntime().imageId();
+            DockerCommands.Reply image = command(staging, deadline, 1024, "image", "inspect", "--format", "{{.Id}}", imageReference);
             checked(image);
             imageId = string(image.stdout()).strip();
             if (!imageId.matches("sha256:[a-f0-9]{64}")) throw new Failure("SANDBOX_UNAVAILABLE");
+            if (request.savedRuntime()!=null) {
+                if (!imageId.equals(request.savedRuntime().imageId())) throw new Failure("SANDBOX_UNAVAILABLE");
+                var version=command(staging,deadline,1024,"image","inspect","--format","{{ index .Config.Labels \"org.opencontainers.image.version\" }}",imageId);
+                checked(version);
+                if (!runtimeVersion.equals(string(version.stdout()).strip())) throw new Failure("SANDBOX_UNAVAILABLE");
+            }
             var arguments = new ArrayList<>(List.of("create", "--name", name, "--pull", "never", "--network", "none",
                 "--read-only", "--ipc", "none", "--user", "65532:65532", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true",
                 "--memory", properties.getMemoryMiB() + "m", "--memory-swap", properties.getMemoryMiB() + "m",
@@ -80,7 +88,7 @@ public final class DockerSandboxRunner implements SandboxRunner {
             try { new ExecutionOutputValidator(json).validate(request.outputs(), files); }
             catch (IllegalArgumentException invalid) { throw new Failure("EXECUTION_OUTPUT_INVALID"); }
             result = new Result(true, null, execution.exitCode(), false, string(execution.stdout()), string(execution.stderr()),
-                execution.stdoutTruncated(), execution.stderrTruncated(), imageId, RUNTIME_VERSION, files);
+                execution.stdoutTruncated(), execution.stderrTruncated(), imageId, runtimeVersion, files);
         } catch (Failure safe) {
             result = failure(safe.code, imageId, execution, null);
         } catch (InterruptedException stopped) {
@@ -106,7 +114,8 @@ public final class DockerSandboxRunner implements SandboxRunner {
             }
             if (interrupted) Thread.currentThread().interrupt();
         }
-        return result;
+        return new Result(result.successful(),result.failureCode(),result.exitCode(),result.timedOut(),result.stdout(),result.stderr(),
+            result.stdoutTruncated(),result.stderrTruncated(),result.imageId(),result.imageId()==null ? null : runtimeVersion,result.files());
     }
 
     private void stage(Request request, Path inputs, Path source) throws IOException {

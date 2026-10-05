@@ -2,9 +2,9 @@ package dev.researchhub.analysis.application;
 
 import java.util.*;
 
-/** Trusted launcher port. There are deliberately no Docker options, host paths, images or environment fields. */
+/** Trusted launcher port. Saved runtime identity comes from completed server records, never from request JSON. */
 public interface SandboxRunner {
-    String IMAGE = "researchhub-sandbox:1.0.0";
+    String IMAGE = "researchhub-sandbox:1.1.0";
     Result run(Request request);
 
     record Input(UUID sourceVersionId, String format, byte[] bytes, String sha256) {
@@ -23,7 +23,9 @@ public interface SandboxRunner {
                 throw new IllegalArgumentException("Invalid sandbox output");
         }
     }
-    record Request(UUID executionId, UUID planId, String code, List<Input> inputs, List<Output> outputs) {
+    record Request(UUID executionId, UUID planId, String code, List<Input> inputs, List<Output> outputs,
+                   ReproductionContracts.RuntimeIdentity savedRuntime) {
+        public Request(UUID executionId,UUID planId,String code,List<Input> inputs,List<Output> outputs) { this(executionId,planId,code,inputs,outputs,null); }
         public Request {
             if (executionId == null || planId == null || code == null || code.isBlank() || code.length() > 32000
                 || inputs == null || inputs.isEmpty() || inputs.size() > 5 || outputs == null || outputs.isEmpty()

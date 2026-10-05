@@ -15,6 +15,37 @@ class ExecutionOutputValidatorTest {
         return Map.of("result.json",("{\"schemaVersion\":\"1.0\",\"outputs\":["+output+"]}").getBytes(StandardCharsets.UTF_8));
     }
     String validTable() { return "{\"name\":\"computed\",\"kind\":\"TABLE\",\"columns\":[\"a\",\"b\"],\"rows\":[[2,1.25],[null,true],[\"text\",\"\"]]}"; }
+    String richManifest() { return """
+        {"schemaVersion":"2.0","outputs":[
+        {"name":"figure","kind":"CHART","file":"chart.svg","title":"Impedance vs frequency",
+         "xAxis":{"label":"Frequency","unit":"Hz","scale":"LOG"},"yAxis":{"label":"Impedance","unit":"Ω","scale":"LOG"},
+         "series":[{"name":"magnitude","tableName":"computed","xColumn":"f","yColumn":"Z","yTransform":"ABS"}]},
+        {"name":"computed","kind":"TABLE","columns":["f","Z"],"rows":[[1,-2],[2,4],[null,6]]}]}
+        """; }
+    Map<String,byte[]> richFiles(String manifest) { return Map.of("result.json",manifest.getBytes(StandardCharsets.UTF_8),"chart.svg",
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0L10 10\"/></svg>".getBytes(StandardCharsets.UTF_8)); }
+    final List<SandboxRunner.Output> rich=List.of(new SandboxRunner.Output("computed",TABLE),new SandboxRunner.Output("figure",CHART));
+    @Test void recordsTypedAxesAndSeriesLinkedToSavedTablesAndDerivesCountsRegardlessOfOutputOrder() {
+        var result=validator.validate(rich,richFiles(richManifest())).result();assertEquals("2.0",result.schemaVersion());
+        var chart=result.outputs().getFirst().chart();assertEquals("Hz",chart.xAxis().unit());assertEquals("LOG",chart.xAxis().scale());
+        assertEquals("Impedance vs frequency",chart.title());assertEquals(3,chart.series().getFirst().rowCount());assertEquals(2,chart.series().getFirst().pointCount());
+        assertEquals("ABS",chart.series().getFirst().yTransform());assertEquals("computed",chart.series().getFirst().tableName());
+        String noSeries=richManifest().replace("[{\"name\":\"magnitude\",\"tableName\":\"computed\",\"xColumn\":\"f\",\"yColumn\":\"Z\",\"yTransform\":\"ABS\"}]","[]")
+            .replace("\"unit\":\"Hz\"","\"unit\":null");
+        assertTrue(validator.validate(rich,richFiles(noSeries)).result().outputs().getFirst().chart().series().isEmpty());
+        assertNull(validator.validate(rich,richFiles(noSeries)).result().outputs().getFirst().chart().xAxis().unit());
+    }
+    @Test void rejectsUnboundSeriesForgedProvenanceCountsOrInvalidChartMetadata() {
+        for (String invalid:List.of(
+            richManifest().replace("\"tableName\":\"computed\"","\"tableName\":\"missing\""),
+            richManifest().replace("\"xColumn\":\"f\"","\"xColumn\":\"missing\""),
+            richManifest().replace("\"LOG\"","\"javascript\""),richManifest().replace("\"ABS\"","\"PYTHON\""),
+            richManifest().replace("[1,-2]","[1,\"text\"]"),richManifest().replace("[1,-2]","[0,-2]"),
+            richManifest().replace("\"ABS\"","\"IDENTITY\""),richManifest().replace("\"title\":","\"sourceAnalysisId\":\"forged\",\"title\":"),
+            richManifest().replace("\"yTransform\":","\"pointCount\":42,\"yTransform\":"),
+            richManifest().replace("Impedance vs frequency"," "),richManifest().replace("\"unit\":\"Hz\"","\"unit\":{}")))
+            assertThrows(IllegalArgumentException.class,() -> validator.validate(rich,richFiles(invalid)),invalid);
+    }
     @Test void validatesComputedScalarsAndRetainsNullsWithoutModelNarrative() {
         var validated=validator.validate(table,result(validTable()));
         var output=validated.result().outputs().getFirst();

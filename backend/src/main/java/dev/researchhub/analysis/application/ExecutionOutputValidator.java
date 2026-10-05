@@ -32,7 +32,7 @@ public final class ExecutionOutputValidator {
             require(total<=MAX_TOTAL_BYTES);
             byte[] manifest=files.get("result.json"); require(manifest!=null && manifest.length<=MAX_RESULT_BYTES);
             Map<?,?> root=json.readValue(manifest,Map.class); keys(root,"schemaVersion","outputs");
-            require("1.0".equals(root.get("schemaVersion")));
+            String version=text(root.get("schemaVersion"),10); require(Set.of("1.0","2.0").contains(version));
             List<?> outputs=list(root.get("outputs"),10); require(!outputs.isEmpty() && outputs.size()==declaredOutputs.size());
             Map<String,SandboxRunner.Output> expected=new HashMap<>(); declaredOutputs.forEach(o -> { require(expected.put(o.name(),o)==null); });
             Set<String> usedFiles=new HashSet<>(); usedFiles.add("result.json");
@@ -69,7 +69,9 @@ public final class ExecutionOutputValidator {
                         result.add(new ComputedOutput(OutputKind.TEXT,name,null,null,(String)content,null));
                     }
                     case CHART -> {
-                        keys(output,"name","kind","file"); String filename=text(output.get("file"),100);
+                        if (version.equals("2.0")) keys(output,"name","kind","file","title","xAxis","yAxis","series");
+                        else keys(output,"name","kind","file");
+                        String filename=text(output.get("file"),100);
                         require(filename.matches("[A-Za-z0-9][A-Za-z0-9_.-]{0,95}\\.(png|svg)") && usedFiles.add(filename));
                         byte[] bytes=files.get(filename); require(bytes!=null && bytes.length>0 && bytes.length<=MAX_ARTIFACT_BYTES);
                         String mediaType;
@@ -79,13 +81,55 @@ public final class ExecutionOutputValidator {
                         } else { safeSvg(bytes); mediaType="image/svg+xml"; }
                         Artifact artifact=new Artifact(UUID.randomUUID(),filename,mediaType,bytes.length,sha256(bytes));
                         artifacts.put(artifact.id(),bytes.clone());
-                        result.add(new ComputedOutput(OutputKind.CHART,name,null,null,null,artifact));
+                        result.add(new ComputedOutput(OutputKind.CHART,name,null,null,null,artifact,
+                            version.equals("2.0") ? metadata(output) : null));
                     }
                 }
             }
             require(expected.isEmpty() && usedFiles.equals(files.keySet()));
-            return new Validated(new Result("1.0",result),Map.copyOf(artifacts));
+            Map<String,ComputedOutput> tables=new HashMap<>();
+            result.stream().filter(o -> o.kind()==OutputKind.TABLE).forEach(o -> tables.put(o.name(),o));
+            List<ComputedOutput> resolved=result.stream().map(o -> resolveSeries(o,tables)).toList();
+            return new Validated(new Result(version,resolved),Map.copyOf(artifacts));
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid execution output"); }
+    }
+    private static Axis axis(Object value) {
+        require(value instanceof Map); Map<?,?> axis=(Map<?,?>)value;keys(axis,"label","unit","scale");
+        String label=text(axis.get("label"),128),scale=text(axis.get("scale"),10);
+        require(Set.of("LINEAR","LOG").contains(scale));
+        return new Axis(label,axis.get("unit")==null ? null : text(axis.get("unit"),40),scale);
+    }
+    private static ChartMetadata metadata(Map<?,?> output) {
+        List<Series> series=new ArrayList<>(); Set<String> names=new HashSet<>();
+        for (Object value:list(output.get("series"),10)) {
+            require(value instanceof Map); Map<?,?> item=(Map<?,?>)value;
+            keys(item,"name","tableName","xColumn","yColumn","yTransform");
+            String name=text(item.get("name"),128),transform=text(item.get("yTransform"),10);
+            require(names.add(name) && Set.of("IDENTITY","ABS").contains(transform));
+            series.add(new Series(name,text(item.get("tableName"),100),text(item.get("xColumn"),256),text(item.get("yColumn"),256),transform,0,0));
+        }
+        return new ChartMetadata(text(output.get("title"),200),axis(output.get("xAxis")),axis(output.get("yAxis")),series);
+    }
+    private static ComputedOutput resolveSeries(ComputedOutput output,Map<String,ComputedOutput> tables) {
+        if (output.chart()==null) return output;
+        ChartMetadata chart=output.chart(); List<Series> resolved=new ArrayList<>();
+        for (Series series:chart.series()) {
+            ComputedOutput table=tables.get(series.tableName()); require(table!=null);
+            int x=table.columns().indexOf(series.xColumn()),y=table.columns().indexOf(series.yColumn()); require(x>=0 && y>=0);
+            int points=0;
+            for (List<Object> row:table.rows()) {
+                Object rawX=row.get(x),rawY=row.get(y);
+                if (rawX==null || rawY==null) continue;
+                require(rawX instanceof Number && rawY instanceof Number);
+                double xv=((Number)rawX).doubleValue(),yv=((Number)rawY).doubleValue();
+                if (series.yTransform().equals("ABS")) yv=Math.abs(yv);
+                require((!chart.xAxis().scale().equals("LOG") || xv>0) && (!chart.yAxis().scale().equals("LOG") || yv>0));
+                points++;
+            }
+            resolved.add(new Series(series.name(),series.tableName(),series.xColumn(),series.yColumn(),series.yTransform(),table.rows().size(),points));
+        }
+        return new ComputedOutput(output.kind(),output.name(),output.columns(),output.rows(),output.text(),output.artifact(),
+            new ChartMetadata(chart.title(),chart.xAxis(),chart.yAxis(),resolved));
     }
     private static void safeSvg(byte[] bytes) {
         try {

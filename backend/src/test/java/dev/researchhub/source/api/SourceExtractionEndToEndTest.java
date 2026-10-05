@@ -164,7 +164,7 @@ class SourceExtractionEndToEndTest {
         assertEquals("deterministic",audit.get(0).get("candidate").get("model").get("provider").asString());
         assertEquals("TABLE",ready.get("plan").get("outputs").get(0).get("kind").asString());
         assertEquals(version,ready.get("plan").get("inputs").get(0).get("sourceVersionId").asString());
-        replace(source,"new-measurements.csv","frequency,voltage,current\n300,5,1\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        replace(source,"new-measurements.csv","frequency,voltage,current\n300,5,1\n400,4,1\n500,6,2\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
         assertNotEquals(version,activeVersion(source));assertEquals(ready,owner.json(owner.get(path+"/"+id)));
         assertEquals(ready,owner.json(owner.postJson(path+"/"+id+"/plan","{}")));
         assertEquals(audit,owner.json(owner.get(path+"/"+id+"/plans")));
@@ -177,20 +177,66 @@ class SourceExtractionEndToEndTest {
         assertEquals(dev.researchhub.analysis.application.ExecutionOutputValidator.sha256(ready.get("plan").get("code").get("source").asString()),
             first.get("provenance").get("codeSha256").asString());
         assertTrue(first.get("provenance").get("imageId").asString().matches("sha256:[a-f0-9]{64}"));
-        assertEquals("1.0.0",first.get("provenance").get("runtimeVersion").asString());
+        assertEquals("1.1.0",first.get("provenance").get("runtimeVersion").asString());
         assertEquals("SUCCEEDED",owner.json(owner.get(path+"/"+id)).get("status").asString());
-        var second=executeAnalysis(path,id);
+        String firstId=first.get("id").asString();String firstBase=path+"/"+id+"/executions/"+firstId;
+        var originalCitation=owner.json(owner.get(firstBase+"/provenance"));
+        var originalRerun=owner.postJson(firstBase+"/rerun","{\"inputMode\":\"ORIGINAL\"}");assertEquals(202,originalRerun.statusCode(),originalRerun.body());
+        var second=completeAnalysis(path,id,owner.json(originalRerun).get("execution"));
         assertEquals(2,second.get("attempt").asInt());
         assertNotEquals(first.get("id"),second.get("id"));
         assertEquals(table,second.get("result").get("outputs").get(0));
         var history=owner.json(owner.get(path+"/"+id+"/executions"));assertEquals(2,history.size());
         assertEquals(first,owner.json(owner.get(path+"/"+id+"/executions/"+first.get("id").asString())));
         assertEquals(audit,owner.json(owner.get(path+"/"+id+"/plans")),"Execution retries never regenerate the accepted plan");
+        assertEquals(first.get("provenance").get("imageId"),second.get("provenance").get("imageId"));
+        assertEquals(first.get("provenance").get("codeSha256"),second.get("provenance").get("codeSha256"));
+        var latestResponse=owner.postJson(firstBase+"/rerun","{\"inputMode\":\"LATEST\"}");assertEquals(202,latestResponse.statusCode(),latestResponse.body());
+        var latest=owner.json(latestResponse);String derived=latest.get("analysisId").asString();assertNotEquals(id,derived);
+        var latestCompleted=completeAnalysis(path,derived,latest.get("execution"));
+        var latestRows=latestCompleted.get("result").get("outputs").get(0).get("rows");assertEquals(3,latestRows.size());
+        assertEquals(300.0,latestRows.get(0).get(0).asDouble());assertEquals(5.0,latestRows.get(0).get(3).asDouble());
+        assertEquals(3.0,latestRows.get(2).get(3).asDouble());
+        assertNotEquals(first.get("provenance").get("codeSha256"),latestCompleted.get("provenance").get("codeSha256"));
+        assertEquals(activeVersion(source),latestCompleted.get("provenance").get("inputs").get(0).get("sourceVersionId").asString());
+        var latestCitation=owner.json(owner.get(path+"/"+derived+"/executions/"+latestCompleted.get("id").asString()+"/provenance"));
+        assertNotEquals(originalCitation.get("executionHash"),latestCitation.get("executionHash"));
+        assertEquals(originalCitation,owner.json(owner.get(firstBase+"/provenance")));assertEquals(firstId,latestCitation.get("lineage").get("originExecutionId").asString());
+        String chartName=latestCompleted.get("result").get("outputs").get(1).get("name").asString();
+        var block=Map.of("type","analysisResult","attrs",Map.of("blockId",UUID.randomUUID(),"reference",Map.of(
+            "analysisId",derived,"executionId",latestCompleted.get("id").asString(),"outputId",chartName,"renderMode","CHART"),"caption","Figure 1. Impedance computed from the selected CSV version."));
+        var reportContent=Map.of("type","doc","content",List.of(Map.of("type","heading","attrs",Map.of("level",2),"content",List.of(Map.of("type","text","text","Experimental results"))),block,Map.of("type","paragraph","content",List.of(Map.of("type","text","text","The chart retains its execution and source provenance.")))));
+        var report=owner.postJson("/api/workspaces/"+workspaceId+"/documents",mapper.writeValueAsString(Map.of("title","Impedance experiment", "content",reportContent)));
+        assertEquals(201,report.statusCode(),report.body());
+        String reportPath="/api/workspaces/"+workspaceId+"/documents/"+owner.json(report).get("id").asString();
+        assertEquals(mapper.valueToTree(reportContent),owner.json(owner.get(reportPath)).get("content"));
+        Files.writeString(Path.of("target/analysis-semantic-report-e2e.json"),report.body());
+        var mixed=owner.postJson("/api/workspaces/"+workspaceId+"/ai/questions",mapper.writeValueAsString(Map.of(
+            "question","What does the voltage source describe and what does the saved impedance output contain?",
+            "selectedSourceIds",List.of(source),"selectedAnalysisOutputs",List.of(Map.of("analysisId",derived,"executionId",latestCompleted.get("id").asString(),"outputId",latestCompleted.get("result").get("outputs").get(0).get("name").asString())))));
+        assertEquals(200,mixed.statusCode(),mixed.body());var mixedAnswer=owner.json(mixed);
+        var selectedEvidence=mixedAnswer.get("generation").get("analysisEvidence").get(0);
+        assertEquals(activeVersion(source),selectedEvidence.get("inputSources").get(0).get("sourceVersionId").asString());
+        assertTrue(mixedAnswer.get("generation").get("context").get("citations").toString().contains("A1"));
+        assertTrue(mixedAnswer.get("generation").get("context").get("citations").toString().contains("S1"));
+        assertEquals(1,mixedAnswer.get("analysisCitations").size());assertFalse(mixedAnswer.get("citations").isEmpty());
+        var citedSource=mixedAnswer.get("citations").get(0);
+        var fragment=owner.get("/api/workspaces/"+workspaceId+"/sources/"+citedSource.get("sourceId").asString()+"/retrieval/chunks/"+citedSource.get("chunkId").asString()+
+            "?processingVersion="+java.net.URLEncoder.encode(citedSource.get("processingVersion").asString(),java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(200,fragment.statusCode(),fragment.body());
+        assertEquals(citedSource.get("sourceVersionId"),owner.json(fragment).get("sourceVersionId"));
+        Files.writeString(Path.of("target/analysis-mixed-source-e2e.json"),fragment.body());
+        Files.writeString(Path.of("target/analysis-mixed-question-e2e.json"),mixed.body());
+        Files.copy(Path.of("target/analysis-e2e-record.json"),Path.of("target/analysis-rerun-e2e-record.json"),StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(Path.of("target/analysis-e2e-chart.png"),Path.of("target/analysis-rerun-e2e-chart.png"),StandardCopyOption.REPLACE_EXISTING);
     }
 
     private tools.jackson.databind.JsonNode executeAnalysis(String path,String id) throws Exception {
         var queued=owner.postJson(path+"/"+id+"/execute","{}");assertEquals(202,queued.statusCode(),queued.body());
-        var attempt=owner.json(queued);assertEquals("QUEUED",attempt.get("status").asString());
+        return completeAnalysis(path,id,owner.json(queued));
+    }
+    private tools.jackson.databind.JsonNode completeAnalysis(String path,String id,tools.jackson.databind.JsonNode attempt) throws Exception {
+        assertEquals("QUEUED",attempt.get("status").asString());
         assertEquals(409,owner.postJson(path+"/"+id+"/execute","{}").statusCode());
         analysisDispatcher.dispatchAvailable();
         String attemptPath=path+"/"+id+"/executions/"+attempt.get("id").asString();
@@ -203,6 +249,14 @@ class SourceExtractionEndToEndTest {
         assertEquals(chart.get("sha256").asString(),dev.researchhub.analysis.application.ExecutionOutputValidator.sha256(downloaded.body()));
         assertEquals("nosniff",downloaded.headers().firstValue("X-Content-Type-Options").orElseThrow());
         Files.write(Path.of("target/analysis-e2e-chart.png"),downloaded.body());
+        var recordResponse=owner.get(attemptPath+"/record");assertEquals(200,recordResponse.statusCode(),recordResponse.body());
+        var record=owner.json(recordResponse);var savedChart=record.get("charts").get(0);
+        Files.writeString(Path.of("target/analysis-e2e-record.json"),recordResponse.body());
+        assertEquals(id,savedChart.get("sourceAnalysisId").asString());assertEquals(attempt.get("id"),savedChart.get("executionId"));
+        assertEquals(completed.get("provenance").get("codeSha256"),savedChart.get("codeSha256"));
+        assertEquals("Hz",savedChart.get("xAxis").get("unit").asString());assertEquals("Ω",savedChart.get("yAxis").get("unit").asString());
+        assertEquals(completed.get("result").get("outputs").get(0).get("rows").size(),savedChart.get("series").get(0).get("pointCount").asInt());
+        assertEquals(completed.get("provenance").get("inputs").get(0).get("sourceVersionId"),record.get("snapshot").get("inputs").get(0).get("sourceVersionId"));
         return completed;
     }
 
@@ -827,7 +881,7 @@ class SourceExtractionEndToEndTest {
         String row=jdbc.queryForObject("SELECT row_to_json(m)::text FROM ai_messages m WHERE id=?",String.class,turn.assistant().id());
         var stored=mapper.readTree(row);
         assertEquals("deterministic",stored.get("model").get("provider").asString());
-        assertEquals("workspace-question:1",stored.get("template_id").asString());
+        assertEquals("workspace-question:2",stored.get("template_id").asString());
         assertTrue(stored.get("usage").get("totalTokens").asLong()>0);assertNotNull(turn.assistant().completedAt());
         assertFalse(row.contains(TOKEN));assertFalse(row.contains("systemInstruction"));assertFalse(row.contains("reasoning"));
         var history=owner.get(conversationPath()+"/"+conversation.id());assertEquals(200,history.statusCode());
@@ -1010,7 +1064,7 @@ class SourceExtractionEndToEndTest {
         var captured = org.mockito.ArgumentCaptor.forClass(dev.researchhub.ai.application.ContextContracts.ContextualRequest.class);
         org.mockito.Mockito.verify(models).generateStructured(captured.capture());
         assertEquals(retrievedIds,captured.getValue().request().evidence().stream().map(dev.researchhub.ai.application.GenerationContracts.Evidence::chunkId).collect(java.util.stream.Collectors.toSet()));
-        assertEquals("workspace-question:1",result.generation().result().templateId());
+        assertEquals("workspace-question:2",result.generation().result().templateId());
         assertEquals("workspace-question",jdbc.queryForObject("SELECT feature_id FROM ai_generation_runs WHERE request_id=?",String.class,result.generation().result().requestId()));
         assertEquals(result.generation(),mapper.readValue(owner.get("/api/workspaces/" + workspaceId + "/ai/generations/" + result.generation().result().requestId()).body(),dev.researchhub.ai.application.GenerationContracts.GeneratedResponse.class));
         assertTrue(ask(workspaceId,question,null).citations().stream().allMatch(c -> c.workspaceId().equals(UUID.fromString(workspaceId))));

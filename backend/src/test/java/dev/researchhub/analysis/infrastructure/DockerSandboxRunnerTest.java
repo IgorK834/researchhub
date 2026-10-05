@@ -27,6 +27,7 @@ class DockerSandboxRunnerTest {
         final List<List<String>> calls = new ArrayList<>();
         final Map<String, Reply> replies = new HashMap<>();
         String ioFailure, interruption;
+        String savedVersion="1.1.0";
         Path staging;
         Request expected;
         @Override public Reply execute(List<String> command, Duration timeout, int stdoutLimit, int stderrLimit) throws IOException, InterruptedException {
@@ -46,6 +47,8 @@ class DockerSandboxRunnerTest {
                 assertEquals(Set.of(expected.inputs().getFirst().filename()), Files.list(staging.resolve("inputs")).map(p -> p.getFileName().toString()).collect(java.util.stream.Collectors.toSet()));
             }
             if (replies.containsKey(operation)) return replies.get(operation);
+            if (operation.equals("image") && command.stream().anyMatch(v -> v.contains("org.opencontainers.image.version")))
+                return reply(0,savedVersion.getBytes(StandardCharsets.UTF_8));
             if (operation.equals("image")) return reply(0, (IMAGE_ID + "\n").getBytes(StandardCharsets.UTF_8));
             if (operation.equals("exec")) return new Reply(0, false, "captured".getBytes(), "diagnostic".getBytes(), true, true);
             if (operation.equals("cp")) return reply(0, tar("result.json", '0', validResult()));
@@ -56,11 +59,23 @@ class DockerSandboxRunnerTest {
         Result result = new DockerSandboxRunner(properties, json, (a,b,c,d) -> { throw new AssertionError(); }).run(request());
         assertEquals("SANDBOX_DISABLED", result.failureCode()); assertTrue(result.files().isEmpty());
     }
+    @Test void originalRerunUsesTheSavedDigestAndVersionAndNeverFallsBackToAnotherImage() {
+        var standard=request();var identity=new dev.researchhub.analysis.application.ReproductionContracts.RuntimeIdentity(IMAGE_ID,"1.0.0");
+        var request=new Request(standard.executionId(),standard.planId(),standard.code(),standard.inputs(),standard.outputs(),identity);
+        Fake fake=new Fake();fake.savedVersion="1.0.0";var result=runner(fake).run(request);
+        assertTrue(result.successful(),result.failureCode());assertEquals("1.0.0",result.runtimeVersion());
+        assertEquals(IMAGE_ID,fake.calls.getFirst().getLast());assertFalse(fake.calls.getFirst().contains(DockerSandboxRunner.IMAGE));
+        fake=new Fake();assertEquals("SANDBOX_UNAVAILABLE",runner(fake).run(request).failureCode());
+        assertTrue(fake.calls.stream().noneMatch(c -> c.contains("create")));
+        fake=new Fake();fake.replies.put("image",reply(0,("sha256:"+"b".repeat(64)).getBytes(StandardCharsets.UTF_8)));
+        assertEquals("SANDBOX_UNAVAILABLE",runner(fake).run(request).failureCode());
+        assertThrows(IllegalArgumentException.class,() -> new dev.researchhub.analysis.application.ReproductionContracts.RuntimeIdentity("image:latest","1"));
+    }
     @Test void launchesOnlyTrustedImmutableImageAndCollectsBeforeCleanup() throws Exception {
         Fake fake = new Fake(); fake.expected = request();
         Result result = runner(fake).run(fake.expected);
         assertTrue(result.successful(), result.failureCode()); assertEquals(IMAGE_ID, result.imageId());
-        assertEquals("1.0.0", result.runtimeVersion()); assertEquals("captured", result.stdout()); assertTrue(result.stderrTruncated());
+        assertEquals("1.1.0", result.runtimeVersion()); assertEquals("captured", result.stdout()); assertTrue(result.stderrTruncated());
         assertArrayEquals(validResult(), result.files().get("result.json"));
         var create = fake.calls.stream().filter(c -> c.get(5).equals("create")).findFirst().orElseThrow();
         for (String restriction : List.of("none", "--read-only", "65532:65532", "--cap-drop", "ALL", "no-new-privileges:true", "--memory-swap", "--pids-limit", "--cpus", "--pull", "never", IMAGE_ID))

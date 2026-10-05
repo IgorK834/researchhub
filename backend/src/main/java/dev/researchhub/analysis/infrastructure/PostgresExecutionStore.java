@@ -18,7 +18,7 @@ public class PostgresExecutionStore implements ExecutionStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     public PostgresExecutionStore(JdbcTemplate jdbc,ObjectMapper json) { this.jdbc=jdbc; this.json=json; }
-    @Transactional public Execution enqueue(UUID workspace,UUID analysis,UUID caller,Provenance provenance,Instant now) {
+    @Transactional public Execution enqueue(UUID workspace,UUID analysis,UUID caller,Provenance provenance,Snapshot snapshot,Instant now) {
         var statuses=jdbc.query("SELECT status FROM analyses WHERE workspace_id=? AND id=? AND plan_id=? FOR UPDATE",
             (row,index) -> row.getString(1),workspace,analysis,provenance.planId());
         if (statuses.isEmpty() || !Set.of("READY_TO_EXECUTE","SUCCEEDED","FAILED").contains(statuses.getFirst()))
@@ -28,6 +28,8 @@ public class PostgresExecutionStore implements ExecutionStore {
         var execution=new Execution(UUID.randomUUID(),analysis,workspace,caller,next,Status.QUEUED,now,null,null,provenance,null,null,null);
         jdbc.update("INSERT INTO analysis_executions(id,analysis_id,workspace_id,requested_by,attempt,status,payload,created_at) VALUES (?,?,?,?,?,'QUEUED',?::jsonb,?)",
             execution.id(),analysis,workspace,caller,next,json.writeValueAsString(execution),Timestamp.from(now));
+        jdbc.update("INSERT INTO analysis_execution_records(execution_id,analysis_id,workspace_id,snapshot,created_at) VALUES (?,?,?,?::jsonb,?)",
+            execution.id(),analysis,workspace,json.writeValueAsString(snapshot),Timestamp.from(now));
         jdbc.update("UPDATE analyses SET status='QUEUED',failure_code=NULL,updated_at=? WHERE workspace_id=? AND id=?",Timestamp.from(now),workspace,analysis);
         return execution;
     }
@@ -69,6 +71,27 @@ public class PostgresExecutionStore implements ExecutionStore {
     }
     public List<Execution> list(UUID workspace,UUID analysis) {
         return query("SELECT payload FROM analysis_executions WHERE workspace_id=? AND analysis_id=? ORDER BY attempt",workspace,analysis);
+    }
+    public ExecutionRecord record(UUID workspace,UUID analysis,UUID executionId) {
+        Execution execution=find(workspace,analysis,executionId);
+        Snapshot snapshot=jdbc.query("SELECT snapshot FROM analysis_execution_records WHERE workspace_id=? AND analysis_id=? AND execution_id=?",
+            (row,index) -> json.readValue(row.getString(1),Snapshot.class),workspace,analysis,executionId).stream().findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Execution record was not found"));
+        String codeSha256=execution.provenance().codeSha256();
+        List<Chart> charts=execution.result()==null ? List.of() : execution.result().outputs().stream()
+            .filter(o -> o.kind()==dev.researchhub.analysis.application.AnalysisContracts.OutputKind.CHART)
+            .map(o -> new Chart(o.name(),o.chart()==null ? o.name() : o.chart().title(),o.chart()==null ? null : o.chart().xAxis(),
+                o.chart()==null ? null : o.chart().yAxis(),o.chart()==null ? List.of() : o.chart().series(),analysis,executionId,
+                codeSha256,o.artifact(),o.chart()!=null)).toList();
+        // Existing v1 attempts remain immutable in storage; sanitize their historical diagnostics on read as well.
+        if (execution.diagnostics()!=null) {
+            var d=execution.diagnostics();var out=dev.researchhub.analysis.application.ExecutionLogSanitizer.summarize(d.stdout());
+            var err=dev.researchhub.analysis.application.ExecutionLogSanitizer.summarize(d.stderr());
+            execution=new Execution(execution.id(),execution.analysisId(),execution.workspaceId(),execution.requestedBy(),execution.attempt(),execution.status(),
+                execution.createdAt(),execution.startedAt(),execution.finishedAt(),execution.provenance(),execution.result(),execution.failureCode(),
+                new Diagnostics(d.exitCode(),d.timedOut(),out.text(),err.text(),d.stdoutTruncated()||out.truncated(),d.stderrTruncated()||err.truncated(),d.durationMillis(),d.configuredImage()));
+        }
+        return new ExecutionRecord("1.0",snapshot,execution,charts);
     }
     public ArtifactContent artifact(UUID workspace,UUID analysis,UUID execution,UUID artifact) {
         return jdbc.query("SELECT * FROM analysis_execution_artifacts WHERE workspace_id=? AND analysis_id=? AND execution_id=? AND id=?",
