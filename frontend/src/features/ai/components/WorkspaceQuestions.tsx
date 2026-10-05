@@ -203,7 +203,7 @@ function QuestionForm({
         <div className={styles.scope}>
           <ScopeChip
             selectedSourceIds={scope === 'all' ? null : selected}
-            readyCount={ready.length}
+            sourceCount={sources.data?.length ?? 0}
           />
         </div>
         <details className={styles.scopeOptions} open={variant === 'full'}>

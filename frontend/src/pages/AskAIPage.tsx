@@ -7,6 +7,7 @@ import { useSourcesQuery } from '../features/sources/api/useSources';
 import { describeError } from '../shared/api';
 import { Button } from '../shared/components/Button';
 import { Dialog } from '../shared/components/overlays';
+import comparisonStyles from '../features/ai/components/SourceComparisonPanel.module.css';
 
 /** The page and the editor panel share the same conversations and streaming controller. */
 export function AskAIPage({
@@ -59,6 +60,7 @@ export function AskAIPage({
         }}
       />
       <Dialog
+        className={comparisonStyles.dialog}
         open={comparisonOpen}
         title="Compare sources"
         onClose={() => setComparisonOpen(false)}

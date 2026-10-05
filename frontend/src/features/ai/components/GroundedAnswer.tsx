@@ -42,10 +42,17 @@ export function AnswerState({
   readonly stopLabel?: string;
   readonly retryLabel?: string;
 }): ReactElement {
-  if (state === 'failed') return <div className={styles.failure}>
-    <Banner tone="error" lead={message} />
-    {onRetry === undefined ? null : <Button variant="secondary" onClick={onRetry}>{retryLabel}</Button>}
-  </div>;
+  if (state === 'failed')
+    return (
+      <div className={styles.failure}>
+        <Banner tone="error" lead={message} />
+        {onRetry === undefined ? null : (
+          <Button variant="secondary" onClick={onRetry}>
+            {retryLabel}
+          </Button>
+        )}
+      </div>
+    );
   return (
     <Card className={state === 'thinking' ? styles.answer : undefined}>
       <p role="status" aria-live="polite">
@@ -100,7 +107,9 @@ export function EvidenceList<Support extends AnswerEvidence>({
               >
                 {label ? `[${label}] ` : ''}
                 {citation.title ?? citation.sectionTitle ?? 'Source'}
-                {!fullLocation && citation.pageStart === null ? '' : ` · ${citationLocation(citation)}`}
+                {!fullLocation && citation.pageStart === null
+                  ? ''
+                  : ` · ${citationLocation(citation)}`}
               </CitationReference>
               <p className={styles.evidenceLocation}>{citationLocation(citation)}</p>
               <CitationQuote citation={citation} />

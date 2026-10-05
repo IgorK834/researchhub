@@ -75,7 +75,9 @@ export function AnchoredPopover({
   const trigger = useMemo(() => ({ current: anchor }), [anchor]);
   useLayoutEffect(() => {
     anchor.setAttribute('aria-expanded', 'true');
-    return () => { anchor.setAttribute('aria-expanded', 'false'); };
+    return () => {
+      anchor.setAttribute('aria-expanded', 'false');
+    };
   }, [anchor]);
   const host = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);

@@ -15,7 +15,12 @@ import {
 } from '../api/sourceAnalysisApi';
 import type { Citation } from '../api/generationApi';
 let mockSources: {
-  data?: { id: string; displayName: string; status: 'READY' | 'PROCESSING'; activeVersionId?: string }[];
+  data?: {
+    id: string;
+    displayName: string;
+    status: 'READY' | 'PROCESSING';
+    activeVersionId?: string;
+  }[];
   error: Error | null;
   isPending: boolean;
 };
@@ -183,6 +188,7 @@ function view(id = 'w') {
   );
 }
 function choose() {
+  fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
   fireEvent.click(screen.getByLabelText('Paper A'));
   fireEvent.click(screen.getByLabelText('Paper B'));
 }
@@ -235,6 +241,7 @@ test('comparison and baseline-scoped differences show table, narrative and both 
       .getAllByRole('link')
       .some((link) => link.getAttribute('href')?.includes('sources/s2')),
   ).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
   fireEvent.click(screen.getByLabelText('Paper A'));
   fireEvent.click(screen.getByLabelText('Paper A'));
   fireEvent.change(screen.getByLabelText('Comparison criteria (one per line)'), {
@@ -255,14 +262,20 @@ test('comparison and baseline-scoped differences show table, narrative and both 
 test('invalid selections and criteria stop calls, including excessive source counts', () => {
   mockSources.data = Array.from({ length: 6 }, (_, i) => ({
     id: `s${i}`,
-    displayName: `Paper ${i}`, status: 'READY',
+    displayName: `Paper ${i}`,
+    status: 'READY',
   }));
   render(view());
   fireEvent.click(screen.getByText('Compare selected sources'));
   expect(screen.getByRole('alert').textContent).toContain('Select 2–5');
-  for (let i = 0; i < 6; i++) fireEvent.click(screen.getByLabelText(`Paper ${i}`));
-  fireEvent.click(screen.getByText('Compare selected sources'));
-  for (let i = 2; i < 6; i++) fireEvent.click(screen.getByLabelText(`Paper ${i}`));
+  fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
+  for (let i = 0; i < 5; i++) fireEvent.click(screen.getByLabelText(`Paper ${i}`));
+  expect(screen.getByLabelText('Paper 5')).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: 'Add source' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  for (let i = 2; i < 5; i++) fireEvent.click(screen.getByLabelText(`Paper ${i}`));
   for (const criteria of ['', 'method\nMETHOD', 'a\nb\nc\nd\ne\nf', 'x'.repeat(65)]) {
     fireEvent.change(screen.getByLabelText('Comparison criteria (one per line)'), {
       target: { value: criteria },
@@ -311,6 +324,7 @@ test('failed and pending calls keep controls bounded and results are reset on wo
   await screen.findByText(/Comparison failed/);
   rerender(view('another'));
   expect(screen.queryByRole('table')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
   expect((screen.getByLabelText('Paper A') as HTMLInputElement).checked).toBe(false);
 });
 test('no-evidence, no differences and unavailable reference states do not invent agreement', () => {
@@ -402,4 +416,132 @@ test('a follow-up keeps the original versions by default and migrates only when 
   fireEvent.click(screen.getByText('Find potential disagreements'));
   await screen.findByText('Potential disagreement');
   expect(differences).toHaveBeenLastCalledWith('w', 'comparison', null, 'LATEST');
+});
+
+test('removable chips reset prior results and bounded picker allows changing the selection', async () => {
+  render(view());
+  choose();
+  fireEvent.click(screen.getByRole('button', { name: 'Done choosing sources' }));
+  expect(screen.queryByRole('checkbox')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Remove Paper A' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Compare selected sources' }));
+  await screen.findByRole('table');
+  fireEvent.click(screen.getByRole('button', { name: 'Find potential disagreements' }));
+  await screen.findByText('Potential disagreement');
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Paper A' }));
+  expect(screen.queryByRole('table')).toBeNull();
+  expect(screen.queryByLabelText('Potential disagreement result')).toBeNull();
+  expect(screen.getByText('1 of 5 selected · choose at least 2')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Compare selected sources' }));
+  expect(screen.getByRole('alert').textContent).toContain('Select 2–5');
+  expect(compare).toHaveBeenCalledTimes(1);
+});
+
+test('sources that became unavailable cannot be submitted; chips still identify the missing selection', () => {
+  const { rerender } = render(view());
+  choose();
+  mockSources = {
+    ...mockSources,
+    data: [{ id: 's1', displayName: 'Paper A', status: 'PROCESSING' }],
+  };
+  rerender(view());
+  expect(screen.getByRole('button', { name: 'Remove unavailable source' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Compare selected sources' }));
+  expect(screen.getByRole('alert').textContent).toContain('Select 2–5');
+  expect(compare).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Remove unavailable source' }));
+  expect(screen.queryByRole('button', { name: 'Remove unavailable source' })).toBeNull();
+});
+
+test('synchronous duplicate form submissions produce one request and disable source editing', async () => {
+  let resolve!: (value: SourceAnalysis) => void;
+  compare.mockImplementation(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  render(view());
+  choose();
+  const button = screen.getByRole('button', { name: 'Compare selected sources' });
+  const form = button.closest('form')!;
+  fireEvent.submit(form);
+  fireEvent.submit(form);
+  await screen.findByText('Comparing…');
+  expect(compare).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'Remove Paper A' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  expect(screen.getByRole('button', { name: 'Add source' })).toHaveProperty(
+    'disabled',
+    true,
+  );
+  resolve(comparison);
+  await screen.findByRole('table');
+  let finish!: (value: SourceAnalysis) => void;
+  differences.mockImplementation(
+    () =>
+      new Promise((done) => {
+        finish = done;
+      }),
+  );
+  const differencesForm = screen
+    .getByRole('button', { name: 'Find potential disagreements' })
+    .closest('form')!;
+  fireEvent.submit(differencesForm);
+  fireEvent.submit(differencesForm);
+  await screen.findByText('Checking potential disagreements…');
+  expect(differences).toHaveBeenCalledTimes(1);
+  finish(disagreement);
+  await screen.findByText('Potential disagreement');
+});
+
+test('missing cells ignore any supplied placeholder text and citations name only returned locations', () => {
+  render(
+    <MemoryRouter>
+      <ComparisonResult
+        analysis={{
+          ...comparison,
+          sources: comparison.sources.map((source) => ({
+            ...source,
+            sourceVersionId: null,
+            versionNumber: 0,
+          })),
+          answer: {
+            ...comparison.answer,
+            summary: [],
+            rows: [
+              {
+                sourceId: 's1',
+                cells: [
+                  {
+                    criterion: 'method',
+                    status: 'MISSING',
+                    text: 'Never fill this field',
+                    evidenceIds: [],
+                  },
+                  {
+                    criterion: 'dataset',
+                    status: 'REPORTED',
+                    text: null,
+                    evidenceIds: [],
+                  },
+                ],
+              },
+            ],
+          },
+          evidence: [],
+        }}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getAllByText('Missing in retrieved excerpts')).toHaveLength(4);
+  expect(screen.queryByText('Never fill this field')).toBeNull();
+  expect(screen.getByText('No supported summary was returned.')).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
+  expect(screen.getByRole('region', { name: 'Comparison grid' })).toHaveProperty(
+    'tabIndex',
+    0,
+  );
 });

@@ -14,12 +14,16 @@ const sources: readonly PickableSource[] = [
 it('keeps every processing state visible, explains unavailable selection and selects only ready sources', () => {
   const onChange = jest.fn();
   const view = render(<SourcePicker sources={sources} value={[]} onChange={onChange} />);
-  expect(screen.getByText('No sources selected. The answer will have no evidence.')).toBeTruthy();
+  expect(
+    screen.getByText('No sources selected. The answer will have no evidence.'),
+  ).toBeTruthy();
   for (const source of sources) {
     const checkbox = screen.getByRole('checkbox', { name: source.title });
     expect(checkbox).toHaveProperty('disabled', source.status !== 'READY');
     if (source.status !== 'READY') {
-      const description = document.getElementById(checkbox.getAttribute('aria-describedby')!);
+      const description = document.getElementById(
+        checkbox.getAttribute('aria-describedby')!,
+      );
       expect(description?.textContent).toMatch(/selected|processing/);
     }
   }
@@ -36,22 +40,61 @@ it('keeps every processing state visible, explains unavailable selection and sel
 it('represents null as the authorized workspace scope and never converts Clear into all', () => {
   const onChange = jest.fn();
   render(<SourcePicker sources={sources} value={null} onChange={onChange} />);
-  expect(screen.getByText('Ask across 2 sources · All workspace sources')).toBeTruthy();
+  expect(screen.getByText('Ask across 6 sources · All workspace sources')).toBeTruthy();
   expect(screen.getByLabelText('Paper')).toHaveProperty('checked', true);
   expect(screen.getByLabelText('Paper')).toHaveProperty('disabled', true);
-  expect(screen.queryByText('No sources selected. The answer will have no evidence.')).toBeNull();
+  expect(
+    screen.queryByText('No sources selected. The answer will have no evidence.'),
+  ).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
   expect(onChange).toHaveBeenCalledWith([]);
 });
 it('supports unavailable/empty libraries and caller-owned disabling', () => {
-  render(<SourcePicker sources={[]} value={[]} disabled onChange={jest.fn()} legend="Comparison sources" action="Compare" />);
+  render(
+    <SourcePicker
+      sources={[]}
+      value={[]}
+      disabled
+      onChange={jest.fn()}
+      legend="Comparison sources"
+      action="Compare"
+    />,
+  );
   expect(screen.getByText('No ready sources available.')).toBeTruthy();
-  expect(screen.getByRole('group', { name: 'Comparison sources' })).toHaveProperty('disabled', true);
+  expect(screen.getByRole('group', { name: 'Comparison sources' })).toHaveProperty(
+    'disabled',
+    true,
+  );
   expect(screen.getByText('Compare 0 sources · Selected sources')).toBeTruthy();
 });
 it('names a single-source scope and accepts a specific source label', () => {
-  const view = render(<ScopeChip selectedSourceIds={['pdf']} readyCount={12} />);
+  const view = render(<ScopeChip selectedSourceIds={['pdf']} sourceCount={12} />);
   expect(screen.getByText('Ask across 1 source · Selected sources')).toBeTruthy();
-  view.rerender(<ScopeChip selectedSourceIds={null} readyCount={12} sourceLabel="Asking Paper" />);
+  view.rerender(
+    <ScopeChip selectedSourceIds={null} sourceCount={12} sourceLabel="Asking Paper" />,
+  );
   expect(screen.getByText('Asking Paper')).toBeTruthy();
+});
+it('caps comparison selection including select-all, while selected sources remain removable', () => {
+  const onChange = jest.fn();
+  const view = render(
+    <SourcePicker
+      sources={sources}
+      value={['pdf']}
+      maxSelected={1}
+      onChange={onChange}
+    />,
+  );
+  expect(screen.getByLabelText('Data')).toHaveProperty('disabled', true);
+  expect(screen.getByLabelText('Paper')).toHaveProperty('disabled', false);
+  fireEvent.click(screen.getByLabelText('Paper'));
+  expect(onChange).toHaveBeenLastCalledWith([]);
+  fireEvent.click(screen.getByRole('button', { name: 'Select all ready' }));
+  expect(onChange).toHaveBeenLastCalledWith(['pdf']);
+  view.rerender(
+    <SourcePicker sources={sources} value={[]} maxSelected={1} onChange={onChange} />,
+  );
+  expect(screen.getByLabelText('Data')).toHaveProperty('disabled', false);
+  fireEvent.click(screen.getByLabelText('Data'));
+  expect(onChange).toHaveBeenLastCalledWith(['csv']);
 });

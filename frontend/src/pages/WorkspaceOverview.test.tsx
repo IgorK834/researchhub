@@ -226,7 +226,9 @@ it('shows uploaded status, known zero counts and independent empty states for a 
   page();
   expect(await screen.findByText('Grounded in 0 sources')).toBeTruthy();
   expect(screen.getByText('No description.')).toBeTruthy();
-  expect(within(screen.getByRole('region', { name: 'Recent sources' })).getByText('Uploaded')).toBeTruthy();
+  expect(
+    within(screen.getByRole('region', { name: 'Recent sources' })).getByText('Uploaded'),
+  ).toBeTruthy();
   expect(screen.getByText('No documents yet.')).toBeTruthy();
   expect(await screen.findByText('No AI conversations yet.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /create|upload/i })).toBeNull();

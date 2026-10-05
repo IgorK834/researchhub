@@ -1,0 +1,182 @@
+.dialog {
+  --dialog-width: 1400px;
+}
+.panel,
+.form fieldset,
+.differencesCard form,
+.settings[open],
+.versions,
+.findings,
+.finding {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.panel h2,
+.panel h3,
+.panel h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.panel p {
+  margin: 0;
+}
+.panel label {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-semibold);
+}
+.panel textarea {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  font: inherit;
+}
+.selected,
+.sourceChip,
+.citations {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.sourceChip {
+  border: 1px solid var(--color-brand-coral-mid);
+  border-radius: var(--radius-md);
+  padding-inline-start: var(--space-3);
+  background: var(--color-brand-coral-tint);
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+.note,
+.missing,
+.result > p {
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+}
+.form > fieldset,
+.versions {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.form > fieldset > legend {
+  margin-block-end: var(--space-2);
+}
+.form > fieldset > button,
+.differencesCard form > button {
+  justify-self: start;
+}
+.addSource {
+  border-style: dashed;
+}
+.picker,
+.settings,
+.summary,
+.differencesCard,
+.finding {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.settings summary {
+  cursor: pointer;
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-semibold);
+}
+.result {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.grid {
+  overflow: auto;
+  max-width: 100%;
+  max-height: 65vh;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.grid table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.grid caption {
+  text-align: start;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+}
+.grid th,
+.grid td {
+  min-width: 220px;
+  width: 220px;
+  padding: var(--space-4);
+  vertical-align: top;
+  text-align: start;
+  overflow-wrap: anywhere;
+  border-block-start: 1px solid var(--color-border);
+  border-inline-end: 1px solid var(--color-border);
+  font-size: var(--type-label-size);
+}
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface-muted);
+}
+.grid th:first-child {
+  position: sticky;
+  left: 0;
+  width: 180px;
+  min-width: 180px;
+  z-index: 2;
+  background: var(--color-surface-muted);
+}
+.grid thead th:first-child {
+  z-index: 3;
+}
+.grid th > span {
+  display: block;
+  margin-block-end: var(--space-2);
+}
+.citations {
+  margin-block-start: var(--space-2);
+}
+.summary,
+.differencesCard {
+  display: grid;
+  gap: var(--space-3);
+  border-color: var(--color-brand-lavender-mid);
+  background: var(--color-brand-lavender-tint);
+}
+.differencesCard {
+  border-color: var(--color-brand-yellow-mid);
+  background: var(--color-brand-yellow-tint);
+}
+.versions label {
+  display: flex;
+  align-items: baseline;
+}
+.finding {
+  border-inline-start: 3px solid var(--color-brand-yellow);
+}
+@media (max-width: 600px) {
+  .picker,
+  .settings,
+  .summary,
+  .differencesCard,
+  .finding {
+    padding: var(--space-3);
+  }
+}

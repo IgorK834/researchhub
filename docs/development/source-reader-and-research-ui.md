@@ -4,6 +4,14 @@ The source reader uses the existing `ToolShell` and source endpoints. Its metada
 
 PDF citations retain `/app/workspaces/:workspaceId/sources/:sourceId?processingVersion=…&unit=…&page=…`. Navigating pages changes `page` and clears `unit`, preserving other selectors. Dataset previews retain the `version` selector. PDF files open in the browser's existing viewer.
 
+# Shared scopes, citations and answers (RH-280–282)
+
+The AI source picker is shared by workspace questions, research conversations, document authoring and source comparisons. `null` means all authorized workspace sources; `[]` is an explicit empty selection. The chip counts all workspace sources for `null`, while selection checkboxes and “Select all ready” include only `READY` sources. Other states stay visible and disabled with a reason. Changes to a research scope rerun the latest question as before.
+
+Research citations use the same accessible, keyboard-operable popover in the editor, AI answers and evidence lists. Editor numbers remain derived from first occurrence in ProseMirror content; they are not added to citation JSON. The shared chip uses the existing source route and page or unit locators, and the quote reads the exact pinned retrieval fragment documented above. Unsupported or denied quote lookups never substitute a current extraction.
+
+Grounded-answer presentation keeps the API status and the question response reason visible. The model's streamed text remains a preview until the server saves the completed answer. Stop and retry continue through the existing conversation controller and request identity. Evidence links keep the citation's source and location.
+
 `/app/workspaces/:workspaceId/ask` mounts the same `ResearchPanel` conversation controller as the document editor. Its page variant adds investigations grouped into Today, Yesterday and Earlier, a scope panel and citation inspection. The existing source comparison is available through the Compare sources dialog. The overview hands a question to this page through router state; that question is consumed once, including React StrictMode effect replay.
 
 `?askSource=:sourceId` starts a new question scoped to that source. This source sends exactly one `selectedSourceIds` value; Selected sends an explicit array (including `[]`); All omits the selector. Switching scope reruns the last question with a new request ID. Checkbox changes are drafts until Apply scope or the next question. Stored user messages retain the scope used for each answer, and reopening history restores that scope. Retrying a stopped or failed stream retains its existing request ID. Streaming deltas remain previews until the complete answer is saved.

@@ -19,6 +19,8 @@ export interface SourcePickerProps {
   readonly disabled?: boolean;
   readonly legend?: string;
   readonly action?: string;
+  /** Optional selection cap for bounded workflows such as source comparison. */
+  readonly maxSelected?: number;
 }
 
 /** Shared controlled selection. Only READY is selectable; no implicit fallback from [] to all. */
@@ -29,37 +31,45 @@ export function SourcePicker({
   disabled = false,
   legend = 'Source selection',
   action,
+  maxSelected,
 }: SourcePickerProps): ReactElement {
   const id = useId();
   const ready = sources.filter((source) => source.status === 'READY');
   return (
     <fieldset className={styles.picker} disabled={disabled}>
       <legend>{legend}</legend>
-      <ScopeChip selectedSourceIds={value} readyCount={ready.length} action={action} />
+      <ScopeChip selectedSourceIds={value} sourceCount={sources.length} action={action} />
       <ul className={styles.sources}>
         {sources.map((source, index) => {
           const selectable = source.status === 'READY';
+          const checked = selectable && (value === null || value.includes(source.id));
+          const capped =
+            value !== null &&
+            maxSelected !== undefined &&
+            value.length >= maxSelected &&
+            !checked;
           const explanation = `${id}-${String(index)}`;
           return (
             <li key={source.id} data-unavailable={!selectable || undefined}>
               <label>
                 <span className={formStyles.checkChrome}>
-                <input className={formStyles.checkbox}
-                  type="checkbox"
-                  aria-label={source.title}
-                  aria-describedby={!selectable ? explanation : undefined}
-                  checked={selectable && (value === null || value.includes(source.id))}
-                  disabled={!selectable || value === null}
-                  onChange={(event) => {
-                    const selected = value ?? [];
-                    onChange(
-                      event.target.checked
-                        ? [...selected.filter((item) => item !== source.id), source.id]
-                        : selected.filter((item) => item !== source.id),
-                    );
-                  }}
-                />
-                <Icon name="check" size={14} className={formStyles.checkmark} />
+                  <input
+                    className={formStyles.checkbox}
+                    type="checkbox"
+                    aria-label={source.title}
+                    aria-describedby={!selectable ? explanation : undefined}
+                    checked={checked}
+                    disabled={!selectable || value === null || capped}
+                    onChange={(event) => {
+                      const selected = value ?? [];
+                      onChange(
+                        event.target.checked
+                          ? [...selected.filter((item) => item !== source.id), source.id]
+                          : selected.filter((item) => item !== source.id),
+                      );
+                    }}
+                  />
+                  <Icon name="check" size={14} className={formStyles.checkmark} />
                 </span>
                 <SourceTypeTile
                   sourceType={source.sourceType ?? 'Source'}
@@ -81,6 +91,11 @@ export function SourcePicker({
         })}
       </ul>
       {ready.length === 0 ? <p>No ready sources available.</p> : null}
+      {maxSelected !== undefined ? (
+        <p>
+          Choose up to {maxSelected} sources. Remove a selected source to choose another.
+        </p>
+      ) : null}
       {value !== null && value.length === 0 ? (
         <p>No sources selected. The answer will have no evidence.</p>
       ) : null}
@@ -88,7 +103,11 @@ export function SourcePicker({
         <Button
           variant="ghost"
           size="compact"
-          onClick={() => onChange(ready.map((source) => source.id))}
+          onClick={() =>
+            onChange(
+              ready.map((source) => source.id).slice(0, maxSelected ?? ready.length),
+            )
+          }
         >
           Select all ready
         </Button>

@@ -225,7 +225,9 @@ it('retries a transient failure using the same request identity and no partial a
   );
   expect(screen.queryByLabelText('Answer preview')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));
-  expect(await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
+  expect(
+    await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' }),
+  ).not.toBeNull();
   expect(create).toHaveBeenCalledTimes(1);
   expect(stream.mock.calls[1]?.[2]).toEqual(stream.mock.calls[0]?.[2]);
 });
@@ -252,7 +254,9 @@ it('stops a stream, ignores its late result and safely retries after a disconnec
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));
   expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Disconnected');
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));
-  expect(await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
+  expect(
+    await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' }),
+  ).not.toBeNull();
 });
 it('clears private state across workspaces and after switching away from an active request', async () => {
   let finish!: (result: api.ConversationTurn) => void;
@@ -301,7 +305,9 @@ it('handles local validation, source loading/errors and revoked history without 
     nextBeforeSequence: null,
   });
   panel();
-  expect(await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' })).not.toBeNull();
+  expect(
+    await screen.findByRole('link', { name: '[S1] Lecture 5 · Page 38' }),
+  ).not.toBeNull();
   fetchHistory.mockRejectedValue(failure('RESOURCE_NOT_FOUND'));
   fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
   expect(await screen.findByRole('alert')).toHaveProperty(

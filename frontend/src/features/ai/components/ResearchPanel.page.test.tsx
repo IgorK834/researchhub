@@ -61,7 +61,11 @@ async function ask() {
   );
 }
 beforeEach(() => {
-  globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
   jest.resetAllMocks();
   list.mockResolvedValue({ items: [], nextOffset: null });
   history.mockResolvedValue({ conversation, messages: [], nextBeforeSequence: null });
@@ -122,7 +126,9 @@ it('groups conversations by recency and changes investigations without losing pa
 it('inspects a citation with its exact quote and opens the cited PDF page', async () => {
   setup();
   await ask();
-  expect(screen.getByRole('link', { name: 'Inspect citation S1' }).getAttribute('href')).toContain('unit=unit-38&page=38');
+  expect(
+    screen.getByRole('link', { name: 'Inspect citation S1' }).getAttribute('href'),
+  ).toContain('unit=unit-38&page=38');
   fireEvent.click(screen.getByRole('button', { name: 'Show support for claim 1, S1' }));
   fireEvent.keyDown(document, { key: 'Escape' });
   const panel = screen.getByRole('region', { name: 'Citation' });

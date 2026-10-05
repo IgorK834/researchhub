@@ -1,9 +1,13 @@
 import { SourcePicker } from './SourcePicker';
-import { useState, type ReactElement } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { describeError } from '../../../shared/api';
 import { useSourcesQuery } from '../../sources/api/useSources';
-import { CitationReference } from './Citations';
+import { CitationReference, citationLocation } from './Citations';
+import { citationPath } from '../api/generationApi';
+import { Button } from '../../../shared/components/Button';
+import { Icon } from '../../../shared/components/icons';
+import styles from './SourceComparisonPanel.module.css';
 import {
   compareSources,
   findPotentialDisagreements,
@@ -23,6 +27,8 @@ export function SourceComparisonPanel({
 function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): ReactElement {
   const sources = useSourcesQuery(workspaceId);
   const [selected, setSelected] = useState<readonly string[]>([]);
+  const [picking, setPicking] = useState(false);
+  const inFlight = useRef(false);
   const [criteria, setCriteria] = useState<string>(
     DEFAULT_COMPARISON_CRITERIA.join('\n'),
   );
@@ -46,8 +52,10 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
   });
   const busy = compare.isPending || differences.isPending;
   return (
-    <section aria-labelledby="source-comparison-heading">
-      <h2 id="source-comparison-heading">Compare sources</h2>
+    <section aria-labelledby="source-comparison-heading" className={styles.panel}>
+      <h2 id="source-comparison-heading">
+        <Icon name="columns" /> Compare sources
+      </h2>
       <p>
         AI-assisted interpretation of selected source excerpts. Review the cited passages;
         missing information remains missing.
@@ -58,9 +66,51 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
           Could not load comparison sources: {describeError(sources.error)}
         </p>
       ) : null}
+      <div className={styles.selected} aria-label="Compared sources">
+        <span>Comparing</span>
+        {selected.map((id) => (
+          <span key={id} className={styles.sourceChip}>
+            {sources.data?.find((source) => source.id === id)?.displayName ??
+              'Unavailable source'}
+            <Button
+              iconOnly
+              icon="x"
+              size="compact"
+              variant="ghost"
+              aria-label={`Remove ${sources.data?.find((source) => source.id === id)?.displayName ?? 'unavailable source'}`}
+              disabled={busy}
+              onClick={() => {
+                setSelected(selected.filter((item) => item !== id));
+                setValidation(null);
+                compare.reset();
+                differences.reset();
+              }}
+            />
+          </span>
+        ))}
+        <Button
+          className={styles.addSource}
+          icon="plus"
+          variant="secondary"
+          size="compact"
+          disabled={
+            busy || sources.isPending || sources.error !== null || selected.length >= 5
+          }
+          aria-expanded={picking}
+          aria-controls="comparison-source-picker"
+          onClick={() => setPicking(!picking)}
+        >
+          Add source
+        </Button>
+        <span className={styles.note}>
+          {selected.length} of 5 selected · choose at least 2
+        </span>
+      </div>
       <form
+        className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
+          if (inFlight.current || sources.isPending || sources.error !== null) return;
           const fields = criteria
             .split('\n')
             .map((field) => field.trim())
@@ -68,7 +118,9 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
           if (
             selected.length < 2 ||
             selected.length > 5 ||
-            selected.some((id) => !sources.data?.some((s) => s.id === id))
+            selected.some(
+              (id) => !sources.data?.some((s) => s.id === id && s.status === 'READY'),
+            )
           ) {
             setValidation('Select 2–5 sources from this workspace.');
             return;
@@ -87,49 +139,83 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
           setValidation(null);
           differences.reset();
           setVersionSelection('ORIGINAL');
-          compare.mutate({
-            selectedSourceIds: selected,
-            criteria: fields,
-            instruction: instruction.trim() || null,
-          });
+          setPicking(false);
+          inFlight.current = true;
+          compare.mutate(
+            {
+              selectedSourceIds: selected,
+              criteria: fields,
+              instruction: instruction.trim() || null,
+            },
+            {
+              onSettled: () => {
+                inFlight.current = false;
+              },
+            },
+          );
         }}
       >
         <fieldset disabled={busy || sources.isPending || sources.error !== null}>
           <legend>Select 2–5 sources to compare</legend>
-          <SourcePicker
-            legend="Comparison sources"
-            action="Compare"
-            sources={(sources.data ?? []).map((source) => ({
-              id: source.id,
-              title: source.displayName,
-              sourceType: source.sourceType,
-              status: source.status,
-            }))}
-            value={selected}
-            onChange={setSelected}
-          />
+          {picking ? (
+            <div id="comparison-source-picker" className={styles.picker}>
+              <SourcePicker
+                legend="Comparison sources"
+                action="Compare"
+                sources={(sources.data ?? []).map((source) => ({
+                  id: source.id,
+                  title: source.displayName,
+                  sourceType: source.sourceType,
+                  status: source.status,
+                }))}
+                value={selected}
+                maxSelected={5}
+                onChange={(ids) => {
+                  setSelected(ids);
+                  setValidation(null);
+                  compare.reset();
+                  differences.reset();
+                }}
+              />
+              <Button
+                variant="secondary"
+                size="compact"
+                onClick={() => setPicking(false)}
+              >
+                Done choosing sources
+              </Button>
+            </div>
+          ) : null}
           {sources.data?.length === 0 ? (
             <p>No sources available for comparison.</p>
           ) : null}
-          <label>
-            Comparison criteria (one per line)
-            <textarea
-              maxLength={324}
-              value={criteria}
-              onChange={(event) => setCriteria(event.target.value)}
-            />
-          </label>
-          <label>
-            Comparison instruction (optional)
-            <textarea
-              maxLength={1000}
-              value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
-            />
-          </label>
-          <button type="submit">
-            {compare.isPending ? 'Comparing…' : 'Compare selected sources'}
-          </button>
+          <details className={styles.settings} open={compare.data === undefined}>
+            <summary>Comparison settings</summary>
+            <label>
+              Comparison criteria (one per line)
+              <textarea
+                maxLength={324}
+                value={criteria}
+                onChange={(event) => setCriteria(event.target.value)}
+              />
+            </label>
+            <label>
+              Comparison instruction (optional)
+              <textarea
+                maxLength={1000}
+                value={instruction}
+                onChange={(event) => setInstruction(event.target.value)}
+              />
+            </label>
+          </details>
+          <Button
+            icon="columns"
+            type="submit"
+            busy={compare.isPending}
+            busyLabel="Comparing…"
+          >
+            Compare selected sources
+          </Button>
         </fieldset>
       </form>
       {validation === null ? null : <p role="alert">{validation}</p>}
@@ -139,43 +225,67 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
       {compare.data !== undefined && !compare.isPending ? (
         <>
           <ComparisonResult analysis={compare.data} />
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (compare.data !== undefined)
-                differences.mutate({
-                  id: compare.data.id,
-                  instruction: focus.trim() || null,
-                  versions: versionSelection,
-                });
-            }}
+          <section
+            className={styles.differencesCard}
+            aria-label="Differences worth a look"
           >
-            <VersionChoice
-              analysis={compare.data}
-              currentVersionIds={
-                new Map(
-                  sources.data?.map((source) => [source.id, source.activeVersionId]),
-                )
-              }
-              value={versionSelection}
-              disabled={busy}
-              onChange={setVersionSelection}
-            />
-            <label>
-              Disagreement analysis focus (optional)
-              <textarea
+            <h3>
+              <Icon name="warn" /> Differences worth a look
+            </h3>
+            <p>
+              Check whether the reported results or experimental conditions differ. Review
+              the cited passages before drawing conclusions.
+            </p>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (compare.data !== undefined && !inFlight.current) {
+                  inFlight.current = true;
+                  differences.mutate(
+                    {
+                      id: compare.data.id,
+                      instruction: focus.trim() || null,
+                      versions: versionSelection,
+                    },
+                    {
+                      onSettled: () => {
+                        inFlight.current = false;
+                      },
+                    },
+                  );
+                }
+              }}
+            >
+              <VersionChoice
+                analysis={compare.data}
+                currentVersionIds={
+                  new Map(
+                    sources.data?.map((source) => [source.id, source.activeVersionId]),
+                  )
+                }
+                value={versionSelection}
                 disabled={busy}
-                maxLength={1000}
-                value={focus}
-                onChange={(event) => setFocus(event.target.value)}
+                onChange={setVersionSelection}
               />
-            </label>
-            <button type="submit" disabled={busy}>
-              {differences.isPending
-                ? 'Checking potential disagreements…'
-                : 'Find potential disagreements'}
-            </button>
-          </form>
+              <label>
+                Disagreement analysis focus (optional)
+                <textarea
+                  disabled={busy}
+                  maxLength={1000}
+                  value={focus}
+                  onChange={(event) => setFocus(event.target.value)}
+                />
+              </label>
+              <Button
+                type="submit"
+                disabled={busy}
+                busy={differences.isPending}
+                busyLabel="Checking potential disagreements…"
+              >
+                Find potential disagreements
+              </Button>
+            </form>
+          </section>
         </>
       ) : null}
       {differences.error === null ? null : (
@@ -215,7 +325,7 @@ function VersionChoice({
     );
   });
   return (
-    <fieldset disabled={disabled}>
+    <fieldset disabled={disabled} className={styles.versions}>
       <legend>Source versions for this analysis</legend>
       {newer.length === 0 ? null : (
         <p role="status">
@@ -254,20 +364,25 @@ function EvidenceLinks({
   readonly analysis: SourceAnalysis;
 }): ReactElement {
   return (
-    <span>
+    <span className={styles.citations}>
       {ids.map((id) => {
         const citation = analysis.evidence.find((item) => item.chunkId === id);
-        if (citation === undefined) return <span key={id}> [Unavailable reference]</span>;
+        if (citation === undefined)
+          return (
+            <span key={id} className={styles.missing}>
+              [Unavailable reference]
+            </span>
+          );
         return (
-          <CitationReference key={id} citation={citation} number={analysis.evidence.indexOf(citation) + 1}>
-            {' '}
-            [{citation.title ?? 'Source'}
-            {citation.pageStart === null
-              ? citation.sectionTitle === null
-                ? ''
-                : `, ${citation.sectionTitle}`
-              : `, p. ${citation.pageStart}`}
-            ]
+          <CitationReference
+            key={id}
+            citation={citation}
+            number={analysis.evidence.indexOf(citation) + 1}
+            label={`${citation.title ?? 'Source'} · ${citationLocation(citation)}`}
+          >
+            {citation.pageStart !== null
+              ? `p. ${citation.pageStart}${citation.pageEnd !== null && citation.pageEnd !== citation.pageStart ? `–${citation.pageEnd}` : ''}`
+              : (citation.sectionTitle ?? 'Source fragment')}
           </CitationReference>
         );
       })}
@@ -281,10 +396,7 @@ function Provenance({ analysis }: { readonly analysis: SourceAnalysis }): ReactE
         <p key={warning}>{warning}</p>
       ))}
       {analysis.generation === null ? null : (
-        <p>
-          Model: {analysis.generation.model.name} · Template:{' '}
-          {analysis.generation.templateId} · Analysis: {analysis.id}
-        </p>
+        <p>AI-assisted interpretation generated with {analysis.generation.model.name}.</p>
       )}
     </>
   );
@@ -295,26 +407,49 @@ export function ComparisonResult({
   readonly analysis: SourceAnalysis;
 }): ReactElement {
   return (
-    <section aria-label="Source comparison result">
-      <h3>AI-assisted comparison</h3>
+    <section aria-label="Source comparison result" className={styles.result}>
+      <h3 className="visually-hidden">AI-assisted comparison</h3>
       <Provenance analysis={analysis} />
       {analysis.answer.status === 'INSUFFICIENT_EVIDENCE' ? (
         <p>Insufficient evidence in retrieved excerpts.</p>
       ) : null}
-      <div className="source-comparison-table" style={{ overflowX: 'auto' }}>
+      <div
+        className={styles.grid}
+        role="region"
+        aria-label="Comparison grid"
+        tabIndex={0}
+      >
         <table>
           <caption>Research criteria in selected source excerpts</caption>
           <thead>
             <tr>
               <th scope="col">Criterion</th>
-              {analysis.sources.map((source) => (
-                <th scope="col" key={source.id}>
-                  {source.title}
-                  {source.versionNumber > 0
-                    ? ` (version ${String(source.versionNumber)})`
-                    : ''}
-                </th>
-              ))}
+              {analysis.sources.map((source) => {
+                const citation = analysis.evidence.find(
+                  (item) => item.sourceId === source.id,
+                );
+                return (
+                  <th scope="col" key={source.id}>
+                    <span>
+                      {source.title}
+                      {source.versionNumber > 0
+                        ? ` (version ${String(source.versionNumber)})`
+                        : ''}
+                    </span>
+                    {citation !== undefined ? (
+                      <Button
+                        variant="ghost"
+                        size="compact"
+                        href={citationPath(citation)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open
+                      </Button>
+                    ) : null}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -327,13 +462,15 @@ export function ComparisonResult({
                     ?.cells.find((item) => item.criterion === criterion);
                   return (
                     <td key={source.id}>
-                      {cell?.status === 'REPORTED' ? (
+                      {cell?.status === 'REPORTED' && cell.text !== null ? (
                         <>
                           {cell.text}
                           <EvidenceLinks ids={cell.evidenceIds} analysis={analysis} />
                         </>
                       ) : (
-                        'Missing in retrieved excerpts'
+                        <span className={styles.missing}>
+                          Missing in retrieved excerpts
+                        </span>
                       )}
                     </td>
                   );
@@ -343,13 +480,20 @@ export function ComparisonResult({
           </tbody>
         </table>
       </div>
-      <h4>Narrative summary</h4>
-      {analysis.answer.summary.map((statement, index) => (
-        <p key={index}>
-          {statement.text}
-          <EvidenceLinks ids={statement.evidenceIds} analysis={analysis} />
-        </p>
-      ))}
+      <section className={styles.summary} aria-label="Comparison summary">
+        <h4>
+          <Icon name="sparkle" /> Suggested summary
+        </h4>
+        {analysis.answer.summary.length === 0 ? (
+          <p className={styles.missing}>No supported summary was returned.</p>
+        ) : null}
+        {analysis.answer.summary.map((statement, index) => (
+          <p key={index}>
+            {statement.text}
+            <EvidenceLinks ids={statement.evidenceIds} analysis={analysis} />
+          </p>
+        ))}
+      </section>
     </section>
   );
 }
@@ -364,7 +508,7 @@ export function DisagreementResult({
   readonly analysis: SourceAnalysis;
 }): ReactElement {
   return (
-    <section aria-label="Potential disagreement result">
+    <section aria-label="Potential disagreement result" className={styles.findings}>
       <h3>AI-assisted interpretation: potential disagreements</h3>
       <Provenance analysis={analysis} />
       {analysis.answer.status === 'NO_POTENTIAL_DISAGREEMENT' ? (
@@ -377,7 +521,7 @@ export function DisagreementResult({
         <p>Insufficient evidence from at least two sources.</p>
       ) : null}
       {analysis.answer.findings.map((finding, index) => (
-        <article key={index}>
+        <article key={index} className={styles.finding}>
           <h4>{categories[finding.category]}</h4>
           <p>{finding.description}</p>
           {finding.sides.map((side) => (

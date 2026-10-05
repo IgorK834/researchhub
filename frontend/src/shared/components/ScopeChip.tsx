@@ -4,16 +4,16 @@ import { Badge } from './identity';
 /** null is the authorized workspace scope; an empty array is an explicit empty scope. */
 export function ScopeChip({
   selectedSourceIds,
-  readyCount,
+  sourceCount,
   sourceLabel,
   action = 'Ask across',
 }: {
   readonly selectedSourceIds: readonly string[] | null;
-  readonly readyCount: number;
+  readonly sourceCount: number;
   readonly sourceLabel?: string;
   readonly action?: string;
 }): ReactElement {
-  const count = selectedSourceIds === null ? readyCount : selectedSourceIds.length;
+  const count = selectedSourceIds === null ? sourceCount : selectedSourceIds.length;
   return (
     <Badge
       icon="library"

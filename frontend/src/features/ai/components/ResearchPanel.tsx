@@ -408,7 +408,7 @@ function Panel({
               ) : (
                 <ScopeChip
                   selectedSourceIds={scope === 'all' ? null : selected}
-                  readyCount={sources.sources.filter((item) => item.ready).length}
+                  sourceCount={sources.sources.length}
                 />
               )}
             </div>
@@ -582,7 +582,7 @@ function Panel({
         <div className={styles.actions}>
           <ScopeChip
             selectedSourceIds={scope === 'all' ? null : selected}
-            readyCount={sources.sources.filter((item) => item.ready).length}
+            sourceCount={sources.sources.length}
             sourceLabel={scope === 'source' ? source?.title : undefined}
           />
           <Button
