@@ -1,4 +1,9 @@
 researchhub:
+  collaboration:
+    enabled: ${COLLABORATION_ENABLED:false}
+    service-token: ${COLLABORATION_SERVICE_TOKEN:}
+    websocket-url: ${COLLABORATION_WEBSOCKET_URL:ws://localhost:8091}
+    token-ttl: ${COLLABORATION_TOKEN_TTL:PT120S}
   analysis:
     execution:
       dispatcher:
