@@ -77,6 +77,7 @@ succeed. A client must treat the member as optional and fall back to `detail` wh
 | `FORBIDDEN` | 403 | The caller is known and is not allowed to perform the action. |
 | `RESOURCE_NOT_FOUND` | 404 | The resource does not exist, or the route does not. |
 | `CONFLICT` | 409 | The request collided with existing state: the write lost an optimistic concurrency check, it would duplicate a unique value, or the resource's current state does not allow it. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. Editing an archived workspace is also this code, and so is demoting or removing a workspace's last owner. |
+| `RATE_LIMIT_EXCEEDED` | 429 | Costly request quota exhausted. Positive `retryAfterSeconds`, `quotaCategory` (`LLM`, `ANALYSIS`, `RETRIEVAL`), matching `Retry-After` header and private/no-store response; provider/analysis work is not invoked. See [upload-and-cost-controls.md](upload-and-cost-controls.md). |
 | `PAYLOAD_TOO_LARGE` | 413 | The upload exceeds the configured limit: the multipart limit, the per-source limit (`researchhub.sources.max-size-bytes`), or a workspace quota. The detail names the limit. |
 | `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type: the extension is not supported, the declared media type contradicts it, or the content does not match it. The detail lists the supported types; see [sources.md](sources.md#types). |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |

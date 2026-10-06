@@ -199,7 +199,11 @@ export function SourceUploadForm({
               event.target.value = '';
             }}
           />
-          <p>Up to 50 MB per file. Supported types:</p>
+          <p>
+            Up to 50 MB per file. Archives and macro-enabled Office files are not
+            supported.
+          </p>
+          <p>Supported types:</p>
           <div className={styles.types}>
             {SOURCE_TYPES.map((type) => (
               <SourceTypeBadge key={type} sourceType={type} />

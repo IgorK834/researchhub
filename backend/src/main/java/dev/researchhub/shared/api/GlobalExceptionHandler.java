@@ -39,6 +39,12 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = problem(exception.code(), detail);
         // Structured members a module declared on the exception, such as a stale revision's currentRevision.
         exception.properties().forEach(problem::setProperty);
+        if (exception.code() == ApiErrorCode.RATE_LIMIT_EXCEEDED) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                    .header("Retry-After", String.valueOf(exception.properties().get("retryAfterSeconds")))
+                    .header("Cache-Control", "private, no-store").body(problem);
+        }
         return body(problem);
     }
 
@@ -141,13 +147,14 @@ public class GlobalExceptionHandler {
             case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case CONFLICT -> HttpStatus.CONFLICT;
+            case CONFLICT, COLLABORATION_STATE_REPLACED -> HttpStatus.CONFLICT;
             case PAYLOAD_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
             case UNSUPPORTED_FILE_TYPE, UNSUPPORTED_MEDIA_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
             case AI_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case AI_PROVIDER_ERROR, AI_OUTPUT_INVALID -> HttpStatus.BAD_GATEWAY;
             case AI_REFUSED -> HttpStatus.UNPROCESSABLE_CONTENT;
             case AI_CONTEXT_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
+            case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
             case INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
@@ -160,6 +167,7 @@ public class GlobalExceptionHandler {
             case FORBIDDEN -> "Forbidden";
             case RESOURCE_NOT_FOUND -> "Not found";
             case CONFLICT -> "Conflict";
+            case COLLABORATION_STATE_REPLACED -> "Document snapshot restored";
             case PAYLOAD_TOO_LARGE -> "Payload too large";
             case UNSUPPORTED_FILE_TYPE -> "Unsupported file type";
             case UNSUPPORTED_MEDIA_TYPE -> "Unsupported media type";
@@ -168,6 +176,7 @@ public class GlobalExceptionHandler {
             case AI_OUTPUT_INVALID -> "Invalid model response";
             case AI_REFUSED -> "Model request declined";
             case AI_CONTEXT_TOO_LARGE -> "Context budget exceeded";
+            case RATE_LIMIT_EXCEEDED -> "Request limit reached";
             case INTERNAL_ERROR -> "Internal server error";
         };
     }

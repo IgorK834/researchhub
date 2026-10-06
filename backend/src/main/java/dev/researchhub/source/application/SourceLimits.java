@@ -1,27 +1,27 @@
 package dev.researchhub.source.application;
 
-import dev.researchhub.source.domain.Source;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * How large one source may be. Configured by {@code researchhub.sources.max-size-bytes}.
  *
- * <p>Must be between 1 and {@link Source#MAX_SIZE_BYTES_CEILING}, the ceiling the {@code sources} table enforces.
- * A configured value above it would accept uploads the database then refuses, after the bytes were stored, so it
- * fails startup instead.
+ * <p>Must be between 1 and {@link #HARD_MAX_BYTES}, the fixed 50 MiB upload ceiling.
+ * A higher value fails startup. The database's legacy size constraint is intentionally looser.
  *
  * <p>This is a per-source limit. How much a whole workspace may hold is {@link WorkspaceSourceQuota}.
  */
 @Component
 public class SourceLimits {
 
+    public static final long HARD_MAX_BYTES = 52_428_800;
+
     private final long maxSourceBytes;
 
     public SourceLimits(@Value("${researchhub.sources.max-size-bytes:52428800}") long maxSourceBytes) {
-        if (maxSourceBytes < 1 || maxSourceBytes > Source.MAX_SIZE_BYTES_CEILING) {
+        if (maxSourceBytes < 1 || maxSourceBytes > HARD_MAX_BYTES) {
             throw new IllegalArgumentException("researchhub.sources.max-size-bytes must be between 1 and "
-                    + Source.MAX_SIZE_BYTES_CEILING + ", was " + maxSourceBytes);
+                    + HARD_MAX_BYTES + ", was " + maxSourceBytes);
         }
         this.maxSourceBytes = maxSourceBytes;
     }

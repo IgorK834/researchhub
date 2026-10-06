@@ -28,12 +28,13 @@ public record SourceFilename(String value) {
     /** Mirrors {@code sources.original_filename varchar(255)}, and FieldLengths.NAME_MAX. */
     public static final int MAX_LENGTH = 255;
 
-    private static final Pattern UNSAFE = Pattern.compile("[\\p{Cntrl}\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069]");
+    private static final Pattern UNSAFE = Pattern.compile("[\\p{Cc}\\p{Cf}\\p{Cs}\\p{Zl}\\p{Zp}]");
 
     public SourceFilename {
-        if (value == null || value.isBlank()) {
+        if (value == null || value.isBlank() || value.equals(".") || value.equals("..")) {
             throw new IllegalArgumentException("a file name is required");
         }
+        if (value.length() > MAX_LENGTH) throw new IllegalArgumentException("a file name is too long");
         if (!value.equals(clean(value))) {
             throw new IllegalArgumentException("a file name must already be cleaned; use SourceFilename.of");
         }
@@ -61,7 +62,7 @@ public record SourceFilename(String value) {
     private static String clean(String raw) {
         String lastSegment = raw.substring(Math.max(raw.lastIndexOf('/'), raw.lastIndexOf('\\')) + 1);
         String normalized = Normalizer.normalize(lastSegment, Normalizer.Form.NFC);
-        return UNSAFE.matcher(normalized).replaceAll("").strip();
+        return UNSAFE.matcher(normalized).replaceAll("").replaceAll("[<>:\"|?*]", "_").strip();
     }
 
     /** The extension after the last dot, lowercase, or empty when there is none. */

@@ -12,6 +12,7 @@ export const API_ERROR_CODES = [
   'FORBIDDEN',
   'RESOURCE_NOT_FOUND',
   'CONFLICT',
+  'COLLABORATION_STATE_REPLACED',
   'PAYLOAD_TOO_LARGE',
   'UNSUPPORTED_FILE_TYPE',
   'UNSUPPORTED_MEDIA_TYPE',
@@ -20,6 +21,7 @@ export const API_ERROR_CODES = [
   'AI_OUTPUT_INVALID',
   'AI_REFUSED',
   'AI_CONTEXT_TOO_LARGE',
+  'RATE_LIMIT_EXCEEDED',
   'INTERNAL_ERROR',
 ] as const;
 
@@ -59,6 +61,9 @@ export interface ApiProblemDetail {
    * even there: a caller must still handle a `CONFLICT` without it, and fall back to `detail`.
    */
   readonly currentRevision?: number;
+  /** Bounded delay for RATE_LIMIT_EXCEEDED; retries always require an explicit user action. */
+  readonly retryAfterSeconds?: number;
+  readonly quotaCategory?: 'LLM' | 'ANALYSIS' | 'RETRIEVAL';
 }
 
 /**
@@ -138,7 +143,14 @@ export function fieldErrorsByName(error: unknown): Readonly<Record<string, strin
 /** Message safe to render in the UI for any error this layer can produce. */
 export function describeError(error: unknown): string {
   if (isApiError(error)) {
-    return error.problem.detail || error.problem.title;
+    const message = error.problem.detail || error.problem.title;
+    if (
+      error.code === 'RATE_LIMIT_EXCEEDED' &&
+      error.problem.retryAfterSeconds !== undefined
+    ) {
+      return `${message} Try again in ${String(error.problem.retryAfterSeconds)} seconds.`;
+    }
+    return message;
   }
 
   if (isApiTransportError(error)) {

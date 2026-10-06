@@ -42,13 +42,30 @@ class SourceServiceCleanupTest {
                 mock(SourceVersionJobRepository.class), storage, new SourceLimits(1024),
                 new UnlimitedWorkspaceSourceQuota(), mock(WorkspaceAuthorizationService.class),
                 mock(ProcessingJobService.class), transactions,
-                Clock.fixed(Instant.parse("2026-09-24T10:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-09-24T10:00:00Z"), ZoneOffset.UTC), mock(dev.researchhub.audit.application.ProductAudit.class), new dev.researchhub.security.application.UploadInspector(java.util.List.of()));
 
         assertThrows(DataIntegrityViolationException.class, () -> service.upload(UUID.randomUUID(),
                 UUID.randomUUID(), new UploadSourceCommand("notes.txt", "text/plain", null,
                         new ByteArrayInputStream("hello".getBytes()))));
 
         assertEquals(0, storage.objectCount());
+    }
+
+    @Test
+    void invalidOfficeUploadNeverCallsBlobStorageOrCreatesMetadata() {
+        SourceRepository repository = mock(SourceRepository.class);
+        SourceStorage storage = mock(SourceStorage.class);
+        ProcessingJobService jobs = mock(ProcessingJobService.class);
+        SourceService service = new SourceService(repository, mock(SourceVersionRepository.class),
+                mock(SourceVersionJobRepository.class), storage, new SourceLimits(1024),
+                new UnlimitedWorkspaceSourceQuota(), mock(WorkspaceAuthorizationService.class), jobs,
+                mock(PlatformTransactionManager.class), Clock.systemUTC(),
+                mock(dev.researchhub.audit.application.ProductAudit.class),
+                new dev.researchhub.security.application.UploadInspector(java.util.List.of()));
+        assertThrows(dev.researchhub.shared.error.UnsupportedFileTypeException.class, () -> service.upload(UUID.randomUUID(),
+                UUID.randomUUID(), new UploadSourceCommand("disguised.docx", "application/octet-stream", null,
+                        new ByteArrayInputStream(new byte[]{'P','K',3,4,1,2}))));
+        org.mockito.Mockito.verifyNoInteractions(storage, repository, jobs);
     }
 
 }

@@ -83,7 +83,11 @@ it('offers accessible browsing, the size limit and exactly five supported types'
   fireEvent.click(screen.getByRole('button', { name: 'Browse files' }));
   expect(click).toHaveBeenCalledTimes(1);
   for (const type of SOURCE_TYPES) expect(screen.getByText(type)).not.toBeNull();
-  expect(screen.getByText('Up to 50 MB per file. Supported types:')).not.toBeNull();
+  expect(
+    screen.getByText(
+      'Up to 50 MB per file. Archives and macro-enabled Office files are not supported.',
+    ),
+  ).not.toBeNull();
   choose();
   fireEvent.change(input, { target: { files: null } });
   expect(screen.queryByRole('list', { name: 'Upload queue' })).toBeNull();

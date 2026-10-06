@@ -28,9 +28,16 @@ researchhub:
       # rejected instead of silently truncated. Note bytes, not characters — non-ASCII costs more than
       # one byte each in UTF-8.
       min-length: 12
+  security:
+    quotas:
+      # Single-instance local adapter. A multi-instance deployment needs an atomic shared store.
+      window: PT1M
+      max-buckets: 100000
+      llm: {user: 20, workspace: 60}
+      analysis: {user: 10, workspace: 30}
+      retrieval: {user: 60, workspace: 180}
   sources:
-    # The largest file accepted as one source, in bytes. 50 MiB. Must be at most 1 GiB, the ceiling
-    # ck_sources_size_bytes enforces; a larger value fails startup. See docs/development/sources.md.
+    # The largest file accepted as one source, in bytes. 50 MiB. Cannot exceed this hard ceiling; a larger value fails startup. See docs/development/sources.md.
     max-size-bytes: 52428800
     storage:
       # Which SourceStorage adapter holds the bytes. The local profile selects azure-blob and supplies its
@@ -42,10 +49,18 @@ researchhub:
       # a restore point; an autosave is one only when this much time has passed since the last. ISO-8601
       # duration. See dev.researchhub.document.application.CheckpointPolicy and V7__create_document_versions.sql.
       autosave-checkpoint-interval: PT10M
+      scheduler:
+        enabled: ${DOCUMENT_SNAPSHOT_SCHEDULER_ENABLED:true}
+        fixed-delay: ${DOCUMENT_SNAPSHOT_FIXED_DELAY:PT1M}
 
 spring:
   application:
     name: backend
+  servlet:
+    multipart:
+      max-file-size: 52428800B
+      max-request-size: 53477376B
+      file-size-threshold: 0B
 
 server:
   servlet:

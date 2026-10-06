@@ -1,5 +1,7 @@
 package dev.researchhub.ai.api;
 
+import dev.researchhub.security.application.CostlyOperation;
+import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
 import org.springframework.context.annotation.Profile;
@@ -15,6 +17,7 @@ public class RetrievalSearchController {
     private final RetrievalSearchService search;
     private final CurrentUserResolver currentUser;
     public RetrievalSearchController(RetrievalSearchService search, CurrentUserResolver currentUser) { this.search = search; this.currentUser = currentUser; }
+    @CostlyOperation(value = CostCategory.RETRIEVAL, access = CostlyOperation.Access.READ)
     @GetMapping("/search")
     ResponseEntity<List<RetrievalHit>> search(@PathVariable UUID workspaceId, @RequestParam String query,
         @RequestParam(required = false) List<UUID> sourceIds, @RequestParam(defaultValue = "10") int topK) {

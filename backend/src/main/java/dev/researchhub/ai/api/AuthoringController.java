@@ -1,5 +1,7 @@
 package dev.researchhub.ai.api;
 
+import dev.researchhub.security.application.CostlyOperation;
+import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.ai.application.AuthoringContracts.*;
 import dev.researchhub.ai.application.AuthoringService;
 import dev.researchhub.auth.application.CurrentUserResolver;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class AuthoringController {
     private final AuthoringService authoring; private final CurrentUserResolver users; private final ObjectMapper json;
     public AuthoringController(AuthoringService authoring, CurrentUserResolver users, ObjectMapper json) { this.authoring=authoring; this.users=users; this.json=json; }
+    @CostlyOperation(value = CostCategory.LLM, access = CostlyOperation.Access.EDIT)
     @PostMapping ResponseEntity<Suggestion> suggest(@PathVariable UUID workspaceId,@PathVariable UUID documentId,@RequestBody Command command) {
         return response(authoring.suggest(workspaceId,documentId,users.requireCurrentUser().id(),command));
     }

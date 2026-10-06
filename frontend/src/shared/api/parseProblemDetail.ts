@@ -81,6 +81,16 @@ export function decodeProblemDetail(
   const status = typeof value['status'] === 'number' ? value['status'] : httpStatus;
   const errors = decodeFieldErrors(value['errors']);
   const currentRevision = decodeRevision(value['currentRevision']);
+  const retry = decodeRevision(value['retryAfterSeconds']);
+  const retryAfterSeconds =
+    code === 'RATE_LIMIT_EXCEEDED' && retry !== undefined && retry <= 86400
+      ? retry
+      : undefined;
+  const category = value['quotaCategory'];
+  const quotaCategory =
+    category === 'LLM' || category === 'ANALYSIS' || category === 'RETRIEVAL'
+      ? category
+      : undefined;
 
   return {
     type: asString(value['type']) ?? 'about:blank',
@@ -91,6 +101,8 @@ export function decodeProblemDetail(
     rawCode,
     ...(errors === undefined ? {} : { errors }),
     ...(currentRevision === undefined ? {} : { currentRevision }),
+    ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
+    ...(quotaCategory === undefined ? {} : { quotaCategory }),
   };
 }
 

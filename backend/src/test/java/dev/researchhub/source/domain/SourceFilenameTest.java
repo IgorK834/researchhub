@@ -64,6 +64,14 @@ class SourceFilenameTest {
     }
 
     @Test
+    void directConstructionCannotBypassLengthAndDotValidation() {
+        assertThrows(IllegalArgumentException.class, () -> new SourceFilename("a".repeat(256)));
+        assertThrows(IllegalArgumentException.class, () -> new SourceFilename(".."));
+        assertEquals("note_.txt", SourceFilename.of("note:\u200b.txt").value());
+        assertEquals("x_.pdf", SourceFilename.of("x<.pdf").value());
+    }
+
+    @Test
     void readsTheExtensionLowercase() {
         assertEquals(Optional.of("pdf"), SourceFilename.of("Report.PDF").extension());
         assertEquals(Optional.of("gz"), SourceFilename.of("archive.tar.gz").extension());

@@ -71,6 +71,7 @@ class AnalysisApiIntegrationTest {
     @Value("${local.server.port}") int port;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
+    @Autowired dev.researchhub.security.application.CostQuotaStore costlyRequests;
     @Autowired TestPlanner planner;
     @Autowired TestRunner runner;
     @Autowired SourceStorage storage;
@@ -109,6 +110,20 @@ class AnalysisApiIntegrationTest {
         assertEquals(workspace.toString(),draft.get("workspaceId").asString()); assertTrue(draft.get("plan").isNull());
         return draft.get("id").asString();
     }
+    @Test void excessiveAnalysisRequestsCannotEnqueueWorkOrCallThePlanner() throws Exception {
+        var policy = new dev.researchhub.security.application.QuotaPolicy(10,30,java.time.Duration.ofMinutes(1));
+        for (int i=0;i<9;i++) costlyRequests.admit(ownerId,workspace,dev.researchhub.security.application.CostCategory.ANALYSIS,policy);
+        String id=ready();
+        assertEquals(1,planner.calls);
+        var denied=owner.postJson(path+"/"+id+"/execute","{}");
+        assertEquals(429,denied.statusCode(),denied.body());
+        assertEquals("ANALYSIS",owner.json(denied).get("quotaCategory").asString());
+        assertEquals(429,owner.postJson(path+"/"+id+"/plan","{}").statusCode());
+        assertEquals(1,planner.calls); assertEquals(0,runner.calls);
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM analysis_executions",Integer.class));
+        assertEquals(200,owner.get(path+"/"+id+"/executions").statusCode());
+    }
+
     @Test void createsListsPlansAndPreservesTheCompleteImmutableAudit() throws Exception {
         String id=create();
         assertEquals(1,owner.json(owner.get(path)).size()); assertEquals(0,owner.json(owner.get(path+"?offset=50")).size());
@@ -210,6 +225,15 @@ class AnalysisApiIntegrationTest {
         var restore=owner.postJson(docPath+"/versions/"+originalVersion+"/restore","{\"revision\":2}");
         assertEquals(200,restore.statusCode(),restore.body());assertEquals(json.readTree(content),owner.json(restore).get("content"));
         assertEquals(version.toString(),owner.json(owner.get(path+"/"+id+"/executions/"+execution+"/provenance")).get("inputSources").get(0).get("sourceVersionId").asString());
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='ANALYSIS_EXECUTED'",Integer.class));
+        assertEquals(3,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='ANALYSIS_BLOCK_INSERTED'",Integer.class));
+        var origins=owner.json(owner.get(docPath+"/blocks/"+block+"/provenance"));
+        assertEquals(3,origins.size()); assertEquals("ANALYSIS_DERIVED",origins.get(0).path("category").asString());
+        assertEquals(execution,origins.get(0).path("metadata").path("analysis").path("executionId").asString());
+        assertEquals(newer,origins.get(1).path("metadata").path("analysis").path("executionId").asString());
+        assertFalse(origins.toString().contains("Saved experimental result"));
+        var safeAudit=owner.json(owner.get("/api/workspaces/"+workspace+"/audit-events")).path("events");
+        assertFalse(safeAudit.toString().contains("never executed")); assertFalse(safeAudit.toString().contains("Saved experimental result"));
         var other=new ApiBrowser(port,json);other.signUp("outsider@example.test","Other");
         assertEquals(404,other.get(docPath).statusCode());
         owner.postJson("/api/workspaces/"+workspace+"/members","{\"email\":\"outsider@example.test\",\"role\":\"VIEWER\"}");
@@ -306,7 +330,14 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP TABLE analysis_origins");
         jdbc.execute("ALTER TABLE ai_generation_runs DROP COLUMN analysis_evidence");jdbc.execute("ALTER TABLE ai_messages DROP COLUMN selected_analysis_outputs");
         jdbc.execute("DROP TABLE collaboration_credentials");jdbc.execute("DROP TABLE collaboration_documents");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26')");flyway.migrate();
+        // Remove the dependent review/AI/audit schema too, so this remains a real V21 -> latest upgrade.
+        jdbc.execute("DROP TABLE document_content_operations,comment_ai_citation_acceptances,comment_ai_suggestions,product_audit_events");
+        jdbc.execute("DROP TABLE comment_audit_events, comment_replies, document_comments");
+        jdbc.execute("DROP FUNCTION review_history_is_immutable()");
+        jdbc.execute("ALTER TABLE documents DROP CONSTRAINT uq_documents_workspace_id");
+        jdbc.execute("ALTER TABLE document_versions DROP CONSTRAINT ck_document_snapshot_actor,DROP CONSTRAINT ck_document_snapshot_name,DROP CONSTRAINT ck_document_snapshot_state,DROP COLUMN name,DROP COLUMN actor_name,DROP COLUMN yjs_state,DROP COLUMN state_sha256,DROP COLUMN collaboration_epoch,DROP COLUMN collaboration_sequence,ALTER COLUMN created_by SET NOT NULL,ADD CONSTRAINT uq_document_versions_document_revision UNIQUE(document_id,revision)");
+        jdbc.execute("DROP INDEX ix_document_versions_order");
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());

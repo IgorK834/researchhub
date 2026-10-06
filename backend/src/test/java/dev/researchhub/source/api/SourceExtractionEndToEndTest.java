@@ -399,12 +399,15 @@ class SourceExtractionEndToEndTest {
         assertEquals("📊".repeat(250),workbook.get("sheets").get(0).get("previewRows").get(1).get("cells").get(0).asString());
     }
     @Test void malformedCsvEncodingAndDelimiterFailSafelyWithoutPublishedMetadataOrSearchRows() throws Exception {
-        for (var input:java.util.Map.of("encoding.csv",new byte[]{'a',',','b','\n','x',',',(byte)0xff},
-                "delimiter.csv","a;b\nPRIVATE_SECRET;2;3".getBytes(java.nio.charset.StandardCharsets.UTF_8)).entrySet()) {
+        var encoding = owner.postFile("/api/workspaces/" + workspaceId + "/sources", "encoding.csv", "text/csv",
+                new byte[]{'a',',','b','\n','x',',',(byte)0xff});
+        assertEquals(415, encoding.statusCode(), encoding.body());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM processing_jobs",Integer.class));
+        for (var input:java.util.Map.of("delimiter.csv","a;b\nPRIVATE_SECRET;2;3".getBytes(java.nio.charset.StandardCharsets.UTF_8)).entrySet()) {
             String id=upload(input.getKey(),input.getValue());dispatch();
             var source=owner.json(owner.get(sourcePath(id)));assertEquals("FAILED",source.get("status").asString());
             assertFalse(source.get("failureSummary").asString().contains("PRIVATE_SECRET"));
-            assertEquals(input.getKey().startsWith("encoding")?"CSV_ENCODING_INVALID":"CSV_DELIMITER_INVALID",
+            assertEquals("CSV_DELIMITER_INVALID",
                 jdbc.queryForObject("SELECT last_error_code FROM processing_jobs WHERE resource_id=?",String.class,UUID.fromString(id)));
             assertEquals(1,jdbc.queryForObject("SELECT attempt_count FROM processing_jobs WHERE resource_id=?",Integer.class,UUID.fromString(id)));
             assertEquals(204,owner.get(sourcePath(id)+"/extraction").statusCode());

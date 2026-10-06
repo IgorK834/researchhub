@@ -1,5 +1,8 @@
 package dev.researchhub.source.application;
 
+import dev.researchhub.security.application.UploadInspector;
+import dev.researchhub.audit.application.ProductAudit;
+
 import dev.researchhub.processing.application.ProcessingJobService;
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
@@ -33,6 +36,9 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -50,7 +56,7 @@ import java.util.UUID;
  * does not exist. A source is always found by its id <em>within</em> the caller's workspace; its storage key is read
  * from that row afterwards and is never an input.
  *
- * <p><strong>Upload order.</strong> The bytes are streamed into storage first, then the source and its idempotent
+ * <p><strong>Upload order.</strong> Bounded bytes are staged and inspected before storage, then the source and its idempotent
  * ingestion job are inserted in one database transaction. Storage is not transactional, so this is the order that
  * fails safe: a failed store leaves no row pointing at nothing, and a failed database transaction is compensated by
  * deleting the stored object. A crash between storage and the transaction can leave an unreferenced object, which is
@@ -79,12 +85,14 @@ public class SourceService {
     private final ProcessingJobService processingJobs;
     private final TransactionTemplate transactions;
     private final Clock clock;
+    private final ProductAudit audit;
+    private final UploadInspector uploadInspector;
 
     public SourceService(SourceRepository sources, SourceVersionRepository versions,
                          SourceVersionJobRepository versionJobs, SourceStorage storage, SourceLimits limits,
                          WorkspaceSourceQuota quota, WorkspaceAuthorizationService authorization,
                          ProcessingJobService processingJobs, PlatformTransactionManager transactionManager,
-                         Clock clock) {
+                         Clock clock, ProductAudit audit, UploadInspector uploadInspector) {
         this.sources = sources;
         this.versions = versions;
         this.versionJobs = versionJobs;
@@ -94,7 +102,7 @@ public class SourceService {
         this.authorization = authorization;
         this.processingJobs = processingJobs;
         this.transactions = new TransactionTemplate(transactionManager);
-        this.clock = clock;
+        this.clock = clock; this.audit = audit; this.uploadInspector = uploadInspector;
     }
 
     /**
@@ -128,6 +136,7 @@ public class SourceService {
                 versions.saveAndFlush(SourceVersionEntity.fromDomain(SourceVersion.fromActiveSource(recorded.toDomain())));
                 var job = processingJobs.enqueueSourceIngest(workspaceId, recorded.getId());
                 versionJobs.bind(job.id(), recorded.getActiveVersionId());
+                audit.sourceUploaded(workspaceId, callerId, recorded.getId(), recorded.getActiveVersionId(), stored.sizeBytes());
                 return recorded;
             });
 
@@ -164,6 +173,7 @@ public class SourceService {
                 SourceEntity recorded = sources.saveAndFlush(SourceEntity.fromDomain(replacement));
                 var job = processingJobs.reprocessSource(workspaceId, sourceId);
                 versionJobs.bind(job.id(), replacement.activeVersionId());
+                audit.sourceReprocessed(workspaceId, callerId, sourceId, replacement.activeVersionId(), job.id());
                 return recorded.toDomain();
             });
             log.info("event=source.replaced workspaceId={} sourceId={} sourceVersionId={} version={} userId={}",
@@ -215,6 +225,7 @@ public class SourceService {
         var job = processingJobs.reprocessSource(workspaceId, sourceId);
         versionJobs.bind(job.id(), source.activeVersionId());
         sources.saveAndFlush(SourceEntity.fromDomain(processing));
+        audit.sourceReprocessed(workspaceId, callerId, sourceId, source.activeVersionId(), job.id());
         return summaryOf(processing);
     }
 
@@ -298,17 +309,34 @@ public class SourceService {
         }
         StorageKey key = StorageKey.generate();
         MeteredInputStream metered = new MeteredInputStream(command.content(), limits.maxSourceBytes());
+        Path staged = null;
+        boolean storeAttempted = false;
         try {
             BufferedInputStream buffered = new BufferedInputStream(metered, SourceType.SIGNATURE_WINDOW_BYTES);
             requireSignature(type, buffered);
-            storage.store(key, buffered, type.mediaType());
+            // Random private temporary path; client filename is metadata only. Size is metered while copying.
+            staged = Files.createTempFile("researchhub-upload-", ".staged");
+            Files.copy(buffered, staged, StandardCopyOption.REPLACE_EXISTING);
+            uploadInspector.requireSafe(staged, type.name());
+            try (var validatedContent = Files.newInputStream(staged)) {
+                storeAttempted = true;
+                storage.store(key, validatedContent, type.mediaType());
+            }
             return new StoredUpload(filename, type, metered.count(), key, metered.sha256Hex());
         } catch (ContentLimitExceededException exceeded) {
-            discard(key); throw tooLarge();
+            if (storeAttempted) discard(key);
+            throw tooLarge();
         } catch (IOException failed) {
-            discard(key); throw new UncheckedIOException("Could not store an upload for workspace " + workspaceId, failed);
+            if (storeAttempted) discard(key);
+            throw new UncheckedIOException("Could not store an upload for workspace " + workspaceId, failed);
         } catch (RuntimeException refused) {
-            discard(key); throw refused;
+            if (storeAttempted) discard(key);
+            throw refused;
+        } finally {
+            if (staged != null) {
+                try { Files.deleteIfExists(staged); }
+                catch (IOException cleanup) { log.warn("event=source.staging_cleanup_failed", cleanup); }
+            }
         }
     }
 

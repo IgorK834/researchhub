@@ -33,9 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ActiveProfiles("local")
 @TestPropertySource(properties = {
         "researchhub.sources.storage.adapter=in-memory",
-        "researchhub.sources.max-size-bytes=64",
-        "spring.servlet.multipart.max-file-size=64B",
-        "spring.servlet.multipart.max-request-size=2KB",
+        "researchhub.sources.max-size-bytes=1024",
+        "spring.servlet.multipart.max-file-size=1024B",
+        "spring.servlet.multipart.max-request-size=4KB",
         "researchhub.processing.dispatcher.enabled=false"
 })
 @Import({PostgresTestcontainersConfiguration.class, SourceApiIntegrationTest.StorageConfiguration.class})
@@ -50,7 +50,7 @@ class SourceApiIntegrationTest {
     }
 
     private static final byte[] PDF = "%PDF-1.7\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
-    private static final byte[] XLSX = {'P', 'K', 3, 4, 20, 0};
+    private static final byte[] XLSX = dev.researchhub.security.OfficeUploadFixture.xlsx();
     private static final byte[] CSV = "name,value\na,1\n".getBytes(StandardCharsets.UTF_8);
 
     @Value("${local.server.port}")
@@ -202,7 +202,7 @@ class SourceApiIntegrationTest {
     @Test
     void oversizeAndUnsupportedUploadsFailPredictablyAndLeaveNoMetadata() throws Exception {
         Owner owner = ownerWithWorkspace();
-        byte[] oversized = "x".repeat(65).getBytes(StandardCharsets.UTF_8);
+        byte[] oversized = "x".repeat(1025).getBytes(StandardCharsets.UTF_8);
 
         HttpResponse<String> tooLarge = owner.browser().postFile(sourcesPath(owner.workspaceId()),
                 "large.txt", "text/plain", oversized);
@@ -358,7 +358,7 @@ class SourceApiIntegrationTest {
         HttpResponse<String> unsupported = owner.browser().postFile(base, "run.exe", "application/octet-stream",
                 new byte[]{'M', 'Z'});
         HttpResponse<String> oversized = owner.browser().postFile(base, "big.txt", "text/plain",
-                "x".repeat(65).getBytes(StandardCharsets.UTF_8));
+                "x".repeat(1025).getBytes(StandardCharsets.UTF_8));
         HttpResponse<String> unknownSource = owner.browser().postFile(sourcesPath(owner.workspaceId()) + "/"
                 + UUID.randomUUID() + "/versions", "data2.csv", "text/csv", next);
 
@@ -443,6 +443,36 @@ class SourceApiIntegrationTest {
             assertEquals(1, source.get("activeVersionNumber").asInt());
             assertEquals(36, source.get("activeVersionId").asString().length());
         }
+    }
+
+    @Test
+    void spoofedOfficePackagesArchivesAndBinaryTextLeaveNoBlobOrIngestionJob() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        var zip = dev.researchhub.security.OfficeUploadFixture.archive(java.util.Map.of("payload.txt", "untrusted"));
+        for (UploadCase upload : List.of(
+                new UploadCase("renamed.docx", "application/octet-stream", XLSX, "DOCX"),
+                new UploadCase("generic.xlsx", "application/octet-stream", zip, "XLSX"),
+                new UploadCase("archive.zip", "application/octet-stream", zip, "ZIP"),
+                new UploadCase("renamed.txt", "text/plain", zip, "TXT"),
+                new UploadCase("truncated.xlsx", "application/octet-stream", new byte[]{'P','K',3,4}, "XLSX"),
+                new UploadCase("macro.xlsm", "application/octet-stream", XLSX, "XLSM"))) {
+            var response = owner.browser().postFile(sourcesPath(owner.workspaceId()),upload.filename(),upload.mediaType(),upload.bytes());
+            assertEquals(415, response.statusCode(), response.body());
+            assertEquals("UNSUPPORTED_FILE_TYPE", owner.browser().json(response).get("code").asString());
+        }
+        assertEquals(0, sourceRows());
+        assertEquals(0, ((InMemorySourceStorage)storage).objectCount());
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT count(*) FROM processing_jobs",Integer.class));
+    }
+
+    @Test
+    void pathLikeNameIsNormalizedAsMetadataWhileStorageKeyIsIndependent() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        var response = owner.browser().postFile(sourcesPath(owner.workspaceId()), "../../private/claim.txt", "text/plain", "A claim".getBytes(StandardCharsets.UTF_8));
+        assertEquals(201, response.statusCode(), response.body());
+        assertEquals("claim.txt", owner.browser().json(response).get("originalFilename").asString());
+        String key = jdbcTemplate.queryForObject("SELECT storage_key FROM sources",String.class);
+        assertFalse(key.contains("claim")); assertFalse(key.contains("..")); assertFalse(key.contains("private"));
     }
 
     private record UploadCase(String filename, String mediaType, byte[] bytes, String type) {

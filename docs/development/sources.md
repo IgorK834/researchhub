@@ -12,19 +12,21 @@ browse/upload UI, and Azure Blob adapter are implemented. Locally the adapter ta
 SDK client used for Azure Blob Storage.
 The source service is only created once an adapter is configured (see [Storage](#storage)).
 
+Upload validation and worker resource controls are detailed in [upload-and-cost-controls.md](upload-and-cost-controls.md).
+
 ## Types
 
 The mapping is closed. `dev.researchhub.source.domain.SourceType` holds it, `ck_sources_source_type` and
 `ck_sources_media_type_matches_type` enforce it in the database, and
 `frontend/src/features/sources/api/sourceTypes.ts` mirrors it for pre-upload checks.
 
-| `source_type` | Extension | Stored `media_type` (canonical) | Also accepted as the declared media type | Content check (first 8 KiB) |
+| `source_type` | Extension | Stored `media_type` (canonical) | Also accepted as the declared media type | Content check (signature + staged inspection) |
 | --- | --- | --- | --- | --- |
 | `PDF` | `.pdf` | `application/pdf` | `application/x-pdf` | Starts with `%PDF-` |
-| `DOCX` | `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | — | Starts with a ZIP header (`PK\x03\x04`) |
-| `XLSX` | `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | — | Starts with a ZIP header (`PK\x03\x04`) |
-| `CSV` | `.csv` | `text/csv` | `application/csv`, `text/x-csv`, `text/plain`, `application/vnd.ms-excel` | No NUL byte |
-| `TXT` | `.txt` | `text/plain` | — | No NUL byte |
+| `DOCX` | `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | — | Real OOXML package with matching main-part content type; macro/archive limits |
+| `XLSX` | `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | — | Real OOXML package with matching main-part content type; macro/archive limits |
+| `CSV` | `.csv` | `text/csv` | `application/csv`, `text/x-csv`, `text/plain`, `application/vnd.ms-excel` | Whole-file UTF-8 validation; no binary signatures/unsupported controls |
+| `TXT` | `.txt` | `text/plain` | — | Whole-file UTF-8 validation; no binary signatures/unsupported controls |
 
 For every type, an absent declared media type and `application/octet-stream` are also accepted, since neither says
 anything about the content. Media type parameters (`; charset=utf-8`) and letter case are ignored.

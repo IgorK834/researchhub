@@ -1,5 +1,7 @@
 package dev.researchhub.analysis.api;
 
+import dev.researchhub.security.application.CostlyOperation;
+import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.analysis.application.*;
 import dev.researchhub.analysis.application.AnalysisContracts.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
@@ -31,12 +33,14 @@ public class AnalysisController {
     @GetMapping("/{analysisId}") ResponseEntity<Analysis> find(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
         return ok(analyses.find(workspaceId,users.requireCurrentUser().id(),analysisId));
     }
+    @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
     @PostMapping("/{analysisId}/plan") ResponseEntity<Analysis> plan(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
         return ok(analyses.plan(workspaceId,users.requireCurrentUser().id(),analysisId));
     }
     @GetMapping("/{analysisId}/plans") ResponseEntity<List<PlanAudit>> attempts(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
         return ok(analyses.attempts(workspaceId,users.requireCurrentUser().id(),analysisId));
     }
+    @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
     @PostMapping("/{analysisId}/execute") ResponseEntity<ExecutionContracts.Execution> execute(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
         var execution=executions.enqueue(workspaceId,users.requireCurrentUser().id(),analysisId);
         return ResponseEntity.accepted().location(URI.create("/api/workspaces/"+workspaceId+"/analyses/"+analysisId+"/executions/"+execution.id()))
@@ -61,6 +65,7 @@ public class AnalysisController {
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
         return ok(executions.record(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
     }
+    @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
     @PostMapping("/{analysisId}/executions/{executionId}/rerun") ResponseEntity<ReproductionContracts.RerunResult> rerun(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId,@RequestBody Map<String,Object> body) {
         if (body==null || !body.keySet().equals(Set.of("inputMode")) || !(body.get("inputMode") instanceof String mode))

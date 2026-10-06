@@ -373,3 +373,27 @@ it('abandons creation safely and handles a request with no relevant passages', a
   );
   expect(screen.queryByRole('button', { name: 'Retry answer' })).toBeNull();
 });
+
+it('shows quota timing without automatically resending the preserved research question', async () => {
+  const limited = new ApiError({
+    type: 'about:blank',
+    title: 'Request limit reached',
+    status: 429,
+    code: 'RATE_LIMIT_EXCEEDED',
+    rawCode: 'RATE_LIMIT_EXCEEDED',
+    detail: 'The request limit for this operation has been reached.',
+    retryAfterSeconds: 45,
+    quotaCategory: 'LLM',
+  });
+  stream.mockRejectedValue(limited);
+  const view = panel();
+  await submit('A claim worth checking');
+  await screen.findByText(/Try again in 45 seconds/);
+  expect(screen.getByLabelText('Research question')).toHaveProperty(
+    'value',
+    'A claim worth checking',
+  );
+  expect(screen.queryByRole('button', { name: 'Retry answer' })).toBeNull();
+  expect(stream).toHaveBeenCalledTimes(1);
+  view.unmount();
+});
