@@ -48,14 +48,12 @@ public final class UserRowFixture {
     }
 
     /**
-     * Removes every row the workspace tests create, children first so the foreign keys hold.
+     * Removes every row the workspace tests create, including append-only history through test-only TRUNCATE.
      *
      * <p>For tests that are not {@code @Transactional} and therefore do not roll back.
      */
     public static void deleteWorkspaceAndUserRows(JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.execute("DELETE FROM workspace_members");
-        jdbcTemplate.execute("DELETE FROM workspaces");
-        jdbcTemplate.execute("DELETE FROM users");
+        jdbcTemplate.execute("TRUNCATE users, workspaces CASCADE");
     }
 
     private UserRowFixture() {

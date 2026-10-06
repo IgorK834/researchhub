@@ -25,6 +25,9 @@ public enum WorkspaceCapability {
      */
     EDIT_CONTENT,
 
+    /** Explicit AI contributions to documents and comment threads. MVP: editors and owners. */
+    USE_AI,
+
     /** Add or remove members and change their roles. */
     MANAGE_MEMBERS,
 

@@ -16,10 +16,10 @@ import java.util.Set;
  *
  * <table>
  *   <caption>Capability matrix</caption>
- *   <tr><th></th><th>VIEW_CONTENT</th><th>EDIT_CONTENT</th><th>MANAGE_MEMBERS</th><th>MANAGE_WORKSPACE</th></tr>
- *   <tr><td>OWNER</td> <td>yes</td><td>yes</td><td>yes</td><td>yes</td></tr>
- *   <tr><td>EDITOR</td><td>yes</td><td>yes</td><td>no</td> <td>no</td></tr>
- *   <tr><td>VIEWER</td><td>yes</td><td>no</td> <td>no</td> <td>no</td></tr>
+ *   <tr><th></th><th>VIEW_CONTENT</th><th>EDIT_CONTENT</th><th>USE_AI</th><th>MANAGE_MEMBERS</th><th>MANAGE_WORKSPACE</th></tr>
+ *   <tr><td>OWNER</td> <td>yes</td><td>yes</td><td>yes</td><td>yes</td><td>yes</td></tr>
+ *   <tr><td>EDITOR</td><td>yes</td><td>yes</td><td>yes</td><td>no</td> <td>no</td></tr>
+ *   <tr><td>VIEWER</td><td>yes</td><td>no</td> <td>no</td> <td>no</td> <td>no</td></tr>
  * </table>
  *
  * <p>Adding a value here also means widening {@code ck_workspace_members_role} in a new migration,
@@ -34,7 +34,7 @@ public enum WorkspaceRole {
     OWNER(EnumSet.allOf(WorkspaceCapability.class)),
 
     /** Creates and edits content. Cannot manage members or the workspace itself. */
-    EDITOR(EnumSet.of(WorkspaceCapability.VIEW_CONTENT, WorkspaceCapability.EDIT_CONTENT)),
+    EDITOR(EnumSet.of(WorkspaceCapability.VIEW_CONTENT, WorkspaceCapability.EDIT_CONTENT, WorkspaceCapability.USE_AI)),
 
     /** Reads content. Cannot run any mutating operation. */
     VIEWER(EnumSet.of(WorkspaceCapability.VIEW_CONTENT));

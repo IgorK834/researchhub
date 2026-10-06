@@ -24,12 +24,14 @@ class WorkspaceRoleTest {
         assertTrue(WorkspaceRole.OWNER.allows(WorkspaceCapability.EDIT_CONTENT),
                 "An owner also edits content");
         assertTrue(WorkspaceRole.OWNER.allows(WorkspaceCapability.VIEW_CONTENT));
+        assertTrue(WorkspaceRole.OWNER.allows(WorkspaceCapability.USE_AI));
     }
 
     @Test
     void editorMayEditContentButNotManageMembers() {
         assertTrue(WorkspaceRole.EDITOR.allows(WorkspaceCapability.EDIT_CONTENT),
                 "An editor creates and edits documents, uploads sources, and runs AI and analysis");
+        assertTrue(WorkspaceRole.EDITOR.allows(WorkspaceCapability.USE_AI));
         assertFalse(WorkspaceRole.EDITOR.allows(WorkspaceCapability.MANAGE_MEMBERS),
                 "Managing members is an owner's job");
         assertFalse(WorkspaceRole.EDITOR.allows(WorkspaceCapability.MANAGE_WORKSPACE),
@@ -42,6 +44,7 @@ class WorkspaceRoleTest {
                 "A viewer reads documents, sources, and results");
         assertFalse(WorkspaceRole.VIEWER.allows(WorkspaceCapability.EDIT_CONTENT),
                 "A viewer must not run a mutating operation on workspace content");
+        assertFalse(WorkspaceRole.VIEWER.allows(WorkspaceCapability.USE_AI));
         assertFalse(WorkspaceRole.VIEWER.allows(WorkspaceCapability.MANAGE_MEMBERS));
         assertFalse(WorkspaceRole.VIEWER.allows(WorkspaceCapability.MANAGE_WORKSPACE));
     }

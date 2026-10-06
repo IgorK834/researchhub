@@ -144,4 +144,16 @@ public class WorkspaceAuthorizationService {
                 .requireActive("changed");
     }
 
+    /** Internal maintenance only: no membership or artificial user account is created. */
+    @Transactional(readOnly=true)
+    public boolean permitsSystemContentMaintenance(UUID workspaceId) {
+        return workspaces.findById(workspaceId).map(row -> !row.toDomain().isArchived()).orElse(false);
+    }
+
+    /** Separate capability for explicit AI contributions; also enforces the active workspace rule. */
+    @Transactional(readOnly = true)
+    public void requireAiContributor(UUID workspaceId, UUID userId) {
+        requireCapability(workspaceId, userId, WorkspaceCapability.USE_AI);
+        requireContentEditor(workspaceId, userId);
+    }
 }
