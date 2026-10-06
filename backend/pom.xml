@@ -141,6 +141,10 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <includes>
+                        <include>dev/researchhub/security/**</include>
+                        <include>dev/researchhub/comment/**</include>
+                        <include>dev/researchhub/document/**</include>
+                        <include>dev/researchhub/audit/**</include>
                         <include>dev/researchhub/collaboration/**</include>
                         <include>dev/researchhub/source/**</include>
                         <include>dev/researchhub/processing/**</include>
@@ -149,6 +153,35 @@
                     </includes>
                 </configuration>
                 <executions>
+                    <execution>
+                        <id>document-origins-history-coverage</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/document/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-documents</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>comments-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/comment/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-comments</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>audit-coverage-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/audit/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-audit</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>collaboration-coverage-report</id>
                         <phase>verify</phase>
@@ -191,6 +224,19 @@
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-source-analysis</outputDirectory>
                             <rules><rule><element>BUNDLE</element><limits><limit>
                                 <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>security-coverage-report</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/security/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-security</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit><limit>
+                                <counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
                             </limit></limits></rule></rules>
                         </configuration>
                     </execution>
