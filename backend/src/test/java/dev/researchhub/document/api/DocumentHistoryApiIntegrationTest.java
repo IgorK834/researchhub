@@ -52,11 +52,11 @@ class DocumentHistoryApiIntegrationTest {
     @BeforeEach
     void removeRowsFromPreviousTests() {
         // TRUNCATE, not DELETE: history rows refuse DELETE (tg_document_versions_immutable).
-        jdbcTemplate.execute("TRUNCATE document_versions");
-        jdbcTemplate.execute("DELETE FROM documents");
-        jdbcTemplate.execute("DELETE FROM workspace_members");
-        jdbcTemplate.execute("DELETE FROM workspaces");
-        jdbcTemplate.execute("DELETE FROM users");
+        jdbcTemplate.execute("TRUNCATE users, workspaces CASCADE");
+
+
+
+
     }
 
     private record Owner(ApiBrowser browser, String workspaceId) {

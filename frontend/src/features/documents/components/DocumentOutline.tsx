@@ -41,11 +41,14 @@ export function ContentOriginLegend(): ReactElement {
     <section aria-labelledby="content-origin-heading" className={styles.legend}>
       <h2 id="content-origin-heading">Content origin</h2>
       <ul>
-        <li data-origin="human">Human written</li>
+        <li data-origin="human">Human contribution</li>
         <li data-origin="ai">AI generated / rewritten</li>
-        <li data-origin="source">Source-derived claim</li>
-        <li data-origin="analysis">Analysis-derived claim</li>
+        <li data-origin="source">Imported content</li>
+        <li data-origin="analysis">Analysis derived</li>
       </ul>
+      <p className={styles.meta}>
+        Inspect recorded operations in Provenance. This is not AI detection.
+      </p>
     </section>
   );
 }

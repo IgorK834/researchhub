@@ -46,7 +46,7 @@ class AuthoringApiIntegrationTest {
                 var ids=request.request().evidence().stream().map(Evidence::chunkId).toList();
                 String status="normal".equals(MODE.get()) ? "READY" : "INSUFFICIENT_EVIDENCE";
                 String text="EVIDENCE".equals(kind) || !"READY".equals(status) ? "" : "REWRITE".equals(kind) ? "Clear replacement." : "Generated section.";
-                var matches="EVIDENCE".equals(kind) ? ids.stream().map(id -> new Match(id,Category.supporting,0.9,"Direct evidence for this claim")).toList() : List.<Match>of();
+                var matches="EVIDENCE".equals(kind) ? ids.stream().map(id -> new Match(id,"weak".equals(MODE.get()) ? Category.insufficient : Category.supporting,0.9,"Direct evidence for this claim")).toList() : List.<Match>of();
                 var answer=new AuthoringContracts.Answer(status,text,"EVIDENCE".equals(kind) || !"READY".equals(status) ? List.of() : ids,matches);
                 if ("invent".equals(MODE.get())) answer=new AuthoringContracts.Answer("READY","Invented.",List.of("f".repeat(64)),List.of());
                 var r=request.request();
@@ -130,12 +130,21 @@ class AuthoringApiIntegrationTest {
         assertEquals("Human edited draft.",document().path("content").path("content").get(1).path("content").get(0).path("text").asString());
         assertEquals("researchCitation",document().path("content").path("content").get(1).path("content").get(1).path("type").asString());
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ai_authoring_events",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_SUGGESTION_ACCEPTED'",Integer.class));
         assertEquals(409,accept(proposal,"Different text",null).statusCode());
         assertEquals(409,owner.postJson(path+"/"+proposal.path("id").asString()+"/reject","{}").statusCode());
         assertEquals(200,accept(proposal,"Human edited draft.",null).statusCode());
         assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM document_versions",Integer.class));
         assertEquals("ACCEPTED",owner.json(owner.get(path+"/"+proposal.path("id").asString())).path("state").asString());
         assertEquals(proposal.path("id").asString(),jdbc.queryForObject("SELECT id::text FROM ai_authoring_events",String.class));
+        var acceptedBlock=document().path("content").path("content").get(1).path("attrs").path("blockId").asString();
+        var operations=owner.json(owner.get(docPath+"/blocks/"+acceptedBlock+"/provenance"));
+        assertEquals("AI_GENERATED",operations.get(0).path("category").asString());
+        assertEquals(proposal.path("id"),operations.get(0).path("sourceOperationId"));
+        assertEquals(chunk.chunkId(),operations.get(0).path("metadata").path("citations").get(0).path("chunkId").asString());
+        assertTrue(operations.get(0).path("metadata").path("editedBeforeAcceptance").asBoolean());
+        assertFalse(operations.toString().contains("Human edited draft."));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM document_content_operations WHERE category='AI_GENERATED'",Integer.class));
         assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("UPDATE ai_authoring_events SET revision=3"));
     }
     @Test void rewriteSendsBoundedFragmentAndIsAnIdentifiableAiEdit() throws Exception {
@@ -146,7 +155,16 @@ class AuthoringApiIntegrationTest {
         assertEquals(1,document().path("revision").asLong());
         assertEquals(200,accept(proposal,null,null).statusCode());
         assertEquals("Clear replacement.",document().path("content").path("content").get(0).path("content").get(0).path("text").asString());
+        String block=document().path("content").path("content").get(0).path("attrs").path("blockId").asString();
+        var origins=owner.json(owner.get(docPath+"/blocks/"+block+"/provenance"));
+        assertEquals("AI_REWRITTEN",origins.get(0).path("category").asString());
+        assertEquals(proposal.path("id"),origins.get(0).path("sourceOperationId"));
+        var changed=document().path("content"); ((tools.jackson.databind.node.ObjectNode)changed.path("content").get(0).path("content").get(0)).put("text","A later human edit.");saveContent(changed);
+        origins=owner.json(owner.get(docPath+"/blocks/"+block+"/provenance"));
+        assertEquals("HUMAN",origins.get(0).path("category").asString());assertTrue(origins.toString().contains("AI_REWRITTEN"));
+
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ai_authoring_events",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_SUGGESTION_ACCEPTED'",Integer.class));
     }
     @Test void evidenceHasLocationRelevanceAndAddsCitationWithoutRewritingClaim() throws Exception {
         var proposal=suggest(Kind.EVIDENCE,null);
@@ -205,4 +223,171 @@ class AuthoringApiIntegrationTest {
         assertEquals(400,accept(proposal,null,null).statusCode());
         assertEquals(200,owner.postJson(path+"/"+proposal.path("id").asString()+"/reject","{}").statusCode());
     }
+    private UUID commentAnchor;
+    private String anchoredComment() throws Exception {
+        commentAnchor=UUID.randomUUID();
+        var content=json.createObjectNode().put("type","doc");
+        var text=content.putArray("content").addObject().put("type","paragraph").putArray("content").addObject().put("type","text").put("text","Human claim.");
+        text.putArray("marks").addObject().put("type","commentAnchor").putObject("attrs").putArray("ids").add(commentAnchor.toString());
+        var input=json.createObjectNode().put("title","Report").put("revision",1).put("saveKind","MANUAL"); input.set("content",content);
+        assertEquals(200,owner.patchJson(docPath,json.writeValueAsString(input)).statusCode());
+        UUID id=UUID.randomUUID();
+        var response=owner.postJson(docPath+"/comments",json.writeValueAsString(Map.of("id",id,"body","Please verify this claim", "anchor",Map.of("strategy","TEXT_MARK_V1","id",commentAnchor,"quote","Historical quote"))));
+        assertEquals(201,response.statusCode(),response.body());
+        return docPath+"/comments/"+id;
+    }
+    private JsonNode evidence(String thread, UUID id) throws Exception {
+        var response=owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",id)));
+        assertEquals(201,response.statusCode(),response.body()); return owner.json(response);
+    }
+    private void saveContent(JsonNode content) throws Exception {
+        var input=json.createObjectNode().put("title","Report").put("revision",document().path("revision").asLong()).put("saveKind","MANUAL"); input.set("content",content);
+        var response=owner.patchJson(docPath,json.writeValueAsString(input)); assertEquals(200,response.statusCode(),response.body());
+    }
+    @Test void aiCommentIsExplicitAttributedGroundedPersistentAndNeverResolvesHumanThread() throws Exception {
+        String thread=anchoredComment(); UUID request=UUID.randomUUID();
+        assertEquals(0,CALLS.get()); assertTrue(owner.json(owner.get(thread)).path("comment").path("aiSuggestions").isEmpty());
+        var comment=evidence(thread,request); var suggestion=comment.path("aiSuggestions").get(0);
+        assertEquals("AI_EVIDENCE",suggestion.path("kind").asString()); assertFalse(suggestion.has("authorId"));
+        assertEquals("Owner",suggestion.path("requestedByName").asString()); assertEquals("Human claim.",suggestion.path("claim").asString());
+        assertEquals("Human claim.",json.readTree(LAST.get().request().instruction()).path("selectedText").asString());
+        assertEquals("OPEN",comment.path("status").asString()); assertTrue(comment.path("replies").isEmpty());
+        assertEquals(source.toString(),suggestion.path("evidence").path("candidates").get(0).path("citation").path("sourceId").asString());
+        assertEquals(suggestion,owner.json(owner.get(thread)).path("comment").path("aiSuggestions").get(0));
+        assertEquals(comment,evidence(thread,request)); assertEquals(1,CALLS.get());
+        assertEquals(2,document().path("revision").asLong());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_EVIDENCE_REQUESTED'",Integer.class));
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("UPDATE comment_ai_suggestions SET payload='{}'"));
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("DELETE FROM comment_ai_suggestions"));
+    }
+    @Test void manuallyInsertedEvidenceRequiresSavedExactProvenanceAndRecordsAcceptanceOnlyOnce() throws Exception {
+        String thread=anchoredComment(); UUID id=UUID.randomUUID(); evidence(thread,id);
+        String accept=thread+"/ai-evidence/"+id+"/accept", input=json.writeValueAsString(Map.of("chunkId",chunk.chunkId()));
+        assertEquals(409,owner.postJson(accept,input).statusCode());
+        assertEquals(400,owner.postJson(accept,"{\"chunkId\":\"invalid\"}").statusCode());
+        assertEquals(404,owner.postJson(thread+"/ai-evidence/"+UUID.randomUUID()+"/accept",input).statusCode());
+        assertEquals(400,owner.postJson(accept,json.writeValueAsString(Map.of("chunkId","f".repeat(64)))).statusCode());
+        var citation=GenerationContracts.Citation.from(chunk,"Lecture");
+        var savedContent=new AuthoringDocument(json).addCitation(json.writeValueAsString(document().path("content")),1,13,citation);
+        saveContent(json.readTree(savedContent));
+        var accepted=owner.postJson(accept,input); assertEquals(200,accepted.statusCode(),accepted.body());
+        assertEquals(chunk.chunkId(),owner.json(accepted).path("aiSuggestions").get(0).path("acceptedChunkIds").get(0).asString());
+        assertEquals(200,owner.postJson(accept,input).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM comment_ai_citation_acceptances",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_SUGGESTION_ACCEPTED'",Integer.class));
+        assertEquals("OPEN",owner.json(owner.get(thread)).path("comment").path("status").asString());
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update("DELETE FROM comment_ai_citation_acceptances"));
+        saveContent(json.readTree("{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"));
+        assertEquals(200,owner.postJson(accept,input).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_SUGGESTION_ACCEPTED'",Integer.class));
+    }
+    @Test void commentAiRoutesAuthorizeWorkspaceRoleScopeAndCsrfBeforeInference() throws Exception {
+        String thread=anchoredComment(); UUID id=UUID.randomUUID();
+        var stranger=new ApiBrowser(port,json); String viewerId=stranger.signUp("ai-viewer@example.com","Viewer");
+        String body=json.writeValueAsString(Map.of("id",id));
+        assertEquals(404,stranger.postJson(thread+"/ai-evidence",body).statusCode());
+        assertEquals(401,new ApiBrowser(port,json).postJson(thread+"/ai-evidence",body).statusCode());
+        assertEquals(403,owner.sendWithoutCsrf("POST",thread+"/ai-evidence",body).statusCode());
+        assertEquals(201,owner.postJson("/api/workspaces/"+workspace+"/members","{\"email\":\"ai-viewer@example.com\",\"role\":\"VIEWER\"}").statusCode());
+        assertEquals(403,stranger.postJson(thread+"/ai-evidence",body).statusCode());
+        assertEquals(0,CALLS.get()); evidence(thread,id);
+        String accept=thread+"/ai-evidence/"+id+"/accept",input=json.writeValueAsString(Map.of("chunkId",chunk.chunkId()));
+        assertEquals(403,stranger.postJson(accept,input).statusCode());
+        assertEquals(200,stranger.get(thread).statusCode());
+        assertEquals(400,owner.postJson(thread+"/ai-evidence","{}").statusCode());
+        assertEquals(404,owner.postJson(thread.replace(document.toString(),UUID.randomUUID().toString())+"/ai-evidence",body).statusCode());
+        owner.patchJson("/api/workspaces/"+workspace+"/members/"+viewerId,"{\"role\":\"EDITOR\"}");
+        assertEquals(409,stranger.postJson(thread+"/ai-evidence",body).statusCode());
+    }
+    @Test void missingAndResolvedAnchorsCannotInvokeAiAndEmptyRetrievalIsAnIdentifiedSuggestion() throws Exception {
+        String thread=anchoredComment();
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenReturn(List.of());
+        var empty=evidence(thread,UUID.randomUUID()).path("aiSuggestions").get(0).path("evidence");
+        assertTrue(empty.path("candidates").isEmpty()); assertTrue(empty.path("generation").isNull()); assertEquals(0,CALLS.get());
+        assertTrue(empty.path("warnings").get(0).asString().contains("Insufficient"));
+        assertEquals(200,owner.patchJson(thread,"{\"status\":\"RESOLVED\"}").statusCode());
+        assertEquals(409,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+        assertEquals(200,owner.patchJson(thread,"{\"status\":\"OPEN\"}").statusCode());
+        saveContent(json.readTree("{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"));
+        assertEquals(409,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+        assertEquals(1,owner.json(owner.get(thread)).path("comment").path("aiSuggestions").size());
+    }
+    @Test void nearbyEditsDuringInferenceKeepAssociationButChangingTheClaimRejectsPublication() throws Exception {
+        String thread=anchoredComment();
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenAnswer(invocation -> {
+            var content=(tools.jackson.databind.node.ObjectNode)document().path("content");
+            ((tools.jackson.databind.node.ArrayNode)content.path("content").get(0).path("content")).insert(0,json.createObjectNode().put("type","text").put("text","Nearby edit. "));
+            saveContent(content);
+            return List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4)));
+        });
+        evidence(thread,UUID.randomUUID());
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenAnswer(invocation -> {
+            var content=document().path("content"); ((tools.jackson.databind.node.ObjectNode)content.path("content").get(0).path("content").get(1)).put("text","Changed claim."); saveContent(content);
+            return List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4)));
+        });
+        assertEquals(409,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM comment_ai_suggestions",Integer.class));
+    }
+    @Test void resolutionAndRevocationDuringInferenceCannotPublishOrChangeHumanStatus() throws Exception {
+        String thread=anchoredComment();
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenAnswer(invocation -> {
+            assertEquals(200,owner.patchJson(thread,"{\"status\":\"RESOLVED\"}").statusCode());
+            return List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4)));
+        });
+        assertEquals(409,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+        assertEquals("RESOLVED",owner.json(owner.get(thread)).path("comment").path("status").asString());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM comment_ai_suggestions",Integer.class));
+        assertEquals(200,owner.patchJson(thread,"{\"status\":\"OPEN\"}").statusCode());
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenAnswer(invocation -> {
+            jdbc.update("UPDATE workspace_members SET role='VIEWER' WHERE workspace_id=?",workspace);
+            return List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4)));
+        });
+        assertEquals(403,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM comment_ai_suggestions",Integer.class));
+    }
+    @Test void commentEvidenceFailsClosedForForeignOrInventedEvidenceAndRollsBackOnAuditFailure() throws Exception {
+        String thread=anchoredComment(); MODE.set("invent");
+        assertEquals(502,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode()); MODE.set("normal");
+        jdbc.execute("CREATE FUNCTION fail_product_audit_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.event_type='AI_EVIDENCE_REQUESTED' THEN RAISE EXCEPTION 'fixture'; END IF; RETURN NEW; END $$");
+        jdbc.execute("CREATE TRIGGER fail_product_audit_fixture BEFORE INSERT ON product_audit_events FOR EACH ROW EXECUTE FUNCTION fail_product_audit_fixture()");
+        try {
+            assertEquals(500,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM comment_ai_suggestions",Integer.class));
+        } finally { jdbc.execute("DROP TRIGGER fail_product_audit_fixture ON product_audit_events"); jdbc.execute("DROP FUNCTION fail_product_audit_fixture()"); }
+    }
+
+    @Test void commentEvidenceRetrievalFailsClosedAndProviderFailuresNeverPublish() throws Exception {
+        String thread=anchoredComment();
+        var foreign=new RetrievalChunk(chunk.chunkId(),source,UUID.randomUUID(),null,0,chunk.content(),7,7,"Theory",chunk.contentHash(),chunk.processingVersion(),chunk.spans());
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenReturn(List.of(new RetrievalHit(foreign,1,1,1,new EmbeddingModel("fixture","fixture","1",4))));
+        assertEquals(502,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode()); assertEquals(0,CALLS.get());
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenThrow(new EmbeddingFailure(new RuntimeException("secret provider details"),true));
+        var unavailable=owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID())));
+        assertEquals(503,unavailable.statusCode()); assertFalse(unavailable.body().contains("secret provider"));
+        when(search.search(anyString(),eq(workspace),nullable(List.class),eq(8),any())).thenThrow(new EmbeddingFailure(new RuntimeException("secret"),false));
+        assertEquals(502,owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID()))).statusCode());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM comment_ai_suggestions",Integer.class));
+    }
+    @Test void insufficientCandidatesCannotBeAcceptedAndChangedClaimsRequireFreshEvidence() throws Exception {
+        String thread=anchoredComment(); MODE.set("weak"); UUID weak=UUID.randomUUID();
+        assertTrue(evidence(thread,weak).path("aiSuggestions").get(0).path("evidence").path("warnings").toString().contains("Insufficient"));
+        assertEquals(400,owner.postJson(thread+"/ai-evidence/"+weak+"/accept",json.writeValueAsString(Map.of("chunkId",chunk.chunkId()))).statusCode());
+        MODE.set("normal"); UUID fresh=UUID.randomUUID(); evidence(thread,fresh);
+        var changed=document().path("content"); ((tools.jackson.databind.node.ObjectNode)changed.path("content").get(0).path("content").get(0)).put("text","Changed claim."); saveContent(changed);
+        assertEquals(409,owner.postJson(thread+"/ai-evidence/"+fresh+"/accept",json.writeValueAsString(Map.of("chunkId",chunk.chunkId()))).statusCode());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM comment_ai_citation_acceptances",Integer.class));
+    }
+
+    @Test void escapedClaimsRespectTheGatewayBudgetWithoutPublishingOrCallingTheModel() throws Exception {
+        String thread=anchoredComment();
+        var content=document().path("content");
+        ((tools.jackson.databind.node.ObjectNode)content.path("content").get(0).path("content").get(0)).put("text","\"".repeat(2000));
+        saveContent(content);
+        var result=owner.postJson(thread+"/ai-evidence",json.writeValueAsString(Map.of("id",UUID.randomUUID())));
+        assertEquals(413,result.statusCode(),result.body());
+        assertEquals("AI_CONTEXT_TOO_LARGE",owner.json(result).path("code").asString());
+        assertEquals(0,CALLS.get());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM comment_ai_suggestions",Integer.class));
+    }
+
 }

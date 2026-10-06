@@ -71,7 +71,13 @@ export interface UpdateDocumentInput {
 
 /** Why a version was recorded. Mirrors `DocumentVersionReason` on the server. */
 export type DocumentVersionReason =
-  'CREATED' | 'MANUAL_SAVE' | 'AUTOSAVE_CHECKPOINT' | 'RESTORE' | 'AI_ACCEPTANCE';
+  | 'CREATED'
+  | 'MANUAL_SAVE'
+  | 'AUTOSAVE_CHECKPOINT'
+  | 'RESTORE'
+  | 'AI_ACCEPTANCE'
+  | 'MANUAL_SNAPSHOT'
+  | 'SCHEDULED_SNAPSHOT';
 
 /**
  * One restore point in a document's history. Mirrors `DocumentVersionSummaryResponse`: no content, like the
@@ -85,7 +91,12 @@ export interface DocumentVersionSummary {
   readonly revision: number;
   readonly reason: DocumentVersionReason;
   readonly restoredFromVersionId: string | null;
-  readonly createdBy: string;
+  readonly createdBy: string | null;
+  readonly name?: string | null;
+  readonly actorName?: string | null;
+  readonly stateSha256?: string | null;
+  readonly collaborationEpoch?: number | null;
+  readonly collaborationSequence?: number | null;
   readonly createdAt: string;
 }
 
@@ -214,5 +225,18 @@ export async function restoreDocumentVersion(
   return apiClient.post<WorkspaceDocument>(
     `${versionsPath(workspaceId, documentId)}/${versionId}/restore`,
     { body: { revision } },
+  );
+}
+
+export async function createDocumentSnapshot(
+  workspaceId: string,
+  documentId: string,
+  revision: number,
+  name: string,
+): Promise<DocumentVersionSummary> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<DocumentVersionSummary>(
+    `${documentsPath(workspaceId)}/${documentId}/snapshots`,
+    { body: { revision, name } },
   );
 }

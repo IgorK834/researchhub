@@ -1,4 +1,5 @@
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { DocumentProvenance } from '../provenance/DocumentProvenance';
+import { useEffect, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +24,9 @@ import { DocumentPresence } from './DocumentPresence';
 import { SaveStatus } from './SaveStatus';
 import { DocumentViewerNotice } from './DocumentViewerNotice';
 import type { SelectionAuthoringRequest } from '../../ai/api/authoringActions';
+import type { Editor } from '@tiptap/core';
+import type { CommentAnchor } from '../comments/commentAnchor';
+import { DocumentComments } from '../comments/DocumentComments';
 
 export interface DocumentAuthoringContext {
   readonly selectionRequest: SelectionAuthoringRequest | null;
@@ -45,6 +49,9 @@ export interface DocumentAuthoringContext {
 }
 
 export interface DocumentEditorFormProps {
+  readonly commentsHost?: HTMLElement;
+  readonly provenanceHost?: HTMLElement;
+  readonly onOpenComments?: () => void;
   readonly onOpenAuthoring?: () => void;
   readonly focusBlock?: number;
   readonly renderAuthoring?: (context: DocumentAuthoringContext) => ReactNode;
@@ -75,6 +82,9 @@ export interface DocumentEditorFormProps {
 
 /** Binds the editor to shared Yjs state when enabled; legacy documents retain revision autosave. */
 export function DocumentEditorForm({
+  commentsHost,
+  provenanceHost,
+  onOpenComments,
   workspaceId,
   document,
   canEdit,
@@ -95,6 +105,8 @@ export function DocumentEditorForm({
 }: DocumentEditorFormProps): ReactElement {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [commentEditor, setCommentEditor] = useState<Editor | null>(null);
+  const [pendingAnchor, setPendingAnchor] = useState<CommentAnchor | null>(null);
   const archive = useArchiveDocument(workspaceId, document.id);
 
   // Checked once, against the editor's schema. Null means the stored body is something this editor cannot open
@@ -154,6 +166,20 @@ export function DocumentEditorForm({
   );
   const autosave = realtimeEnabled ? realtime.autosave : legacyAutosave;
   const title = realtimeEnabled ? realtime.title : legacyTitle;
+  useEffect(() => {
+    if (historyExpanded && realtimeEnabled) {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.document(workspaceId, document.id),
+      });
+    }
+  }, [
+    historyExpanded,
+    realtimeEnabled,
+    autosave.revision,
+    workspaceId,
+    document.id,
+    queryClient,
+  ]);
 
   const [aiBusy, setAiBusy] = useState(false);
   const [selection, setSelection] = useState<AuthoringSelection>({
@@ -182,6 +208,31 @@ export function DocumentEditorForm({
 
   return (
     <div className={styles.writingSurface}>
+      {provenanceHost
+        ? createPortal(
+            <DocumentProvenance
+              workspaceId={workspaceId}
+              documentId={document.id}
+              editor={commentEditor}
+            />,
+            provenanceHost,
+          )
+        : null}
+      {commentsHost
+        ? createPortal(
+            <DocumentComments
+              workspaceId={workspaceId}
+              documentId={document.id}
+              editor={commentEditor}
+              canComment={authoringAvailable}
+              saved={settled && (!realtimeEnabled || realtime.connected)}
+              pendingAnchor={pendingAnchor}
+              onCancel={() => setPendingAnchor(null)}
+              onOpen={onOpenComments ?? (() => {})}
+            />,
+            commentsHost,
+          )
+        : null}
       {realtimeEnabled ? (
         presenceHost ? (
           createPortal(<DocumentPresence people={realtime.participants} />, presenceHost)
@@ -193,15 +244,16 @@ export function DocumentEditorForm({
         <div role="status" className={styles.connectionBar}>
           <Icon name="lock" size={18} />
           <span>
-            Editing access has changed. This editor is read-only. Any unaccepted changes
-            are kept on this device.
+            {realtime.stateReplaced
+              ? 'A snapshot was restored. Load its new state to continue. Earlier local changes are retained separately on this device.'
+              : 'Editing access has changed. This editor is read-only. Any unaccepted changes are kept on this device.'}
           </span>
           <Button
             variant="secondary"
             type="button"
             onClick={() => window.location.reload()}
           >
-            Check access
+            {realtime.stateReplaced ? 'Load restored snapshot' : 'Check access'}
           </Button>
         </div>
       ) : realtimeEnabled && !realtime.connected ? (
@@ -317,6 +369,15 @@ export function DocumentEditorForm({
             </span>
             {storedBody === null || (realtimeEnabled && !realtime.ready) ? null : (
               <DocumentBodyEditor
+                onEditorReady={commentsHost ? setCommentEditor : undefined}
+                onComment={
+                  commentsHost && authoringAvailable
+                    ? (anchor) => {
+                        setPendingAnchor(anchor);
+                        onOpenComments?.();
+                      }
+                    : undefined
+                }
                 workspaceId={workspaceId}
                 {...(realtimeEnabled
                   ? {
@@ -422,7 +483,7 @@ export function DocumentEditorForm({
             authors={authors}
             previewHost={previewHost}
             onPreviewChange={setPreviewing}
-            canRestore={editable && !realtimeEnabled}
+            canRestore={editable}
             restoreBlockedReason={
               settled ? null : 'Restoring is available once your changes are saved.'
             }

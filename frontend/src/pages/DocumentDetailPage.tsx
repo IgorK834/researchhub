@@ -73,7 +73,8 @@ function DocumentNotFound({
   );
 }
 
-type ContextTab = 'sources' | 'research' | 'writing' | 'history';
+type ContextTab =
+  'sources' | 'research' | 'writing' | 'history' | 'comments' | 'provenance';
 const EMPTY_NAVIGATION: DocumentNavigation = {
   headings: [],
   references: [],
@@ -109,6 +110,8 @@ function DocumentScreen({
   const [tab, setTab] = useState<ContextTab>('sources');
   const [contextOpen, setContextOpen] = useState(false);
   const [historyHost] = useState(() => window.document.createElement('div'));
+  const [provenanceHost] = useState(() => window.document.createElement('div'));
+  const [commentsHost] = useState(() => window.document.createElement('div'));
   const [authoringHost] = useState(() => window.document.createElement('div'));
   const [presenceHost] = useState(() => window.document.createElement('div'));
   const [statusHost] = useState(() => window.document.createElement('div'));
@@ -151,6 +154,13 @@ function DocumentScreen({
       <div className={styles.topbarActions}>
         <div ref={attach(statusHost)} />
         <div ref={attach(presenceHost)} />
+        <Button
+          variant="secondary"
+          icon="comment"
+          onClick={() => showContext('comments')}
+        >
+          Comments
+        </Button>
         <Button variant="secondary" icon="history" onClick={() => showContext('history')}>
           History
         </Button>
@@ -196,72 +206,84 @@ function DocumentScreen({
         contextTitle="Research alongside the document"
         context={
           document.data !== undefined && authorized ? (
-            <Tabs<ContextTab>
-              label="Document context"
-              value={tab}
-              onChange={setTab}
-              items={[
-                {
-                  value: 'sources',
-                  label: 'Sources',
-                  content: (
-                    <DocumentSources
-                      workspaceId={workspaceId}
-                      analyses={navigation.analyses}
-                      references={navigation.references}
-                      citationHref={(citation) =>
-                        citationPath({ ...citation, chunkId: citation.chunkId ?? '' })
-                      }
-                      sources={
-                        sources.data?.map((source) => ({
-                          id: source.id,
-                          title: source.displayName,
-                          sourceType: source.sourceType,
-                          href: `/app/workspaces/${workspaceId}/sources/${source.id}`,
-                        })) ?? []
-                      }
-                      loading={sources.isPending}
-                      error={sourceError}
-                    />
-                  ),
-                },
-                {
-                  value: 'research',
-                  label: 'Ask AI',
-                  content: (
-                    <ResearchPanel
-                      workspaceId={workspaceId}
-                      sources={{
-                        sources:
+            <div className={styles.contextTabs}>
+              <Tabs<ContextTab>
+                label="Document context"
+                value={tab}
+                onChange={setTab}
+                items={[
+                  {
+                    value: 'sources',
+                    label: 'Sources',
+                    content: (
+                      <DocumentSources
+                        workspaceId={workspaceId}
+                        analyses={navigation.analyses}
+                        references={navigation.references}
+                        citationHref={(citation) =>
+                          citationPath({ ...citation, chunkId: citation.chunkId ?? '' })
+                        }
+                        sources={
                           sources.data?.map((source) => ({
                             id: source.id,
                             title: source.displayName,
                             sourceType: source.sourceType,
-                            ready: source.status === 'READY',
-                            status: source.status,
-                          })) ?? [],
-                        loading: sources.isPending,
-                        error: sourceError,
-                      }}
-                    />
-                  ),
-                },
-                ...(authoringAvailable
-                  ? [
-                      {
-                        value: 'writing' as const,
-                        label: 'Writing',
-                        content: <div ref={attach(authoringHost)} />,
-                      },
-                    ]
-                  : []),
-                {
-                  value: 'history',
-                  label: 'History',
-                  content: <div ref={attach(historyHost)} />,
-                },
-              ]}
-            />
+                            href: `/app/workspaces/${workspaceId}/sources/${source.id}`,
+                          })) ?? []
+                        }
+                        loading={sources.isPending}
+                        error={sourceError}
+                      />
+                    ),
+                  },
+                  {
+                    value: 'research',
+                    label: 'Ask AI',
+                    content: (
+                      <ResearchPanel
+                        workspaceId={workspaceId}
+                        sources={{
+                          sources:
+                            sources.data?.map((source) => ({
+                              id: source.id,
+                              title: source.displayName,
+                              sourceType: source.sourceType,
+                              ready: source.status === 'READY',
+                              status: source.status,
+                            })) ?? [],
+                          loading: sources.isPending,
+                          error: sourceError,
+                        }}
+                      />
+                    ),
+                  },
+                  ...(authoringAvailable
+                    ? [
+                        {
+                          value: 'writing' as const,
+                          label: 'Writing',
+                          content: <div ref={attach(authoringHost)} />,
+                        },
+                      ]
+                    : []),
+                  {
+                    value: 'comments',
+                    label: 'Comments',
+                    content: <div ref={attach(commentsHost)} />,
+                  },
+                  {
+                    value: 'provenance',
+                    label: 'Provenance',
+                    content: <div ref={attach(provenanceHost)} />,
+                  },
+                  {
+                    value: 'history',
+                    label: 'History',
+                    content: <div ref={attach(historyHost)} />,
+                  },
+                ]}
+              />
+            </div>
           ) : undefined
         }
       >
@@ -294,6 +316,9 @@ function DocumentScreen({
           presenceHost={presenceHost}
           statusHost={statusHost}
           historyHost={historyHost}
+          commentsHost={commentsHost}
+          provenanceHost={provenanceHost}
+          onOpenComments={() => showContext('comments')}
           historyExpanded={tab === 'history'}
           authoringHost={authoringHost}
         />
@@ -303,6 +328,9 @@ function DocumentScreen({
 }
 
 function EditorArea({
+  commentsHost,
+  provenanceHost,
+  onOpenComments,
   workspaceId,
   document,
   canEdit,
@@ -322,6 +350,9 @@ function EditorArea({
   focusBlock,
   onOpenAuthoring,
 }: {
+  readonly commentsHost: HTMLElement;
+  readonly provenanceHost: HTMLElement;
+  readonly onOpenComments: () => void;
   readonly workspaceId: string;
   readonly document: ReturnType<typeof useDocumentQuery>;
   readonly canEdit: boolean;
@@ -364,6 +395,9 @@ function EditorArea({
         </p>
       ) : null}
       <DocumentEditorForm
+        commentsHost={commentsHost}
+        provenanceHost={provenanceHost}
+        onOpenComments={onOpenComments}
         key={`${document.data.id}-${reloadCount}`}
         workspaceId={workspaceId}
         document={document.data}

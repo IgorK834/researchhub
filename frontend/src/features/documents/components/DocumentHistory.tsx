@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createDocumentSnapshot } from '../api/documentApi';
+import { queryKeys } from '../../../shared/api/queryKeys';
 import { createPortal } from 'react-dom';
 
 import { describeError } from '../../../shared/api';
@@ -37,6 +40,8 @@ const REASONS: Readonly<Record<DocumentVersionReason, string>> = {
   AUTOSAVE_CHECKPOINT: 'Autosave checkpoint',
   RESTORE: 'Restored',
   AI_ACCEPTANCE: 'AI suggestion accepted',
+  MANUAL_SNAPSHOT: 'Named snapshot',
+  SCHEDULED_SNAPSHOT: 'Automatic snapshot',
 };
 const REASON_ICONS: Readonly<Record<DocumentVersionReason, IconName>> = {
   CREATED: 'file',
@@ -44,6 +49,8 @@ const REASON_ICONS: Readonly<Record<DocumentVersionReason, IconName>> = {
   AUTOSAVE_CHECKPOINT: 'history',
   RESTORE: 'undo',
   AI_ACCEPTANCE: 'sparkle',
+  MANUAL_SNAPSHOT: 'bookmark',
+  SCHEDULED_SNAPSHOT: 'clock',
 };
 function formatTime(iso: string): string {
   const date = new Date(iso);
@@ -64,6 +71,18 @@ export function DocumentHistory({
   previewHost,
   onPreviewChange,
 }: DocumentHistoryProps): ReactElement {
+  const [snapshotName, setSnapshotName] = useState('');
+  const client = useQueryClient();
+  const snapshot = useMutation({
+    mutationFn: () =>
+      createDocumentSnapshot(workspaceId, documentId, revision, snapshotName.trim()),
+    onSuccess: () => {
+      setSnapshotName('');
+      void client.invalidateQueries({
+        queryKey: queryKeys.documentVersions(workspaceId, documentId),
+      });
+    },
+  });
   const [open, setOpen] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -122,6 +141,38 @@ export function DocumentHistory({
       <p className={styles.description}>
         Pick a version to preview it — nothing changes until you restore.
       </p>
+      {canRestore ? (
+        <form
+          className={styles.snapshotForm}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!restoreBlockedReason && snapshotName.trim() && !snapshot.isPending)
+              snapshot.mutate();
+          }}
+        >
+          <label htmlFor="snapshot-name">Snapshot name</label>
+          <input
+            id="snapshot-name"
+            maxLength={120}
+            value={snapshotName}
+            onChange={(event) => setSnapshotName(event.target.value)}
+            placeholder="Before review"
+          />
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={
+              restoreBlockedReason !== null || !snapshotName.trim() || snapshot.isPending
+            }
+          >
+            Save named snapshot
+          </Button>
+          {snapshot.error ? (
+            <p role="alert">Could not save snapshot: {describeError(snapshot.error)}</p>
+          ) : null}
+          {snapshot.isSuccess ? <p role="status">Named snapshot saved.</p> : null}
+        </form>
+      ) : null}
       {versions.isPending && isOpen ? (
         <p role="status" aria-live="polite">
           Loading versions…
@@ -143,13 +194,14 @@ export function DocumentHistory({
             const label = `revision ${String(version.revision)}`;
             const selected = previewId === version.id;
             const author =
+              version.actorName ??
               authors.find((member) => member.userId === version.createdBy)?.name ??
-              'Unknown author';
+              (version.createdBy === null ? 'System' : 'Unknown author');
             return (
               <li key={version.id} className={styles.version} data-selected={selected}>
                 <div className={styles.versionHeading}>
                   <Icon name={REASON_ICONS[version.reason]} size={16} />
-                  <strong>{REASONS[version.reason]}</strong>
+                  <strong>{version.name || REASONS[version.reason]}</strong>
                   <span className={styles.revision}>v{version.revision}</span>
                   <span className="visually-hidden">
                     Revision {version.revision} · {REASONS[version.reason]}
@@ -161,6 +213,11 @@ export function DocumentHistory({
                     {formatTime(version.createdAt)}
                   </time>
                 </span>
+                {version.stateSha256 ? (
+                  <p className={styles.meta}>
+                    Collaborative snapshot · state {version.collaborationSequence}
+                  </p>
+                ) : null}
                 <div className={styles.actions}>
                   <Button
                     variant="ghost"

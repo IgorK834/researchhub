@@ -74,6 +74,7 @@ function stubBackend(role: string): { documents: StoredDocument[] } {
     if (path === `/api/workspaces/${WORKSPACE_ID}/sources`) {
       return Promise.resolve(json([]));
     }
+    if (path.endsWith('/comments')) return Promise.resolve(json([]));
     const body =
       init?.body === undefined
         ? undefined

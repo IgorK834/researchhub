@@ -21,6 +21,10 @@ public enum DocumentVersionReason {
     RESTORE,
 
     /** A human explicitly accepted an AI authoring suggestion. */
+    MANUAL_SNAPSHOT,
+
+    SCHEDULED_SNAPSHOT,
+
     AI_ACCEPTANCE
 
 }

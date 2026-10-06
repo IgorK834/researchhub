@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { Presence } from './presence.js';
 import type { Config } from './config.js';
-export interface Access { workspaceId: string; documentId: string; userId: string; expiresAt: string; user: Presence }
+export interface Access { workspaceId: string; documentId: string; userId: string; expiresAt: string; user: Presence; epoch?: number }
 export interface State { sequence: number; state: string | null; title: string; content: string; revision: number; savedAt: string; stateSha256: string | null }
 export class BackendError extends Error {
-  constructor(public readonly status: number, public readonly transient: boolean) {
+  constructor(public readonly status: number, public readonly transient: boolean, public readonly code?: string) {
     super(transient ? 'Collaboration persistence unavailable' : 'Collaboration request denied');
   }
 }
@@ -16,7 +16,10 @@ export class Backend {
         method: 'POST', headers: {'Content-Type': 'application/json', 'X-Collaboration-Service-Token': this.config.serviceToken},
         body: JSON.stringify(body), signal: AbortSignal.timeout(5000),
       });
-      if (!response.ok) throw new BackendError(response.status, response.status >= 500);
+      if (!response.ok) {
+        const problem=await response.json().catch(() => ({})) as {code?: string};
+        throw new BackendError(response.status,response.status>=500,problem.code);
+      }
       return await response.json() as T;
     } catch (error) {
       if (error instanceof BackendError) throw error;
@@ -36,3 +39,5 @@ export class Backend {
     }
   }
 }
+
+export const accessRoom = (access: Access): string => `document:${access.documentId}${access.epoch ? `:${access.epoch}` : ''}`;

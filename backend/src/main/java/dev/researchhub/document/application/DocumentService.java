@@ -1,5 +1,7 @@
 package dev.researchhub.document.application;
 
+import dev.researchhub.audit.application.ProductAudit;
+
 import dev.researchhub.document.domain.Document;
 import dev.researchhub.document.domain.DocumentContent;
 import dev.researchhub.document.domain.DocumentVersion;
@@ -61,17 +63,22 @@ public class DocumentService {
     private final CheckpointPolicy checkpoints;
     private final WorkspaceAuthorizationService authorization;
     private final Clock clock;
+    private final ProductAudit audit;
+    private final DocumentProvenance provenance;
+    private final List<DocumentSnapshotState> snapshotStates;
+    private final dev.researchhub.user.application.UserLookupService users;
     private final List<DocumentReferenceValidator> referenceValidators;
     private final List<DocumentWriteGuard> writeGuards;
 
     public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
                            CheckpointPolicy checkpoints, WorkspaceAuthorizationService authorization,
-                           Clock clock, List<DocumentReferenceValidator> referenceValidators, List<DocumentWriteGuard> writeGuards) {
+                           Clock clock, List<DocumentReferenceValidator> referenceValidators, List<DocumentWriteGuard> writeGuards, ProductAudit audit, DocumentProvenance provenance, List<DocumentSnapshotState> snapshotStates, dev.researchhub.user.application.UserLookupService users) {
         this.documents = documents;
         this.versions = versions;
         this.checkpoints = checkpoints;
         this.authorization = authorization;
-        this.clock = clock;
+        this.clock = clock; this.audit = audit;
+        this.provenance=provenance; this.snapshotStates=List.copyOf(snapshotStates); this.users=users;
         this.referenceValidators = List.copyOf(referenceValidators);
         this.writeGuards = List.copyOf(writeGuards);
     }
@@ -99,6 +106,8 @@ public class DocumentService {
         DocumentEntity saved = documents.saveAndFlush(DocumentEntity.fromDomain(document));
         snapshot(DocumentVersion.snapshotOf(saved.toDomain(), DocumentVersionReason.CREATED, callerId, now));
 
+        provenance.recordChanges(workspaceId,callerId,saved.getId(),saved.getRevision(),saved.getContent(),null);
+        audit.documentSaved(workspaceId, callerId, saved.getId(), saved.getRevision(), null, command.content());
         log.info("event=document.created workspaceId={} documentId={} userId={}",
                 workspaceId, saved.getId(), callerId);
         return detailOf(saved);
@@ -187,6 +196,8 @@ public class DocumentService {
                 : java.util.Optional.of(forcedReason))
                 .ifPresent(reason -> snapshot(DocumentVersion.snapshotOf(saved.toDomain(), reason, callerId, now)));
 
+        provenance.recordChanges(workspaceId,callerId,saved.getId(),saved.getRevision(),saved.getContent(),stored.content().json());
+        audit.documentSaved(workspaceId, callerId, documentId, saved.getRevision(), stored.content().json(), command.content());
         log.info("event=document.revised workspaceId={} documentId={} revision={} saveKind={} userId={}",
                 workspaceId, documentId, saved.getRevision(), command.saveKind(), callerId);
         return detailOf(saved);
@@ -195,6 +206,12 @@ public class DocumentService {
     /** Internal application boundary: locks the same row as legacy writers during activation/persistence. */
     @Transactional
     public DocumentDetail lockForCollaboration(UUID workspaceId, UUID userId, UUID documentId) {
+        return lockForReview(workspaceId, userId, documentId);
+    }
+
+    /** Public boundary for review writes. Shares the document lock with saves and refuses archived content. */
+    @Transactional
+    public DocumentDetail lockForReview(UUID workspaceId, UUID userId, UUID documentId) {
         requireEditor(workspaceId, userId);
         DocumentEntity row = requireDocumentForUpdate(workspaceId, documentId);
         if (row.toDomain().isArchived()) throw new ConflictException("Document is archived");
@@ -235,7 +252,7 @@ public class DocumentService {
 
         return versions.findByDocumentIdOrderByRevisionDesc(documentId).stream()
                 .map(row -> new DocumentVersionSummary(row.getId(), row.getRevision(), row.getReason().name(),
-                        row.getRestoredFromVersionId(), row.getCreatedBy(), row.getCreatedAt()))
+                        row.getRestoredFromVersionId(), row.getCreatedBy(), row.getCreatedAt(), row.getName(), row.getActorName(), row.getStateSha256(), row.getCollaborationEpoch(), row.getCollaborationSequence()))
                 .toList();
     }
 
@@ -277,19 +294,44 @@ public class DocumentService {
         requireEditor(workspaceId, callerId);
 
         Document stored = requireDocumentForUpdate(workspaceId, documentId).toDomain();
-        writeGuards.forEach(guard -> guard.requireLegacyWrite(documentId));
         DocumentVersion source = requireVersion(documentId, versionId).toDomain();
         referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,source.content().json()));
         Instant now = clock.instant();
 
         Document restored = validated(() -> stored.restore(source, expectedRevision, now));
 
+        if (versions.findByDocumentIdOrderByRevisionDesc(documentId).stream().noneMatch(v -> v.getRevision()==stored.revision()))
+            snapshot(DocumentVersion.snapshotOf(stored,DocumentVersionReason.MANUAL_SNAPSHOT,callerId,now),"Before restore");
+        snapshotStates.forEach(state -> state.restoreState(documentId));
         DocumentEntity saved = documents.saveAndFlush(DocumentEntity.fromDomain(restored));
         snapshot(DocumentVersion.restoreOf(saved.toDomain(), source, callerId, now));
 
+        provenance.recordChanges(workspaceId,callerId,saved.getId(),saved.getRevision(),saved.getContent(),stored.content().json());
+        audit.documentSaved(workspaceId, callerId, documentId, saved.getRevision(), stored.content().json(), restored.content().json());
         log.info("event=document.restored workspaceId={} documentId={} revision={} fromVersionId={} userId={}",
                 workspaceId, documentId, saved.getRevision(), versionId, callerId);
         return detailOf(saved);
+    }
+
+    /** Named immutable snapshot; multiple milestones may refer to the same editor revision. */
+    @Transactional
+    public DocumentVersionSummary namedSnapshot(UUID workspace,UUID caller,UUID document,long revision,String name) {
+        var current=lockForReview(workspace,caller,document);
+        requireCurrentRevision(current,revision);
+        if (name==null || name.strip().isEmpty() || name.strip().length()>120)
+            throw new ApiException(ApiErrorCode.VALIDATION_FAILED,"Name a snapshot using 1–120 characters");
+        return versionSummaryOf(snapshot(DocumentVersion.snapshotOf(requireDocument(workspace,document).toDomain(),DocumentVersionReason.MANUAL_SNAPSHOT,caller,clock.instant()),name.strip()));
+    }
+
+    /** Internal scheduled checkpoint. Membership is never fabricated for the system actor. */
+    @Transactional(propagation=org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void scheduledSnapshot(UUID workspace,UUID document,Instant dueBefore) {
+        if (!authorization.permitsSystemContentMaintenance(workspace)) return;
+        var row=requireDocumentForUpdate(workspace,document);
+        if (row.toDomain().isArchived()) return;
+        var latest=versions.findByDocumentIdOrderByRevisionDesc(document);
+        if (latest.stream().anyMatch(v -> v.getRevision()==row.getRevision()) || versions.findNewestCreatedAt(document).filter(time -> time.isAfter(dueBefore)).isPresent()) return;
+        snapshot(DocumentVersion.snapshotOf(row.toDomain(),DocumentVersionReason.SCHEDULED_SNAPSHOT,null,clock.instant()),"Automatic snapshot");
     }
 
     /**
@@ -346,10 +388,16 @@ public class DocumentService {
                 .orElseThrow(() -> new ResourceNotFoundException(VERSION_NOT_FOUND));
     }
 
-    private void snapshot(DocumentVersion version) {
-        DocumentVersionEntity saved = versions.saveAndFlush(DocumentVersionEntity.fromDomain(version));
+    private void snapshot(DocumentVersion version) { snapshot(version,null); }
+    private DocumentVersionEntity snapshot(DocumentVersion version,String name) {
+        var entity=DocumentVersionEntity.fromDomain(version);
+        var state=snapshotStates.stream().map(provider -> provider.snapshotState(version.documentId())).flatMap(java.util.Optional::stream).findFirst().orElse(null);
+        String actor=version.createdBy()==null ? "System" : users.findAllByIds(List.of(version.createdBy())).stream().findFirst().map(user -> user.displayName()).orElse("Former member");
+        entity.describeSnapshot(name,actor,state);
+        DocumentVersionEntity saved = versions.saveAndFlush(entity);
         log.info("event=document.version.recorded documentId={} revision={} reason={} versionId={}",
                 version.documentId(), version.revision(), version.reason(), saved.getId());
+        return saved;
     }
 
     /**
@@ -404,7 +452,7 @@ public class DocumentService {
 
     private static DocumentVersionSummary versionSummaryOf(DocumentVersionEntity entity) {
         return new DocumentVersionSummary(entity.getId(), entity.getRevision(), entity.getReason().name(),
-                entity.getRestoredFromVersionId(), entity.getCreatedBy(), entity.getCreatedAt());
+                entity.getRestoredFromVersionId(), entity.getCreatedBy(), entity.getCreatedAt(), entity.getName(), entity.getActorName(), entity.getStateSha256(), entity.getCollaborationEpoch(), entity.getCollaborationSequence());
     }
 
     private static DocumentDetail detailOf(DocumentEntity entity) {

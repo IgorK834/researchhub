@@ -17,6 +17,11 @@ public record DocumentVersionResponse(
         String reason,
         UUID restoredFromVersionId,
         UUID createdBy,
+        String name,
+        String actorName,
+        String stateSha256,
+        Long collaborationEpoch,
+        Long collaborationSequence,
         Instant createdAt,
         String contentFormat,
         JsonNode content
@@ -29,6 +34,11 @@ public record DocumentVersionResponse(
                 detail.summary().reason(),
                 detail.summary().restoredFromVersionId(),
                 detail.summary().createdBy(),
+                detail.summary().name(),
+                detail.summary().actorName(),
+                detail.summary().stateSha256(),
+                detail.summary().collaborationEpoch(),
+                detail.summary().collaborationSequence(),
                 detail.summary().createdAt(),
                 detail.contentFormat(),
                 objectMapper.readTree(detail.content()));

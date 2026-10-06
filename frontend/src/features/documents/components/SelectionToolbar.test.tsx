@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { savedDocumentOf } from '../api/documentContent';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import type { Editor } from '@tiptap/core';
 import { DocumentBodyEditor } from './DocumentBodyEditor';
@@ -66,7 +67,7 @@ test.each(SELECTION_ACTIONS)(
       text: 'Human claim.',
       placementBlock: 1,
     });
-    expect(editor().getJSON()).toEqual(content);
+    expect(savedDocumentOf(editor())).toEqual(content);
     expect(onChange).not.toHaveBeenCalled();
   },
 );
@@ -156,11 +157,11 @@ test('draft decoration occupies the requested block boundary while JSON and save
   const button = document.createElement('button');
   host.appendChild(button);
   fireEvent.keyDown(button, { key: 'Enter' });
-  expect(editor().getJSON()).toEqual(content);
+  expect(savedDocumentOf(editor())).toEqual(content);
   expect(onChange).not.toHaveBeenCalled();
   rendered.rerender(view({ draftHost: host, draftPlacement: 0 }));
   expect(body.firstElementChild).toBe(host);
-  expect(editor().getJSON()).toEqual(content);
+  expect(savedDocumentOf(editor())).toEqual(content);
   rendered.rerender(view({ draftHost: host, draftPlacement: null }));
   expect(body.contains(host)).toBe(false);
   expect(onChange).not.toHaveBeenCalled();
@@ -169,7 +170,7 @@ test('draft decoration occupies the requested block boundary while JSON and save
 test('Insert and edit focuses the accepted block without producing another save', () => {
   render(view({ focusBlock: 1 }));
   expect(editor().state.selection.from).toBe(15);
-  expect(editor().getJSON()).toEqual(content);
+  expect(savedDocumentOf(editor())).toEqual(content);
   expect(onChange).not.toHaveBeenCalled();
 });
 test('rewrite review follows the final selected block, including a multi-block selection, without changing JSON', () => {
@@ -180,11 +181,11 @@ test('rewrite review follows the final selected block, including a multi-block s
   );
   const body = screen.getByRole('textbox', { name: 'Text' });
   expect(body.lastElementChild).toBe(host);
-  expect(editor().getJSON()).toEqual(content);
+  expect(savedDocumentOf(editor())).toEqual(content);
   expect(onChange).not.toHaveBeenCalled();
   rendered.rerender(
     view({ draftHost: host, draftPlacement: 1, reviewSelectionEnd: 10000 }),
   );
   expect(body.lastElementChild).toBe(host);
-  expect(editor().getJSON()).toEqual(content);
+  expect(savedDocumentOf(editor())).toEqual(content);
 });

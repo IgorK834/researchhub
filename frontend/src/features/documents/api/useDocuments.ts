@@ -139,6 +139,7 @@ export function useDocumentVersionsQuery(
     queryKey: queryKeys.documentVersions(workspaceId, documentId),
     queryFn: ({ signal }) => fetchDocumentVersions(workspaceId, documentId, signal),
     enabled,
+    refetchInterval: enabled ? 5000 : false,
     // Summaries can change when another writer saves. Refresh on opening/remounting, including after
     // explicitly loading the latest document; the app-wide freshness window must not hide new restore points.
     staleTime: 0,

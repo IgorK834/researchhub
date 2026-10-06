@@ -56,6 +56,7 @@ beforeEach(() => {
     user: undefined,
     participants: [],
     accessRevoked: false,
+    stateReplaced: false,
     doc,
     ready: true,
     connected: true,

@@ -1,4 +1,5 @@
 import {it, expect, afterEach} from 'vitest';
+import {readFileSync} from 'node:fs';
 import {createServer} from 'node:http';
 import * as Y from 'yjs';
 import {Backend, BackendError, type State} from '../src/backend.js';
@@ -23,6 +24,16 @@ it('seeds valid legacy content once and checks binary integrity, projection and 
  expect(()=>reconstruct({...original,title:' '})).toThrow('title');
  expect(()=>reconstruct({...original,title:'x'.repeat(501)})).toThrow('title');
  doc.destroy(); recovered.destroy();
+});
+it('preserves the shared overlapping comment mark fixture through seed, projection and binary restart',()=>{
+ const content=readFileSync('../contracts/collaboration/v1/comment-anchors.json','utf8');
+ const doc=reconstruct({...original,content});
+ const expected=schema.nodeFromJSON(JSON.parse(content)).toJSON();
+ expect(schema.nodeFromJSON(editorSnapshot(doc).content).toJSON()).toEqual(expected);
+ const bytes=Y.encodeStateAsUpdate(doc);
+ const restored=reconstruct({...original,sequence:1,state:Buffer.from(bytes).toString('base64'),stateSha256:stateHash(bytes),content});
+ expect(schema.nodeFromJSON(editorSnapshot(restored).content).toJSON()).toEqual(expected);
+ doc.destroy(); restored.destroy();
 });
 it('does not silently seed legacy content when a checksummed binary is invalid',()=>{
  const bytes=new Uint8Array([255]);

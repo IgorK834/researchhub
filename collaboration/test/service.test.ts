@@ -5,7 +5,7 @@ import * as Y from 'yjs';
 import {createServer} from 'node:http';
 import {prosemirrorJSONToYDoc, yDocToProsemirrorJSON} from 'y-prosemirror';
 import {createService, log} from '../src/service.js';
-import {Backend, BackendError, type State} from '../src/backend.js';
+import {Backend, BackendError, accessRoom, type State} from '../src/backend.js';
 import {configuration} from '../src/config.js';
 import {stateHash, reconstruct, editorSnapshot} from '../src/snapshot.js';
 import {schema} from '../src/schema.js';
@@ -187,4 +187,23 @@ it('fails room loading visibly instead of reseeding a corrupt committed snapshot
  const f=await fixture({sequence:1,state:'AQ==',stateSha256:'0'.repeat(64),title:'Stale legacy',content:JSON.stringify({type:'doc',content:[{type:'paragraph'}]}),revision:2,savedAt:'time'});
  const c=f.client();await until(()=>f.events.includes('document.load.failed'));
  expect(c.provider.isSynced).toBe(false);expect(f.stored().sequence).toBe(1);
+});
+
+it('retires connected replicas with a distinct restore notification before accepting stale updates',async()=>{
+ const f=await fixture();const c=f.client();await until(()=>c.provider.isSynced);
+ let replaced=false;c.provider.on('stateless',({payload}:{payload:string})=>{if(JSON.parse(payload).event==='stateReplaced')replaced=true;});
+ const before=f.stored();f.backend.authorize=async()=>{throw new BackendError(409,false,'COLLABORATION_STATE_REPLACED');};
+ await until(()=>replaced);expect(f.stored()).toEqual(before);expect(f.events).toContain('connection.access.ended');
+});
+it('addresses each restored document epoch explicitly while retaining legacy room compatibility',()=>{
+ const access={documentId:'id',workspaceId:'w',userId:'u',user:{userId:'u',displayName:'U',colorId:'blue'},expiresAt:'later'};
+ expect(accessRoom(access)).toBe('document:id');expect(accessRoom({...access,epoch:0})).toBe('document:id');expect(accessRoom({...access,epoch:3})).toBe('document:id:3');
+});
+
+it('rejects a restore race at persistence without applying the obsolete candidate to another client',async()=>{
+ const f=await fixture();const a=f.client(),b=f.client('owner');await until(()=>a.provider.isSynced&&b.provider.isSynced);
+ let replaced=false;a.provider.on('stateless',({payload}:{payload:string})=>{if(JSON.parse(payload).event==='stateReplaced')replaced=true;});
+ const before=f.stored();f.backend.save=async()=>{throw new BackendError(409,false,'COLLABORATION_STATE_REPLACED');};
+ a.doc.getMap('metadata').set('title','Obsolete after restore');await until(()=>replaced);
+ expect(f.stored()).toEqual(before);expect(b.doc.getMap('metadata').get('title')).toBe('Report');
 });

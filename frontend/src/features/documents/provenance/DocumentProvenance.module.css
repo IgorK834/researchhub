@@ -1,0 +1,52 @@
+.inspector {
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+}
+.inspector h2 {
+  font-size: 1rem;
+}
+.note {
+  color: var(--color-text-subtle);
+  line-height: 1.6;
+}
+.inspector blockquote {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--color-surface-muted);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.inspector > ol {
+  padding: 0;
+  list-style: none;
+}
+.inspector > ol > li {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.inspector > ol > li[data-origin='AI_GENERATED'],
+.inspector > ol > li[data-origin='AI_REWRITTEN'] {
+  background: var(--color-brand-lavender-tint);
+}
+.inspector > ol > li[data-origin='ANALYSIS_DERIVED'] {
+  border-left: 3px solid var(--color-brand-yellow);
+}
+.inspector > ol > li[data-origin='IMPORTED'] {
+  border-left: 3px solid var(--color-brand-blue);
+}
+.inspector strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.inspector p {
+  line-height: 1.5;
+  font-size: 0.8rem;
+}
+.identity {
+  overflow-wrap: anywhere;
+  color: var(--color-text-subtle);
+}

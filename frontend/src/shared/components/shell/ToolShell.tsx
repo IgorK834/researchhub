@@ -87,10 +87,11 @@ function ContextPanel({
   const [host] = useState(() => document.createElement('div'));
   const [footerHost] = useState(() => document.createElement('div'));
   const attachFooter = (element: HTMLDivElement | null): void => {
-    if (element) element.appendChild(footerHost);
+    if (element && footerHost.parentNode !== element) element.appendChild(footerHost);
   };
   const attach = (element: HTMLDivElement | null): void => {
-    if (element) element.appendChild(host);
+    // Re-appending an already attached portal cancels native clicks/focus during scroll-driven renders.
+    if (element && host.parentNode !== element) element.appendChild(host);
   };
   return (
     <>

@@ -61,11 +61,26 @@ function stub(
     previewError?: boolean;
     previewContent?: unknown;
     restoreError?: boolean;
+    snapshotError?: boolean;
   } = {},
 ) {
   const api = jest.fn((url: unknown, init?: RequestInit) => {
     const path = String(url);
     if (path === '/api/auth/csrf') return Promise.resolve(json(null, 204));
+    if (path.endsWith('/snapshots'))
+      return Promise.resolve(
+        options.snapshotError
+          ? failure
+          : json(
+              {
+                ...versions[0],
+                id: 'named',
+                reason: 'MANUAL_SNAPSHOT',
+                name: 'Before review',
+              },
+              201,
+            ),
+      );
     if (path.endsWith('/restore'))
       return Promise.resolve(
         options.restoreError
@@ -250,4 +265,65 @@ it('handles missing history and unsupported stored bodies explicitly', async () 
   await screen.findByText(
     'The current document contains content this editor cannot compare. Nothing has been changed.',
   );
+});
+
+it('creates a named snapshot of the acknowledged state, refreshes history and preserves names and system actors', async () => {
+  const api = stub({
+    rows: [
+      {
+        ...versions[0]!,
+        id: 'named',
+        reason: 'MANUAL_SNAPSHOT',
+        name: 'Before review',
+        actorName: 'Former member',
+        stateSha256: 'hash',
+        collaborationSequence: 3,
+      },
+      {
+        ...versions[1]!,
+        reason: 'SCHEDULED_SNAPSHOT',
+        name: 'Automatic snapshot',
+        createdBy: null,
+      },
+      ...versions,
+    ],
+  });
+  setup();
+  await screen.findByText('Before review');
+  expect(screen.getByText('Former member', { exact: false })).not.toBeNull();
+  expect(screen.getByText('System', { exact: false })).not.toBeNull();
+  expect(screen.getByText('Collaborative snapshot · state 3')).not.toBeNull();
+  const button = screen.getByRole('button', { name: 'Save named snapshot' });
+  expect(button).toHaveProperty('disabled', true);
+  fireEvent.change(screen.getByLabelText('Snapshot name'), {
+    target: { value: '  Before review  ' },
+  });
+  fireEvent.click(button);
+  await screen.findByText('Named snapshot saved.');
+  const request = api.mock.calls.find(([url]) => String(url).endsWith('/snapshots'));
+  expect(JSON.parse(String(request?.[1]?.body))).toEqual({
+    revision: 6,
+    name: 'Before review',
+  });
+  expect(screen.getByLabelText('Snapshot name')).toHaveProperty('value', '');
+  expect(
+    api.mock.calls.filter(([url]) => String(url).endsWith('/versions')).length,
+  ).toBeGreaterThan(1);
+});
+it('blocks snapshots while changes are unsaved and reports server rejection without clearing the name', async () => {
+  const api = stub({ snapshotError: true });
+  const { update } = setup({ restoreBlockedReason: 'Wait for durable save.' });
+  fireEvent.change(screen.getByLabelText('Snapshot name'), {
+    target: { value: 'Review' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save named snapshot' }));
+  expect(api.mock.calls.some(([url]) => String(url).endsWith('/snapshots'))).toBe(false);
+  update({ restoreBlockedReason: null });
+  fireEvent.click(screen.getByRole('button', { name: 'Save named snapshot' }));
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Could not save snapshot: No access',
+  );
+  expect(screen.getByLabelText('Snapshot name')).toHaveProperty('value', 'Review');
+  update({ canRestore: false });
+  expect(screen.queryByLabelText('Snapshot name')).toBeNull();
 });

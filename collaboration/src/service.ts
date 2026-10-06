@@ -2,7 +2,7 @@ import { PresenceGuard, PresenceError } from './presence.js';
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
 import * as decoding from 'lib0/decoding';
-import { Backend, BackendError, type Access, type State } from './backend.js';
+import { Backend, BackendError, accessRoom, type Access, type State } from './backend.js';
 import type { Config } from './config.js';
 import {prepareEmptyText} from './emptyText.js';
 import {stateHash} from './snapshot.js';
@@ -30,6 +30,7 @@ export function createService(config: Config, backend = new Backend(config), log
     if (Date.parse(session.access.expiresAt) <= Date.now()) throw new AccessChanged('ACCESS_EXPIRED');
     try { await backend.authorize(session.token, room); }
     catch (error) {
+      if (error instanceof BackendError && error.code==='COLLABORATION_STATE_REPLACED') throw new AccessChanged('STATE_REPLACED');
       if (error instanceof BackendError && [401, 403, 404, 409].includes(error.status)) throw new AccessChanged('ACCESS_REVOKED');
       throw error;
     }
@@ -38,8 +39,9 @@ export function createService(config: Config, backend = new Backend(config), log
   const endAccess = (session: Session, connection: {sendStateless: (payload: string) => void; close: (event: {code: number; reason: string}) => void}, code: string): void => {
     session.closed = true;
     logger('connection.access.ended', {documentId: session.access.documentId, userId: session.access.userId, code});
+    if (code === 'STATE_REPLACED') connection.sendStateless(JSON.stringify({event:'stateReplaced'}));
     if (code === 'ACCESS_REVOKED') connection.sendStateless(JSON.stringify({event: 'accessRevoked'}));
-    connection.close({code: code === 'ACCESS_REVOKED' ? 4403 : code === 'ACCESS_EXPIRED' ? 4401 : 1013, reason: code});
+    connection.close({code: code === 'ACCESS_REVOKED' ? 4403 : code === 'ACCESS_EXPIRED' ? 4401 : code === 'STATE_REPLACED' ? 4409 : 1013, reason: code});
   };
   const server = new Server({
     port: config.port, address: '0.0.0.0', stopOnSignals: false, quiet: true, timeout: 10000,
@@ -60,7 +62,7 @@ export function createService(config: Config, backend = new Backend(config), log
     },
     async onAuthenticate({token, documentName}) {
       const access = await backend.authorize(token, documentName);
-      if (documentName !== `document:${access.documentId}` || Date.parse(access.expiresAt) <= Date.now()) throw new Error('Access denied');
+      if (documentName !== accessRoom(access) || Date.parse(access.expiresAt) <= Date.now()) throw new Error('Access denied');
       logger('connection.authorized', {documentId: access.documentId, userId: access.userId});
       return {token, access} satisfies Session;
     },
@@ -110,7 +112,7 @@ export function createService(config: Config, backend = new Backend(config), log
         await revalidate(session, documentName);
         if (!document.hasConnection(connection)) throw new AccessChanged('SESSION_CLOSED');
         const reader = decoding.createDecoder(update);
-        if (decoding.readVarString(reader) !== `document:${session.access.documentId}`) throw new Error('Room mismatch');
+        if (decoding.readVarString(reader) !== documentName) throw new Error('Room mismatch');
         const type = decoding.readVarUint(reader);
         // Only Yjs sync, awareness, awareness query and close are exposed. Stateless broadcast is not a domain API.
         if (![0, 1, 3, 4, 7].includes(type)) throw new Error('Message type denied');
@@ -145,10 +147,11 @@ export function createService(config: Config, backend = new Backend(config), log
           logger('document.persisted', {documentId: session.access.documentId, sequence: saved.sequence});
         } finally { candidate.destroy(); }
        }).catch(error => {
+        if (error instanceof BackendError && error.code==='COLLABORATION_STATE_REPLACED') error=new AccessChanged('STATE_REPLACED');
         if (error instanceof AccessChanged) {
           if (error.code === 'SESSION_CLOSED') throw {code: 1013, reason: 'SESSION_CLOSED'};
           endAccess(session, connection, error.code);
-          throw {code: 4403, reason: error.code};
+          throw {code: error.code==='STATE_REPLACED' ? 4409 : 4403, reason: error.code};
         }
         const code = error instanceof BackendError && error.transient ? 'PERSISTENCE_UNAVAILABLE'
           : error instanceof BackendError && error.status === 409 ? 'SNAPSHOT_CONFLICT'

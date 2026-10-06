@@ -93,7 +93,7 @@ it('navigates outline positions, marks the current section and shows a static or
   fireEvent.click(screen.getByRole('button', { name: 'Results' }));
   expect(navigate).toHaveBeenCalledWith(navigation.headings[1]?.position);
   expect(screen.getByRole('region', { name: 'Content origin' }).textContent).toContain(
-    'Human written',
+    'Human contribution',
   );
 });
 

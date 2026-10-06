@@ -82,8 +82,12 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(26, appliedVersions,
-                "A fresh database should have exactly versions 1 through 26 applied");
+        assertEquals(29, appliedVersions,
+                "A fresh database should have exactly versions 1 through 29 applied");
+        assertEquals(3, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('document_comments','comment_replies','comment_audit_events')", Integer.class));
+        assertEquals(3, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('product_audit_events','comment_ai_suggestions','comment_ai_citation_acceptances')", Integer.class));
         assertEquals(2, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('collaboration_documents','collaboration_credentials')", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
@@ -217,7 +221,7 @@ class FlywayMigrationIntegrationTest {
                                           'ck_document_versions_content_is_object',
                                           'ck_document_versions_content_size')
                 """, Integer.class);
-        assertEquals(8, constraints, "V7 should create the history table's keys and checks");
+        assertEquals(7, constraints, "V7 should create the history table's keys and checks");
 
         Integer triggerEvents = jdbcTemplate.queryForObject("""
                 SELECT count(*) FROM information_schema.triggers

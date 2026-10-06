@@ -251,3 +251,14 @@
   font: 600 11px/1.2 var(--font-ui);
   white-space: nowrap;
 }
+.editor [data-comment-status='open'],
+.editor [data-comment-status='pending'] {
+  background: var(--color-brand-yellow-tint);
+  box-shadow: inset 0 -1px var(--color-brand-yellow);
+}
+.editor [data-comment-status='resolved'] {
+  box-shadow: inset 0 -1px var(--color-brand-mint);
+}
+.editor [data-comment-active='true'] {
+  background: var(--color-brand-yellow-mid);
+}

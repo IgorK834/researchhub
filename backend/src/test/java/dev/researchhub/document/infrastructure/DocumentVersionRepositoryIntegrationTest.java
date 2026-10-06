@@ -137,14 +137,14 @@ class DocumentVersionRepositoryIntegrationTest {
     }
 
     @Test
-    void oneSnapshotPerRevision() {
+    void multipleNamedSnapshotsCanCaptureTheSameRevisionWithoutReplacingEarlierHistory() {
         UUID author = insertUser("ada@example.com");
         Document document = insertDocument(author);
-        snapshot(document, DocumentVersionReason.CREATED, author, NOW);
-
-        DataIntegrityViolationException failure = assertThrows(DataIntegrityViolationException.class,
-                () -> snapshot(document, DocumentVersionReason.MANUAL_SAVE, author, NOW));
-        assertTrue(failure.getMessage().contains("uq_document_versions_document_revision"), failure.getMessage());
+        var first = snapshot(document, DocumentVersionReason.CREATED, author, NOW);
+        var second = snapshot(document, DocumentVersionReason.MANUAL_SNAPSHOT, author, NOW.plusSeconds(1));
+        var rows = versions.findByDocumentIdOrderByRevisionDesc(document.id());
+        assertEquals(List.of(second.getId(), first.getId()), rows.stream().map(DocumentVersionRepository.VersionSummaryRow::getId).toList());
+        assertEquals(List.of(1L, 1L), rows.stream().map(DocumentVersionRepository.VersionSummaryRow::getRevision).toList());
     }
 
     @Test

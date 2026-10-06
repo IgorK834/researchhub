@@ -15,6 +15,11 @@ public record DocumentVersionSummary(
         String reason,
         UUID restoredFromVersionId,
         UUID createdBy,
-        Instant createdAt
+        Instant createdAt,
+        String name,
+        String actorName,
+        String stateSha256,
+        Long collaborationEpoch,
+        Long collaborationSequence
 ) {
 }

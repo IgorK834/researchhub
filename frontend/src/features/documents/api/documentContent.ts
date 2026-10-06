@@ -4,6 +4,8 @@ import StarterKit from '@tiptap/starter-kit';
 import { ResearchCitation } from './researchCitation';
 import { DocumentFigure, FigureCaption } from './documentFigure';
 import { AnalysisResultBlock, validateAnalysisNodes } from './analysisReference';
+import { BlockIdentity, stripIdentityDefaults } from '../provenance/blockIdentity';
+import { CommentAnchorMark } from '../comments/commentAnchor';
 
 /**
  * The stored document format, and the one place that decides which nodes and marks it may contain.
@@ -47,6 +49,8 @@ export const documentExtensions: Extensions = [
   DocumentFigure,
   FigureCaption,
   AnalysisResultBlock,
+  CommentAnchorMark,
+  BlockIdentity,
 ];
 
 const documentSchema = getSchema(documentExtensions);
@@ -106,6 +110,7 @@ export function toSavedDocument(json: JSONContent): ProseMirrorDocument {
     throw new Error('The editor did not produce a document node');
   }
   validateAnalysisNodes(json);
+  stripIdentityDefaults(json as Record<string, unknown>);
   return json as ProseMirrorDocument;
 }
 

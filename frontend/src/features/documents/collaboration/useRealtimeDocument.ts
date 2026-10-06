@@ -25,6 +25,7 @@ export interface RealtimeDocument {
   user: Collaborator | undefined;
   participants: Collaborator[];
   accessRevoked: boolean;
+  stateReplaced: boolean;
   doc: Y.Doc;
   ready: boolean;
   connected: boolean;
@@ -43,6 +44,7 @@ export function useRealtimeDocument(
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
   const [user, setUser] = useState<Collaborator>();
   const [participants, setParticipants] = useState<Collaborator[]>([]);
+  const [stateReplaced, setStateReplaced] = useState(false);
   const [accessRevoked, setAccessRevoked] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const retryRef = useRef<() => void>(() => {});
@@ -83,10 +85,7 @@ export function useRealtimeDocument(
         setState((previous) => ({ ...previous, status: 'saved', error: null }));
       }
     };
-    const local = new IndexeddbPersistence(
-      `researchhub:${workspaceId}:${document.id}`,
-      doc,
-    );
+    let local: IndexeddbPersistence | null = null;
     const metadata = doc.getMap('metadata');
     const updateTitle = (): void => {
       const next = metadata.get('title');
@@ -116,7 +115,18 @@ export function useRealtimeDocument(
         error: pending > 0 ? new Error('ACCESS_REVOKED') : previous.error,
       }));
     };
+    const replaced = (): void => {
+      revoke();
+      setStateReplaced(true);
+      setFailureDetail(
+        'A snapshot was restored. Load its new state to continue. Earlier local changes are retained separately on this device.',
+      );
+    };
     const fail = (error: unknown): void => {
+      if (hasApiErrorCode(error, 'COLLABORATION_STATE_REPLACED')) {
+        replaced();
+        return;
+      }
       if (
         !disposed &&
         ['FORBIDDEN', 'RESOURCE_NOT_FOUND', 'CONFLICT'].some((code) =>
@@ -135,9 +145,15 @@ export function useRealtimeDocument(
       await apiClient.get(CSRF_PRIMING_PATH);
       return apiClient.post<Credential>(`${path}/credential`);
     };
-    void local.whenSynced
-      .then(credential)
-      .then((first) => {
+    void credential()
+      .then(async (first) => {
+        if (disposed || revoked) return;
+        const epoch = first.room.split(':')[2];
+        local = new IndexeddbPersistence(
+          `researchhub:${workspaceId}:${document.id}${epoch ? `:epoch:${epoch}` : ''}`,
+          doc,
+        );
+        await local.whenSynced;
         if (disposed || revoked) return;
         transport = new DocumentProvider({
           url: first.websocketUrl,
@@ -146,6 +162,10 @@ export function useRealtimeDocument(
           token: async () => {
             try {
               const next = await credential();
+              if (next.room !== first.room) {
+                replaced();
+                throw new Error('STATE_REPLACED');
+              }
               if (!disposed && !revoked) setUser(next.user);
               return next.token;
             } catch (error) {
@@ -187,6 +207,10 @@ export function useRealtimeDocument(
             }));
             // Hocuspocus closes a document with a protocol frame while keeping the socket open.
             // A plain connect() would then do nothing. Close our dedicated socket and renew authentication.
+            if (event.reason === 'STATE_REPLACED') {
+              replaced();
+              return;
+            }
             if (event.reason === 'ACCESS_REVOKED' || event.reason === 'ACCESS_DENIED') {
               revoke();
               return;
@@ -253,6 +277,8 @@ export function useRealtimeDocument(
                 savedAt: message.savedAt!,
               }));
               acknowledge();
+            } else if (message.event === 'stateReplaced') {
+              replaced();
             } else if (message.event === 'accessRevoked') {
               revoke();
             } else if (message.event === 'persistenceFailed') {
@@ -291,13 +317,14 @@ export function useRealtimeDocument(
       window.removeEventListener('beforeunload', warn);
       window.removeEventListener('online', online);
       transport?.destroy();
-      void local.destroy();
+      void local?.destroy();
     };
   }, [doc, enabled, path, workspaceId, document.id, attempt]);
   return {
     provider,
     user,
     accessRevoked,
+    stateReplaced,
     participants: connected ? participants : [],
     doc,
     ready,

@@ -1,3 +1,4 @@
+import { TrackBlockIdentity } from '../provenance/blockIdentity';
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import {
   EditorContent,
@@ -32,6 +33,7 @@ import type { SelectionAction } from '../../ai/api/authoringActions';
 import { SelectionToolbar } from './SelectionToolbar';
 import { blockBoundary, draftDecoration } from '../api/draftDecoration';
 import { DocumentAnalysisBlock } from './DocumentAnalysisBlock';
+import { attachCommentAnchor, type CommentAnchor } from '../comments/commentAnchor';
 
 export interface AuthoringSelection {
   readonly from: number;
@@ -41,6 +43,8 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly onEditorReady?: (editor: Editor | null) => void;
+  readonly onComment?: (anchor: CommentAnchor) => void;
   readonly collaborationProvider?: HocuspocusProvider | null;
   readonly collaborationUser?: Collaborator;
   readonly collaborationDocument?: Y.Doc;
@@ -89,6 +93,8 @@ interface DocumentBodyEditorProps {
  * With a collaborationDocument, Yjs owns the live body and undo history. The server initializes it.
  */
 export function DocumentBodyEditor({
+  onEditorReady,
+  onComment,
   workspaceId,
   collaborationDocument,
   collaborationProvider,
@@ -154,7 +160,7 @@ export function DocumentBodyEditor({
   );
 
   const editor = useEditor({
-    extensions: documentExtensions
+    extensions: [...documentExtensions, TrackBlockIdentity]
       .map((extension) =>
         extension.name === 'analysisResult'
           ? extension.extend({
@@ -209,6 +215,11 @@ export function DocumentBodyEditor({
       onChangeRef.current(savedDocumentOf(changed));
     },
   });
+
+  useEffect(() => {
+    onEditorReady?.(editor);
+    return () => onEditorReady?.(null);
+  }, [editor, onEditorReady]);
 
   // useEditor keeps an existing editor's editable flag when options change, so it is applied here. Without
   // emitting an update: becoming read-only is not an edit.
@@ -336,8 +347,21 @@ export function DocumentBodyEditor({
         )
       ) : null}
       <EditorContent editor={editor} />
-      {editable && selectionActionsEnabled && onSelectionAction !== undefined ? (
-        <SelectionToolbar editor={editor} onAction={onSelectionAction} />
+      {editable &&
+      ((selectionActionsEnabled && onSelectionAction !== undefined) ||
+        onComment !== undefined) ? (
+        <SelectionToolbar
+          editor={editor}
+          onAction={selectionActionsEnabled ? onSelectionAction : undefined}
+          onComment={
+            onComment
+              ? () => {
+                  const anchor = attachCommentAnchor(editor);
+                  if (anchor) onComment(anchor);
+                }
+              : undefined
+          }
+        />
       ) : null}
       {citationPreview === null ? null : (
         <CitationPopover

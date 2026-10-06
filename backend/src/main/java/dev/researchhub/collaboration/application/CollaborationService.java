@@ -43,9 +43,9 @@ public class CollaborationService {
         documents.lockForCollaboration(workspaceId, userId, documentId);
         byte[] bytes = new byte[32]; random.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        Access access = new Access(workspaceId, documentId, userId, clock.instant().plus(properties.getTokenTtl()));
+        Access access = new Access(workspaceId, documentId, userId, clock.instant().plus(properties.getTokenTtl()),null,store.state(documentId).map(PostgresCollaborationStore.StoredSnapshot::epoch).orElse(0L));
         store.credential(hash(token), access, clock.instant());
-        return new Credential(token, access.room(), properties.getWebsocketUrl(), access.expiresAt(), presence(userId));
+        return new Credential(token, access.room(), properties.getWebsocketUrl(), access.expiresAt(), presence(userId),access.epoch());
     }
     @Transactional
     public Access authorize(String token, String room) {
@@ -54,7 +54,9 @@ public class CollaborationService {
         Access access = store.access(hash(token), clock.instant());
         if (!access.room().equals(room)) throw new ForbiddenException("Collaboration access denied");
         documents.lockForCollaboration(access.workspaceId(), access.userId(), access.documentId());
-        return new Access(access.workspaceId(), access.documentId(), access.userId(), access.expiresAt(), presence(access.userId()));
+        if (store.state(access.documentId()).map(PostgresCollaborationStore.StoredSnapshot::epoch).orElse(0L)!=access.epoch())
+            throw new ApiException(ApiErrorCode.COLLABORATION_STATE_REPLACED,"A snapshot was restored; load the new document state");
+        return new Access(access.workspaceId(), access.documentId(), access.userId(), access.expiresAt(), presence(access.userId()),access.epoch());
     }
     // Resolve only a user already authorized by the document module. No email crosses this boundary.
     private Presence presence(UUID userId) {

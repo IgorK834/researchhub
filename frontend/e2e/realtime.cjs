@@ -306,6 +306,230 @@ async function run() {
         fullPage: true,
       });
     }
+    // Review uses the real UI and durable Spring API, anchored to text carried by the shared CRDT.
+    await a.bringToFront();
+    await editor(a).evaluate((node) => {
+      node.editor.commands.focus();
+      node.editor.state.doc.descendants((text, position) => {
+        const index = text.isText ? text.text.indexOf('RECEIPT') : -1;
+        if (index >= 0)
+          node.editor.commands.setTextSelection({
+            from: position + index,
+            to: position + index + 7,
+          });
+      });
+    });
+    await a.getByRole('button', { name: 'Add comment', exact: true }).click();
+    await a
+      .getByLabel('Write a comment', { exact: true })
+      .fill('Please cite the receipt.');
+    await a.getByRole('button', { name: 'Comment', exact: true }).click();
+    await expect(a.getByText('Please cite the receipt.', { exact: true })).toBeVisible();
+    await b.getByRole('button', { name: 'Comments', exact: true }).click();
+    await expect(b.getByText('Please cite the receipt.', { exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+    await b.getByRole('button', { name: 'Reply', exact: true }).click();
+    await b.getByLabel('Reply to Owner').fill('I will add the source.');
+    await b.getByRole('button', { name: 'Send reply', exact: true }).click();
+    await expect(b.getByText('I will add the source.', { exact: true })).toBeVisible();
+    await a.getByRole('button', { name: 'Find evidence with AI', exact: true }).click();
+    await expect(a.getByRole('region', { name: 'AI evidence suggestion' })).toBeVisible();
+    await expect(b.getByRole('region', { name: 'AI evidence suggestion' })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(
+      a.getByRole('link', { name: 'Receipt study · p. 7', exact: true }),
+    ).toHaveAttribute('href', /processingVersion=retrieval-1%3Abrowser/);
+    await expect(a.getByRole('button', { name: 'Resolve', exact: true })).toBeVisible();
+    await append(b, ' BEFORE_CITATION');
+    await saved(b);
+    await a.getByRole('button', { name: 'Insert citation', exact: true }).click();
+    await expect(a.getByText('Citation inserted manually', { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(b.getByText('Citation inserted manually', { exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(editor(b).locator('[data-research-citation]')).toHaveCount(1);
+    await a.screenshot({
+      path: path.join(output, 'comments-browser-ai-evidence.png'),
+      fullPage: true,
+    });
+    await a.getByRole('tab', { name: 'Provenance', exact: true }).click();
+    const originPanel = a.getByRole('region', { name: 'Block provenance' });
+    await expect(originPanel.getByText(/Citation added manually/)).toBeVisible({
+      timeout: 12000,
+    });
+    await expect(originPanel.getByText(/Source operation:/)).toBeVisible();
+    await expect(
+      originPanel.getByRole('link', { name: 'Receipt study · p. 7' }),
+    ).toHaveAttribute('href', /processingVersion=retrieval-1%3Abrowser/);
+    await a.screenshot({
+      path: path.join(output, 'document-browser-provenance.png'),
+      fullPage: true,
+    });
+    await a.getByRole('button', { name: 'Comments', exact: true }).click();
+    await b.bringToFront();
+    const resolution = b.waitForResponse(
+      (response) =>
+        response.request().method() === 'PATCH' && response.url().includes('/comments/'),
+    );
+    await b.getByRole('button', { name: 'Resolve', exact: true }).click();
+    assert.equal((await resolution).status(), 200);
+    await a.bringToFront();
+    await expect(a.getByRole('button', { name: 'Resolved (1)' })).toBeVisible({
+      timeout: 10000,
+    });
+    await a.getByRole('button', { name: 'Resolved (1)' }).click();
+    await a.getByRole('button', { name: 'Reopen', exact: true }).click();
+    await a.getByRole('button', { name: 'Open (1)' }).click();
+    await a.getByRole('button', { name: 'Activity', exact: true }).click();
+    await expect(a.getByText(/reopened the thread/)).toBeVisible();
+    // Nearby peer typing must leave a working anchor. The navigation button locates its current text.
+    await append(b, ' NEARBY_COMMENT');
+    await saved(b);
+    const anchorButton = a.getByRole('button', { name: 'Go to commented text: RECEIPT' });
+    await anchorButton.click();
+    await expect
+      .poll(() =>
+        editor(a).evaluate((node) => {
+          const { from, to } = node.editor.state.selection;
+          return node.editor.state.doc.textBetween(from, to);
+        }),
+      )
+      .toBe('RECEIPT');
+    await a.screenshot({
+      path: path.join(output, 'comments-browser-thread.png'),
+      fullPage: true,
+    });
+    // A viewer has the same readable discussion, with no creation or thread mutation controls.
+    const readerContext = await browser.newContext({
+      viewport: { width: 1600, height: 1000 },
+    });
+    const reader = await readerContext.newPage();
+    reader.on('pageerror', (error) => errors.push(error.message));
+    await reader.goto(`${origin}/login`);
+    await reader.getByLabel('Email', { exact: true }).fill('viewer@collab.test');
+    await reader
+      .getByLabel('Password', { exact: true })
+      .fill('correct-horse-battery-staple');
+    await reader.getByRole('button', { name: 'Log in', exact: true }).click();
+    await expect(reader).toHaveURL(`${origin}/app`);
+    await reader.goto(`${origin}${route.replace('/api/', '/app/')}`);
+    await reader.getByRole('button', { name: 'Comments', exact: true }).click();
+    await expect(
+      reader.getByText('Please cite the receipt.', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      reader.getByText('I will add the source.', { exact: true }),
+    ).toBeVisible();
+    for (const name of [
+      'Add comment',
+      'Reply',
+      'Resolve',
+      'Reopen',
+      'Find evidence with AI',
+      'Insert citation',
+    ])
+      await expect(reader.getByRole('button', { name, exact: true })).toHaveCount(0);
+    await reader.screenshot({
+      path: path.join(output, 'comments-browser-viewer.png'),
+      fullPage: true,
+    });
+    await readerContext.close();
+    // Deleting the exact marked text preserves its discussion across save/reload as an orphan.
+    await anchorButton.click();
+    await editor(a).evaluate((node) => node.editor.commands.deleteSelection());
+    await saved(a);
+    for (const page of pages) {
+      await page.reload();
+      await saved(page);
+      await page.getByRole('button', { name: 'Comments', exact: true }).click();
+      await expect(
+        page.getByText(
+          'Original passage is no longer available. This thread is preserved.',
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: 'Go to commented text: RECEIPT' }),
+      ).toBeDisabled();
+      await expect(
+        page.getByText('I will add the source.', { exact: true }),
+      ).toBeVisible();
+    }
+    await a.screenshot({
+      path: path.join(output, 'comments-browser-orphan.png'),
+      fullPage: true,
+    });
+    // Named snapshots freeze the shared state. Later online/offline replicas cannot overwrite a restored epoch.
+    await a.getByRole('button', { name: 'History', exact: true }).click();
+    await a.getByLabel('Snapshot name').fill('After evidence review');
+    await a.getByRole('button', { name: 'Save named snapshot', exact: true }).click();
+    await expect(a.getByText('Named snapshot saved.')).toBeVisible();
+    const beforeVersions = await (
+      await contexts[0].request.get(origin + route + '/versions')
+    ).json();
+    const milestone = beforeVersions.find(
+      (version) => version.name === 'After evidence review',
+    );
+    assert(
+      milestone && milestone.stateSha256,
+      'Named snapshot captures committed collaborative state',
+    );
+    await append(b, ' AFTER_NAMED_SNAPSHOT');
+    await saved(b);
+    await saved(a);
+    await contexts[1].setOffline(true);
+    await append(b, ' OLD_EPOCH_OFFLINE');
+    const snapshotRow = a
+      .getByRole('list', { name: 'Versions' })
+      .getByText('After evidence review', { exact: true })
+      .locator('..')
+      .locator('..');
+    await snapshotRow
+      .getByRole('button', {
+        name: `Restore revision ${milestone.revision}`,
+        exact: true,
+      })
+      .click();
+    await snapshotRow
+      .getByRole('button', {
+        name: `Confirm restore of revision ${milestone.revision}`,
+        exact: true,
+      })
+      .click();
+    await saved(a);
+    await excludes(a, 'AFTER_NAMED_SNAPSHOT');
+    await contexts[1].setOffline(false);
+    await expect(
+      b.getByRole('button', { name: 'Load restored snapshot', exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await b.getByRole('button', { name: 'Load restored snapshot', exact: true }).click();
+    await saved(b);
+    await excludes(b, 'AFTER_NAMED_SNAPSHOT');
+    await excludes(b, 'OLD_EPOCH_OFFLINE');
+    await excludes(a, 'OLD_EPOCH_OFFLINE');
+    const afterVersions = await (
+      await contexts[0].request.get(origin + route + '/versions')
+    ).json();
+    for (const version of beforeVersions)
+      assert(
+        afterVersions.some((row) => row.id === version.id),
+        'Restore preserves every later snapshot',
+      );
+    assert(
+      afterVersions.some(
+        (version) =>
+          version.reason === 'RESTORE' && version.restoredFromVersionId === milestone.id,
+      ),
+    );
+    assert(afterVersions.some((version) => version.name === 'Before restore'));
+    await a.getByRole('button', { name: 'History', exact: true }).click();
+    await a.screenshot({
+      path: path.join(output, 'document-browser-restored-history.png'),
+      fullPage: true,
+    });
     // Membership changes happen through the same owner API as the Members screen.
     const workspaceRoute = route.split('/documents/')[0];
     const memberRoute = workspaceRoute + '/members/' + process.env.E2E_EDITOR_ID;
@@ -396,6 +620,16 @@ async function run() {
           'SIGKILL/restart',
           'IndexedDB reload',
           'no REST autosaves',
+          'selected-text comment, reply, resolve and reopen',
+          'durable comment contribution activity',
+          'explicit AI evidence contribution with source provenance',
+          'manual citation insertion and atomic acceptance audit through Yjs',
+          'anchor after peer edits',
+          'viewer read-only comments',
+          'orphaned thread after deletion and reload',
+          'block provenance inspector with source operation and citations',
+          'named collaborative snapshots',
+          'restore preserves later history and retires offline replicas',
         ],
         snapshots,
       }),

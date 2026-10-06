@@ -4,6 +4,27 @@ import { desktopMedia } from '../../testing/desktopMedia';
 import { ToolShell } from './ToolShell';
 import { AppShell } from './AppShell';
 
+it('preserves focused panel and footer controls through ordinary editor rerenders', () => {
+  const content = (revision: number) => (
+    <ToolShell
+      label="Editor"
+      context={<input aria-label="Comment" />}
+      contextFooter={<button>Post comment</button>}
+    >
+      {revision}
+    </ToolShell>
+  );
+  const view = render(content(1));
+  const input = screen.getByRole('textbox', { name: 'Comment' });
+  input.focus();
+  view.rerender(content(2));
+  expect(document.activeElement).toBe(input);
+  const button = screen.getByRole('button', { name: 'Post comment' });
+  button.focus();
+  view.rerender(content(3));
+  expect(document.activeElement).toBe(button);
+});
+
 it('composes one main landmark with ordered rail, secondary column, main area and docked context', () => {
   render(
     <AppShell

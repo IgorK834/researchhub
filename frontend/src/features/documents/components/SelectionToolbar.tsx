@@ -8,9 +8,11 @@ import styles from './SelectionToolbar.module.css';
 export function SelectionToolbar({
   editor,
   onAction,
+  onComment,
 }: {
   readonly editor: Editor;
-  readonly onAction: (action: SelectionAction, selection: AuthoringSelection) => void;
+  readonly onAction?: (action: SelectionAction, selection: AuthoringSelection) => void;
+  readonly onComment?: () => void;
 }): ReactElement | null {
   const surface = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(true);
@@ -79,9 +81,11 @@ export function SelectionToolbar({
     <div
       ref={surface}
       role="toolbar"
-      aria-label="AI actions for selected text"
+      aria-label={
+        onComment ? 'Actions for selected text' : 'AI actions for selected text'
+      }
       aria-keyshortcuts="Alt+F10"
-      title="AI actions for selected text (Tab or Alt+F10)"
+      title="Actions for selected text (Tab or Alt+F10)"
       className={styles.toolbar}
       onMouseDown={(event) => event.preventDefault()}
       onKeyDown={(event) => {
@@ -104,11 +108,22 @@ export function SelectionToolbar({
         buttons[next]?.focus();
       }}
     >
-      {SELECTION_ACTIONS.map(([action, label]) => (
-        <button key={action} type="button" onClick={() => onAction(action, selection)}>
-          {label}
+      {onAction
+        ? SELECTION_ACTIONS.map(([action, label]) => (
+            <button
+              key={action}
+              type="button"
+              onClick={() => onAction(action, selection)}
+            >
+              {label}
+            </button>
+          ))
+        : null}
+      {onComment ? (
+        <button type="button" onClick={onComment}>
+          Add comment
         </button>
-      ))}
+      ) : null}
     </div>,
     document.body,
   );

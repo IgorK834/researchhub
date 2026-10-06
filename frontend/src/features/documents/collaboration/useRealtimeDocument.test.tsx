@@ -1,7 +1,9 @@
 /** @jest-environment jsdom */
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { IndexeddbPersistence } from 'y-indexeddb';
 import { useRealtimeDocument } from './useRealtimeDocument';
 import { apiClient } from '../../../shared/api';
+import { ApiError } from '../../../shared/api/apiError';
 import type { WorkspaceDocument } from '../api/documentApi';
 import type { HocuspocusProviderConfiguration } from '@hocuspocus/provider';
 let mockOptions: HocuspocusProviderConfiguration;
@@ -301,3 +303,58 @@ it('recognizes protocol revocation without retrying and preserves a saved checkp
   expect(mockDisconnect).toHaveBeenCalled();
   expect(mockConnect).not.toHaveBeenCalled();
 });
+
+it('isolates restored epochs from earlier IndexedDB updates and stops an offline replica on token renewal', async () => {
+  jest
+    .mocked(apiClient.post)
+    .mockResolvedValue({ ...credential, room: 'document:document:2' });
+  const { result } = renderHook(() => useRealtimeDocument('workspace', document, true));
+  await waitFor(() => expect(mockOptions.name).toBe('document:document:2'));
+  expect(IndexeddbPersistence).toHaveBeenCalledWith(
+    'researchhub:workspace:document:epoch:2',
+    result.current.doc,
+  );
+  jest
+    .mocked(apiClient.post)
+    .mockResolvedValueOnce({ ...credential, room: 'document:document:3' });
+  await act(async () => {
+    await expect((mockOptions.token as () => Promise<string>)()).rejects.toThrow(
+      'STATE_REPLACED',
+    );
+  });
+  expect(result.current.stateReplaced).toBe(true);
+  expect(result.current.accessRevoked).toBe(true);
+  expect(result.current.connected).toBe(false);
+  expect(mockDisconnect).toHaveBeenCalled();
+});
+it.each(['stateless', 'close', 'api'])(
+  'recognizes a restored state through %s without reconnecting its old CRDT',
+  async (signal) => {
+    const { result } = renderHook(() => useRealtimeDocument('workspace', document, true));
+    await waitFor(() => expect(IndexeddbPersistence).toHaveBeenCalled());
+    act(() => {
+      if (signal === 'stateless')
+        mockOptions.onStateless!({ payload: JSON.stringify({ event: 'stateReplaced' }) });
+      if (signal === 'close')
+        mockOptions.onClose!({ event: { reason: 'STATE_REPLACED' } as CloseEvent });
+    });
+    if (signal === 'api') {
+      const failure = new ApiError({
+        type: 'about:blank',
+        status: 409,
+        code: 'COLLABORATION_STATE_REPLACED',
+        rawCode: 'COLLABORATION_STATE_REPLACED',
+        title: 'Restored',
+        detail: 'Load new state',
+      });
+      jest.mocked(apiClient.post).mockRejectedValueOnce(failure);
+      await act(async () => {
+        await expect((mockOptions.token as () => Promise<string>)()).rejects.toBe(
+          failure,
+        );
+      });
+    }
+    expect(result.current.stateReplaced).toBe(true);
+    expect(result.current.participants).toEqual([]);
+  },
+);

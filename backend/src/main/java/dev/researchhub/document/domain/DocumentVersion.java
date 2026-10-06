@@ -35,7 +35,7 @@ public record DocumentVersion(
         Objects.requireNonNull(contentFormat, "contentFormat must not be null");
         Objects.requireNonNull(content, "content must not be null");
         Objects.requireNonNull(reason, "reason must not be null");
-        Objects.requireNonNull(createdBy, "createdBy must not be null");
+        if (reason != DocumentVersionReason.SCHEDULED_SNAPSHOT) Objects.requireNonNull(createdBy, "createdBy must not be null");
         Objects.requireNonNull(createdAt, "createdAt must not be null");
         if (revision < Document.FIRST_REVISION) {
             throw new IllegalArgumentException("a version's revision must be at least " + Document.FIRST_REVISION);

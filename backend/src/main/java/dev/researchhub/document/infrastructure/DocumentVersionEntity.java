@@ -57,11 +57,36 @@ public class DocumentVersionEntity {
     @Column(name = "restored_from_version_id", updatable = false)
     private UUID restoredFromVersionId;
 
-    @Column(name = "created_by", nullable = false, updatable = false)
+    @Column(name = "created_by", updatable = false)
     private UUID createdBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "name", updatable = false, length = 120)
+    private String name;
+    @Column(name = "actor_name", updatable = false, length = 200)
+    private String actorName;
+    @Column(name = "yjs_state", updatable = false)
+    private byte[] yjsState;
+    @Column(name = "state_sha256", updatable = false, length = 64)
+    private String stateSha256;
+    @Column(name = "collaboration_epoch", updatable = false)
+    private Long collaborationEpoch;
+    @Column(name = "collaboration_sequence", updatable = false)
+    private Long collaborationSequence;
+
+    public void describeSnapshot(String name, String actorName,
+            dev.researchhub.document.application.DocumentSnapshotState.State state) {
+        this.name=name; this.actorName=actorName;
+        if (state!=null) { this.yjsState=state.bytes().clone(); this.stateSha256=state.sha256();
+            this.collaborationEpoch=state.epoch(); this.collaborationSequence=state.sequence(); }
+    }
+    public String getName() { return name; }
+    public String getActorName() { return actorName; }
+    public String getStateSha256() { return stateSha256; }
+    public Long getCollaborationEpoch() { return collaborationEpoch; }
+    public Long getCollaborationSequence() { return collaborationSequence; }
 
     /** Required by JPA. Application code uses {@link #fromDomain(DocumentVersion)}. */
     protected DocumentVersionEntity() {

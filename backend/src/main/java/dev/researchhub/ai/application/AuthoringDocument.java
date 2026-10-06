@@ -144,6 +144,23 @@ public final class AuthoringDocument {
         if (!added) throw invalid();
         block.node().set("content", inline); return json.writeValueAsString(root);
     }
+    public record Tagged(String content,List<UUID> blockIds) {}
+    public Tagged identifySelection(String content,int from,int to) {
+        var root=read(content); var ids=new ArrayList<UUID>();
+        for (var block:selected(blocks(root),from,to)) ids.add(identity(block.node()));
+        return new Tagged(json.writeValueAsString(root),List.copyOf(ids));
+    }
+    public Tagged identifyDraft(String content,int index,int count) {
+        var root=read(content); var ids=new ArrayList<UUID>();
+        for (int i=index;i<index+count;i++) ids.add(identity((ObjectNode)root.path("content").get(i)));
+        return new Tagged(json.writeValueAsString(root),List.copyOf(ids));
+    }
+    private UUID identity(ObjectNode block) {
+        var attrs=block.withObject("attrs");
+        String id=attrs.path("blockId").asString("");
+        UUID identity=id.isEmpty() ? UUID.randomUUID() : UUID.fromString(id);
+        attrs.put("blockId",identity.toString()); return identity;
+    }
     private ObjectNode textNode(String text, JsonNode marks) {
         var node = json.createObjectNode().put("type", "text").put("text", text);
         if (marks != null) node.set("marks", marks); return node;

@@ -1,3 +1,5 @@
+/** @jest-environment jsdom */
+import { contentWithoutBlockOrigins } from '../features/documents/testing/content';
 /**
  * @jest-environment jsdom
  */
@@ -260,6 +262,9 @@ function stubDocumentApi(options: {
         jsonResponse(options.sources ?? [], 200, 'application/json'),
       );
     }
+    if (path === `${DOCUMENT_PATH}/comments`) {
+      return Promise.resolve(jsonResponse([], 200, 'application/json'));
+    }
     if (path === `/api/workspaces/${WORKSPACE_ID}/ai/conversations?offset=0`) {
       return Promise.resolve(
         jsonResponse({ items: [], nextOffset: null }, 200, 'application/json'),
@@ -425,7 +430,8 @@ function savedBodies(fetchMock: jest.Mock): SaveBody[] {
     .map(
       (call) =>
         JSON.parse(String((call[1] as RequestInit | undefined)?.body)) as SaveBody,
-    );
+    )
+    .map((body) => ({ ...body, content: contentWithoutBlockOrigins(body.content) }));
 }
 
 function requestsTo(fetchMock: jest.Mock, method: string, path: string): number {
@@ -532,7 +538,7 @@ describe('DocumentDetailPage', () => {
       const body = await findBody();
 
       expect(body.querySelectorAll('p')).toHaveLength(3);
-      expect(bodyEditor().getJSON()).toEqual(stored);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(stored);
       await idle(100);
       // Opening is not a save: nothing rewrites the row.
       expect(savedBodies(fetchMock)).toEqual([]);
@@ -572,12 +578,12 @@ describe('DocumentDetailPage', () => {
       const fetchMock = stubDocumentApi({ document: documentRow({ content: stored }) });
       renderDocumentDetailPage();
       const body = await findBody();
-      expect(bodyEditor().getJSON()).toEqual(stored);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(stored);
       expect(body.querySelector('a')?.textContent).toBe(' [1]');
       fireEvent.click(body.querySelector('a')!);
       const preview = screen.getByRole('dialog', { name: 'Citation 1' });
       expect(within(preview).getByText('Paper · Page 7')).toBeTruthy();
-      expect(bodyEditor().getJSON()).toEqual(stored);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(stored);
       expect(mockNavigate).not.toHaveBeenCalled();
       fireEvent.click(within(preview).getByRole('link', { name: 'Open source' }));
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -764,7 +770,9 @@ describe('DocumentDetailPage', () => {
         await screen.findByRole('button', { name: 'Insert draft' });
         const draft = screen.getByRole('region', { name: 'AI draft' });
         expect(body.contains(draft)).toBe(true);
-        expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements', 'Follow up.'));
+        expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
+          paragraphs('Measurements', 'Follow up.'),
+        );
         expect(command).toMatchObject({
           kind: 'DRAFT',
           expectedRevision: 1,
@@ -778,7 +786,7 @@ describe('DocumentDetailPage', () => {
         expect(screen.getByRole('region', { name: 'AI draft' })).toBe(draft);
         fireEvent.click(within(draft).getByRole('button', { name: action }));
         await waitFor(() =>
-          expect(bodyEditor().getJSON()).toEqual(
+          expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
             paragraphs('Measurements', 'Grounded section.', 'Follow up.'),
           ),
         );
@@ -798,11 +806,14 @@ describe('DocumentDetailPage', () => {
       act(() => {
         bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
       });
-      expect(screen.getByRole('toolbar', { name: /AI actions/ })).toBeTruthy();
+      expect(
+        screen.getByRole('toolbar', { name: /Actions for selected text/ }),
+      ).toBeTruthy();
       fireEvent.change(screen.getByLabelText('Title'), {
         target: { value: 'Unsaved title' },
       });
-      expect(screen.queryByRole('toolbar', { name: /AI actions/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Improve writing' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Add comment' })).toBeTruthy();
       rendered.unmount();
       stubDocumentApi({ role: 'VIEWER' });
       renderDocumentDetailPage();
@@ -810,7 +821,9 @@ describe('DocumentDetailPage', () => {
       act(() => {
         bodyEditor().commands.setTextSelection({ from: 1, to: 13 });
       });
-      expect(screen.queryByRole('toolbar', { name: /AI actions/ })).toBeNull();
+      expect(
+        screen.queryByRole('toolbar', { name: /Actions for selected text/ }),
+      ).toBeNull();
       expect(screen.queryByRole('tab', { name: 'Writing' })).toBeNull();
     });
 
@@ -896,7 +909,9 @@ describe('DocumentDetailPage', () => {
           screen.getByRole('region', { name: 'AI suggestion' }),
         ),
       ).toBe(true);
-      expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
+        paragraphs('Measurements'),
+      );
       expect(savedBodies(fetchMock)).toHaveLength(0);
       expect(aiRequests[0]?.body).toMatchObject({
         kind: 'REWRITE',
@@ -910,7 +925,9 @@ describe('DocumentDetailPage', () => {
       await waitFor(() =>
         expect(screen.queryByRole('region', { name: 'AI suggestion' })).toBeNull(),
       );
-      expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
+        paragraphs('Measurements'),
+      );
       expect(savedBodies(fetchMock)).toHaveLength(0);
       fireEvent.click(screen.getByRole('button', { name: 'Generate suggestion' }));
       await screen.findByRole('region', { name: 'AI suggestion' });
@@ -918,11 +935,15 @@ describe('DocumentDetailPage', () => {
       fireEvent.change(screen.getByLabelText('Edit suggestion'), {
         target: { value: 'Reviewed measurements' },
       });
-      expect(bodyEditor().getJSON()).toEqual(paragraphs('Measurements'));
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
+        paragraphs('Measurements'),
+      );
       expect(savedBodies(fetchMock)).toHaveLength(0);
       fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
       await waitFor(() =>
-        expect(bodyEditor().getJSON()).toEqual(paragraphs('Reviewed measurements')),
+        expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
+          paragraphs('Reviewed measurements'),
+        ),
       );
       expect(
         aiRequests.find((request) => request.path.endsWith('/accept'))?.body,
@@ -1046,7 +1067,7 @@ describe('DocumentDetailPage', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: 'Find evidence' }));
       await screen.findByText('Returned source passage.');
-      expect(bodyEditor().getJSON()).toEqual(original);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(original);
       expect(savedBodies(fetchMock)).toEqual([]);
       const open = within(screen.getByRole('article', { name: 'Evidence 1' })).getByRole(
         'link',
@@ -1059,13 +1080,14 @@ describe('DocumentDetailPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add citation' }));
       await waitFor(() =>
         expect(
-          JSON.parse(JSON.stringify(bodyEditor().getJSON())).content[0].content[1].type,
+          JSON.parse(JSON.stringify(contentWithoutBlockOrigins(bodyEditor().getJSON())))
+            .content[0].content[1].type,
         ).toBe('researchCitation'),
       );
       expect(approvals).toEqual([
         { expectedRevision: 1, editedText: null, citationChunkId: citation.chunkId },
       ]);
-      const acceptedContent = bodyEditor().getJSON();
+      const acceptedContent = contentWithoutBlockOrigins(bodyEditor().getJSON());
       expect(JSON.parse(JSON.stringify(acceptedContent)).content[0].content[0].text).toBe(
         'Human claim.',
       );
@@ -1079,7 +1101,7 @@ describe('DocumentDetailPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Keep claim as it is' }));
       await waitFor(() => expect(rejections).toHaveLength(1));
       expect(approvals).toHaveLength(1);
-      expect(bodyEditor().getJSON()).toEqual(acceptedContent);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(acceptedContent);
       expect(savedBodies(fetchMock)).toEqual([]);
     });
     it('saves the editor JSON after typing pauses, as an autosave, and says so', async () => {
@@ -1201,7 +1223,9 @@ describe('DocumentDetailPage', () => {
       expect(body.querySelector('h2')?.textContent).toBe('Method');
       expect(body.querySelector('strong')?.textContent).toBe('care');
       expect(body.querySelector('ul li')?.textContent).toBe('Ten samples');
-      expect(bodyEditor().getJSON()).toEqual(STRUCTURED_AS_SAVED);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(
+        STRUCTURED_AS_SAVED,
+      );
     });
 
     it('saves a version on request, as a manual save', async () => {
@@ -1329,7 +1353,7 @@ describe('DocumentDetailPage', () => {
           },
         ],
       });
-      const beforeSave = bodyEditor().getJSON();
+      const beforeSave = contentWithoutBlockOrigins(bodyEditor().getJSON());
 
       await waitForSaveState('Conflict');
       const alert = screen.getByRole('alert');
@@ -1339,7 +1363,7 @@ describe('DocumentDetailPage', () => {
       expect(alert.textContent).toContain('based on revision 1');
       // The whole point: the work is still there, marks included, and the server's version has not replaced it.
       expect((await findBody()).textContent).toBe('My unsaved work');
-      expect(bodyEditor().getJSON()).toEqual(beforeSave);
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON())).toEqual(beforeSave);
       expect(bodyEditor().isEditable).toBe(true);
 
       // And autosave has stopped: more typing is kept but not sent.
@@ -1535,13 +1559,19 @@ describe('DocumentDetailPage', () => {
           .getAttribute('aria-pressed'),
       ).toBe('true');
       press('Heading 2');
-      expect(bodyEditor().getJSON().content?.[0]?.type).toBe('heading');
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON()).content?.[0]?.type).toBe(
+        'heading',
+      );
       // Toggled back: a list item's first child must be a paragraph, not a heading.
       press('Heading 2');
       press('Bullet list');
-      expect(bodyEditor().getJSON().content?.[0]?.type).toBe('bulletList');
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON()).content?.[0]?.type).toBe(
+        'bulletList',
+      );
       press('Numbered list');
-      expect(bodyEditor().getJSON().content?.[0]?.type).toBe('orderedList');
+      expect(contentWithoutBlockOrigins(bodyEditor().getJSON()).content?.[0]?.type).toBe(
+        'orderedList',
+      );
       press('Insert table');
       expect(within(toolbar).getByRole('button', { name: 'Add row' })).toHaveProperty(
         'disabled',
@@ -1549,9 +1579,9 @@ describe('DocumentDetailPage', () => {
       );
       press('Add row');
       press('Add column');
-      const table = (bodyEditor().getJSON() as JSONContent).content?.find(
-        (node) => node.type === 'table',
-      );
+      const table = (
+        contentWithoutBlockOrigins(bodyEditor().getJSON()) as JSONContent
+      ).content?.find((node) => node.type === 'table');
       expect(table?.content).toHaveLength(4);
       expect(table?.content?.[0]?.content).toHaveLength(4);
       press('Delete table');
@@ -1576,7 +1606,9 @@ describe('DocumentDetailPage', () => {
       await waitForSaveState('Saved');
       // What was saved is what the editor holds after the last command.
       await waitFor(() => {
-        expect(savedBodies(fetchMock).at(-1)?.content).toEqual(bodyEditor().getJSON());
+        expect(savedBodies(fetchMock).at(-1)?.content).toEqual(
+          contentWithoutBlockOrigins(bodyEditor().getJSON()),
+        );
       });
     });
 
@@ -1872,8 +1904,12 @@ describe('document editor frame navigation', () => {
     const quote = screen.getByRole('button', { name: 'Quote' });
     fireEvent.click(quote);
     expect(quote.getAttribute('aria-pressed')).toBe('true');
-    expect(bodyEditor().getJSON().content?.[0]?.type).toBe('blockquote');
+    expect(contentWithoutBlockOrigins(bodyEditor().getJSON()).content?.[0]?.type).toBe(
+      'blockquote',
+    );
     await waitForSaveState('Saved');
-    expect(savedBodies(api).at(-1)?.content).toEqual(bodyEditor().getJSON());
+    expect(savedBodies(api).at(-1)?.content).toEqual(
+      contentWithoutBlockOrigins(bodyEditor().getJSON()),
+    );
   });
 });

@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { savedDocumentOf } from './documentContent';
 import { Editor } from '@tiptap/core';
 import { citationIdentity, citationReferences } from './researchCitation';
 import { documentExtensions, readStoredDocument } from './documentContent';
@@ -31,7 +32,7 @@ test('versioned citation survives editor/save and renders escaped text with an a
   };
   expect(readStoredDocument(content)).toEqual(content);
   const editor = new Editor({ extensions: documentExtensions, content });
-  expect(editor.getJSON()).toEqual(content);
+  expect(savedDocumentOf(editor)).toEqual(content);
   const html = editor.getHTML();
   expect(html).toContain('&lt;script&gt;Source&lt;/script&gt;');
   const rendered = document.createElement('div');
@@ -94,11 +95,12 @@ test('numbering follows reference order while stable identities, duplicates and 
     'c:a',
   ]);
   expect(
-    JSON.parse(JSON.stringify(editor.getJSON())).content[0].content[1].attrs.citation,
+    JSON.parse(JSON.stringify(savedDocumentOf(editor))).content[0].content[1].attrs
+      .citation,
   ).toEqual(a);
   editor.commands.undo();
   expect(editor.view.dom.textContent).toBe(' [1] [2] [1]');
-  const saved = editor.getJSON();
+  const saved = savedDocumentOf(editor);
   editor.destroy();
   expect(readStoredDocument(saved)).toEqual(saved);
   const reloaded = new Editor({ extensions: documentExtensions, content: saved });
@@ -149,7 +151,7 @@ test('source-level citations without a chunk retain locator and legacy citations
     ],
   };
   const editor = new Editor({ extensions: documentExtensions, content });
-  expect(readStoredDocument(editor.getJSON())).not.toBeNull();
+  expect(readStoredDocument(savedDocumentOf(editor))).not.toBeNull();
   expect(editor.getHTML()).toContain('Introduction');
   expect(editor.getHTML()).toContain('[Source, source]');
   expect(citationIdentity(citation)).toBe(citationIdentity({ ...citation }));
@@ -211,7 +213,8 @@ test('explicit reordering derives presentation numbers without changing referenc
     'c:a',
   ]);
   expect(
-    JSON.parse(JSON.stringify(editor.getJSON())).content[0].content[1].attrs.citation,
+    JSON.parse(JSON.stringify(savedDocumentOf(editor))).content[0].content[1].attrs
+      .citation,
   ).toEqual(a);
   editor.destroy();
 });
@@ -234,7 +237,7 @@ test('clipboard HTML preserves entity metadata and derives numbers in the target
   const html = editor.getHTML();
   expect(html).toContain('data-citation=');
   const target = new Editor({ extensions: documentExtensions, content: html });
-  expect(target.getJSON()).toEqual(original);
+  expect(savedDocumentOf(target)).toEqual(original);
   expect(target.view.dom.textContent).toBe('Claim. [1]');
   const parsed = document.createElement('div');
   parsed.innerHTML = html;
@@ -244,7 +247,7 @@ test('clipboard HTML preserves entity metadata and derives numbers in the target
   anchor.href = 'javascript:alert(1)';
   anchor.textContent = '[999]';
   target.commands.setContent(parsed.innerHTML);
-  expect(target.getJSON()).toEqual(original);
+  expect(savedDocumentOf(target)).toEqual(original);
   expect(target.view.dom.querySelector('a')?.getAttribute('href')).toContain(
     '/app/workspaces/w/sources/s',
   );

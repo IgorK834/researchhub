@@ -18,7 +18,12 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.List;
+import dev.researchhub.ai.application.*;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "researchhub.collaboration.enabled=true", "researchhub.collaboration.service-token=integration-service-key-at-least-32-bytes"
@@ -31,6 +36,9 @@ class CollaborationApiIntegrationTest {
     @Value("${local.server.port}") int port;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
+    @MockitoBean RetrievalSearchService evidenceSearch;
+    @MockitoBean SourceRetrievalService evidenceRetrieval;
+    @MockitoBean dev.researchhub.ai.infrastructure.HttpModelProvider evidenceModel;
     ApiBrowser owner, editor, viewer, outsider;
     String workspace, document, editorId, route, token, room;
     @BeforeEach void setup() throws Exception {
@@ -115,7 +123,6 @@ class CollaborationApiIntegrationTest {
         assertEquals(200,editor.postJson(route+"/collaboration/checkpoint","{}").statusCode());
         assertEquals(200,editor.postJson(route+"/collaboration/checkpoint","{}").statusCode());
         String version = json.readTree(viewer.get(route+"/versions").body()).get(0).path("id").asText();
-        assertEquals(409,editor.postJson(route+"/versions/"+version+"/restore","{\"revision\":2}").statusCode());
         var bad = Map.of("token",token,"sequence",1,"state","Ag==","snapshotId",UUID.randomUUID(),"title","", "content", CONTENT);
         assertEquals(400,internal("rooms/"+room+"/snapshot",bad,KEY).statusCode());
         assertEquals(1,jdbc.queryForObject("SELECT sequence FROM collaboration_documents WHERE document_id=?",Long.class,UUID.fromString(document)));
@@ -171,6 +178,19 @@ class CollaborationApiIntegrationTest {
     @Test
     @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="COLLABORATION_BROWSER_TESTS",matches="true")
     void twoBrowserSessionsMergeUndoReconnectAndSurviveProcessRestart() throws Exception {
+        UUID source=UUID.randomUUID(),ws=UUID.fromString(workspace);
+        UUID ownerId=jdbc.queryForObject("SELECT id FROM users WHERE email='owner@collab.test'",UUID.class);
+        dev.researchhub.source.SourceRowFixture.insertReadyText(jdbc,source,ws,ownerId,"Receipt study");
+        var chunk=new RetrievalChunk("b".repeat(64),source,ws,null,0,"RECEIPT evidence from the original study.",7,7,"Theory",
+                RetrievalIdentity.hash("RECEIPT evidence from the original study."),"retrieval-1:browser",List.of(new SourceSpan("page-7",0,39)));
+        when(evidenceSearch.search(anyString(),eq(ws),nullable(List.class),eq(8),any())).thenReturn(List.of(new RetrievalHit(chunk,1,1,1,new EmbeddingModel("fixture","fixture","1",4))));
+        when(evidenceRetrieval.chunk(eq(ws),eq(source),any(),eq(chunk.chunkId()),eq(chunk.processingVersion()))).thenReturn(chunk);
+        when(evidenceModel.author(any())).thenAnswer(call -> {
+            var request=((ContextContracts.ContextualRequest)call.getArgument(0)).request();
+            return new AuthoringContracts.Result("1.0",request.requestId(),request.templateId(),request.templateHash(),
+                new GenerationContracts.ModelMetadata("deterministic","browser-fixture","1",true,false),new GenerationContracts.Usage(1,1,2,true),"fixture",
+                new AuthoringContracts.Answer("READY","",List.of(),List.of(new AuthoringContracts.Match(chunk.chunkId(),AuthoringContracts.Category.supporting,0.9,"Direct source evidence for the highlighted receipt."))));
+        });
         ProcessBuilder builder=new ProcessBuilder("node","e2e/realtime.cjs");
         builder.directory(Path.of("../frontend").toFile());
         builder.environment().put("E2E_BACKEND_URL","http://127.0.0.1:"+port);
@@ -180,11 +200,23 @@ class CollaborationApiIntegrationTest {
         var output=Path.of("target/collaboration-browser-e2e.log").toFile();
         builder.redirectErrorStream(true).redirectOutput(output);
         Process child=builder.start();
-        try {assertTrue(child.waitFor(150,TimeUnit.SECONDS),"Browser E2E timed out");assertEquals(0,child.exitValue(),java.nio.file.Files.readString(output.toPath()));}
+        try {assertTrue(child.waitFor(240,TimeUnit.SECONDS),"Browser E2E timed out");assertEquals(0,child.exitValue(),java.nio.file.Files.readString(output.toPath()));}
         finally {child.destroyForcibly();}
         var read=json.readTree(viewer.get(route).body());
         assertTrue(read.path("content").toString().contains("ALPHA"));
         assertTrue(read.path("content").toString().contains("BETA"));
         assertTrue(read.path("content").toString().contains("RECOVERED"));
+        var comments = json.readTree(viewer.get(route+"/comments").body());
+        assertEquals(1, comments.size());
+        assertTrue(comments.get(0).path("orphaned").asBoolean());
+        assertEquals("OPEN", comments.get(0).path("status").asString());
+        assertEquals(1, comments.get(0).path("replies").size());
+        var suggestion=comments.get(0).path("aiSuggestions").get(0);
+        assertEquals("AI_EVIDENCE",suggestion.path("kind").asString());
+        assertEquals(chunk.chunkId(),suggestion.path("acceptedChunkIds").get(0).asString());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_EVIDENCE_REQUESTED'",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM product_audit_events WHERE event_type='AI_SUGGESTION_ACCEPTED'",Integer.class));
+        var thread = json.readTree(viewer.get(route+"/comments/"+comments.get(0).path("id").asString()).body());
+        assertEquals(4, thread.path("events").size());
     }
 }

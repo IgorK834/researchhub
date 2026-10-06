@@ -47,6 +47,10 @@ export const queryKeys = {
    */
   documentVersions: (workspaceId: string, documentId: string) =>
     ['documents', workspaceId, documentId, 'versions'] as const,
+  documentComments: (workspaceId: string, documentId: string) =>
+    ['documents', workspaceId, documentId, 'comments'] as const,
+  commentThread: (workspaceId: string, documentId: string, commentId: string) =>
+    ['documents', workspaceId, documentId, 'comments', commentId] as const,
   documentVersion: (workspaceId: string, documentId: string, versionId: string) =>
     ['documents', workspaceId, documentId, 'versions', versionId] as const,
 

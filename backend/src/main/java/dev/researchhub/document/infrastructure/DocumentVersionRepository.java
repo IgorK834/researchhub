@@ -32,7 +32,8 @@ public interface DocumentVersionRepository extends Repository<DocumentVersionEnt
      * <p>A projection rather than the entity, so listing twenty snapshots does not read twenty copies of the
      * document. Served by the {@code uq_document_versions_document_revision} index.
      */
-    List<VersionSummaryRow> findByDocumentIdOrderByRevisionDesc(UUID documentId);
+    @Query("SELECT v FROM DocumentVersionEntity v WHERE v.documentId=:documentId ORDER BY v.revision DESC,v.createdAt DESC,v.id DESC")
+    List<VersionSummaryRow> findByDocumentIdOrderByRevisionDesc(@Param("documentId") UUID documentId);
 
     /** When the newest snapshot was taken, or empty when the document has none. */
     @Query("SELECT max(v.createdAt) FROM DocumentVersionEntity v WHERE v.documentId = :documentId")
@@ -52,6 +53,11 @@ public interface DocumentVersionRepository extends Repository<DocumentVersionEnt
         UUID getCreatedBy();
 
         Instant getCreatedAt();
+        String getName();
+        String getActorName();
+        String getStateSha256();
+        Long getCollaborationEpoch();
+        Long getCollaborationSequence();
 
     }
 

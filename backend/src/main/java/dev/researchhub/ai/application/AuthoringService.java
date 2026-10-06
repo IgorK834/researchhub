@@ -1,5 +1,7 @@
 package dev.researchhub.ai.application;
 
+import dev.researchhub.audit.application.ProductAudit;
+
 import dev.researchhub.ai.application.AuthoringContracts.*;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.document.application.*;
@@ -32,12 +34,14 @@ public class AuthoringService {
     private final ObjectMapper json;
     private final AuthoringDocument editing;
     private final Clock clock;
+    private final ProductAudit audit;
+    private final DocumentProvenance provenance;
     public AuthoringService(DocumentService documents, WorkspaceAuthorizationService authorization, SourceReadScope scope,
         SourceService sources, RetrievalSearchService search, SourceRetrievalService retrieval, ModelGateway gateway,
-        AuthoringFeature features, GroundedContextBuilder contexts, ContextProperties budgets, AuthoringStore store, ObjectMapper json, Clock clock) {
+        AuthoringFeature features, GroundedContextBuilder contexts, ContextProperties budgets, AuthoringStore store, ObjectMapper json, Clock clock, ProductAudit audit, DocumentProvenance provenance) {
         this.documents=documents; this.authorization=authorization; this.scope=scope; this.sources=sources; this.search=search;
         this.retrieval=retrieval; this.gateway=gateway; this.features=features; this.contexts=contexts; this.budgets=budgets;
-        this.store=store; this.json=json; this.editing=new AuthoringDocument(json); this.clock=clock;
+        this.store=store; this.json=json; this.editing=new AuthoringDocument(json); this.clock=clock; this.audit=audit; this.provenance=provenance;
     }
     // No document transaction/row lock is held across a remote inference call.
     public Suggestion suggest(UUID workspaceId, UUID documentId, UUID callerId, AuthoringContracts.Command command) {
@@ -115,19 +119,29 @@ public class AuthoringService {
         if (s.command().selectedSourceIds()!=null) allSources.addAll(s.command().selectedSourceIds());
         scope.requireSources(workspaceId,callerId,List.copyOf(allSources));
         String content;
+        List<UUID> affected;
+        var identified=s.command().kind()==Kind.DRAFT ? null : editing.identifySelection(document.content(),s.command().from(),s.command().to());
         if (s.command().kind()==Kind.EVIDENCE) {
             if (input.editedText()!=null || input.citationChunkId()==null) throw validation();
             var candidate=s.candidates().stream().filter(c -> c.citation().chunkId().equals(input.citationChunkId()) && c.category()!=Category.insufficient)
                 .findFirst().orElseThrow(AuthoringService::validation);
-            content=editing.addCitation(document.content(),s.command().from(),s.command().to(),candidate.citation());
+            content=editing.addCitation(identified.content(),s.command().from(),s.command().to(),candidate.citation()); affected=identified.blockIds();
         } else {
             if (input.citationChunkId()!=null || s.generatedText().isBlank()) throw validation();
             String text=input.editedText()==null ? s.generatedText() : input.editedText();
             content=s.command().kind()==Kind.DRAFT ? editing.insertSection(document.content(),s.command().placementBlock(),text,s.citations())
-                : editing.rewrite(document.content(),s.command().from(),s.command().to(),text,s.citations());
+                : editing.rewrite(identified.content(),s.command().from(),s.command().to(),text,s.citations());
+            if (s.command().kind()==Kind.DRAFT) {
+                var draft=editing.identifyDraft(content,s.command().placementBlock(),text.split("\\n\\s*\\n").length);
+                content=draft.content(); affected=draft.blockIds();
+            } else affected=identified.blockIds();
         }
         var saved=documents.reviseFromAi(workspaceId,callerId,documentId,new ReviseDocumentCommand(document.summary().title(),content,input.expectedRevision(),SaveKind.MANUAL));
         store.accept(workspaceId,id,callerId,saved.summary().revision(),input,RetrievalIdentity.hash(saved.content()));
+        var category=s.command().kind()==Kind.DRAFT ? DocumentProvenance.Category.AI_GENERATED : s.command().kind()==Kind.REWRITE ? DocumentProvenance.Category.AI_REWRITTEN : DocumentProvenance.Category.HUMAN;
+        var acceptedCitations=s.command().kind()==Kind.EVIDENCE ? s.candidates().stream().filter(c -> c.citation().chunkId().equals(input.citationChunkId())).map(Candidate::citation).toList() : s.citations();
+        provenance.aiAccepted(workspaceId,callerId,saved,id,category,affected,json.valueToTree(acceptedCitations),json.valueToTree(s.generation()==null ? null : s.generation().model()),input.editedText()!=null);
+        audit.aiSuggestionAccepted(workspaceId,callerId,id,documentId,saved.summary().revision());
         return new Acceptance(id,saved.summary().revision(),saved);
     }
     private static void revision(DocumentDetail doc,long expected) { DocumentService.requireCurrentRevision(doc,expected); }

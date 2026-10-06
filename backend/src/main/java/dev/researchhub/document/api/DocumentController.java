@@ -173,6 +173,14 @@ public class DocumentController {
                 objectMapper);
     }
 
+    public record NamedSnapshotRequest(@jakarta.validation.constraints.Min(1) long revision,
+            @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=120) String name) {}
+    @PostMapping("/{documentId}/snapshots")
+    ResponseEntity<DocumentVersionSummaryResponse> snapshot(@PathVariable UUID workspaceId,@PathVariable UUID documentId,
+            @Valid @RequestBody NamedSnapshotRequest input) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(DocumentVersionSummaryResponse.from(documents.namedSnapshot(workspaceId,currentUserId(),documentId,input.revision(),input.name())));
+    }
+
     private UUID currentUserId() {
         return currentUserResolver.requireCurrentUser().id();
     }
