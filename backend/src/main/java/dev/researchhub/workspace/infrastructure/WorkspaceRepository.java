@@ -24,6 +24,10 @@ public interface WorkspaceRepository extends Repository<WorkspaceEntity, UUID> {
 
     Optional<WorkspaceEntity> findById(UUID id);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select w from WorkspaceEntity w where w.id = :id")
+    Optional<WorkspaceEntity> findByIdForUpdate(UUID id);
+
     /**
      * The active workspaces with these ids, newest first. Archived ones are left out.
      *

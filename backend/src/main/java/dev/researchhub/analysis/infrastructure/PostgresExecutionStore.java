@@ -1,5 +1,7 @@
 package dev.researchhub.analysis.infrastructure;
 
+import dev.researchhub.audit.application.ProductAudit;
+
 import dev.researchhub.analysis.application.ExecutionStore;
 import dev.researchhub.analysis.application.ExecutionContracts.*;
 import dev.researchhub.shared.error.*;
@@ -17,7 +19,8 @@ import tools.jackson.databind.ObjectMapper;
 public class PostgresExecutionStore implements ExecutionStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
-    public PostgresExecutionStore(JdbcTemplate jdbc,ObjectMapper json) { this.jdbc=jdbc; this.json=json; }
+    private final ProductAudit audit;
+    public PostgresExecutionStore(JdbcTemplate jdbc,ObjectMapper json,ProductAudit audit) { this.jdbc=jdbc; this.json=json; this.audit=audit; }
     @Transactional public Execution enqueue(UUID workspace,UUID analysis,UUID caller,Provenance provenance,Snapshot snapshot,Instant now) {
         var statuses=jdbc.query("SELECT status FROM analyses WHERE workspace_id=? AND id=? AND plan_id=? FOR UPDATE",
             (row,index) -> row.getString(1),workspace,analysis,provenance.planId());
@@ -60,6 +63,7 @@ public class PostgresExecutionStore implements ExecutionStore {
         jdbc.update("UPDATE analysis_executions SET status=?,finished_at=?,payload=?::jsonb WHERE id=?",done.status().name(),Timestamp.from(now),json.writeValueAsString(done),claimed.id());
         jdbc.update("UPDATE analyses SET status=?,failure_code=?,updated_at=? WHERE workspace_id=? AND id=? AND status='RUNNING'",
             done.status().name(),failure==null ? null : failure.name(),Timestamp.from(now),claimed.workspaceId(),claimed.analysisId());
+        audit.analysisExecuted(claimed.workspaceId(),claimed.requestedBy(),claimed.id(),claimed.analysisId(),failure==null);
     }
     @Transactional public void recoverInterrupted(Instant before,Instant now) {
         var stale=query("SELECT payload FROM analysis_executions WHERE status='RUNNING' AND started_at<? FOR UPDATE SKIP LOCKED",Timestamp.from(before));

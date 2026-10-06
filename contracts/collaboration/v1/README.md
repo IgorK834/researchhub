@@ -1,13 +1,18 @@
 # Realtime document contract v1
 
 Protocol: Hocuspocus 3.4.3 over WebSocket; Yjs 13 updates; Tiptap/ProseMirror editor schema 3.31.3.
-Room identity is `document:<UUID>`. Body fragment is `default`; title is `metadata.title`.
+Room identity is `document:<UUID>` at epoch zero and `document:<UUID>:<epoch>` after restore. Body fragment is `default`; title is `metadata.title`.
+
+The compatible review schema adds a `commentAnchor` text mark with `attrs.ids` (ordered UUID array).
+One mark can represent overlapping review threads. Both browser and transport schemas preserve it in
+binary/JSON snapshots. Comment bodies/status/audit stay in Spring's scoped REST API; clipboard paste strips
+anchor identities. See [review contracts](../../../docs/development/document-comments.md).
 
 Browser endpoints (existing Spring session + CSRF, EDIT_CONTENT required):
 
 | Method/path | Response |
 | --- | --- |
-| `POST /api/workspaces/{workspaceId}/documents/{documentId}/collaboration/credential` | `{token,room,websocketUrl,expiresAt,user}`, no-store; opaque 256-bit token, <=120s |
+| `POST /api/workspaces/{workspaceId}/documents/{documentId}/collaboration/credential` | `{token,room,websocketUrl,expiresAt,user,epoch}`, no-store; opaque 256-bit token, <=120s |
 | `POST .../collaboration/checkpoint` | Current committed `{summary,content}` application snapshot; records manual version once per revision |
 
 `summary` contains the existing document summary fields; checkpoint `content` is serialized JSON text. The browser adapter parses it and flattens the summary before updating the document query cache.
@@ -16,7 +21,7 @@ Private service endpoints accept JSON with `X-Collaboration-Service-Token`. No b
 
 | Endpoint | Request | Response |
 | --- | --- | --- |
-| `POST /internal/collaboration/authorize` | `{token,room}` | `{workspaceId,documentId,userId,expiresAt,user}` |
+| `POST /internal/collaboration/authorize` | `{token,room}` | `{workspaceId,documentId,userId,expiresAt,user,epoch}` |
 | `POST /internal/collaboration/load` | `{token,room}` | `State` (activates realtime under document row lock) |
 | `POST /internal/collaboration/rooms/{room}/snapshot` | `{token,sequence,snapshotId,state,title,content}` | `State` after atomic commit |
 
@@ -68,3 +73,19 @@ Credential expiration uses `ACCESS_EXPIRED` and renews via the credential endpoi
 only discards work queued for a connection that already ended; it never claims a membership change. The service
 checks every incoming message and periodically, with no overlapping periodic calls and a maximum 5-second interval
 plus the private HTTP timeout (5 seconds). Viewers still get only the REST read API and no editing transport.
+
+## Block identities and restored epochs (RH-174/RH-175)
+
+The editor/transport schemas preserve `blockId` on paragraph, heading, codeBlock and figure,
+plus existing analysisResult IDs. Clipboard import assigns new IDs and `originIntent=IMPORTED`
+with an `importOperationId`; repeated inline pastes change that operation ID. Human typing retains
+the identity and records a new human operation. Nullable defaults do not rewrite untouched legacy
+content. Classification as AI generated/rewritten is a trusted Spring acceptance operation,
+never a client-supplied editor attribute.
+
+Restore holds the existing document row lock, preserves snapshots, increments epoch and clears
+mutable binary state. New rooms start from the restored materialized content. Old credentials
+fail with 409 `COLLABORATION_STATE_REPLACED`; transport sends `{event:"stateReplaced"}` and closes
+with `STATE_REPLACED` (4409). Token renewal into a different room must stop the old Y.Doc rather
+than reconnect it there. Browser persistence keys append `:epoch:<epoch>` after epoch zero,
+so delayed offline changes remain separate. See [origin and snapshot contracts](../../../docs/development/document-origins-and-snapshots.md).

@@ -1,5 +1,7 @@
 package dev.researchhub.workspace.application;
 
+import dev.researchhub.audit.application.ProductAudit;
+
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
 import dev.researchhub.shared.error.ConflictException;
@@ -63,15 +65,16 @@ public class WorkspaceMembershipService {
     private final WorkspaceAuthorizationService authorization;
     private final UserLookupService userLookup;
     private final Clock clock;
+    private final ProductAudit audit;
 
     public WorkspaceMembershipService(WorkspaceRepository workspaces, WorkspaceMemberRepository members,
                                       WorkspaceAuthorizationService authorization,
-                                      UserLookupService userLookup, Clock clock) {
+                                      UserLookupService userLookup, Clock clock, ProductAudit audit) {
         this.workspaces = workspaces;
         this.members = members;
         this.authorization = authorization;
         this.userLookup = userLookup;
-        this.clock = clock;
+        this.clock = clock; this.audit = audit;
     }
 
     /**
@@ -94,10 +97,7 @@ public class WorkspaceMembershipService {
     /**
      * Adds an existing, active user as an editor or viewer.
      *
-     * <p>Deliberately <strong>not</strong> {@code @Transactional}, for the same reason
-     * {@code UserRegistrationService.register} is not: it writes exactly one row, so the insert is already
-     * atomic, and catching the unique-constraint violation inside a transaction would leave the caller
-     * holding a rollback-only transaction that fails on commit — turning a 409 into a 500.
+     * <p>The workspace lock serializes member changes, and the grant and audit event commit together.
      *
      * <p>{@code OWNER} is refused with {@code VALIDATION_FAILED}. Ownership is granted to someone who is
      * already in the workspace, through {@link #changeRole}, so the person promoting them is looking at an
@@ -109,6 +109,7 @@ public class WorkspaceMembershipService {
      * @throws ConflictException         when the workspace is archived, or that user is already a member
      * @throws ApiException              {@code VALIDATION_FAILED} for a role this endpoint does not accept
      */
+    @Transactional
     public WorkspaceMemberSummary addMember(UUID workspaceId, UUID callerId,
                                             AddWorkspaceMemberCommand command) {
         authorization.requireCapability(workspaceId, callerId, WorkspaceCapability.MANAGE_MEMBERS);
@@ -141,6 +142,7 @@ public class WorkspaceMembershipService {
             throw new ConflictException(ALREADY_A_MEMBER);
         }
 
+        audit.memberAdded(workspaceId, callerId, account.id(), role.name());
         log.info("event=workspace.member.added workspaceId={} userId={} role={} byUserId={}",
                 workspaceId, account.id(), role, callerId);
         return new WorkspaceMemberSummary(account.id(), account.email(), account.displayName(), role.name());
@@ -172,7 +174,9 @@ public class WorkspaceMembershipService {
         // changeRole returns the membership unchanged when the role already matches, so the record is still
         // one of the rows we loaded. No write, and no pointless updated_at churn.
         if (!roster.memberships().contains(updated)) {
+            String previous = roster.memberships().stream().filter(m -> m.userId().equals(targetUserId)).findFirst().orElseThrow().role().name();
             members.saveAndFlush(WorkspaceMemberEntity.fromDomain(updated));
+            audit.memberRoleChanged(workspaceId, callerId, targetUserId, previous, updated.role().name());
             log.info("event=workspace.member.role_changed workspaceId={} userId={} role={} byUserId={}",
                     workspaceId, targetUserId, updated.role(), callerId);
         }
@@ -200,6 +204,7 @@ public class WorkspaceMembershipService {
         WorkspaceMembership removed = loadRoster(workspaceId).remove(targetUserId);
         members.deleteById(removed.id());
 
+        audit.memberRemoved(workspaceId, callerId, targetUserId);
         log.info("event=workspace.member.removed workspaceId={} userId={} byUserId={}",
                 workspaceId, targetUserId, callerId);
     }
@@ -207,11 +212,8 @@ public class WorkspaceMembershipService {
     /**
      * The whole roster as a domain object, which is what can answer questions about the set.
      *
-     * <p>Loaded inside the calling transaction so the decision and the write see the same rows. That is not
-     * a lock: two owners demoting each other at the same instant could still both pass the
-     * "another owner remains" check under {@code READ COMMITTED}. Closing that would need row locking on the
-     * membership rows, and it is worth doing when a workspace realistically has several owners acting at
-     * once — noted here rather than left as an assumption that this is airtight.
+     * <p>The calling transaction already holds the workspace row lock, serializing membership
+     * mutations so concurrent owner changes cannot both pass the "another owner remains" check.
      */
     private WorkspaceMembers loadRoster(UUID workspaceId) {
         List<WorkspaceMembership> memberships = members.findByWorkspaceIdOrderByCreatedAtAsc(workspaceId)
@@ -229,7 +231,7 @@ public class WorkspaceMembershipService {
      * workspace exists, let alone that it is archived.
      */
     private void requireActiveWorkspace(UUID workspaceId) {
-        workspaces.findById(workspaceId)
+        workspaces.findByIdForUpdate(workspaceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         WorkspaceAuthorizationService.WORKSPACE_NOT_FOUND))
                 .toDomain()

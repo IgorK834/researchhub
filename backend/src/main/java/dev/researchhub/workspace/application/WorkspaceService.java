@@ -1,5 +1,7 @@
 package dev.researchhub.workspace.application;
 
+import dev.researchhub.audit.application.ProductAudit;
+
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
 import dev.researchhub.shared.error.ConflictException;
@@ -46,13 +48,14 @@ public class WorkspaceService {
     private final WorkspaceMemberRepository members;
     private final WorkspaceAuthorizationService authorization;
     private final Clock clock;
+    private final ProductAudit audit;
 
     public WorkspaceService(WorkspaceRepository workspaces, WorkspaceMemberRepository members,
-                            WorkspaceAuthorizationService authorization, Clock clock) {
+                            WorkspaceAuthorizationService authorization, Clock clock, ProductAudit audit) {
         this.workspaces = workspaces;
         this.members = members;
         this.authorization = authorization;
-        this.clock = clock;
+        this.clock = clock; this.audit = audit;
     }
 
     /**
@@ -86,6 +89,7 @@ public class WorkspaceService {
         WorkspaceMembership ownership = WorkspaceMembership.create(
                 savedWorkspace.getId(), command.createdBy(), WorkspaceRole.OWNER, now);
         members.saveAndFlush(WorkspaceMemberEntity.fromDomain(ownership));
+        audit.workspaceCreated(savedWorkspace.getId(), command.createdBy());
 
         return WorkspaceSummary.from(savedWorkspace.toDomain(), WorkspaceRole.OWNER);
     }
