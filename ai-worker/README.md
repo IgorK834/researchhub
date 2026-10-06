@@ -80,3 +80,7 @@ Spring feature configuration. Contracts and configuration: [model-gateway.md](..
 RH-111 adds `ai/context.py`: strict validation of application-built v2 context and local citation-key
 translation before exposing a grounded response. The original v1 internal contract remains supported.
 The check script enforces a separate context-module coverage gate. [Grounded context](../docs/development/grounded-context.md).
+
+## Document parser security
+
+Source ingestion runs in a fresh killable subprocess with configurable wall/CPU/memory limits, bounded output and no provider credentials. Compose applies container memory/PID limits and a read-only filesystem. See [upload and costly-request controls](../docs/development/upload-and-cost-controls.md) for settings, platform support, failure contracts and verification.

@@ -4,6 +4,8 @@ from io import BytesIO
 import os
 from uuid import UUID
 from zipfile import ZipFile
+from pathlib import PurePosixPath
+from defusedxml.ElementTree import fromstring
 
 from ..contracts import ExtractedChunk, UnitLocation
 
@@ -71,5 +73,20 @@ def check_office_archive(data: bytes, limits: ParserLimits):
         entries = archive.infolist()
         if len(entries) > 10000 or sum(entry.file_size for entry in entries) > limits.max_zip_bytes:
             raise ParseFailure('EXTRACTION_LIMIT_EXCEEDED', 'The Office archive exceeds configured extraction limits.')
-        if any('vbaproject' in entry.filename.lower() for entry in entries) or b'macroEnabled' in archive.read('[Content_Types].xml'):
+        names = [entry.filename for entry in entries]
+        if len(names) != len(set(names)) or any(
+            name.startswith('/') or '\\' in name or ':' in name or '..' in PurePosixPath(name).parts
+            or len(name) > 512 for name in names
+        ) or any(entry.flag_bits & 1 or (entry.external_attr >> 16) & 0o170000 == 0o120000
+                 or (entry.file_size > 1048576 and entry.file_size / max(1, entry.compress_size) > 200)
+                 for entry in entries):
+            raise ParseFailure('UNSAFE_OFFICE_ARCHIVE', 'The Office archive contains unsupported entries.')
+        with archive.open('[Content_Types].xml') as content:
+            content_types = content.read(65537)
+        if len(content_types) > 65536:
+            raise ParseFailure('EXTRACTION_LIMIT_EXCEEDED', 'The Office metadata exceeds configured extraction limits.')
+        metadata = fromstring(content_types, forbid_dtd=True)
+        if any(any(marker in entry.filename.lower() for marker in ('vbaproject', 'activex', 'macrosheets')) for entry in entries) or any(
+            any(marker in element.attrib.get('ContentType', '').lower() for marker in ('macro', 'vba')) for element in metadata.iter()
+        ):
             raise ParseFailure('UNSUPPORTED_MACROS', 'Macro-enabled Office files are not supported.')

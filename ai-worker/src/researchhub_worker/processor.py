@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from threading import Lock
 
 from .contracts import ContractError, SourceIngestCommand, SourceIngestResult
-from .parsing import SourceParser
+from .parser_process import IsolatedSourceParser
 
 
 class IdempotencyConflict(RuntimeError):
@@ -28,7 +28,7 @@ class IdempotentSourceIngestProcessor:
         self,
         handler: Callable[[SourceIngestCommand], SourceIngestResult] | None = None,
     ) -> None:
-        self._handler = handler or SourceParser()
+        self._handler = handler or IsolatedSourceParser()
         self._completed: dict[str, tuple[SourceIngestCommand, SourceIngestResult]] = OrderedDict()
         self._lock = Lock()
 
