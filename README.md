@@ -20,6 +20,8 @@ for human-written claims, with explicit approval, idempotent insertion and AI-or
 
 Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
 
+Upload hardening and costly-operation quotas: [docs/development/upload-and-cost-controls.md](docs/development/upload-and-cost-controls.md).
+
 Backend module rules: [docs/development/backend-architecture.md](docs/development/backend-architecture.md). REST error contract: [docs/development/api-errors.md](docs/development/api-errors.md). Request validation rules and shared length limits: [docs/development/validation.md](docs/development/validation.md). Health probes: [docs/development/health.md](docs/development/health.md).
 
 ## Stack
@@ -235,3 +237,19 @@ Hocuspocus/Yjs Node service with short-lived document credentials from Spring. E
 before broadcast; the binary CRDT state and editor JSON are stored atomically in PostgreSQL (Flyway V25–V26).
 [ADR-007](docs/adr/ADR-007-realtime-document-authoring.md) defines authorization, legacy-save migration,
 consistent reads and crash recovery. Install/build `collaboration/` before running backend E2E tests.
+
+RH-170–RH-171: [document comments](docs/development/document-comments.md) add selected-text threads,
+replies, resolve/reopen and immutable contribution activity. Structured TipTap/Yjs anchors survive nearby
+edits and reload; deleted passages leave preserved orphan threads. Viewer reads; editor/owner writes.
+Flyway V27 and independent 80% coverage gates cover the new modules; Chrome E2E checks peer review end to end.
+
+RH-172–RH-173: [comment AI assistance and product audit](docs/development/comment-ai-and-product-audit.md)
+add explicitly invoked, AI-attributed evidence suggestions, source links and manual citation insertion through
+autosave/Yjs. Workspace `USE_AI` permission is enforced on the server. Safe append-only product events record
+workspace/member/source/document actions, AI acceptance and analysis execution/insertion atomically (Flyway V28).
+
+RH-174–RH-175: [block origins and collaborative snapshots](docs/development/document-origins-and-snapshots.md)
+record explicit AI approval with citations, clipboard imports, human edits and exact analysis references.
+The Provenance inspector reports operations without AI detection or authorship percentages. Named and scheduled
+snapshots capture committed editor content and available Yjs state. Restore preserves later history and recent
+unsnapshotted content, retires old collaboration replicas and isolates offline buffers by epoch (Flyway V29).

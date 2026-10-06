@@ -182,9 +182,10 @@ Create the package when the first type for that module is added. Do not add empt
 | `processing` | Durable job identity/state, safe claim/retry/recovery, and worker delivery ports |
 | `ai` | Authorized retrieval/model orchestration and durable research conversations with SSE events. Model calls and data processing stay in `ai-worker/`. |
 | `analysis` | Bounded dataset inspection, immutable computation requests/plans, durable execution attempts, computed results/artifacts and provenance. Planning stays in `ai-worker/`; untrusted Python executes only in `sandbox/` through the trusted local runner ([analysis-execution.md](analysis-execution.md)). |
-| `audit` | Audit events |
+| `audit` | Immutable review activity and typed, safe, append-only product events with workspace-scoped reads |
+| `comment` | Authorized document review threads, replies and structured editor anchors |
 
-[docs/context.md](../context.md) section 18 also names `collaboration`, `citation`, and `comment`. Those are future modules. Add each one when its feature starts, and list it in this table in the same change. Do not create the package only to match the long-term diagram.
+[docs/context.md](../context.md) section 18 also names `citation`, a future module. Collaboration is implemented as described below; RH-170–175 implement comments, explicit AI evidence assistance, audit, block origins and collaborative snapshots. Do not create packages only to match the long-term diagram.
 
 ## Layers
 
@@ -221,6 +222,18 @@ prohibition of the normal case.
 
 | From | To | Why |
 | --- | --- | --- |
+| `source.application` | `security.application.UploadInspector` | Inspect bounded staged bytes before storage/persistence; optional scanning is a public port. |
+| `ai.api`, `analysis.api`, `comment.api` | `security.application.CostlyOperation`, `CostCategory` | Explicit costly-endpoint admission contracts; no security infrastructure imports. |
+| `security.api`, `security.infrastructure` | `auth.application.CurrentUserResolver`, `user.application.UserAccount`, `workspace.application.WorkspaceAuthorizationService` | Resolve authenticated actors and authorize workspace access before quota consumption; only the account id is read. |
+| `comment.api` | `auth.application.CurrentUserResolver` | Actors come from the session; only `id()` is read from the returned account. |
+| `comment.application` | `document.application.DocumentService` | Scoped reader authorization and active editor-only locking via `findOne`/`lockForReview`, with no document domain/repository imports. |
+| `comment.application` | `user.application.UserLookupService` and `UserAccount` | Snapshot display names for authorized contribution IDs. |
+| `comment.application` | `audit.application.ReviewAudit` | Append events in the same transaction and read activity only after authorizing the thread. |
+| `comment.application` | `ai.application.EvidenceAssistanceService`, `AuthoringContracts`, `GenerationContracts`, `ContextContracts` | Explicit research assistance through the grounded model boundary and immutable evidence/provenance contracts. |
+| `comment.application` | `workspace.application.WorkspaceAuthorizationService` | Check `USE_AI` contributor authorization before inference and again at publication/acceptance. |
+| `workspace.application`, `source.application`, `document.application`, `ai.application`, `analysis.infrastructure` | `audit.application.ProductAudit` | Typed, safe append-only events in the transaction of each significant action; the execution store records atomic completion. |
+| `audit.api` | `auth.application.CurrentUserResolver` | Session actor for scoped audit reads. |
+| `audit.application` | `workspace.application.WorkspaceAuthorizationService` | Authorize bounded workspace audit reads. |
 | `auth` | `dev.researchhub.user.application` | `auth` owns login and registration endpoints; `user` owns the user record. The endpoints need to create and verify accounts. |
 | `workspace.api` | `dev.researchhub.auth.application` | Every workspace route acts on behalf of the signed-in user, and `auth` owns the session. `WorkspaceController` calls `CurrentUserResolver.requireCurrentUser()` rather than trusting a request field, which is what stops a client from creating a workspace owned by somebody else. |
 | `workspace.api` | `dev.researchhub.user.application` | Only as the return type of the call above: `requireCurrentUser()` hands back a `UserAccount`, of which `workspace` reads `id()` and nothing else. The call is chained, so the type is never even imported — but it is still a dependency, and this row is what makes it allowed. |
@@ -308,3 +321,13 @@ binary snapshots and hashed expiring credentials. `document.application.Document
 port implemented by collaboration infrastructure, preventing legacy replacement after activation without importing
 collaboration into the document module. Browser session security and the private service-token filter use separate,
 narrowly matched chains. Contract and recovery: [ADR-007](../adr/ADR-007-realtime-document-authoring.md).
+
+
+`document.application.DocumentSnapshotState` is a public transport-state port implemented by
+collaboration infrastructure. Under the existing document row lock it supplies verified binary
+snapshot metadata or retires the current collaboration epoch during restore. The document module
+owns immutable version rows and has no dependency on collaboration implementation classes.
+`ai.application` and `comment.application` call `document.application.DocumentProvenance` only after
+explicit validated acceptance in the content transaction. This stores operation/block origins,
+not inferred authorship. Scheduled history uses a narrow workspace application guard for active
+system content maintenance. Contracts and limitations: [document-origins-and-snapshots.md](document-origins-and-snapshots.md).
