@@ -91,6 +91,15 @@ class SourceExtractionEndToEndTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class Configuration {
         @Bean SourceStorage sourceStorage() { return new InMemorySourceStorage(); }
+        @Bean @Primary ExternalSearchProvider externalSearchProvider() {
+            return new ExternalSearchProvider() {
+                public boolean available() { return true; }
+                public String name() { return "BRAVE"; }
+                public List<ExternalSourceContracts.Result> search(String query) {
+                    return List.of(ExternalSourceService.validatedResult("External solar reference", "https://example.org/solar", "EXTERNAL_ONLY_CANARY. Search snippet, not imported source text."));
+                }
+            };
+        }
         /** Resolves the bytes of the immutable version the job was created for, keyed by version id like production. */
         @Bean @Primary SourceIngestInputProvider inputProvider(SourceVersionRepository versions, SourceVersionJobRepository jobs) {
             return (workspaceId, sourceId, jobId, ttl) -> {
@@ -158,6 +167,40 @@ class SourceExtractionEndToEndTest {
             new dev.researchhub.shared.observability.WorkMetrics(metrics)).dispatchAvailable();
     }
     private byte[] fixture(String name) throws Exception { return Files.readAllBytes(Path.of("src/test/resources/parsing", name)); }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "SOURCE_SEARCH_BROWSER_TESTS", matches = "true")
+    void productionBrowserSearchesRealRetrievalAndRecordsExternalEvidenceSeparately() throws Exception {
+        String pdf = upload("lecture.pdf", fixture("lecture.pdf"));
+        upload("notes.txt", "Lecture research notes. Temperature influences solar efficiency.".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var outsider = new ApiBrowser(port, mapper); outsider.signUp("search-outsider@example.com", "Outsider");
+        String privateWorkspace = outsider.createdWorkspaceId("Private research", "");
+        var privateUpload = outsider.postFile("/api/workspaces/" + privateWorkspace + "/sources", "private.txt", "text/plain", "PRIVATE_SEARCH_CANARY".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        FILES.put(outsider.json(privateUpload).get("activeVersionId").asString(), "PRIVATE_SEARCH_CANARY".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String emptyWorkspace = owner.createdWorkspaceId("Empty research", "");
+        var viewer = new ApiBrowser(port, mapper); viewer.signUp("search-viewer@example.com", "Viewer");
+        assertEquals(201, owner.postJson("/api/workspaces/" + workspaceId + "/members", "{\"email\":\"search-viewer@example.com\",\"role\":\"VIEWER\"}").statusCode());
+        dispatch();
+        assertEquals("READY", owner.json(owner.get(sourcePath(pdf))).get("status").asString());
+        var builder = new ProcessBuilder("node", "e2e/source-search.cjs").directory(Path.of("../frontend").toFile());
+        builder.environment().put("E2E_BACKEND_URL", "http://127.0.0.1:" + port);
+        builder.environment().put("E2E_WORKSPACE_ID", workspaceId);
+        builder.environment().put("E2E_OTHER_WORKSPACE_ID", privateWorkspace);
+        builder.environment().put("E2E_EMPTY_WORKSPACE_ID", emptyWorkspace);
+        var log = Path.of("target/source-search-browser-e2e.log");
+        var process = builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        if (!process.waitFor(55, java.util.concurrent.TimeUnit.SECONDS)) {
+            process.destroyForcibly(); fail("Source search browser exceeded deadline");
+        }
+        assertEquals(0, process.exitValue(), Files.readString(log));
+        // Even after discovery/recording, the model request contains only uploaded evidence.
+        var answer = owner.postJson("/api/workspaces/" + workspaceId + "/ai/questions", "{\"question\":\"What does Lecture say?\"}");
+        assertEquals(200, answer.statusCode(), answer.body()); assertFalse(answer.body().contains("EXTERNAL_ONLY_CANARY"));
+        var evidence = owner.json(answer).get("citations");
+        for (var citation : evidence) assertEquals(workspaceId, citation.get("workspaceId").asString());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM sources WHERE workspace_id=?", Integer.class, UUID.fromString(workspaceId)));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM external_source_references WHERE workspace_id=?", Integer.class, UUID.fromString(workspaceId)));
+    }
 
     @Test void ingestionIsTraceableAcrossRealBackendWorkerLogsAndMetrics() throws Exception {
         byte[] bytes="Observability source: deterministic trace fixture".getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -1069,7 +1112,9 @@ class SourceExtractionEndToEndTest {
         assertEquals(200,stream.statusCode());assertTrue(entered.await(2,java.util.concurrent.TimeUnit.SECONDS));
         var busy=owner.postJson(conversationPath()+"/"+conversation.id()+"/messages/stream",mapper.writeValueAsString(new Send(UUID.randomUUID(),"Lecture",null)));
         assertEquals(503,busy.statusCode(),busy.body());
-        stream.body().close();Thread.sleep(350);release.countDown();
+        // The server only notices a closed client when a 100 ms keepalive write fails, which can take a few
+        // writes on a loaded CI runner; releasing the model before then would let the answer complete.
+        stream.body().close();Thread.sleep(1500);release.countDown();
         for (int index=0;index<100 && "PENDING".equals(jdbc.queryForObject("SELECT status FROM ai_messages WHERE client_request_id=?",String.class,command.clientRequestId()));index++) Thread.sleep(30);
         assertEquals("ABANDONED",jdbc.queryForObject("SELECT status FROM ai_messages WHERE client_request_id=?",String.class,command.clientRequestId()));
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ai_messages WHERE role='ASSISTANT'",Integer.class));
