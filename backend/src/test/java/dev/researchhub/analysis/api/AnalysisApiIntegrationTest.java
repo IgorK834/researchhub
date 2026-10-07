@@ -344,7 +344,7 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP FUNCTION preserve_request_correlation()");
         jdbc.execute("ALTER TABLE processing_jobs DROP COLUMN request_id");
         jdbc.execute("ALTER TABLE analysis_executions DROP COLUMN request_id");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32')");flyway.migrate();
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());
