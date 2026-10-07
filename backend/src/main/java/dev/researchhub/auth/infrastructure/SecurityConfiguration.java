@@ -1,6 +1,7 @@
 package dev.researchhub.auth.infrastructure;
 
 import dev.researchhub.user.application.PasswordPolicy;
+import dev.researchhub.security.infrastructure.BrowserSecurityPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -102,20 +103,13 @@ public class SecurityConfiguration {
          * cross-origin at all: the browser would block the header before the request left.
          */
         @Bean
-        CorsConfigurationSource corsConfigurationSource(
-                @Value("${researchhub.auth.cors.allowed-origins:http://localhost:3000}")
-                List<String> allowedOrigins) {
-            if (allowedOrigins.contains("*")) {
-                throw new IllegalStateException(
-                        "researchhub.auth.cors.allowed-origins must not be '*': a wildcard origin cannot "
-                                + "be combined with credentialed requests. List each allowed origin.");
-            }
-
+        CorsConfigurationSource corsConfigurationSource(BrowserSecurityPolicy policy) {
             CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(allowedOrigins);
+            configuration.setAllowedOrigins(policy.allowedOrigins());
             configuration.setAllowedMethods(
                     List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
             configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN"));
+            configuration.setExposedHeaders(List.of("Retry-After"));
             // Without this the browser would strip the session and CSRF cookies from a cross-origin call.
             configuration.setAllowCredentials(true);
             configuration.setMaxAge(Duration.ofMinutes(30));
@@ -133,10 +127,27 @@ public class SecurityConfiguration {
                                                 ProblemDetailAuthenticationEntryPoint entryPoint,
                                                 ProblemDetailAccessDeniedHandler accessDeniedHandler,
                                                 SecurityContextRepository securityContextRepository,
-                                                CorsConfigurationSource corsConfigurationSource)
+                                                CorsConfigurationSource corsConfigurationSource,
+                                                BrowserSecurityPolicy browserPolicy)
                 throws Exception {
+            var csrfCookies = CookieCsrfTokenRepository.withHttpOnlyFalse();
+            csrfCookies.setCookieCustomizer(cookie -> cookie.secure(browserPolicy.secureCookies())
+                    .sameSite(browserPolicy.sameSite().substring(0, 1).toUpperCase(java.util.Locale.ROOT)
+                            + browserPolicy.sameSite().substring(1)).path("/"));
             http
                     .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                    .headers(headers -> {
+                        headers.contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
+                                .frameOptions(frame -> frame.deny())
+                                .contentSecurityPolicy(csp -> csp.policyDirectives(BrowserSecurityPolicy.API_CSP));
+                        if (browserPolicy.hstsEnabled()) {
+                            // The framework writes HSTS only when the request is actually HTTPS.
+                            headers.httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000)
+                                    .includeSubDomains(false).preload(false));
+                        } else {
+                            headers.httpStrictTransportSecurity(hsts -> hsts.disable());
+                        }
+                    })
 
                     .authorizeHttpRequests(requests -> requests
                             .requestMatchers(PUBLIC_HEALTH_PATHS).permitAll()
@@ -158,7 +169,7 @@ public class SecurityConfiguration {
                     // our own page. The CSRF cookie is readable by JavaScript because the SPA has to
                     // echo it back; it is not a credential, and the session cookie stays HttpOnly.
                     .csrf(csrf -> csrf
-                            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                            .csrfTokenRepository(csrfCookies)
                             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
 
                     .securityContext(context -> context

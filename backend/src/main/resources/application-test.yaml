@@ -5,6 +5,12 @@
 researchhub:
   environment: test
 
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
 spring:
   autoconfigure:
     exclude:

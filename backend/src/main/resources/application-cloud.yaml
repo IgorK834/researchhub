@@ -12,9 +12,23 @@
 # remains the only schema writer.
 researchhub:
   environment: cloud
+  auth:
+    cors:
+      # Empty means same-origin only. Supply exact HTTPS origins for an explicit allowlist.
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   cloud:
     db-url: ${DB_URL:}
     blob-endpoint: ${BLOB_ENDPOINT:}
+
+server:
+  # Default does not trust client-supplied Forwarded/X-Forwarded-* headers.
+  # TLS termination must be configured at the trusted edge before enabling native handling.
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+  servlet:
+    session:
+      cookie:
+        secure: true
+        same-site: ${SESSION_COOKIE_SAME_SITE:lax}
 
 spring:
   autoconfigure:

@@ -5,6 +5,9 @@
 # docs/development/configuration.md.
 researchhub:
   environment: local
+  auth:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   debug:
     sql: false
   ai:
