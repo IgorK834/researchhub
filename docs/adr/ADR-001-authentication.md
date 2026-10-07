@@ -177,3 +177,8 @@ storage rule does not change, and no provider token is handed to the SPA.
 than one instance (in-application, Redis, or another external store) is an operational decision for
 the deployment task. It does not change the browser-facing contract above. `context.md` section 37
 lists Redis as intentionally open; that stays open.
+
+RH-307/RH-308 select PostgreSQL via Spring Session JDBC for the `demo` and `azure` profiles.
+This implements the operational storage decision without changing this authentication contract.
+Flyway owns the session schema; independent replicas and full restarts are covered by real HTTP tests.
+Store selection, expiry and serialization details are in [configuration.md](../development/configuration.md#browser-sessions-rh-307--rh-308).

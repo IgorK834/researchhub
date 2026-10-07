@@ -27,9 +27,18 @@ Security rules in [docs/context.md](../context.md) still apply, including “Nev
 | --- | --- | --- |
 | `local` | Developer machine. This is the default when no profile is set. | Not in Git. Use environment variables when a later task needs a secret. |
 | `test` | `./mvnw test` and other automated tests. | None. Tests must start on a clean machine. |
+| `demo` | Runnable local product graph, with PostgreSQL-backed sessions for replica demonstrations. | Existing local defaults; inject values for a hosted demo. |
+| `azure` | Same product graph with JDBC sessions and the deployed HTTPS browser policy. No infrastructure is provisioned. | Required `DB_URL`, `DB_USER`, `DB_PASSWORD`; inject storage/worker/scrape credentials through the existing settings. |
 | `cloud` | A deployed environment, later. | A managed store such as Azure Key Vault. Not wired up yet. |
 
 Shared non-secret defaults live in `backend/src/main/resources/application.yaml`. Each profile adds `application-local.yaml`, `application-test.yaml`, or `application-cloud.yaml` next to that file. Files use the `.yaml` extension.
+
+`demo` and `azure` are profile groups including `local`, so existing product services and Flyway/JPA
+remain available without changing their module boundaries. Their session overlay selects JDBC.
+The final Azure-only document in `application-local.yaml` overrides local browser settings with
+`Secure=true`, the configured `SESSION_COOKIE_SAME_SITE` (default `lax`), no CORS origins by default,
+and `DB_URL`/`DB_USER`/`DB_PASSWORD` without development defaults. The original `cloud` profile
+remains a configuration scaffold; do not combine it with `demo`/`azure` because it excludes persistence.
 
 `BackendApplication` activates `local` when the process does not already name a profile. A normal `./mvnw spring-boot:run` therefore uses `local`. Setting `spring.profiles.default` in `application.yaml` does not change which profile Spring Boot selects, so the default lives in `main` instead. `@SpringBootTest` does not call `main`; tests opt into `test` with `@ActiveProfiles`.
 
@@ -50,7 +59,76 @@ cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-IntelliJ: open the monorepo root, run `BackendApplication`, and set **Active profiles** to `local`, `test`, or `cloud`. The same field can be left empty for day-to-day work because the default is `local`.
+IntelliJ: open the monorepo root, run `BackendApplication`, and set **Active profiles** to `local`, `test`, `demo`, `azure`, or `cloud`. The same field can be left empty for day-to-day work because the default is `local`.
+
+## Browser sessions (RH-307 / RH-308)
+
+ADR-001's browser contract is unchanged: `JSESSIONID` is the opaque HttpOnly credential,
+`BrowserSession` saves the security context through `HttpSessionSecurityContextRepository`,
+login rotates an existing session ID, and logout invalidates the session. Workspace permissions
+and the account's current database status are checked on the server for each request.
+The CSRF repository stays `CookieCsrfTokenRepository`: the SPA reads `XSRF-TOKEN` and echoes it
+in `X-XSRF-TOKEN`, including when the next request is handled by another instance.
+
+| Setting | Explicit value / default | Effect |
+| --- | --- | --- |
+| `researchhub.auth.session-store` / `AUTH_SESSION_STORE` | `servlet` for local/test/cloud scaffold; `jdbc` for demo/azure | The single store selector. Only `jdbc` and `servlet` are accepted. JDBC without a JDBC session repository fails startup. |
+| `server.servlet.session.timeout` / `SESSION_TIMEOUT` | `30m` | Idle lifetime. Requests update last access; expired sessions cannot authenticate even before physical cleanup. |
+| `spring.session.jdbc.initialize-schema` | `never` | Only Flyway creates or changes the session tables. |
+| `spring.session.jdbc.cleanup-cron` / `SESSION_CLEANUP_CRON` | `0 * * * * *` | Six-field Spring cron: cleanup at second zero each minute on each JDBC instance. Deletes expired rows and cascades attributes. |
+| `spring.session.jdbc.flush-mode` | `on-save` | Persist session changes when Spring Session saves at response commit. A completed login is visible to another replica. |
+| `spring.session.jdbc.save-mode` | `on-set-attribute` | Save attributes explicitly set, avoiding rewriting unchanged attributes on reads. |
+| `server.servlet.session.cookie.name` | `JSESSIONID` | Preserve the existing browser/frontend contract instead of Spring Session's default `SESSION`. |
+| Session cookie flags | `HttpOnly=true`, `SameSite=lax`, `Secure=true` outside local/demo/test | Azure follows the existing deployment cookie/CORS settings; CSRF cookies remain readable. |
+
+`spring-boot-starter-session-jdbc` and Spring Session versions come from the Spring Boot 4.1.1 BOM.
+V36 copies `org/springframework/session/jdbc/schema-postgresql.sql` from its JDBC jar, including
+the unique session-ID index, expiry/principal-name indexes, and cascading attribute foreign key.
+PostgreSQL folds these unquoted `SPRING_SESSION` / `SPRING_SESSION_ATTRIBUTES` identifiers to lowercase.
+Hibernate remains `validate`; Boot's schema initializer is disabled. No separate session datasource,
+schema, Redis service or sticky routing is required.
+
+Default JDK serialization stores a `UsernamePasswordAuthenticationToken` with a String user UUID,
+null credentials and no authorities. It does not snapshot the user record or workspace roles.
+The database remains trusted application state; application releases must keep the stored Spring
+Security class format compatible. Existing servlet sessions are not migrated when switching stores:
+users sign in again once. JDBC sessions survive compatible application restarts and replica changes.
+
+For a local replica demonstration, start two processes against the same PostgreSQL:
+
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo -Dspring-boot.run.arguments="--server.port=8080"
+# In a second terminal, from backend/:
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo -Dspring-boot.run.arguments="--server.port=8081"
+```
+
+Cookie scope uses the hostname and path, so use `localhost` consistently for both ports.
+For a hosted demo, enable Secure cookies and inject the deployed browser/CORS policy as documented
+in [browser deployment](browser-and-ai-security.md). The `azure` profile already applies that policy.
+Shared sessions remove the authentication blocker; the existing local quota adapter, processing,
+storage and deployment infrastructure still have their own scaling requirements.
+
+`SharedJdbcSessionIntegrationTest` starts one PostgreSQL Testcontainer and independent applications
+on random ports. Its shared `HttpClient`/`CookieManager` proves login A → `/api/me` B, logout B →
+captured cookie rejected A, fresh disabled-user checks on both, A-issued CSRF token → mutation B,
+and stopping A → continued access B. It also stops both instances and proves the same cookie works
+after a full restart, reads persisted bytes through `ObjectInputStream`, checks fixation protection,
+deployed cookie flags, scheduled expiry cleanup and cascading deletion. A servlet negative control
+asserts that the very same cross-replica identity assertion fails with 401.
+`FlywayMigrationIntegrationTest` checks the shipped schema, indexes, keys and cascade.
+
+Run all checks with Docker available:
+
+```bash
+cd backend
+./mvnw verify
+```
+
+JaCoCo enforces at least 80% line and branch coverage for the complete `auth` module and writes
+`backend/target/site/jacoco-auth/index.html`. The existing authentication/CSRF tests stay unchanged.
+Framework references: [Boot Spring Session](https://docs.spring.io/spring-boot/4.1/reference/web/spring-session.html),
+[JDBC repository](https://docs.spring.io/spring-session/reference/api/java/org/springframework/session/jdbc/JdbcIndexedSessionRepository.html).
 
 ## Defaults and secrets
 
