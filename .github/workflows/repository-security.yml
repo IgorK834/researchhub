@@ -1,0 +1,89 @@
+name: Repository security
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      scan_containers:
+        description: Build and scan existing worker/sandbox images (HIGH/CRITICAL block)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  repository-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.20'
+          python-version: '3.13.3'
+      - name: Install checksum-pinned scanners
+        id: tools
+        run: sh scripts/security/install-tools.sh "$RUNNER_TEMP/security-tools"
+      - name: Test security check policy (minimum 80% coverage)
+        env:
+          GITLEAKS_EXECUTABLE: ${{ runner.temp }}/security-tools/gitleaks
+        run: |
+          mkdir -p security-reports
+          uv sync --project ai-worker --frozen
+          uv run --project ai-worker --frozen python -m coverage run --branch --source=scripts/security --omit='*/test_*' --data-file=security-reports/.coverage -m unittest discover -s scripts/security -p 'test_*.py'
+          uv run --project ai-worker --frozen python -m coverage report --data-file=security-reports/.coverage --fail-under=80
+      - name: Reject tracked environment and credential files
+        if: ${{ !cancelled() }}
+        run: python3 scripts/security/check.py hygiene
+      - name: Scan full Git history and tracked working files for secrets
+        if: ${{ !cancelled() && steps.tools.outcome == 'success' }}
+        run: python3 scripts/security/check.py secrets --gitleaks "$RUNNER_TEMP/security-tools/gitleaks"
+      - name: Scan Maven, npm and Python dependency inventories
+        if: ${{ !cancelled() && steps.tools.outcome == 'success' }}
+        run: python3 scripts/security/check.py dependencies --trivy "$RUNNER_TEMP/security-tools/trivy"
+      - name: Preserve redacted findings even on failed checks
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: repository-security-reports
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 7
+
+  container-security:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_containers }}
+    needs: repository-security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: sh scripts/security/install-tools.sh "$RUNNER_TEMP/security-tools"
+      - name: Build existing application images
+        run: |
+          docker build -t researchhub-ai-worker:security ai-worker
+          docker build -t researchhub-sandbox:security sandbox
+          mkdir -p security-reports
+      - name: Scan worker image (OS and language packages)
+        run: |
+          "$RUNNER_TEMP/security-tools/trivy" image --scanners vuln --timeout 10m --format json --output security-reports/image-worker.json --severity HIGH,CRITICAL --exit-code 1 researchhub-ai-worker:security
+      - name: Scan sandbox image (OS and language packages)
+        if: ${{ !cancelled() }}
+        run: |
+          "$RUNNER_TEMP/security-tools/trivy" image --scanners vuln --timeout 10m --format json --output security-reports/image-sandbox.json --severity HIGH,CRITICAL --exit-code 1 researchhub-sandbox:security
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: container-security-reports
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 7

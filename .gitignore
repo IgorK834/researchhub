@@ -26,6 +26,24 @@ __pycache__/
 .env.*
 !.env.example
 
+# Private credential material (CI also rejects files added with git add -f)
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+.netrc
+.boto
+**/.aws/credentials
+
+# Security checks (redacted scanner reports and maintenance-script coverage)
+/security-reports/
+
 # OS
 .DS_Store
 Thumbs.db

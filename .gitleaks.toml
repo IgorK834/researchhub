@@ -1,0 +1,12 @@
+title = "ResearchHub repository secrets"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Public context-packing policy identifiers, not access tokens"
+regexTarget = "match"
+regexes = ['''tokenPolicy["']?\s*:\s*["']utf8-conservative-v[12]["']''']
