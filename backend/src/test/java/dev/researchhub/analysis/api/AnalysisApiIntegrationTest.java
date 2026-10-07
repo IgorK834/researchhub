@@ -344,7 +344,10 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP FUNCTION preserve_request_correlation()");
         jdbc.execute("ALTER TABLE processing_jobs DROP COLUMN request_id");
         jdbc.execute("ALTER TABLE analysis_executions DROP COLUMN request_id");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33')");flyway.migrate();
+        jdbc.execute("ALTER TABLE sources DROP COLUMN bibliography, DROP COLUMN tags, DROP COLUMN collections");
+        jdbc.execute("DROP INDEX ix_sources_workspace_library, ix_sources_workspace_type_status, ix_sources_workspace_uploader");
+        jdbc.execute("DROP FUNCTION source_text_list_valid(jsonb, int, int, boolean)");
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33','34')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());

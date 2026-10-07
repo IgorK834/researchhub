@@ -127,6 +127,41 @@ class ExportApiIntegrationTest {
         dispatcher.dispatchAvailable();var download=owner.getBytes(path+"/"+id+"/download");assertEquals(200,download.statusCode());
         assertEquals(json.readTree(before),json.readTree(LatexReportRenderingTest.unzip(download.body()).get("report.json")));
     }
+
+    @Test void bibliographyUsesNormalizedMetadataAndFreezesItForAllFormats() throws Exception {
+        String sourcePath = "/api/workspaces/" + workspace + "/sources/" + source;
+        String metadata = """
+            {"title":"  Solar efficiency  ","authors":[" Smith, J. ","Ada"],"publicationYear":2025,
+             "doi":"https://doi.org/10.1234/ABC","venue":"Energy Journal","url":"https://example.org/paper","citationKey":"Smith2025"}
+            """;
+        var saved = owner.sendWithMethod("PUT", sourcePath + "/bibliography", metadata);
+        assertEquals(200, saved.statusCode(), saved.body());
+        Map<String, UUID> jobs = new LinkedHashMap<>();
+        for (String format : List.of("DOCX", "PDF", "LATEX")) jobs.put(format, enqueue(viewer, format));
+        assertEquals(200, owner.sendWithMethod("PUT", sourcePath + "/bibliography", metadata.replace("Solar efficiency", "Later title")).statusCode());
+        assertEquals(200, owner.sendWithMethod("PUT", sourcePath + "/organization", "{\"displayName\":\"Renamed\",\"tags\":[\"review\"],\"collections\":[\"papers\"]}").statusCode());
+        jobs.values().forEach(ignored -> dispatcher.dispatchAvailable());
+        for (var job : jobs.entrySet()) {
+            var frozen = viewer.json(viewer.get(path + "/" + job.getValue() + "/representation"));
+            var reference = frozen.path("bibliography").get(0).path("source");
+            assertEquals("Solar efficiency", reference.path("title").asString());
+            assertEquals("10.1234/abc", reference.path("bibliography").path("doi").asString());
+            assertEquals(version.toString(), reference.path("sourceVersionId").asString());
+            assertEquals("Smith2025", reference.path("bibliography").path("citationKey").asString());
+            var download = viewer.getBytes(path + "/" + job.getValue() + "/download");
+            assertEquals(200, download.statusCode());
+            String text;
+            if (job.getKey().equals("DOCX")) try (var word = new XWPFDocument(new ByteArrayInputStream(download.body()))) {
+                text = word.getParagraphs().stream().map(p -> p.getText()).reduce("", String::concat);
+            } else if (job.getKey().equals("PDF")) try (var pdf = Loader.loadPDF(download.body())) {
+                text = new PDFTextStripper().getText(pdf);
+            } else text = LatexReportRenderingTest.tex(LatexReportRenderingTest.unzip(download.body()));
+            for (String expected : List.of("Solar efficiency", "Smith, J.; Ada", "2025", "Energy Journal", "10.1234/abc", "https://example.org/paper", "Smith2025", version.toString()))
+                assertTrue(text.replaceAll("\\s+", "").contains(expected.replaceAll("\\s+", "")), expected + " missing from " + job.getKey());
+            assertFalse(text.contains("Later title"));
+        }
+    }
+
     @Test @EnabledIfEnvironmentVariable(named="EXPORT_BROWSER_TESTS",matches="true")
     void productionBrowserCanGenerateAndDownloadAllFormats() throws Exception {
         var builder=new ProcessBuilder("node","e2e/export.cjs").directory(Path.of("../frontend").toFile());

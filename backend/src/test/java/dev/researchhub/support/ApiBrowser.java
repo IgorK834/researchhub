@@ -58,6 +58,10 @@ public final class ApiBrowser {
         return http.send(HttpRequest.newBuilder(url(path)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
     }
 
+    public HttpResponse<String> sendWithMethod(String method, String path, String body) throws Exception {
+        return sendWithCsrf(method, path, body);
+    }
+
     /** POSTs JSON, priming the CSRF cookie first exactly as the frontend client does. */
     public HttpResponse<String> postJson(String path, String body) throws Exception {
         return sendWithCsrf("POST", path, body);

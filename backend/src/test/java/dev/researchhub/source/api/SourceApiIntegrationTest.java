@@ -475,6 +475,163 @@ class SourceApiIntegrationTest {
         assertFalse(key.contains("claim")); assertFalse(key.contains("..")); assertFalse(key.contains("private"));
     }
 
+
+    private static final String BIBLIOGRAPHY = """
+            {"title":"  Photovoltaic efficiency  ","authors":[" Smith, J. ","Ada Lovelace"],
+             "publicationYear":2025,"doi":"https://doi.org/10.1234/ABC","venue":" Journal of Energy ",
+             "url":"https://example.org/paper","citationKey":"Smith2025"}
+            """;
+    private static final String ORGANIZATION = """
+            {"displayName":" Cell study ","tags":[" Review ","review","ENERGY"],"collections":[" Papers "]}
+            """;
+
+    @Test
+    void normalizedMetadataAndOrganizationPersistWithoutChangingImmutableEvidence() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        String id = uploadedCsv(owner, "original.csv", "a\n1\n");
+        String base = sourcesPath(owner.workspaceId()) + "/" + id;
+        JsonNode before = owner.browser().json(owner.browser().get(base));
+        var metadata = owner.browser().sendWithMethod("PUT", base + "/bibliography", BIBLIOGRAPHY);
+        assertEquals(200, metadata.statusCode(), metadata.body());
+        assertEquals("Photovoltaic efficiency", owner.browser().json(metadata).path("bibliography").path("title").asString());
+        assertEquals("10.1234/abc", owner.browser().json(metadata).path("bibliography").path("doi").asString());
+        var changed = owner.browser().sendWithMethod("PUT", base + "/organization", ORGANIZATION);
+        assertEquals(200, changed.statusCode(), changed.body());
+        JsonNode after = owner.browser().json(changed);
+        for (String field : List.of("id", "workspaceId", "originalFilename", "contentSha256", "activeVersionId", "activeVersionNumber", "uploadedBy", "createdAt"))
+            assertEquals(before.path(field), after.path(field), field);
+        assertEquals("Cell study", after.path("displayName").asString());
+        assertEquals("energy", after.path("tags").get(0).asString());
+        assertEquals(2, after.path("tags").size());
+        assertEquals("papers", after.path("collections").get(0).asString());
+        assertEquals(after, owner.browser().json(owner.browser().get(base)));
+        markReady(id);
+        var replacement = owner.browser().postFile(base + "/versions", "new.csv", "text/csv", "a\n2\n".getBytes(StandardCharsets.UTF_8));
+        assertEquals(201, replacement.statusCode(), replacement.body());
+        assertEquals(after.path("bibliography"), owner.browser().json(replacement).path("bibliography"));
+        assertEquals(after.path("tags"), owner.browser().json(replacement).path("tags"));
+        assertEquals("a\n1\n", owner.browser().get(base + "/versions/" + before.path("activeVersionId").asString() + "/content").body());
+        markReady(id);
+        var reprocess = owner.browser().postJson(base + "/reprocess", "{}");
+        assertEquals(202, reprocess.statusCode(), reprocess.body());
+        assertEquals(after.path("bibliography"), owner.browser().json(reprocess).path("bibliography"));
+    }
+
+    @Test
+    void detailWritesAreAuthorizedAndCsrfProtectedAndArchivedWorkspacesAreReadOnly() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        String id = uploadedCsv(owner, "private.csv", "a\n1\n");
+        String base = sourcesPath(owner.workspaceId()) + "/" + id;
+        ApiBrowser viewer = memberWithRole(owner, "viewer@example.com", "VIEWER");
+        ApiBrowser editor = memberWithRole(owner, "editor@example.com", "EDITOR");
+        ApiBrowser outsider = browser(); outsider.signUp("outside@example.com", "Outside");
+        for (String path : List.of("/bibliography", "/organization")) {
+            String body = path.equals("/bibliography") ? BIBLIOGRAPHY : ORGANIZATION;
+            assertEquals(403, viewer.sendWithMethod("PUT", base + path, body).statusCode());
+            assertEquals(404, outsider.sendWithMethod("PUT", base + path, body).statusCode());
+            assertEquals(403, owner.browser().sendWithoutCsrf("PUT", base + path, body).statusCode());
+            assertEquals(200, editor.sendWithMethod("PUT", base + path, body).statusCode());
+            String other = owner.browser().createdWorkspaceId("Other", "");
+            assertEquals(404, owner.browser().sendWithMethod("PUT", sourcesPath(other) + "/" + id + path, body).statusCode());
+        }
+        var archived = owner.browser().postJson("/api/workspaces/" + owner.workspaceId() + "/archive", "{}");
+        assertEquals(200, archived.statusCode(), archived.body());
+        assertEquals(409, owner.browser().sendWithMethod("PUT", base + "/organization", ORGANIZATION).statusCode());
+        assertEquals(409, owner.browser().sendWithMethod("PUT", base + "/bibliography", BIBLIOGRAPHY).statusCode());
+        assertEquals(200, viewer.get(sourcesPath(owner.workspaceId()) + "/search").statusCode());
+    }
+
+    @Test
+    void validationAndWorkspaceUniqueCitationKeysAreExplicit() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        String first = uploadedCsv(owner, "first.csv", "a\n1\n");
+        String second = uploadedCsv(owner, "second.csv", "a\n2\n");
+        String base = sourcesPath(owner.workspaceId());
+        assertEquals(200, owner.browser().sendWithMethod("PUT", base + "/" + first + "/bibliography", BIBLIOGRAPHY).statusCode());
+        var duplicate = owner.browser().sendWithMethod("PUT", base + "/" + second + "/bibliography", BIBLIOGRAPHY.replace("Smith2025", "smith2025"));
+        assertEquals(409, duplicate.statusCode(), duplicate.body());
+        for (String body : List.of(BIBLIOGRAPHY.replace("2025,", "0,"), BIBLIOGRAPHY.replace("https://example.org/paper", "javascript:alert(1)"),
+                BIBLIOGRAPHY.replace("https://doi.org/10.1234/ABC", "bad-doi"), "{\"authors\":null}", "{\"authors\":[\" \"]}")) {
+            var rejected = owner.browser().sendWithMethod("PUT", base + "/" + first + "/bibliography", body);
+            assertEquals(400, rejected.statusCode(), rejected.body());
+            assertEquals("VALIDATION_FAILED", owner.browser().json(rejected).path("code").asString());
+        }
+        assertEquals(400, owner.browser().sendWithMethod("PUT", base + "/" + first + "/organization", ORGANIZATION.replace("Cell study", " ")).statusCode());
+        String other = owner.browser().createdWorkspaceId("Other", "");
+        String otherId = owner.browser().json(owner.browser().postFile(sourcesPath(other), "other.csv", "text/csv", CSV)).path("id").asString();
+        assertEquals(200, owner.browser().sendWithMethod("PUT", sourcesPath(other) + "/" + otherId + "/bibliography", BIBLIOGRAPHY).statusCode());
+        String empty = "{\"authors\":[],\"title\":null,\"publicationYear\":null,\"doi\":null,\"venue\":null,\"url\":null,\"citationKey\":null}";
+        assertEquals(200, owner.browser().sendWithMethod("PUT", base + "/" + first + "/bibliography", empty).statusCode());
+        assertEquals(200, owner.browser().sendWithMethod("PUT", base + "/" + first + "/organization", "{\"displayName\":\"clear\",\"tags\":[],\"collections\":[]}").statusCode());
+    }
+
+    @Test
+    void searchCombinesFiltersUsesLiteralSubstringsAndKeepsCountsWorkspaceScoped() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        String id = uploadedCsv(owner, "name_100%.csv", "a\n1\n");
+        String base = sourcesPath(owner.workspaceId());
+        owner.browser().sendWithMethod("PUT", base + "/" + id + "/bibliography", BIBLIOGRAPHY);
+        owner.browser().sendWithMethod("PUT", base + "/" + id + "/organization", ORGANIZATION);
+        markReady(id);
+        uploadedCsv(owner, "other.csv", "a\n2\n");
+        Owner outside = ownerWithAnotherWorkspace();
+        uploadedCsv(outside, "Photovoltaic-private.csv", "a\n3\n");
+        String uploader = owner.browser().json(owner.browser().get(base + "/" + id)).path("uploadedBy").asString();
+        for (String query : List.of("query=PHOTOVOLTAIC", "query=Cell", "query=100%25", "query=_", "type=CSV&status=READY&uploader=" + uploader + "&tag=REVIEW&collection=Papers")) {
+            var found = owner.browser().get(base + "/search?" + query);
+            assertEquals(200, found.statusCode(), found.body());
+            assertEquals(1, owner.browser().json(found).path("totalElements").asInt());
+            assertEquals(id, owner.browser().json(found).path("items").get(0).path("id").asString());
+        }
+        var none = owner.browser().get(base + "/search?type=PDF&status=READY");
+        assertEquals(0, owner.browser().json(none).path("totalElements").asInt());
+        var first = owner.browser().json(owner.browser().get(base + "/search?size=1"));
+        var next = owner.browser().json(owner.browser().get(base + "/search?size=1&page=1"));
+        assertEquals(2, first.path("totalElements").asInt()); assertTrue(first.path("hasNext").asBoolean());
+        assertFalse(next.path("hasNext").asBoolean());
+        assertFalse(first.path("items").get(0).path("id").equals(next.path("items").get(0).path("id")));
+        var facets = owner.browser().json(owner.browser().get(base + "/facets"));
+        assertEquals(2, facets.path("total").asInt()); assertEquals(1, facets.path("ready").asInt());
+        assertEquals(2, facets.path("types").path("CSV").asInt());
+        assertEquals("papers", facets.path("collections").get(0).asString());
+        assertEquals(404, outside.browser().get(base + "/search?query=private").statusCode());
+        assertEquals(404, outside.browser().get(base + "/search?type=INVALID").statusCode());
+        assertEquals(404, outside.browser().get(base + "/facets").statusCode());
+        for (String query : List.of("type=WEB", "status=INVALID", "page=-1", "size=101", "uploader=invalid", "query=" + "a".repeat(201)))
+            assertEquals(400, owner.browser().get(base + "/search?" + query).statusCode(), query);
+    }
+
+    private Owner ownerWithAnotherWorkspace() throws Exception {
+        ApiBrowser other = browser(); other.signUp("other-owner@example.com", "Other");
+        return new Owner(other, other.createdWorkspaceId("Private", ""));
+    }
+
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "SOURCE_LIBRARY_BROWSER_TESTS", matches = "true")
+    void productionBrowserEditsOrganizesFiltersAndPreservesSourceIdentity() throws Exception {
+        Owner owner = ownerWithWorkspace();
+        var uploaded = owner.browser().postFile(sourcesPath(owner.workspaceId()), "original.txt", "text/plain", "Research notes".getBytes(StandardCharsets.UTF_8));
+        assertEquals(201, uploaded.statusCode(), uploaded.body());
+        String id = owner.browser().json(uploaded).path("id").asString();
+        for (int index = 0; index < 31; index++) uploadedCsv(owner, "data-" + index + ".csv", "a\n1\n");
+        memberWithRole(owner, "viewer@example.com", "VIEWER");
+        Owner other = ownerWithAnotherWorkspace();
+        uploadedCsv(other, "private.csv", "a\n3\n");
+        var builder = new ProcessBuilder("node", "e2e/source-library.cjs")
+                .directory(java.nio.file.Path.of("../frontend").toFile());
+        builder.environment().put("E2E_BACKEND_URL", "http://127.0.0.1:" + port);
+        builder.environment().put("E2E_WORKSPACE_ID", owner.workspaceId());
+        builder.environment().put("E2E_SOURCE_ID", id);
+        builder.environment().put("E2E_OTHER_WORKSPACE_ID", other.workspaceId());
+        var log = java.nio.file.Path.of("target/source-library-browser-e2e.log");
+        var process = builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        if (!process.waitFor(55, java.util.concurrent.TimeUnit.SECONDS)) {
+            process.destroyForcibly(); org.junit.jupiter.api.Assertions.fail("Source library browser exceeded deadline");
+        }
+        assertEquals(0, process.exitValue(), java.nio.file.Files.readString(log));
+    }
+
     private record UploadCase(String filename, String mediaType, byte[] bytes, String type) {
     }
 
