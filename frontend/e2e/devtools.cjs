@@ -1,5 +1,5 @@
 /* Real Chrome -> production Webpack app -> Spring/Testcontainers. No product database is used. */
-/* global window, document, getComputedStyle */
+/* global window, document */
 const { chromium, expect } = require('@playwright/test');
 const { createServer, request } = require('node:http');
 const { readFile } = require('node:fs/promises');
