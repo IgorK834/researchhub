@@ -29,6 +29,17 @@ export function sourceFixture(overrides: Partial<WorkspaceSource> = {}): Workspa
     failureSummary: null,
     activeVersionId: 'version-1',
     activeVersionNumber: 1,
+    bibliography: {
+      title: null,
+      authors: [],
+      publicationYear: null,
+      doi: null,
+      venue: null,
+      url: null,
+      citationKey: null,
+    },
+    tags: [],
+    collections: [],
     ...overrides,
   };
 }

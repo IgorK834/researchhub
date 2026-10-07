@@ -9,6 +9,13 @@ import {
 import { queryKeys, type ApiError } from '../../../shared/api';
 import {
   fetchSource,
+  searchSources,
+  fetchSourceFacets,
+  saveSourceBibliography,
+  saveSourceOrganization,
+  type SourceFilters,
+  type SourceBibliography,
+  type SourceOrganization,
   reprocessSource,
   fetchSources,
   fetchSourceVersions,
@@ -121,4 +128,40 @@ export function useReplaceSource(
       });
     },
   });
+}
+
+export function useSourceSearchQuery(workspaceId: string, filters: SourceFilters) {
+  return useQuery({
+    queryKey: [...queryKeys.sources(workspaceId), 'search', filters],
+    queryFn: ({ signal }) => searchSources(workspaceId, filters, signal),
+    refetchInterval: (query) =>
+      query.state.data?.items.some(
+        (source) => source.status === 'UPLOADED' || source.status === 'PROCESSING',
+      )
+        ? 2000
+        : false,
+  });
+}
+export function useSourceFacetsQuery(workspaceId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.sources(workspaceId), 'facets'],
+    queryFn: ({ signal }) => fetchSourceFacets(workspaceId, signal),
+    refetchInterval: 2000,
+  });
+}
+export function useSaveSourceDetails(workspaceId: string, sourceId: string) {
+  const client = useQueryClient();
+  const onSuccess = (source: WorkspaceSource): void => {
+    client.setQueryData(queryKeys.source(workspaceId, sourceId), source);
+    void client.invalidateQueries({ queryKey: queryKeys.sources(workspaceId) });
+  };
+  const bibliography = useMutation<WorkspaceSource, ApiError, SourceBibliography>({
+    mutationFn: (metadata) => saveSourceBibliography(workspaceId, sourceId, metadata),
+    onSuccess,
+  });
+  const organization = useMutation<WorkspaceSource, ApiError, SourceOrganization>({
+    mutationFn: (details) => saveSourceOrganization(workspaceId, sourceId, details),
+    onSuccess,
+  });
+  return { bibliography, organization };
 }

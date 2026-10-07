@@ -23,6 +23,9 @@ export interface WorkspaceSource {
   readonly updatedAt: string;
   readonly activeVersionId: string;
   readonly activeVersionNumber: number;
+  readonly bibliography: SourceBibliography;
+  readonly tags: readonly string[];
+  readonly collections: readonly string[];
 }
 
 export interface SourceVersion {
@@ -145,4 +148,84 @@ export function fetchSourceProcessing(
     `${sourcesPath(workspaceId)}/${sourceId}/processing`,
     { ...(signal === undefined ? {} : { signal }) },
   );
+}
+
+export interface SourceBibliography {
+  readonly title: string | null;
+  readonly authors: readonly string[];
+  readonly publicationYear: number | null;
+  readonly doi: string | null;
+  readonly venue: string | null;
+  readonly url: string | null;
+  readonly citationKey: string | null;
+}
+export interface SourceOrganization {
+  readonly displayName: string;
+  readonly tags: readonly string[];
+  readonly collections: readonly string[];
+}
+export interface SourceFilters {
+  readonly query?: string;
+  readonly type?: string;
+  readonly uploader?: string;
+  readonly status?: string;
+  readonly tag?: string;
+  readonly collection?: string;
+  readonly page?: number;
+}
+export interface SourceSearchPage {
+  readonly items: readonly WorkspaceSource[];
+  readonly totalElements: number;
+  readonly page: number;
+  readonly size: number;
+  readonly hasNext: boolean;
+}
+export interface SourceLibraryFacets {
+  readonly total: number;
+  readonly ready: number;
+  readonly types: Readonly<Partial<Record<SourceType, number>>>;
+  readonly uploaders: readonly string[];
+  readonly tags: readonly string[];
+  readonly collections: readonly string[];
+}
+export function searchSources(
+  workspaceId: string,
+  filters: SourceFilters,
+  signal?: AbortSignal,
+): Promise<SourceSearchPage> {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  });
+  return apiClient.get(`${sourcesPath(workspaceId)}/search?${params.toString()}`, {
+    ...(signal === undefined ? {} : { signal }),
+  });
+}
+export function fetchSourceFacets(
+  workspaceId: string,
+  signal?: AbortSignal,
+): Promise<SourceLibraryFacets> {
+  return apiClient.get(`${sourcesPath(workspaceId)}/facets`, {
+    ...(signal === undefined ? {} : { signal }),
+  });
+}
+export async function saveSourceBibliography(
+  workspaceId: string,
+  sourceId: string,
+  bibliography: SourceBibliography,
+): Promise<WorkspaceSource> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.put(`${sourcesPath(workspaceId)}/${sourceId}/bibliography`, {
+    body: bibliography,
+  });
+}
+export async function saveSourceOrganization(
+  workspaceId: string,
+  sourceId: string,
+  organization: SourceOrganization,
+): Promise<WorkspaceSource> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.put(`${sourcesPath(workspaceId)}/${sourceId}/organization`, {
+    body: organization,
+  });
 }
