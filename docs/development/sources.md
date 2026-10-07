@@ -4,6 +4,8 @@ Uploaded research material: the files a workspace's documents, retrieval, and an
 reference for how a file becomes a source. Product context: [../context.md](../context.md) section 10. Schema:
 [persistence.md](persistence.md#sources).
 
+Bibliographic metadata, tagging/collections and workspace-scoped paginated search are documented in [source-library.md](source-library.md).
+
 Extraction persistence and previews are documented in [source-extraction.md](source-extraction.md). The authorized,
 versioned retrieval chunk contract and structure-aware chunking are documented in [source-retrieval.md](source-retrieval.md).
 
@@ -68,7 +70,7 @@ frontend mirror.
 | `READY` | `PROCESSING` (explicit reprocess) | Complete for one run. Reprocessing uses the same immutable bytes with a fresh versioned job. |
 
 READY reprocessing uses the explicit `Source.reprocess` operation, not the generic status transition. Changed input
-requires a new source. Any other move is refused by the domain lifecycle. `Source.processingFailed` requires a non-blank, user-safe summary
+requires a new immutable source version. Any other move is refused by the domain lifecycle. `Source.processingFailed` requires a non-blank, user-safe summary
 of at most 1000 characters. `ck_sources_failure_summary_matches_status` guarantees that `failure_summary` is present
 exactly for `FAILED`; retrying processing clears the previous attempt's summary. It is intended for a concise
 explanation such as an encrypted workbook, never a stack trace or raw document content.
@@ -126,47 +128,6 @@ of that source's own versions, and `id`, `workspace_id` and `created_at` never m
 `content_sha256` is the SHA-256 of the stored bytes, computed while they streamed in. It is what provenance can cite,
 and it shows two uploads of the same file to be the same bytes. The full model, how processing and analyses are pinned
 to a version, and the retention policy are in [source-versions.md](source-versions.md).
-
-## Storage keys
-
-`StorageKey.generate()` returns `sources/<random UUID v4>`, and `ck_sources_storage_key_format` accepts nothing else.
-The key contains nothing the user chose: no file name, no workspace id, no source id.
-
-**A key carries no authority.** Nothing looks a source up by key, and no response includes one. Every read finds the
-source by id within the caller's workspace, after the workspace membership check, and only then reads the key from
-that row.
-
-## Limits and quota
-
-| Limit | Where | Default |
-| --- | --- | --- |
-| One source | `researchhub.sources.max-size-bytes`, read by `SourceLimits` | 50 MiB (`52428800`) |
-| Schema ceiling | `ck_sources_size_bytes`, `Source.MAX_SIZE_BYTES_CEILING` | 1 GiB. A configured limit above it fails startup. |
-| Empty file | `ck_sources_size_bytes`, and checked before storing | Refused, `400 VALIDATION_FAILED` |
-| Whole workspace | `WorkspaceSourceQuota` hook | None: `UnlimitedWorkspaceSourceQuota` |
-
-The per-source limit is enforced while the bytes stream in (`MeteredInputStream`). A client that declares its size is
-refused before anything is read. A client that declares a smaller size, or none, is stopped at `limit + 1` bytes.
-Both cases are `413 PAYLOAD_TOO_LARGE` with detail `The file is larger than the 50 MB allowed for one source`.
-
-The quota hook is asked twice per upload: once with the declared size before reading, and once with the real size
-after storing. A future quota answers by throwing `PayloadTooLargeException`. Replacing
-`UnlimitedWorkspaceSourceQuota` with another bean is the whole change.
-
-## Immutability and versions
-
-A source's **original input never changes**. `id`, `workspace_id`, `original_filename`, `media_type`,
-`source_type`, `size_bytes`, `storage_key`, `content_sha256`, `uploaded_by`, and `created_at` are `updatable = false`
-on the entity. `tg_sources_original_is_immutable` refuses changing any of them from any writer. Only `display_name`,
-`status`, `failure_summary`, and `updated_at` move. Storage adapters must refuse to overwrite an existing key.
-
-`content_sha256` is the SHA-256 of the stored bytes, computed while they streamed in. It is what provenance can cite,
-and it shows two uploads of the same file to be the same bytes.
-
-Replacing a file is therefore never an update. Uploading a new file today creates a new source. When replacement is
-added as a feature, it will be a source version: a new immutable input under the same logical source, recorded in a
-new table by a new migration. The existing row stays as it is, so everything derived from it keeps pointing at what
-it was derived from.
 
 ## Storage
 
