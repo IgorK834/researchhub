@@ -2,6 +2,8 @@ const path = require('path');
 const fs = require('node:fs');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { browserPolicy } = require('./security/browserPolicy.cjs');
 
 /**
  * Public, non-secret build-time values are prefixed `RESEARCHHUB_` and injected with
@@ -21,6 +23,8 @@ const devApiTarget = process.env.RESEARCHHUB_DEV_API_TARGET ?? 'http://localhost
 /** @param {{ WEBPACK_SERVE?: boolean }} env */
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
+  const security = isProduction ? browserPolicy(process.env) : undefined;
+  const cssLoader = isProduction ? MiniCssExtractPlugin.loader : 'style-loader';
 
   return {
     mode: isProduction ? 'production' : 'development',
@@ -57,7 +61,7 @@ module.exports = (env, argv) => {
             {
               test: /\.module\.css$/,
               use: [
-                'style-loader',
+                cssLoader,
                 {
                   loader: 'css-loader',
                   options: {
@@ -73,16 +77,13 @@ module.exports = (env, argv) => {
               ],
             },
             {
-              use: [
-                'style-loader',
-                { loader: 'css-loader', options: { modules: false } },
-              ],
+              use: [cssLoader, { loader: 'css-loader', options: { modules: false } }],
             },
           ],
         },
         {
           // SVG imports are URLs, never implicit React components or inline HTML.
-          test: /\.(woff2?|ttf|otf|eot|svg)$/i,
+          test: /\.(woff2?|ttf|otf|eot|svg|png)$/i,
           type: 'asset/resource',
           generator: { filename: 'assets/[name].[contenthash][ext]' },
         },
@@ -99,6 +100,12 @@ module.exports = (env, argv) => {
                 stage: webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
               },
               () => {
+                if (security) {
+                  compilation.emitAsset(
+                    'security-headers.json',
+                    new webpack.sources.RawSource(JSON.stringify(security, null, 2)),
+                  );
+                }
                 compilation.emitAsset(
                   'THIRD_PARTY_NOTICES.txt',
                   new webpack.sources.RawSource(
@@ -112,7 +119,18 @@ module.exports = (env, argv) => {
       },
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'public/index.html'),
+        meta: security
+          ? {
+              'Content-Security-Policy': {
+                'http-equiv': 'Content-Security-Policy',
+                content: security.metaCsp,
+              },
+            }
+          : {},
       }),
+      ...(isProduction
+        ? [new MiniCssExtractPlugin({ filename: '[name].[contenthash].css' })]
+        : []),
       new webpack.DefinePlugin({
         'process.env.RESEARCHHUB_API_BASE_URL': JSON.stringify(apiBaseUrl),
         'process.env.RESEARCHHUB_COLLABORATION_ENABLED': JSON.stringify(

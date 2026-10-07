@@ -40,6 +40,11 @@ export default [
     // Babel's scope model conflates separate ambient module declarations.
     rules: { 'no-redeclare': 'off' },
   },
+  {
+    // Exact MIT-licensed Tiptap baseline, now emitted as an external stylesheet for CSP.
+    files: ['src/styles/editor.css'],
+    rules: { 'css/no-important': 'off', 'css/use-baseline': 'off' },
+  },
 
   {
     files: ['src/**/*.{ts,tsx,js,jsx}'],

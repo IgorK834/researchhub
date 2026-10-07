@@ -13,10 +13,11 @@ module.exports = {
   moduleNameMapper: {
     '\\.module\\.css$': '<rootDir>/jest.css-module.cjs',
     '\\.css$': '<rootDir>/jest.style.cjs',
-    '\\.(woff2?|ttf|otf|eot|svg)$': '<rootDir>/jest.asset.cjs',
+    '\\.(woff2?|ttf|otf|eot|svg|png)$': '<rootDir>/jest.asset.cjs',
   },
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   collectCoverageFrom: [
+    'security/browserPolicy.cjs',
     'src/shared/api/**/*.ts',
     '!src/shared/api/index.ts',
     'src/shared/components/**/*.{ts,tsx}',
@@ -35,6 +36,12 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'security/browserPolicy.cjs': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/documents/provenance/': {
       lines: 80,
       branches: 80,

@@ -160,6 +160,7 @@ export function DocumentBodyEditor({
   );
 
   const editor = useEditor({
+    injectCSS: false,
     extensions: [...documentExtensions, TrackBlockIdentity]
       .map((extension) =>
         extension.name === 'analysisResult'
