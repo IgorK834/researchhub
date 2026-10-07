@@ -1,10 +1,12 @@
 /* Real Chrome -> production Webpack app -> Spring/Testcontainers. No product database is used. */
+/* global window, document, getComputedStyle */
 const { chromium, expect } = require('@playwright/test');
 const { createServer, request } = require('node:http');
 const { readFile } = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const backend = process.env.E2E_BACKEND_URL;
+const security = require('../dist/security-headers.json');
 const workspace = process.env.E2E_WORKSPACE_ID;
 const responses = [],
   errors = [];
@@ -48,15 +50,19 @@ const server = createServer(async (req, res) => {
     return;
   }
   try {
+    for (const [name, value] of Object.entries(security.headers))
+      res.setHeader(name, value);
     res.setHeader(
       'Content-Type',
       filename.endsWith('.js')
         ? 'application/javascript'
         : filename.endsWith('.html')
           ? 'text/html'
-          : filename.endsWith('.woff2')
-            ? 'font/woff2'
-            : 'application/octet-stream',
+          : filename.endsWith('.css')
+            ? 'text/css'
+            : filename.endsWith('.woff2')
+              ? 'font/woff2'
+              : 'application/octet-stream',
     );
     res.end(await readFile(file));
   } catch {
@@ -77,6 +83,13 @@ const server = createServer(async (req, res) => {
     });
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     page.on('pageerror', (error) => errors.push(error.message));
+    const violations = [];
+    await page.addInitScript(() => {
+      window.cspViolations = [];
+      document.addEventListener('securitypolicyviolation', (event) =>
+        window.cspViolations.push(event.effectiveDirective),
+      );
+    });
     await page.goto(`${origin}/login`);
     await page.getByLabel('Email', { exact: true }).fill('browser-security@example.com');
     await page
@@ -84,6 +97,44 @@ const server = createServer(async (req, res) => {
       .fill('correct-horse-battery-staple');
     await page.getByRole('button', { name: 'Log in', exact: true }).click();
     await expect(page).toHaveURL(`${origin}/app`);
+    const session = (await page.context().cookies()).find(
+      (cookie) => cookie.name === 'JSESSIONID',
+    );
+    assert(session.httpOnly && session.sameSite === 'Lax' && !session.secure);
+    violations.push(...(await page.evaluate(() => window.cspViolations)));
+    await page.context().request.get(origin + '/api/auth/csrf');
+    const csrf = (await page.context().cookies()).find(
+      (cookie) => cookie.name === 'XSRF-TOKEN',
+    );
+    const createdDocument = await page
+      .context()
+      .request.post(`${origin}/api/workspaces/${workspace}/documents`, {
+        headers: { 'X-XSRF-TOKEN': decodeURIComponent(csrf.value) },
+        data: {
+          title: 'CSP editor check',
+          content: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Evidence remains editable.' }],
+              },
+            ],
+          },
+        },
+      });
+    assert.equal(createdDocument.status(), 201, await createdDocument.text());
+    const documentId = (await createdDocument.json()).id;
+    await page.goto(`${origin}/app/workspaces/${workspace}/documents/${documentId}`);
+    await expect(page.locator('.ProseMirror')).toBeVisible();
+    await expect(page.locator('.ProseMirror')).toHaveAttribute('contenteditable', 'true');
+    assert.equal(
+      await page
+        .locator('.ProseMirror')
+        .evaluate((element) => getComputedStyle(element).whiteSpace),
+      'break-spaces',
+    );
+    violations.push(...(await page.evaluate(() => window.cspViolations)));
     await page.goto(`${origin}/app/workspaces/${workspace}/sources`);
     await page.getByRole('button', { name: 'Upload source', exact: true }).click();
     await expect(
@@ -109,7 +160,9 @@ const server = createServer(async (req, res) => {
       page.getByRole('button', { name: 'Ask research question' }),
     ).toBeEnabled();
     const question = 'Keep this highlighted claim while the research quota resets';
-    await page.getByLabel('Research question').fill(question);
+    await page
+      .getByRole('textbox', { name: 'Research question', exact: true })
+      .fill(question);
     const limited = page.waitForResponse(
       (response) =>
         response.url().includes('/messages/stream') &&
@@ -123,7 +176,9 @@ const server = createServer(async (req, res) => {
     assert.equal(problem.quotaCategory, 'LLM');
     assert.equal(response.headers()['retry-after'], String(problem.retryAfterSeconds));
     await expect(page.getByText(/Try again in \d+ seconds/)).toBeVisible();
-    await expect(page.getByLabel('Research question')).toHaveValue(question);
+    await expect(
+      page.getByRole('textbox', { name: 'Research question', exact: true }),
+    ).toHaveValue(question);
     await expect(page.getByRole('button', { name: 'Retry answer' })).toHaveCount(0);
     await page.screenshot({ path: '../backend/target/security-quota-browser.png' });
     assert.equal(
@@ -131,6 +186,17 @@ const server = createServer(async (req, res) => {
       1,
     );
     assert.deepEqual(errors, []);
+    violations.push(...(await page.evaluate(() => window.cspViolations)));
+    assert.deepEqual(violations, [], 'Product flows must work under the enforcing CSP');
+    await page.evaluate(() => {
+      const script = document.createElement('script');
+      script.textContent = 'window.injectedScriptRan = true';
+      document.body.append(script);
+    });
+    assert.equal(await page.evaluate(() => window.injectedScriptRan), undefined);
+    await expect
+      .poll(() => page.evaluate(() => window.cspViolations))
+      .toContain('script-src-elem');
     console.log(
       JSON.stringify({
         upload: '415, no persistence',
@@ -139,6 +205,8 @@ const server = createServer(async (req, res) => {
       }),
     );
   } finally {
+    // Close outstanding proxy/keep-alive connections as well as the browser itself.
+    server.closeAllConnections();
     await browser?.close();
     await new Promise((resolve) => server.close(resolve));
   }
