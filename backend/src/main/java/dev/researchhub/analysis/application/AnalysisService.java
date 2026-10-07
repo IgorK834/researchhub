@@ -18,6 +18,8 @@ import java.util.*;
 @Service
 @Profile("local")
 public class AnalysisService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.ai.observability.AiObservation observation=dev.researchhub.ai.observability.AiObservation.none();
     public static final String TEMPLATE="computation-plan:3";
     public static final String INSTRUCTION="""
         Produce a complete JSON computation plan, not code alone. Use only the provided immutable input versions,
@@ -99,16 +101,20 @@ public class AnalysisService {
                     INSTRUCTION,analysis.userPrompt(),new Parameters(0.0,8192),List.of()),inspected,
                     attempt==1 ? List.of() : List.of("Return a complete valid JSON plan restricted to the provided inspected selections."));
                 Candidate candidate=null; Plan plan=null; ApiErrorCode failure=null;
+                try (var call=observation.call(workspace,request.request())) {
                 try {
                     candidate=planner.plan(request);
+                    if (candidate!=null) call.result(candidate.model(),candidate.usage());
                     if (candidate==null || !request.request().requestId().equals(candidate.requestId())) throw invalid();
                     try {
                         plan=json.readValue(candidate.output(),Plan.class);
                         if (plan==null) throw invalid();
                         AnalysisPlanValidator.validate(plan,inspected);
                     } catch (RuntimeException invalid) { throw invalid(); }
-                } catch (ModelFailure safe) { failure=safe.code(); }
+                    call.success();
+                } catch (ModelFailure safe) { call.failure(safe); failure=safe.code(); }
                 catch (RuntimeException unsafe) { failure=ApiErrorCode.AI_PROVIDER_ERROR; }
+                }
                 var audit=new PlanAudit(UUID.randomUUID(),attempt,caller,request,candidate,failure==null ? plan : null,
                     failure==null ? null : failure.name(),clock.instant());
                 store.recordAttempt(workspace,id,audit);

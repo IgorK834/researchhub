@@ -114,3 +114,7 @@ From `frontend/`: `npm run test:coverage`, `npm run build`, `npm run lint`. The 
 `docker compose build ai-worker` rebuilds the pinned runtime. Compose supplies provider settings;
 inject cloud secrets outside Git and restart the worker after changing deployment. Current Spring
 product persistence uses the local profile; the cloud profile remains a deployment scaffold.
+
+Economic metadata is now recorded independently of private prompts for every model gateway call.
+See [AI economics and RAG diagnostics](ai-diagnostics.md) for rates, unknown usage semantics,
+provider failure metadata and the operator-only workspace debugger.

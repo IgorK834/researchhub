@@ -42,6 +42,7 @@ class SourceExtractionEndToEndTest {
     private static Process workerProcess;
     private static int workerPort;
     private static Path workerDirectory;
+    private static Path workerLog;
 
     @DynamicPropertySource
     static void workerProperties(DynamicPropertyRegistry registry) throws Exception {
@@ -56,9 +57,10 @@ class SourceExtractionEndToEndTest {
         });
         blobServer.start();
         try (var socket = new java.net.ServerSocket(0, 0, InetAddress.getLoopbackAddress())) { workerPort = socket.getLocalPort(); }
+        workerLog = Files.createTempFile("researchhub-worker-observability-", ".jsonl");
         var process = new ProcessBuilder(workerDirectory.resolve(".venv/bin/python").toString(), "-m", "researchhub_worker")
                 .directory(workerDirectory.toFile()).redirectErrorStream(true)
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD);
+                .redirectOutput(workerLog.toFile());
         process.environment().put("AI_WORKER_HOST", "127.0.0.1");
         process.environment().put("AI_WORKER_PORT", Integer.toString(workerPort));
         process.environment().put("AI_WORKER_SERVICE_TOKEN", TOKEN);
@@ -99,10 +101,14 @@ class SourceExtractionEndToEndTest {
         }
     }
     @Value("${local.server.port}") int port;
+    @Autowired dev.researchhub.ai.observability.AiDiagnosticsProperties diagnostics;
+    @Autowired dev.researchhub.ai.observability.AiDiagnosticsStore diagnosticsStore;
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate jdbc;
     @Autowired SourceStorage storage;
     @Autowired ProcessingJobQueue queue;
+    @Autowired io.micrometer.core.instrument.MeterRegistry metrics;
+    @Autowired dev.researchhub.shared.observability.QueueMetrics sourceQueueMetrics;
     @Autowired ProcessingWorkerClient worker;
     @Autowired List<ProcessingJobStateListener> listeners;
     @Autowired ProcessingProperties properties;
@@ -122,6 +128,7 @@ class SourceExtractionEndToEndTest {
 
     @BeforeEach void prepareWorkspace() throws Exception {
         cleanupRows();
+        diagnostics.setEnabled(false); diagnostics.setCaptureContent(false); diagnostics.setStaffIds(Set.of()); diagnostics.setRates(List.of());
         FILES.clear(); ((InMemorySourceStorage) storage).clear();
 
         owner = new ApiBrowser(port, mapper);
@@ -147,9 +154,50 @@ class SourceExtractionEndToEndTest {
     }
     private void dispatch() {
         var policy = new ProcessingProperties();
-        new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager).dispatchAvailable();
+        new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager,
+            new dev.researchhub.shared.observability.WorkMetrics(metrics)).dispatchAvailable();
     }
     private byte[] fixture(String name) throws Exception { return Files.readAllBytes(Path.of("src/test/resources/parsing", name)); }
+
+    @Test void ingestionIsTraceableAcrossRealBackendWorkerLogsAndMetrics() throws Exception {
+        byte[] bytes="Observability source: deterministic trace fixture".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var uploaded=owner.postFile("/api/workspaces/"+workspaceId+"/sources","trace.txt","text/plain",bytes);
+        assertEquals(201,uploaded.statusCode(),uploaded.body());
+        String requestId=uploaded.headers().firstValue("X-Request-ID").orElseThrow();
+        var body=owner.json(uploaded); var sourceId=UUID.fromString(body.get("id").asString());
+        FILES.put(body.get("activeVersionId").asString(),bytes);
+        var job=queue.findByResource(dev.researchhub.processing.domain.ProcessingJobType.SOURCE_INGEST,
+            dev.researchhub.processing.domain.ProcessingResourceType.SOURCE,sourceId).orElseThrow();
+        assertEquals(requestId,job.requestId());
+        assertEquals(requestId,new dev.researchhub.processing.infrastructure.PostgresProcessingJobQueue(jdbc).find(job.id()).orElseThrow().requestId());
+        var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(ProcessingJobDispatcher.class);
+        var logs=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>() {
+            @Override protected void append(ch.qos.logback.classic.spi.ILoggingEvent event) { event.prepareForDeferredProcessing(); super.append(event); }
+        };
+        logs.start(); logger.addAppender(logs);
+        try { dispatch(); } finally { logger.detachAppender(logs); }
+        assertEquals(dev.researchhub.processing.domain.ProcessingJobStatus.SUCCEEDED,queue.find(job.id()).orElseThrow().status());
+        assertTrue(logs.list.stream().anyMatch(event -> requestId.equals(event.getMDCPropertyMap().get("requestId"))
+            && job.id().toString().equals(event.getMDCPropertyMap().get("jobId"))
+            && sourceId.toString().equals(event.getMDCPropertyMap().get("sourceId"))));
+        var workerEvents=Files.readAllLines(workerLog).stream().filter(line -> line.startsWith("{"))
+            .map(mapper::readTree).filter(event -> requestId.equals(event.path("requestId").asString())).toList();
+        assertTrue(workerEvents.stream().anyMatch(event -> "worker.source.completed".equals(event.path("event").asString())
+            && job.id().toString().equals(event.path("jobId").asString())
+            && sourceId.toString().equals(event.path("sourceId").asString())));
+        assertFalse(workerEvents.toString().contains(TOKEN));
+        assertFalse(workerEvents.toString().contains(new String(bytes,java.nio.charset.StandardCharsets.UTF_8)));
+        assertTrue(metrics.get("researchhub.source.processing.duration").tag("outcome","success").timer().count()>0);
+        sourceQueueMetrics.refresh();
+        assertEquals(1,metrics.get("researchhub.jobs.queue").tags("queue","SOURCE_INGEST","status","SUCCEEDED").gauge().value());
+        var scrape=HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(workerUrl()+"/metrics"))
+            .header("Authorization","Bearer "+TOKEN).GET().build(),HttpResponse.BodyHandlers.ofString());
+        assertEquals(200,scrape.statusCode());
+        assertTrue(scrape.body().contains("researchhub_worker_source_processing_duration_seconds_count"));
+        assertFalse(scrape.body().contains(sourceId.toString()));
+        assertThrows(org.springframework.dao.DataAccessException.class,() -> jdbc.update(
+            "UPDATE processing_jobs SET request_id='changed' WHERE id=?",job.id()));
+    }
 
     @Test void promptInjectionUploadCannotReadOtherWorkspaceOrChangeGroundingAndAuthorization() throws Exception {
         var evaluation = mapper.readTree(Files.readString(Path.of("../contracts/ai/security/prompt-injection.json")));
@@ -222,7 +270,7 @@ class SourceExtractionEndToEndTest {
         assertEquals(dev.researchhub.analysis.application.ExecutionOutputValidator.sha256(ready.get("plan").get("code").get("source").asString()),
             first.get("provenance").get("codeSha256").asString());
         assertTrue(first.get("provenance").get("imageId").asString().matches("sha256:[a-f0-9]{64}"));
-        assertEquals("1.1.0",first.get("provenance").get("runtimeVersion").asString());
+        assertEquals("1.1.1",first.get("provenance").get("runtimeVersion").asString());
         assertEquals("SUCCEEDED",owner.json(owner.get(path+"/"+id)).get("status").asString());
         String firstId=first.get("id").asString();String firstBase=path+"/"+id+"/executions/"+firstId;
         var originalCitation=owner.json(owner.get(firstBase+"/provenance"));
@@ -546,7 +594,8 @@ class SourceExtractionEndToEndTest {
         jdbc.execute("CREATE TRIGGER reject_extraction_run BEFORE INSERT ON source_extraction_runs FOR EACH ROW EXECUTE FUNCTION reject_extraction_run()");
         try {
             var policy = new ProcessingProperties(); policy.getDispatcher().setMaxAttempts(1);
-            new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager).dispatchAvailable();
+            new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager,
+            new dev.researchhub.shared.observability.WorkMetrics(metrics)).dispatchAvailable();
             var source = owner.json(owner.get(sourcePath(id)));
             assertEquals("FAILED", source.get("status").asString());
             assertEquals("The processing worker could not complete the job.", source.get("failureSummary").asString());
@@ -590,7 +639,7 @@ class SourceExtractionEndToEndTest {
         workerProcess.destroy();
         if (!workerProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) workerProcess.destroyForcibly().waitFor();
         var process = new ProcessBuilder(workerDirectory.resolve(".venv/bin/python").toString(), "-m", "researchhub_worker")
-                .directory(workerDirectory.toFile()).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD);
+                .directory(workerDirectory.toFile()).redirectErrorStream(true).redirectOutput(workerLog.toFile());
         process.environment().put("AI_WORKER_HOST", "127.0.0.1");
         process.environment().put("AI_WORKER_PORT", Integer.toString(workerPort));
         process.environment().put("AI_WORKER_SERVICE_TOKEN", TOKEN);
@@ -665,7 +714,8 @@ class SourceExtractionEndToEndTest {
         jdbc.execute("CREATE TRIGGER drop_retrieval_chunk BEFORE INSERT ON source_retrieval_chunks FOR EACH ROW EXECUTE FUNCTION drop_retrieval_chunk()");
         try {
             var policy = new ProcessingProperties(); policy.getDispatcher().setMaxAttempts(1);
-            new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager).dispatchAvailable();
+            new ProcessingJobDispatcher(queue, worker, listeners, policy, Clock.systemUTC(), transactionManager,
+            new dev.researchhub.shared.observability.WorkMetrics(metrics)).dispatchAvailable();
             assertEquals("FAILED", owner.json(owner.get(sourcePath(id))).get("status").asString());
             for (String table : List.of("source_extractions", "source_extraction_runs", "source_retrieval_sets", "source_retrieval_chunks")) {
                 assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM " + table, Integer.class));
@@ -1403,4 +1453,91 @@ class SourceExtractionEndToEndTest {
                 Integer.class, UUID.fromString(fresh.get("id").asString())));
         assertEquals(a1, comparison.get("sources").get(0).get("sourceVersionId").asString());
     }
+
+    private String diagnosticsPath() { return "/api/workspaces/"+workspaceId+"/devtools/ai"; }
+    private UUID operator() { return jdbc.queryForObject("SELECT id FROM users WHERE email='parser-owner@example.com'",UUID.class); }
+    private void enableDiagnostics() { diagnostics.setEnabled(true); diagnostics.setCaptureContent(true); diagnostics.setStaffIds(Set.of(operator())); }
+    @Test void economicUsageAndRagDebuggingWorkAcrossRealWorkerForSupportedWeakAndFailedAnswers() throws Exception {
+        String id=upload("lecture.pdf",fixture("lecture.pdf")); dispatch();
+        var initial=ask(workspaceId,"Lecture 2",List.of(UUID.fromString(id)));
+        assertEquals(404,owner.get(diagnosticsPath()).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ai_usage_events",Integer.class));
+        String metadata=jdbc.queryForObject("SELECT details::text FROM ai_usage_events",String.class);
+        assertFalse(metadata.contains("Lecture 2")); assertFalse(metadata.contains("instruction"));
+        assertTrue(jdbc.queryForObject("SELECT details->>'query' IS NULL FROM ai_rag_traces",Boolean.class));
+        enableDiagnostics();
+        diagnostics.setRates(List.of(new dev.researchhub.ai.observability.AiDiagnosticsProperties.Rate("deterministic","extractive-fixture","1","test-rate-v1",new java.math.BigDecimal("2"),new java.math.BigDecimal("8"))));
+        var supported=ask(workspaceId,"What is in Lecture 2?",List.of(UUID.fromString(id)));
+        var weak=ask(workspaceId,"What is the capital of Atlantis?",null); assertEquals("INSUFFICIENT_EVIDENCE",weak.status());
+        var created=owner.postJson("/api/workspaces/"+workspaceId+"/documents","{\"title\":\"Report\",\"content\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}}"); assertEquals(201,created.statusCode(),created.body());
+        String doc=owner.json(created).path("id").asString();
+        var draft=owner.postJson("/api/workspaces/"+workspaceId+"/documents/"+doc+"/ai/suggestions",mapper.writeValueAsString(
+            new dev.researchhub.ai.application.AuthoringContracts.Command(dev.researchhub.ai.application.AuthoringContracts.Kind.DRAFT,1,0,null,null,null,"Explain Lecture 2",List.of(UUID.fromString(id)),300,"ACADEMIC",true)));
+        assertEquals(200,draft.statusCode(),draft.body());
+        var overviewResponse=owner.get(diagnosticsPath()); assertEquals(200,overviewResponse.statusCode(),overviewResponse.body()); assertEquals("private, no-store",overviewResponse.headers().firstValue("Cache-Control").orElseThrow());
+        var overview=mapper.readValue(overviewResponse.body(),dev.researchhub.ai.observability.AiDiagnostics.Overview.class);
+        var askUsage=overview.usage().stream().filter(a->a.feature()==dev.researchhub.ai.observability.AiDiagnostics.Feature.ASK_WORKSPACE).findFirst().orElseThrow();
+        assertEquals(3,askUsage.requests()); assertEquals(3,askUsage.usageKnown()); assertEquals(2,askUsage.costKnown()); assertTrue(askUsage.estimatedCostUsd().signum()>0);
+        assertTrue(overview.usage().stream().anyMatch(a->a.feature()==dev.researchhub.ai.observability.AiDiagnostics.Feature.SECTION_GENERATION && a.requests()==1));
+        for (var result:List.of(supported,weak)) {
+            var trace=overview.traces().stream().filter(t->result.generation().result().requestId().equals(t.generationRequestId())).findFirst().orElseThrow();
+            var response=owner.get(diagnosticsPath()+"/traces/"+trace.id()); assertEquals(200,response.statusCode(),response.body());
+            var detail=mapper.readValue(response.body(),dev.researchhub.ai.observability.AiDiagnostics.Detail.class);
+            assertEquals(result,detail.trace().response()); assertEquals("NOT_APPLICABLE",detail.reranking()); assertTrue(detail.trace().retrievalLatencyMs()>=0);
+            assertEquals(result.generation().context(),detail.trace().context()); assertEquals(result.generation().result().usage(),detail.usage().usage());
+            assertFalse(detail.chunks().isEmpty()); assertTrue(detail.chunks().stream().allMatch(c->c.text()!=null && c.hit().citation().workspaceId().equals(UUID.fromString(workspaceId))));
+            assertNotNull(detail.chunks().getFirst().hit().citation().pageStart()); assertNotNull(detail.chunks().getFirst().citationKey());
+        }
+        org.mockito.Mockito.doThrow(new dev.researchhub.ai.application.ModelFailure(dev.researchhub.shared.error.ApiErrorCode.AI_UNAVAILABLE))
+            .when(models).generateStructured(org.mockito.ArgumentMatchers.any(dev.researchhub.ai.application.ContextContracts.ContextualRequest.class));
+        var failed=owner.postJson(questionPath(workspaceId),"{\"question\":\"Lecture 2\"}"); assertEquals(503,failed.statusCode(),failed.body());
+        var failures=mapper.readValue(owner.get(diagnosticsPath()).body(),dev.researchhub.ai.observability.AiDiagnostics.Overview.class);
+        var trace=failures.traces().stream().filter(t->"FAILED".equals(t.status())).findFirst().orElseThrow();
+        assertEquals("AI_UNAVAILABLE",trace.errorCode());
+        var debug=mapper.readValue(owner.get(diagnosticsPath()+"/traces/"+trace.id()).body(),dev.researchhub.ai.observability.AiDiagnostics.Detail.class);
+        assertNull(debug.usage().usage()); assertNull(debug.usage().cost()); assertFalse(debug.chunks().isEmpty()); assertNotNull(debug.trace().context());
+        assertTrue(failures.usage().stream().anyMatch(a->a.status().equals("FAILED") && a.usageKnown()==0 && a.inputTokens()==null));
+        assertEquals(400,owner.get(diagnosticsPath()+"?days=91").statusCode());
+    }
+    @Test void diagnosticsEnforceOperatorWorkspaceAndCaptureGuardsAndExpirePrivateHistory() throws Exception {
+        enableDiagnostics(); String id=upload("lecture.pdf",fixture("lecture.pdf")); dispatch(); ask(workspaceId,"Lecture 2",null);
+        var overviewResponse=owner.get(diagnosticsPath()); assertEquals(200,overviewResponse.statusCode(),overviewResponse.body());
+        var overview=mapper.readValue(overviewResponse.body(),dev.researchhub.ai.observability.AiDiagnostics.Overview.class);
+        UUID trace=overview.traces().getFirst().id(); String detailPath=diagnosticsPath()+"/traces/"+trace;
+        var outsider=new ApiBrowser(port,mapper); UUID outsiderId=UUID.fromString(outsider.signUp("diag-outsider@example.com","Outsider"));
+        assertEquals(404,outsider.get(detailPath).statusCode()); diagnostics.setStaffIds(Set.of(operator(),outsiderId)); assertEquals(404,outsider.get(detailPath).statusCode());
+        var other=owner.createdWorkspaceId("Other","Private"); assertEquals(404,owner.get(detailPath.replace(workspaceId,other)).statusCode());
+        var anonymous=new ApiBrowser(port,mapper); assertEquals(401,anonymous.get(detailPath).statusCode());
+        owner.postJson("/api/workspaces/"+workspaceId+"/members","{\"email\":\"diag-outsider@example.com\",\"role\":\"VIEWER\"}");
+        diagnostics.setStaffIds(Set.of(operator())); assertEquals(404,outsider.get(detailPath).statusCode());
+        diagnostics.setCaptureContent(false);
+        var redacted=mapper.readValue(owner.get(detailPath).body(),dev.researchhub.ai.observability.AiDiagnostics.Detail.class);
+        assertNull(redacted.trace().query()); assertNull(redacted.trace().response()); assertTrue(redacted.chunks().stream().allMatch(c->c.text()==null));
+        diagnostics.setCaptureContent(true);
+        // Simulate an unavailable historical retrieval projection without introducing a source deletion feature.
+        jdbc.execute("TRUNCATE source_version_retrieval_sets CASCADE");
+        var missing=mapper.readValue(owner.get(detailPath).body(),dev.researchhub.ai.observability.AiDiagnostics.Detail.class);
+        assertTrue(missing.chunks().stream().allMatch(c->c.text()==null && c.availability().equals("SOURCE_UNAVAILABLE")));
+        diagnostics.setEnabled(false); assertEquals(404,owner.get(detailPath).statusCode()); diagnostics.setEnabled(true);
+        jdbc.update("UPDATE ai_rag_traces SET started_at=now()-interval '8 days'"); diagnosticsStore.expireTraces(); assertEquals(404,owner.get(detailPath).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ai_usage_events",Integer.class));
+        jdbc.update("DELETE FROM workspace_members WHERE workspace_id=? AND user_id=?",UUID.fromString(workspaceId),operator()); assertEquals(404,owner.get(diagnosticsPath()).statusCode());
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="AI_DIAGNOSTICS_BROWSER_TESTS",matches="true")
+    void productionDebuggerBrowserUsesRealWorkspaceEvidenceAndHasNoOverflowOrCspViolations() throws Exception {
+        enableDiagnostics(); String id=upload("lecture.pdf",fixture("lecture.pdf")); dispatch(); ask(workspaceId,"What is in Lecture 2?",null);
+        var created=owner.postJson("/api/workspaces/"+workspaceId+"/documents","{\"title\":\"Report\",\"content\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}}");
+        assertEquals(201,created.statusCode(),created.body());
+        String doc=owner.json(created).path("id").asString();
+        assertEquals(200,owner.postJson("/api/workspaces/"+workspaceId+"/documents/"+doc+"/ai/suggestions",mapper.writeValueAsString(
+            new dev.researchhub.ai.application.AuthoringContracts.Command(dev.researchhub.ai.application.AuthoringContracts.Kind.DRAFT,1,0,null,null,null,"Explain Lecture 2",List.of(UUID.fromString(id)),300,"ACADEMIC",true))).statusCode());
+        var builder=new ProcessBuilder("node","e2e/devtools.cjs").directory(Path.of("../frontend").toFile());
+        builder.environment().put("E2E_BACKEND_URL","http://127.0.0.1:"+port); builder.environment().put("E2E_WORKSPACE_ID",workspaceId);
+        var log=Path.of("target/ai-debugger-browser.log"); var process=builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        if (!process.waitFor(55,java.util.concurrent.TimeUnit.SECONDS)) { process.destroyForcibly(); fail("Debugger browser exceeded its deadline"); }
+        assertEquals(0,process.exitValue(),Files.readString(log));
+    }
+
 }

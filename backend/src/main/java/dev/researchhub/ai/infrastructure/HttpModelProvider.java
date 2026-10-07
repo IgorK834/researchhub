@@ -18,6 +18,9 @@ import java.util.Set;
 @Component
 @Profile("local")
 public class HttpModelProvider implements ModelProvider, AuthoringModelProvider, SourceAnalysisModelProvider {
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.shared.observability.WorkMetrics metrics =
+        new dev.researchhub.shared.observability.WorkMetrics(io.micrometer.core.instrument.Metrics.globalRegistry);
     private final RestClient client;
     private final String token;
     private final ObjectMapper mapper;
@@ -31,7 +34,7 @@ public class HttpModelProvider implements ModelProvider, AuthoringModelProvider,
             || timeout == null || timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("Invalid model worker connection");
         var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(timeout).followRedirects(HttpClient.Redirect.NEVER).build());
         factory.setReadTimeout(timeout);
-        this.client = RestClient.builder().baseUrl(baseUrl.toString()).requestFactory(factory).build();
+        this.client = RestClient.builder().baseUrl(baseUrl.toString()).requestFactory(factory).requestInterceptor(dev.researchhub.shared.observability.CorrelationContext.propagation()).build();
         this.token = token;
         this.mapper = mapper.rebuild().disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
             .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
@@ -53,37 +56,48 @@ public class HttpModelProvider implements ModelProvider, AuthoringModelProvider,
         Result result = call(client.post().uri("/internal/ai/generate").header("Authorization", "Bearer " + token)
             .contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(mapper.writeValueAsBytes(request)), Result.class);
         try { result.validateFor(request); return result; }
-        catch (IllegalArgumentException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
+        catch (IllegalArgumentException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID, new dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage(result.model(),result.usage())); }
     }
     @Override public Result generateStructured(ContextContracts.ContextualRequest request) {
         Result result = call(client.post().uri("/internal/ai/generate").header("Authorization", "Bearer " + token)
             .contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(mapper.writeValueAsBytes(request)), Result.class);
         try { result.validateFor(request.request()); return result; }
-        catch (IllegalArgumentException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
+        catch (IllegalArgumentException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID, new dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage(result.model(),result.usage())); }
+    }
+    private dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage usageMetadata(byte[] bytes) {
+        try {
+            var value=mapper.readTree(bytes);
+            return new dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage(mapper.treeToValue(value.get("model"),ModelMetadata.class),mapper.treeToValue(value.get("usage"),Usage.class));
+        } catch (RuntimeException invalid) { return null; }
     }
     private <T> T call(RestClient.RequestHeadersSpec<?> request, Class<T> type) {
+        return metrics.ai(() -> callUnobserved(request, type));
+    }
+    private <T> T callUnobserved(RestClient.RequestHeadersSpec<?> request, Class<T> type) {
         try {
             return request.exchange((_request, response) -> {
                 int status = response.getStatusCode().value();
                 if (status != 200) {
                     // Only an allowlisted code can cross the boundary; never retain/log provider details.
-                    if (status == 422) throw new ModelFailure(ApiErrorCode.AI_REFUSED);
-                    if (status == 502) {
-                        ApiErrorCode code = ApiErrorCode.AI_PROVIDER_ERROR;
-                        try (var body = response.getBody()) {
-                            byte[] bytes = body.readNBytes(1025);
-                            if (bytes.length <= 1024 && "AI_OUTPUT_INVALID".equals(mapper.readTree(bytes).path("code").asString()))
-                                code = ApiErrorCode.AI_OUTPUT_INVALID;
-                        } catch (RuntimeException invalid) { /* Unknown error body uses the generic safe code. */ }
-                        throw new ModelFailure(code);
-                    }
-                    if (Set.of(408, 429, 503, 504).contains(status)) throw new ModelFailure(ApiErrorCode.AI_UNAVAILABLE);
-                    throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR);
+                    ApiErrorCode code = status==422 ? ApiErrorCode.AI_REFUSED
+                        : Set.of(408,429,503,504).contains(status) ? ApiErrorCode.AI_UNAVAILABLE : ApiErrorCode.AI_PROVIDER_ERROR;
+                    dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage telemetry=null;
+                    try (var body=response.getBody()) {
+                        byte[] bytes=body.readNBytes(4097);
+                        if (bytes.length<=4096) {
+                            var error=mapper.readTree(bytes);
+                            if (status==502 && "AI_OUTPUT_INVALID".equals(error.path("code").asString())) code=ApiErrorCode.AI_OUTPUT_INVALID;
+                            if (error.hasNonNull("telemetry")) telemetry=mapper.treeToValue(error.get("telemetry"),dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage.class);
+                        }
+                    } catch (RuntimeException invalid) { /* Invalid/unknown metadata stays unknown. */ }
+                    throw new ModelFailure(code,telemetry);
                 }
                 try (var body = response.getBody()) {
                     byte[] bytes = body.readNBytes(256 * 1024 + 1);
                     if (bytes.length > 256 * 1024) throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID);
-                    T value = mapper.readValue(bytes, type);
+                    T value;
+                    try { value=mapper.readValue(bytes,type); }
+                    catch (tools.jackson.core.JacksonException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID, usageMetadata(bytes)); }
                     if (value == null) throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID);
                     return value;
                 } catch (tools.jackson.core.JacksonException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }

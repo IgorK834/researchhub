@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 public class WorkspaceQuestionService {
     public static final String NO_EVIDENCE = "No searchable evidence was found in the authorized sources for this question.";
     public static final String INSUFFICIENT = "The supplied evidence does not contain enough information to answer this question.";
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.ai.observability.AiObservation observation=dev.researchhub.ai.observability.AiObservation.none();
     private final WorkspaceAuthorizationService authorization;
     private final RetrievalSearchService retrieval;
     private final ModelGateway gateway;
@@ -29,6 +31,12 @@ public class WorkspaceQuestionService {
     public Response answer(UUID workspaceId, UUID callerId, Question question, QuestionExecution execution) {
         execution.checkpoint();
         authorization.requireContentReader(workspaceId, callerId);
+        try (var trace=observation.question(workspaceId,callerId,question,Math.min(feature.topK(),12-question.selectedAnalysisOutputs().size()),feature.parameters(),feature.templateId(),feature.templateHash())) {
+            try { var response=answerObserved(workspaceId,callerId,question,execution,trace); trace.response(response); return response; }
+            catch (dev.researchhub.shared.error.ApiException failure) { trace.failure(failure); throw failure; }
+        }
+    }
+    private Response answerObserved(UUID workspaceId,UUID callerId,Question question,QuestionExecution execution,dev.researchhub.ai.observability.AiObservation.QuestionTrace trace) {
         // Search validates every selected source before embedding; workspace/source filters are in SQL.
         List<RetrievalHit> hits;
         try { hits = retrieval.search(question.question(), workspaceId, question.selectedSourceIds(), Math.min(feature.topK(),12-question.selectedAnalysisOutputs().size()), callerId); }
@@ -38,12 +46,14 @@ public class WorkspaceQuestionService {
         execution.retrievalCompleted(hits.size());
         if (hits.isEmpty() && question.selectedAnalysisOutputs().isEmpty()) {
             authorization.requireContentReader(workspaceId, callerId);
+            trace.retrieved(hits);
             return new Response("INSUFFICIENT_EVIDENCE", "NO_RETRIEVED_EVIDENCE", NO_EVIDENCE, List.of(), null);
         }
         // Fail closed if an adapter violates its scope. This does not filter global search results.
         if (hits.size() > Math.min(feature.topK(),12-question.selectedAnalysisOutputs().size()) || hits.stream().anyMatch(hit -> !workspaceId.equals(hit.chunk().workspaceId())
                 || question.selectedSourceIds() != null && !question.selectedSourceIds().contains(hit.chunk().sourceId()))
                 || hits.stream().map(hit -> hit.chunk().chunkId()).distinct().count() != hits.size()) throw invalid();
+        trace.retrieved(hits);
         var references = hits.stream().map(hit -> new EvidenceReference(hit.chunk().sourceId(), hit.chunk().chunkId(), hit.chunk().processingVersion())).toList();
         var command=new Command(question.question(),references);
         var generated = question.selectedAnalysisOutputs().isEmpty() ? gateway.generate(workspaceId, callerId,command,feature)

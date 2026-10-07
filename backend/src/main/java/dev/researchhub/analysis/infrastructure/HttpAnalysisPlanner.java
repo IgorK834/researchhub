@@ -20,6 +20,9 @@ import java.util.Set;
 @Component
 @Profile("local")
 public class HttpAnalysisPlanner implements AnalysisPlanner {
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.shared.observability.WorkMetrics metrics =
+        new dev.researchhub.shared.observability.WorkMetrics(io.micrometer.core.instrument.Metrics.globalRegistry);
     private final RestClient client;
     private final String token;
     private final ObjectMapper json;
@@ -33,28 +36,31 @@ public class HttpAnalysisPlanner implements AnalysisPlanner {
             throw new IllegalArgumentException("Invalid planning worker connection");
         var factory=new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(timeout).followRedirects(HttpClient.Redirect.NEVER).build());
         factory.setReadTimeout(timeout);
-        this.client=RestClient.builder().baseUrl(baseUrl.toString()).requestFactory(factory).build();this.token=token;
+        this.client=RestClient.builder().baseUrl(baseUrl.toString()).requestFactory(factory).requestInterceptor(dev.researchhub.shared.observability.CorrelationContext.propagation()).build();this.token=token;
         this.json=json.rebuild().disable(MapperFeature.ALLOW_COERCION_OF_SCALARS).disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES,
                 DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES,DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
     }
     @Override public Candidate plan(PlanningRequest request) {
+        return metrics.ai(() -> planUnobserved(request));
+    }
+    private Candidate planUnobserved(PlanningRequest request) {
         try {
             return client.post().uri("/internal/analysis/plan").header("Authorization","Bearer "+token)
                 .contentType(MediaType.APPLICATION_JSON).body(json.writeValueAsBytes(request)).exchange((_request,response) -> {
                     int status=response.getStatusCode().value();
                     if (status!=200) {
-                        if (status==422) throw new ModelFailure(ApiErrorCode.AI_REFUSED);
-                        if (Set.of(408,429,503,504).contains(status)) throw new ModelFailure(ApiErrorCode.AI_UNAVAILABLE);
-                        if (status==502) {
-                            try (var body=response.getBody()) {
-                                byte[] bytes=body.readNBytes(1025);
-                                if (bytes.length<=1024 && "AI_OUTPUT_INVALID".equals(json.readTree(bytes).path("code").asString()))
-                                    throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID);
-                            } catch (ModelFailure safe) { throw safe; }
-                            catch (RuntimeException invalid) { /* Keep only the generic allowlisted error. */ }
-                        }
-                        throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR);
+                        ApiErrorCode code=status==422 ? ApiErrorCode.AI_REFUSED : Set.of(408,429,503,504).contains(status) ? ApiErrorCode.AI_UNAVAILABLE : ApiErrorCode.AI_PROVIDER_ERROR;
+                        dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage telemetry=null;
+                        try (var body=response.getBody()) {
+                            byte[] bytes=body.readNBytes(4097);
+                            if (bytes.length<=4096) {
+                                var error=json.readTree(bytes);
+                                if (status==502 && "AI_OUTPUT_INVALID".equals(error.path("code").asString())) code=ApiErrorCode.AI_OUTPUT_INVALID;
+                                if (error.hasNonNull("telemetry")) telemetry=json.treeToValue(error.get("telemetry"),dev.researchhub.ai.observability.AiDiagnostics.ProviderUsage.class);
+                            }
+                        } catch (RuntimeException invalid) { /* Unsafe/invalid provider metadata is discarded. */ }
+                        throw new ModelFailure(code,telemetry);
                     }
                     try (var body=response.getBody()) {
                         byte[] bytes=body.readNBytes(256*1024+1);

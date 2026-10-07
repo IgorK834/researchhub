@@ -11,6 +11,8 @@ import java.util.*;
 @Service
 @Profile("local")
 public class ModelGateway {
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.ai.observability.AiObservation observation=dev.researchhub.ai.observability.AiObservation.none();
     private final ModelProvider provider;
     private final AuthoringModelProvider authoringProvider;
     private final SourceAnalysisModelProvider analysisProvider;
@@ -58,11 +60,13 @@ public class ModelGateway {
         var contextual = contexts.build(request, citations,analysisCitations, contextProperties.budget());
         if (analysisReferences.isEmpty()) store.begin(workspaceId, callerId, contextual, citations);
         else store.beginComputed(workspaceId,callerId,contextual,citations,analysisCitations);
-        try {
+        try (var call=observation.call(workspaceId,contextual)) {
+            try {
             Result result;
             try { result = provider.generateStructured(contextual); }
             catch (ModelFailure safe) { throw safe; }
             catch (RuntimeException unsafe) { throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR); }
+            if (result!=null) call.result(result.model(),result.usage());
             try { Objects.requireNonNull(result).validateFor(request); }
             catch (IllegalArgumentException | NullPointerException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
             // A source may have been reprocessed/deleted or membership revoked during a remote model call.
@@ -71,7 +75,9 @@ public class ModelGateway {
             if (!analysisReferences.isEmpty() && !resolved.equals(computed.resolve(workspaceId,callerId,analysisReferences))) throw new ConflictException("Computed evidence changed; inspect the selected execution");
             var response = new GeneratedResponse(result, citations, contextual.context().summary(),analysisCitations);
             store.succeed(workspaceId, response);
+            call.success();
             return response;
+            } catch (ApiException failure) { call.failure(failure); throw failure; }
         } catch (ApiException failure) {
             store.fail(workspaceId, request.requestId(), failure.code());
             throw failure;
@@ -82,26 +88,38 @@ public class ModelGateway {
     AuthoringContracts.Result author(UUID workspaceId, UUID callerId, ContextContracts.ContextualRequest request,
                                     AuthoringContracts.Kind kind, boolean citationRequired) {
         authorization.requireContentReader(workspaceId, callerId);
+        try (var call=observation.call(workspaceId,request)) {
+        try {
         AuthoringContracts.Result result;
         try { result = authoringProvider.author(request); }
         catch (ModelFailure safe) { throw safe; }
         catch (RuntimeException unsafe) { throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR); }
+        if (result!=null) call.result(result.model(),result.usage());
         try { Objects.requireNonNull(result).validateFor(request.request(), kind, citationRequired); }
         catch (IllegalArgumentException | NullPointerException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
         authorization.requireContentReader(workspaceId, callerId);
+        call.success();
         return result;
+        } catch (ApiException failure) { call.failure(failure); throw failure; }
+        }
     }
     SourceAnalysisContracts.Result analyze(UUID workspaceId, UUID callerId, ContextContracts.ContextualRequest request,
         SourceAnalysisContracts.Kind kind, List<UUID> sourceIds, List<String> criteria, Map<String,UUID> evidence) {
         authorization.requireContentReader(workspaceId, callerId);
+        try (var call=observation.call(workspaceId,request)) {
+        try {
         SourceAnalysisContracts.Result result;
         try { result = analysisProvider.analyze(request); }
         catch (ModelFailure safe) { throw safe; }
         catch (RuntimeException unsafe) { throw new ModelFailure(ApiErrorCode.AI_PROVIDER_ERROR); }
+        if (result!=null) call.result(result.model(),result.usage());
         try { Objects.requireNonNull(result).validateFor(request.request(),kind,sourceIds,criteria,evidence); }
         catch (IllegalArgumentException | NullPointerException invalid) { throw new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
         authorization.requireContentReader(workspaceId, callerId);
+        call.success();
         return result;
+        } catch (ApiException failure) { call.failure(failure); throw failure; }
+        }
     }
     private List<RetrievalChunk> resolve(UUID workspaceId, UUID callerId, Command command) {
         return command.evidence().stream().map(ref -> {

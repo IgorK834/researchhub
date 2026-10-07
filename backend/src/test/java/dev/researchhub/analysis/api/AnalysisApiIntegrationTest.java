@@ -326,6 +326,7 @@ class AnalysisApiIntegrationTest {
         var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
+        jdbc.execute("DROP TABLE ai_usage_events,ai_rag_traces");
         jdbc.execute("DROP TABLE analysis_execution_records");jdbc.execute("DROP FUNCTION validate_analysis_execution_record()");
         jdbc.execute("DROP TABLE analysis_origins");
         jdbc.execute("ALTER TABLE ai_generation_runs DROP COLUMN analysis_evidence");jdbc.execute("ALTER TABLE ai_messages DROP COLUMN selected_analysis_outputs");
@@ -337,7 +338,12 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("ALTER TABLE documents DROP CONSTRAINT uq_documents_workspace_id");
         jdbc.execute("ALTER TABLE document_versions DROP CONSTRAINT ck_document_snapshot_actor,DROP CONSTRAINT ck_document_snapshot_name,DROP CONSTRAINT ck_document_snapshot_state,DROP COLUMN name,DROP COLUMN actor_name,DROP COLUMN yjs_state,DROP COLUMN state_sha256,DROP COLUMN collaboration_epoch,DROP COLUMN collaboration_sequence,ALTER COLUMN created_by SET NOT NULL,ADD CONSTRAINT uq_document_versions_document_revision UNIQUE(document_id,revision)");
         jdbc.execute("DROP INDEX ix_document_versions_order");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29')");flyway.migrate();
+        jdbc.execute("DROP TRIGGER tg_processing_correlation ON processing_jobs");
+        jdbc.execute("DROP TRIGGER tg_execution_correlation ON analysis_executions");
+        jdbc.execute("DROP FUNCTION preserve_request_correlation()");
+        jdbc.execute("ALTER TABLE processing_jobs DROP COLUMN request_id");
+        jdbc.execute("ALTER TABLE analysis_executions DROP COLUMN request_id");
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());

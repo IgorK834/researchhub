@@ -1,0 +1,18 @@
+{
+  "code": "AI_OUTPUT_INVALID",
+  "telemetry": {
+    "model": {
+      "provider": "foundry",
+      "name": "configured-model",
+      "version": "deployment-1",
+      "structuredOutput": true,
+      "streaming": false
+    },
+    "usage": {
+      "inputTokens": 120,
+      "outputTokens": 30,
+      "totalTokens": 150,
+      "estimated": false
+    }
+  }
+}

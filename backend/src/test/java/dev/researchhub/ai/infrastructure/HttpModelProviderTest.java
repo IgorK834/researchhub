@@ -9,6 +9,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.net.*;
 import java.nio.file.*;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -86,4 +87,17 @@ class HttpModelProviderTest {
         assertThrows(IllegalArgumentException.class, () -> new HttpModelProvider(json, url, TOKEN, Duration.ZERO));
         assertThrows(IllegalArgumentException.class, () -> new HttpModelProvider(json, null, TOKEN, Duration.ofSeconds(1)));
     }
+    @Test void retainsOnlyValidatedEconomicMetadataWhenProviderOutputFails() throws Exception {
+        status=502; body=Files.readString(Path.of("../contracts/ai/telemetry/v1/provider-failure.json"));
+        var failure=assertThrows(ModelFailure.class,()->provider.generateStructured(request));
+        assertEquals(ApiErrorCode.AI_OUTPUT_INVALID,failure.code()); assertEquals(120,failure.telemetry().usage().inputTokens()); assertEquals("configured-model",failure.telemetry().model().name()); assertNull(failure.getCause());
+        body=body.replace("120","-120"); assertNull(assertThrows(ModelFailure.class,()->provider.generateStructured(request)).telemetry());
+        body="{\"code\":\"AI_OUTPUT_INVALID\",\"telemetry\":{\"model\":null,\"usage\":null}}";
+        assertNull(assertThrows(ModelFailure.class,()->provider.generateStructured(request)).telemetry().usage());
+        status=200; body=Files.readString(Path.of("../contracts/ai/v1/generation-result.json")).replace(request.requestId().toString(),UUID.randomUUID().toString());
+        assertNotNull(assertThrows(ModelFailure.class,()->provider.generateStructured(request)).telemetry().usage());
+        body=Files.readString(Path.of("../contracts/ai/v1/generation-result.json")).replace("\"SUPPORTED\"","\"INVALID\"");
+        assertNotNull(assertThrows(ModelFailure.class,()->provider.generateStructured(request)).telemetry().usage());
+    }
+
 }
