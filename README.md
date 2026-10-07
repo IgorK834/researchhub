@@ -1,5 +1,8 @@
 # ResearchHub
 
+Browser deployment and prompt-injection protection (RH-182/RH-183), including environment settings,
+CSP hosting requirements and evaluation commands: [browser and AI security](docs/development/browser-and-ai-security.md).
+
 ResearchHub is a collaborative AI workspace for students and researchers. A group shares source materials, writes a report in the same workspace, and uses AI that stays grounded in those sources. Charts, tables, calculations, and generated claims should keep provenance back to the source file, source fragment, dataset, or executed analysis.
 
 This repository is in active development and is not production-ready.
@@ -17,6 +20,8 @@ versioned citation links and SSE progress with complete-answer persistence:
 RH-120–RH-122 add source-grounded draft sections, selected-fragment rewrite suggestions and evidence
 for human-written claims, with explicit approval, idempotent insertion and AI-origin provenance:
 [AI-assisted authoring](docs/development/ai-authoring.md).
+
+Public landing page, pricing copy and how its screenshots are regenerated: [docs/development/landing-page.md](docs/development/landing-page.md).
 
 Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
 
