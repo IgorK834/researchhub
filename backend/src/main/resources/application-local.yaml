@@ -123,3 +123,25 @@ management:
       group:
         readiness:
           include: readinessState,db
+---
+# The azure profile includes local's existing product bean graph, but uses the deployed browser policy.
+spring:
+  config:
+    activate:
+      on-profile: azure
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+researchhub:
+  environment: cloud
+  auth:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+server:
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+  servlet:
+    session:
+      cookie:
+        secure: true
+        same-site: ${SESSION_COOKIE_SAME_SITE:lax}

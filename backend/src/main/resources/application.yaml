@@ -20,6 +20,7 @@ researchhub:
       cpus: ${ANALYSIS_SANDBOX_CPUS:1}
       pids: ${ANALYSIS_SANDBOX_PIDS:64}
   auth:
+    session-store: ${AUTH_SESSION_STORE:servlet}
     password:
       # Minimum password length, enforced in one place: dev.researchhub.user.application.PasswordPolicy,
       # which both the registration service and the register DTO validator use.
@@ -58,6 +59,18 @@ researchhub:
 spring:
   application:
     name: backend
+  profiles:
+    # Existing product beans are local-scoped. These overlays reuse that graph without a profile refactor.
+    group:
+      demo: [local]
+      azure: [local]
+  session:
+    jdbc:
+      # V36 is the only schema writer, including PostgreSQL deployments.
+      initialize-schema: never
+      cleanup-cron: ${SESSION_CLEANUP_CRON:0 * * * * *}
+      flush-mode: on-save
+      save-mode: on-set-attribute
   servlet:
     multipart:
       max-file-size: 52428800B
@@ -67,7 +80,9 @@ spring:
 server:
   servlet:
     session:
+      timeout: ${SESSION_TIMEOUT:30m}
       cookie:
+        name: JSESSIONID
         # The session id is the credential. JavaScript must never be able to read it: see
         # docs/adr/ADR-001-authentication.md.
         http-only: true
@@ -100,3 +115,11 @@ management:
       group:
         liveness:
           include: livenessState
+---
+spring:
+  config:
+    activate:
+      on-profile: "demo | azure"
+researchhub:
+  auth:
+    session-store: ${AUTH_SESSION_STORE:jdbc}
