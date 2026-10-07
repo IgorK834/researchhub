@@ -6,8 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.core.io.ClassPathResource;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 @PostgresIntegrationTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -82,8 +85,8 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(35, appliedVersions,
-                "A fresh database should have exactly versions 1 through 35 applied");
+        assertEquals(36, appliedVersions,
+                "A fresh database should have exactly versions 1 through 36 applied");
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'report_exports'", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
@@ -94,6 +97,41 @@ class FlywayMigrationIntegrationTest {
                 "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('collaboration_documents','collaboration_credentials')", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('analyses','analysis_inputs','analysis_plan_attempts')", Integer.class));
+    }
+
+    @Test
+    @Order(1)
+    void springSessionUsesTheShippedPostgresqlSchemaAndCascadesAttributeDeletion() throws Exception {
+        assertArrayEquals(new ClassPathResource("org/springframework/session/jdbc/schema-postgresql.sql").getContentAsByteArray(),
+                new ClassPathResource("db/migration/V36__spring_session_tables.sql").getContentAsByteArray(),
+                "Flyway must own the exact schema shipped by the BOM-managed Spring Session version");
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '36'", Integer.class));
+        assertEquals(2, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('spring_session','spring_session_attributes')", Integer.class));
+        assertEquals("bytea", jdbcTemplate.queryForObject("""
+                SELECT data_type FROM information_schema.columns
+                WHERE table_name = 'spring_session_attributes' AND column_name = 'attribute_bytes'
+                """, String.class));
+        assertEquals("CREATE UNIQUE INDEX spring_session_ix1 ON public.spring_session USING btree (session_id)",
+                jdbcTemplate.queryForObject("SELECT indexdef FROM pg_indexes WHERE indexname = 'spring_session_ix1'", String.class));
+        assertEquals("CREATE INDEX spring_session_ix2 ON public.spring_session USING btree (expiry_time)",
+                jdbcTemplate.queryForObject("SELECT indexdef FROM pg_indexes WHERE indexname = 'spring_session_ix2'", String.class));
+        assertEquals("CREATE INDEX spring_session_ix3 ON public.spring_session USING btree (principal_name)",
+                jdbcTemplate.queryForObject("SELECT indexdef FROM pg_indexes WHERE indexname = 'spring_session_ix3'", String.class));
+        assertEquals(2, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name IN ('spring_session','spring_session_attributes') AND constraint_type = 'PRIMARY KEY'
+                """, Integer.class));
+        String primary = UUID.randomUUID().toString();
+        jdbcTemplate.update("""
+                INSERT INTO spring_session(primary_id, session_id, creation_time, last_access_time, max_inactive_interval, expiry_time)
+                VALUES (?, ?, 1, 1, 1800, 1800001)
+                """, primary, UUID.randomUUID().toString());
+        jdbcTemplate.update("INSERT INTO spring_session_attributes VALUES (?, 'test', ?)", primary, new byte[]{1, 2, 3});
+        jdbcTemplate.update("DELETE FROM spring_session WHERE primary_id = ?", primary);
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM spring_session_attributes WHERE session_primary_id = ?", Integer.class, primary));
     }
 
     /**
