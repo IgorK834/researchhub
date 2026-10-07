@@ -6,6 +6,7 @@ import type { AuthenticatedUser } from '../features/auth/api/authApi';
 import { LogoutButton } from '../features/auth/components/LogoutButton';
 import { useDocumentsQuery } from '../features/documents/api/useDocuments';
 import { useSourcesQuery } from '../features/sources/api/useSources';
+import { SourceCommandSearch } from '../features/sources/components/SourceCommandSearch';
 import { useAnalysesQuery } from '../features/analysis/api/useAnalyses';
 import {
   useWorkspaceMembersQuery,
@@ -45,6 +46,7 @@ interface WorkspaceNavigation {
   readonly readySources?: number;
   readonly documentTitle?: string;
   readonly sourceTitle?: string;
+  readonly sourceTitles?: ReadonlyMap<string, string>;
 }
 
 /** The guard resolves the session. Workspace context follows the URL, never a stored preference. */
@@ -81,6 +83,12 @@ export function AppLayoutPage(): ReactElement | null {
         documentTitle: documentData?.find((document) => document.id === documentId)
           ?.title,
         sourceTitle: sourceData?.find((source) => source.id === sourceId)?.displayName,
+        sourceTitles: new Map(
+          sourceData?.map((source) => [
+            source.id,
+            source.bibliography?.title ?? source.displayName,
+          ]),
+        ),
       }
     : undefined;
   // Keep this tree stable while queries resolve: remounting an Outlet would discard editor drafts.
@@ -374,6 +382,12 @@ function ShellContent({
           }
           navigation={
             <nav aria-label="Application navigation" className={styles.navigation}>
+              <SourceCommandSearch
+                key={context?.workspace.id ?? 'no-workspace'}
+                workspaceId={context?.workspace.id}
+                titles={context?.sourceTitles ?? new Map()}
+                compact={narrow || tool}
+              />
               <NavEntry
                 href="/app"
                 label="Home"
