@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <filter id="rhw" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.03"
+        numOctaves="2"
+        seed="3"
+        result="n"
+      ></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"></feDisplacementMap>
+    </filter>
+  </defs>
+  <path
+    d="M60 190 C44 110 116 54 204 58 C298 62 360 120 344 196 C332 262 248 284 170 274 C100 266 74 240 60 190Z"
+    fill="#8CC8FF"
+    fill-opacity="0.55"
+  ></path>
+  <g
+    fill="none"
+    stroke="#1B1A17"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#rhw)"
+  >
+    <rect
+      x="86"
+      y="80"
+      width="110"
+      height="144"
+      rx="6"
+      fill="#FFFFFF"
+      transform="rotate(-10 141 152)"
+    ></rect>
+    <rect
+      x="116"
+      y="68"
+      width="110"
+      height="144"
+      rx="6"
+      fill="#FFFFFF"
+      transform="rotate(4 171 140)"
+    ></rect>
+    <rect
+      x="150"
+      y="62"
+      width="110"
+      height="144"
+      rx="6"
+      fill="#FFF4D6"
+      transform="rotate(14 205 134)"
+    ></rect>
+    <path
+      d="M172 94 h60 M172 110 h60 M172 126 h40 M172 142 h54"
+      stroke-width="1.8"
+      transform="rotate(14 205 134)"
+    ></path>
+    <path d="M264 182 L306 228" stroke-width="11"></path>
+    <path d="M264 182 L306 228" stroke="#FF8F87" stroke-width="5"></path>
+    <circle cx="232" cy="150" r="44" fill="#E8F4FF" fill-opacity="0.9"></circle>
+    <path d="M206 130 a28 28 0 0 1 20 -16" stroke="#FFFFFF" stroke-width="4"></path>
+    <path
+      transform="translate(80 70) scale(1.2)"
+      d="M0 -9 Q1.5 -1.5 9 0 Q1.5 1.5 0 9 Q-1.5 1.5 -9 0 Q-1.5 -1.5 0 -9Z"
+      fill="#FFD166"
+    ></path>
+    <path
+      transform="translate(330 96) scale(1)"
+      d="M0 -9 Q1.5 -1.5 9 0 Q1.5 1.5 0 9 Q-1.5 1.5 -9 0 Q-1.5 -1.5 0 -9Z"
+      fill="#FFFFFF"
+    ></path>
+  </g>
+  <text
+    x="214"
+    y="170"
+    font-family="Georgia, serif"
+    font-size="58"
+    font-weight="700"
+    fill="#1B1A17"
+  >
+    ?
+  </text>
+</svg>

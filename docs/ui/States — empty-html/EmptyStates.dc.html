@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Empty states</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1600px; height: 1000px; box-sizing: border-box; padding: 36px 40px; background: #FBF9F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B1A17; line-height: 1.4">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px">
+<div>
+<div style="font-size: 38px; font-weight: 800; letter-spacing: -1.2px">States — empty</div>
+<div style="font-size: 14px; color: #5E5A52; margin-top: 2px">One illustration, one sentence, one next step. Empty states teach what the space is for — they never scold.</div>
+</div>
+<span style="padding: 5px 10px; background: #B7E7C1; border-radius: 8px; font-size: 12px; font-weight: 700; transform: rotate(-2deg)">illustrated, but short</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="6">
+<div style="background: #FFFFFF; border: 1px solid #ECE8E0; border-radius: 20px; padding: 14px 14px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; height: 400px; box-sizing: border-box">
+<div style="width: 100%; height: 210px; background: {{c.bg}}; border-radius: 14px; display: flex; align-items: center; justify-content: center"><dc-import name="Illus" kind="{{c.kind}}" w="270" hint-size="270px,203px"></dc-import></div>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: #77726A; margin-top: 12px">{{c.where}}</div>
+<div style="font-size: 20px; font-weight: 800; letter-spacing: -0.4px; margin-top: 2px">{{c.title}}</div>
+<div style="font-size: 13.5px; color: #5E5A52; margin-top: 4px; width: 340px">{{c.body}}</div>
+<div style="display: flex; gap: 8px; margin-top: 14px">
+<button style="display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: #1B1A17; color: #FFFFFF; font-family: inherit; font-size: 13px; font-weight: 600"><dc-import name="Icon" glyph="{{c.icon}}" size="15" hint-size="15px,15px"></dc-import>{{c.cta}}</button>
+<button style="height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #D9D3C7; background: #FFFFFF; color: #1B1A17; font-family: inherit; font-size: 13px; font-weight: 600; display: {{c.secShow}}">{{c.sec}}</button>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = (kind, bg, where, title, body, icon, cta, sec) => ({
+      kind: kind, bg: bg, where: where, title: title, body: body, icon: icon, cta: cta, sec: sec || '', secShow: sec ? 'block' : 'none'
+    });
+    return {
+      cards: [
+        c('workspace', '#E6F6EA', 'HOME · NO WORKSPACES', 'Start your first research workspace.', 'A workspace holds your sources, documents and analyses — and the people you work with.', 'plus', 'Create workspace', 'Learn how ResearchHub works'),
+        c('documents', '#F5ECFF', 'DOCUMENTS · EMPTY', 'Nothing written yet', 'Start a report or notes. Sources you add can be cited as you write.', 'file', 'Create first document'),
+        c('sources', '#E8F4FF', 'SOURCES · EMPTY', 'Bring in your research material', 'PDF, DOCX, XLSX, CSV and TXT. We read them so answers can point back to a page.', 'upload', 'Upload research material'),
+        c('analyses', '#FFF4D6', 'ANALYSES · EMPTY', 'No analyses yet', 'Open a spreadsheet and describe what to calculate. Code and results stay together.', 'lineChart', 'Analyze data'),
+        c('search', '#E8F4FF', 'SEARCH · NO RESULTS', 'Nothing matches “thermal drift”', 'Try fewer words, or limit the search to sources. Searching 12 sources, 3 documents, 17 analyses.', 'search', 'Search sources only', 'Clear search'),
+        c('evidence', '#FFEDEB', 'AI · NO EVIDENCE', 'No evidence found', 'None of the selected sources mention this claim. You can keep it as an open question.', 'help', 'Mark as open question', 'Add sources')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

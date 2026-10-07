@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Illustration kit</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Caveat:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1600px; height: 1100px; box-sizing: border-box; padding: 36px 40px; background: #FBF9F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B1A17; line-height: 1.4; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between">
+<div>
+<div style="font-size: 38px; font-weight: 800; letter-spacing: -1.2px">Illustration kit</div>
+<div style="font-size: 14px; color: #5E5A52; margin-top: 2px; width: 760px">Black line art with a slight hand wobble, flat pastel fills from the five brand colors, simple separated objects. Each scene is built from layers so it can later be animated.</div>
+</div>
+<div style="display: flex; gap: 8px">
+<span style="padding: 5px 10px; background: #FF8F87; border-radius: 8px; font-size: 12px; font-weight: 700; transform: rotate(-2deg)">2.6 px ink line</span>
+<span style="padding: 5px 10px; background: #8CC8FF; border-radius: 8px; font-size: 12px; font-weight: 700; transform: rotate(1.5deg)">no textures</span>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{scenes}}" as="s" hint-placeholder-count="8">
+<div style="background: #FFFFFF; border: 1px solid #ECE8E0; border-radius: 16px; padding: 12px 12px 10px">
+<div style="height: 196px; display: flex; align-items: center; justify-content: center; background: {{s.bg}}; border-radius: 12px">
+<dc-import name="Illus" kind="{{s.kind}}" w="{{s.w}}" hint-size="260px,195px"></dc-import>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px">
+<div style="font-size: 14px; font-weight: 800">{{s.name}}</div>
+<span style="padding: 2px 8px; border-radius: 6px; background: {{s.tag}}; font-size: 11px; font-weight: 700">{{s.use}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; flex: 1">
+<div style="background: #FFFFFF; border: 1px solid #ECE8E0; border-radius: 16px; padding: 16px 20px">
+<div style="font-size: 16px; font-weight: 800">Character language</div>
+<div style="font-size: 12px; color: #5E5A52">Varied hair, face shapes, glasses and posture — original, never a copy of a reference. Faces stay minimal: two dots and a line.</div>
+<div style="display: flex; gap: 14px; margin-top: 10px">
+<div style="text-align: center">
+<svg viewBox="-45 -52 90 92" width="84" height="86"><g fill="none" stroke="#1B1A17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle><path d="M-26 -6 C-40 -18 -34 -40 -14 -40 C-8 -54 14 -54 20 -40 C40 -40 44 -16 27 -6 C30 -22 14 -28 0 -25 C-14 -28 -30 -20 -26 -6Z" fill="#1B1A17"></path><circle cx="-24" cy="-12" r="7" fill="#1B1A17"></circle><circle cx="25" cy="-12" r="7" fill="#1B1A17"></circle><circle cx="-9" cy="6" r="2.4" fill="#1B1A17" stroke="none"></circle><circle cx="9" cy="6" r="2.4" fill="#1B1A17" stroke="none"></circle><path d="M-6 17 q6 6 12 0"></path></g></svg>
+<div style="font-size: 11px; font-weight: 700">Curly</div>
+</div>
+<div style="text-align: center">
+<svg viewBox="-45 -52 90 92" width="84" height="86"><g fill="none" stroke="#1B1A17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="-36" r="11" fill="#1B1A17"></circle><circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle><path d="M-27 -2 C-30 -26 -10 -32 0 -32 C10 -32 30 -26 27 -2 C16 -16 -16 -16 -27 -2Z" fill="#1B1A17"></path><circle cx="-10" cy="6" r="8"></circle><circle cx="10" cy="6" r="8"></circle><path d="M-2 6h4"></path><circle cx="-10" cy="7" r="2.2" fill="#1B1A17" stroke="none"></circle><circle cx="10" cy="7" r="2.2" fill="#1B1A17" stroke="none"></circle><path d="M-5 19 q5 5 10 0"></path></g></svg>
+<div style="font-size: 11px; font-weight: 700">Bun + glasses</div>
+</div>
+<div style="text-align: center">
+<svg viewBox="-45 -52 90 92" width="84" height="86"><g fill="none" stroke="#1B1A17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle><path d="M-27 0 C-30 -24 -12 -32 2 -30 C20 -30 30 -18 27 0 C22 -10 6 -14 -6 -12 C-16 -10 -24 -6 -27 0Z" fill="#1B1A17"></path><circle cx="-9" cy="6" r="2.4" fill="#1B1A17" stroke="none"></circle><circle cx="9" cy="6" r="2.4" fill="#1B1A17" stroke="none"></circle><path d="M-5 17 q5 5 10 0"></path></g></svg>
+<div style="font-size: 11px; font-weight: 700">Short crop</div>
+</div>
+<div style="text-align: center">
+<svg viewBox="-45 -52 90 92" width="84" height="86"><g fill="none" stroke="#1B1A17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle><path d="M-28 14 C-34 -22 -14 -34 0 -33 C16 -34 34 -22 28 14 C28 24 24 32 20 32 L20 8 C10 -6 -10 -6 -20 8 L-20 32 C-24 32 -28 24 -28 14Z" fill="#1B1A17"></path><circle cx="-9" cy="9" r="2.4" fill="#1B1A17" stroke="none"></circle><circle cx="9" cy="9" r="2.4" fill="#1B1A17" stroke="none"></circle><path d="M-5 20 q5 5 10 0"></path></g></svg>
+<div style="font-size: 11px; font-weight: 700">Bob</div>
+</div>
+<div style="text-align: center">
+<svg viewBox="-45 -52 90 92" width="84" height="86"><g fill="none" stroke="#1B1A17" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle><path d="M-27 0 C-30 -24 -12 -32 2 -30 C20 -30 30 -18 27 0 C22 -10 6 -14 -6 -12 C-16 -10 -24 -6 -27 0Z" fill="#1B1A17"></path><circle cx="-10" cy="6" r="8"></circle><circle cx="10" cy="6" r="8"></circle><path d="M-2 6h4"></path><circle cx="-10" cy="7" r="2.2" fill="#1B1A17" stroke="none"></circle><circle cx="10" cy="7" r="2.2" fill="#1B1A17" stroke="none"></circle><path d="M-4 20 q4 -3 8 0"></path></g></svg>
+<div style="font-size: 11px; font-weight: 700">Crop + glasses</div>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px">
+<sc-for list="{{motifs}}" as="m" hint-placeholder-count="10">
+<span style="padding: 3px 9px; border-radius: 8px; background: {{m.bg}}; font-size: 11.5px; font-weight: 600">{{m.label}}</span>
+</sc-for>
+</div>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #ECE8E0; border-radius: 16px; padding: 16px 20px">
+<div style="font-size: 16px; font-weight: 800">Built to animate</div>
+<div style="font-size: 12px; color: #5E5A52; margin-bottom: 6px">Every object is a separate layer. Motion is short, one-shot and never looping for long.</div>
+<sc-for list="{{motion}}" as="m" hint-placeholder-count="7">
+<div style="display: flex; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid #F1EDE5">
+<div style="width: 24px; height: 24px; border-radius: 7px; background: {{m.t}}; display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="{{m.icon}}" size="13" hint-size="13px,13px"></dc-import></div>
+<div style="width: 150px; font-size: 12.5px; font-weight: 700">{{m.part}}</div>
+<div style="flex: 1; font-size: 12.5px; color: #5E5A52">{{m.move}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      scenes: [
+        { kind: 'hero', w: '260', name: 'Researcher + cat', use: 'Hero', bg: '#F5ECFF', tag: '#EBD9FF' },
+        { kind: 'workspace', w: '260', name: 'Setting up the desk', use: 'No workspaces', bg: '#E6F6EA', tag: '#D8F0DE' },
+        { kind: 'documents', w: '260', name: 'Blank page', use: 'No documents', bg: '#F5ECFF', tag: '#EBD9FF' },
+        { kind: 'sources', w: '260', name: 'Carrying files', use: 'No sources', bg: '#E8F4FF', tag: '#D2EAFF' },
+        { kind: 'analyses', w: '260', name: 'Empty chart', use: 'No analyses', bg: '#FFF4D6', tag: '#FFE9AD' },
+        { kind: 'search', w: '260', name: 'Magnifier + papers', use: 'No results', bg: '#E8F4FF', tag: '#D2EAFF' },
+        { kind: 'evidence', w: '260', name: 'Pinned notes', use: 'No evidence', bg: '#FFEDEB', tag: '#FFDCD9' },
+        { kind: 'reading', w: '260', name: 'Armchair reader', use: 'Login', bg: '#F5ECFF', tag: '#EBD9FF' },
+        { kind: 'team', w: '260', name: 'Two at a laptop', use: 'Register', bg: '#E6F6EA', tag: '#D8F0DE' },
+        { kind: 'magnifier', w: '260', name: 'Looking closer', use: 'Find evidence', bg: '#E8F4FF', tag: '#D2EAFF' },
+        { kind: 'laptop', w: '260', name: 'Typing a draft', use: 'Generate', bg: '#FFF4D6', tag: '#FFE9AD' },
+        { kind: 'thinking', w: '260', name: 'Idea bulb', use: 'AI thinking', bg: '#F5ECFF', tag: '#EBD9FF' }
+      ],
+      motifs: [
+        { label: 'papers', bg: '#FFDCD9' }, { label: 'books', bg: '#D9ECFF' }, { label: 'sticky notes', bg: '#FFE9AD' },
+        { label: 'charts', bg: '#D8F0DE' }, { label: 'spreadsheet grids', bg: '#D8F0DE' }, { label: 'magnifier', bg: '#D9ECFF' },
+        { label: 'molecules', bg: '#EBD9FF' }, { label: 'lightbulb', bg: '#FFE9AD' }, { label: 'speech bubbles', bg: '#FFDCD9' },
+        { label: 'citation marks', bg: '#D9ECFF' }, { label: 'desk cat', bg: '#EBD9FF' }
+      ],
+      motion: [
+        { part: 'Character blink', move: 'Eyes scale-Y to 0.1 for 120 ms, every 5–7 s.', icon: 'eye', t: '#F5ECFF' },
+        { part: 'Floating paper', move: 'Rises 6 px and tilts 3° over 2.4 s, once on arrival.', icon: 'file', t: '#FFEDEB' },
+        { part: 'Highlight', move: 'Wipes left to right over 400 ms when evidence is found.', icon: 'highlight', t: '#FFF4D6' },
+        { part: 'Chart line', move: 'Draws itself by stroke-dashoffset, 700 ms ease-out.', icon: 'lineChart', t: '#E6F6EA' },
+        { part: 'Sparkle', move: 'Rotates 90° while AI is working, stops when done.', icon: 'sparkle', t: '#F5ECFF' },
+        { part: 'Sticky note', move: 'Wiggles ±4° on hover; pops in at 0.9 → 1 scale.', icon: 'note', t: '#FFF4D6' },
+        { part: 'Cat tail · lightbulb', move: 'Tail sways on empty states; bulb flashes once on insight.', icon: 'star', t: '#E8F4FF' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

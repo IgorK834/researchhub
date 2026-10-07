@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <filter id="rhw" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.03"
+        numOctaves="2"
+        seed="3"
+        result="n"
+      ></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"></feDisplacementMap>
+    </filter>
+  </defs>
+  <path
+    d="M54 196 C34 116 108 54 200 58 C298 62 362 118 348 196 C336 262 252 284 172 274 C104 266 70 244 54 196Z"
+    fill="#B7E7C1"
+    fill-opacity="0.7"
+  ></path>
+  <g
+    fill="none"
+    stroke="#1B1A17"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#rhw)"
+  >
+    <rect x="36" y="64" width="150" height="112" rx="8" fill="#FFFFFF"></rect>
+    <rect
+      x="50"
+      y="78"
+      width="42"
+      height="42"
+      rx="3"
+      fill="#FFD166"
+      transform="rotate(-4 71 99)"
+    ></rect>
+    <rect
+      x="104"
+      y="86"
+      width="42"
+      height="42"
+      rx="3"
+      fill="#FF8F87"
+      transform="rotate(5 125 107)"
+    ></rect>
+    <rect
+      x="62"
+      y="130"
+      width="52"
+      height="34"
+      rx="3"
+      fill="#DDB8FF"
+      transform="rotate(-2 88 147)"
+    ></rect>
+    <path
+      d="M58 94h24 M58 104h16 M112 100h24 M112 110h18 M70 144h30 M70 154h20"
+      stroke-width="1.8"
+    ></path>
+    <circle cx="71" cy="80" r="2.4" fill="#1B1A17"></circle>
+    <circle cx="125" cy="88" r="2.4" fill="#1B1A17"></circle>
+    <rect x="30" y="228" width="340" height="14" rx="4" fill="#FFFFFF"></rect>
+    <path d="M58 242v34 M342 242v34"></path>
+    <rect x="96" y="192" width="70" height="36" rx="4" fill="#FFFFFF"></rect>
+    <path d="M108 204h30 M108 214h18" stroke-width="1.8"></path>
+    <path
+      d="M236 228 C234 192 250 168 272 166 C294 168 310 192 308 228Z"
+      fill="#8CC8FF"
+    ></path>
+    <path d="M264 154 V168 M280 154 V168"></path>
+    <path d="M246 184 C234 176 224 166 214 154"></path>
+    <g transform="translate(272 126)">
+      <circle cx="0" cy="-34" r="10" fill="#1B1A17"></circle>
+      <circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle>
+      <path
+        d="M-27 -2 C-30 -26 -10 -32 0 -32 C10 -32 30 -26 27 -2 C16 -16 -16 -16 -27 -2Z"
+        fill="#1B1A17"
+      ></path>
+      <circle cx="-9" cy="6" r="2.4" fill="#1B1A17" stroke="none"></circle>
+      <circle cx="9" cy="6" r="2.4" fill="#1B1A17" stroke="none"></circle>
+      <path d="M-5 16 q5 5 10 0"></path>
+    </g>
+    <circle cx="211" cy="152" r="7" fill="#FFFFFF"></circle>
+    <rect
+      x="196"
+      y="126"
+      width="26"
+      height="26"
+      rx="2"
+      fill="#FFD166"
+      transform="rotate(-10 209 139)"
+    ></rect>
+    <path d="M300 186 C314 204 308 218 296 228"></path>
+    <path d="M340 228 V192 L324 170"></path>
+    <path d="M310 160 l28 -10 l10 24 z" fill="#FFD166"></path>
+    <path
+      transform="translate(360 100) scale(1.2)"
+      d="M0 -9 Q1.5 -1.5 9 0 Q1.5 1.5 0 9 Q-1.5 1.5 -9 0 Q-1.5 -1.5 0 -9Z"
+      fill="#FF8F87"
+    ></path>
+    <path
+      transform="translate(212 60) scale(0.9)"
+      d="M0 -9 Q1.5 -1.5 9 0 Q1.5 1.5 0 9 Q-1.5 1.5 -9 0 Q-1.5 -1.5 0 -9Z"
+      fill="#FFFFFF"
+    ></path>
+  </g>
+</svg>

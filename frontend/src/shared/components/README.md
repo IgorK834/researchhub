@@ -216,9 +216,10 @@ Import `Card`, `Panel`, `DashedNote`, `IconTile`, `ListRow`, `DataTable`, `Empty
   An optional `footer` is outside the table so arbitrary controls retain their semantics.
   Selection inputs, sorting, filtering and virtualization remain consumer concerns.
 - `EmptyState` requires `title` and `description`, accepts `context`, decorative `art`,
-  `tone`, heading level (`h2` default or `h3`) and a tuple of one or two `actions`.
-  Both TypeScript and runtime reject three actions. Art is optional; no illustration is
-  generated. `emptyStateCopy` holds the reference's workspaces, documents, sources,
+  `tone`, `size` (`default` or `compact`), heading level (`h2` default or `h3`) and a tuple of one or two `actions`.
+  Both TypeScript and runtime reject three actions. Supply `Illustration` from
+  `shared/components/Illustration` as `art`; pair its compact size with compact empty
+  states in sidebars. `emptyStateCopy` holds the reference's workspaces, documents, sources,
   analyses and evidence copy; `searchEmptyStateCopy(query, counts)` expresses search
   without inventing totals. Consumers supply real actions and omit unavailable ones.
 - `Keycap` is native `kbd`. `KeyboardHintBar` is a labelled list of `{ keys, label }`

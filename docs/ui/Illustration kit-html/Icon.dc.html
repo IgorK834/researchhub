@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Icon set</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: inline-flex; line-height: 1.4">
+<sc-if value="{{single}}" hint-placeholder-val="{{ true }}">
+<svg viewBox="0 0 24 24" width="{{size}}" height="{{size}}" fill="none" stroke="currentColor" stroke-width="{{stroke}}" stroke-linecap="round" stroke-linejoin="round" style="display: block; flex-shrink: 0"><path d="{{d}}"></path></svg>
+</sc-if>
+<sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+<div style="width: 1000px; box-sizing: border-box; padding: 32px; background: #FBF9F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #1B1A17">
+<div style="font-size: 24px; font-weight: 800; margin-bottom: 4px">Icon set</div>
+<div style="font-size: 14px; color: #5E5A52; margin-bottom: 24px">24 px grid · 1.75 px rounded stroke · inherits currentColor. Functional icons stay systematic; hand-drawn art lives in illustrations only.</div>
+<div style="display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="10">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 4px 10px; background: #FFFFFF; border: 1px solid #ECE8E0; border-radius: 12px">
+<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1B1A17" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.d}}"></path></svg>
+<div style="font-size: 11px; font-weight: 600; color: #5E5A52">{{t.n}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"glyph":{"editor":"text","default":""},"size":{"editor":"int","default":18},"stroke":{"editor":"float","default":1.75},"$preview":{"width":1000,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ICONS = {
+      search: 'M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14 M20.5 20.5l-4.2-4.2',
+      home: 'M3.5 11.2L12 4l8.5 7.2 M5.5 9.8V19a1 1 0 0 0 1 1H10v-5h4v5h3.5a1 1 0 0 0 1-1V9.8',
+      book: 'M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3',
+      library: 'M5 4v16 M9.5 4v16 M13.5 5.5l4.2-1.1 3.4 14.3-4.2 1.1z',
+      file: 'M14 3H7.5A1.5 1.5 0 0 0 6 4.5v15A1.5 1.5 0 0 0 7.5 21h9a1.5 1.5 0 0 0 1.5-1.5V7z M14 3v4h4 M9 12h6 M9 16h6',
+      text: 'M5 6h14 M5 10h14 M5 14h9 M5 18h11',
+      note: 'M6 4h12a1 1 0 0 1 1 1v10l-5 5H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M14 20v-4a1 1 0 0 1 1-1h4',
+      sparkle: 'M12 3.5l1.7 5.3 5.3 1.7-5.3 1.7L12 17.5l-1.7-5.3L5 10.5l5.3-1.7z M18.5 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z',
+      chart: 'M4 20V4 M4 20h16 M8 16v-5 M12 16V8 M16 16v-3',
+      lineChart: 'M3.5 17.5l5-6 4 3.5 7.5-9 M3.5 20.5h17',
+      scatter: 'M6 16h.01 M10 11h.01 M14 13.5h.01 M18 7.5h.01 M4 4v16h16',
+      users: 'M9 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 1 0 0 7 M2.5 20c0-3.3 2.9-5.5 6.5-5.5s6.5 2.2 6.5 5.5 M16.5 4.3a3.2 3.2 0 0 1 0 6.2 M18 14.7c2 .6 3.5 2.3 3.5 5.3',
+      user: 'M12 11a3.5 3.5 0 1 0 0-7a3.5 3.5 0 1 0 0 7 M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5',
+      sliders: 'M4 7h9 M17 7h3 M4 17h3 M11 17h9 M15 4.5v5 M9 14.5v5',
+      help: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M9.7 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.9-1.1 1.8 M12 16.8v.01',
+      plus: 'M12 5v14 M5 12h14',
+      minus: 'M5 12h14',
+      chevDown: 'M6 9.5l6 6 6-6',
+      chevUp: 'M6 14.5l6-6 6 6',
+      chevRight: 'M9.5 6l6 6-6 6',
+      chevLeft: 'M14.5 6l-6 6 6 6',
+      sort: 'M8 9.5l4-4 4 4 M8 14.5l4 4 4-4',
+      check: 'M5 12.5l4.5 4.5L19 7.5',
+      x: 'M6 6l12 12 M18 6L6 18',
+      upload: 'M12 16V4 M7 8.5L12 4l5 4.5 M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15',
+      download: 'M12 4v12 M7 11.5l5 4.5 5-4.5 M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15',
+      link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+      quote: 'M9.5 7.5C6.8 8.4 5 10.5 5 14v3h4.5v-4.5H7 M18.5 7.5C15.8 8.4 14 10.5 14 14v3h4.5v-4.5H16',
+      comment: 'M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5z',
+      clock: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 7.5V12l3 2',
+      history: 'M4 12a8 8 0 1 0 2.5-5.8 M4 4v4.5h4.5 M12 8v4l2.5 1.5',
+      calendar: 'M5.5 6h13a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M4.5 10.5h15 M8.5 3.5v4 M15.5 3.5v4',
+      folder: 'M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z',
+      table: 'M4.5 5h15a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z M3.5 10h17 M3.5 14.5h17 M9.5 10v9',
+      grid: 'M4.5 4.5h6v6h-6z M13.5 4.5h6v6h-6z M4.5 13.5h6v6h-6z M13.5 13.5h6v6h-6z',
+      code: 'M8.5 7L3.5 12l5 5 M15.5 7l5 5-5 5 M13.5 5l-3 14',
+      terminal: 'M4.5 6h15a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M7.5 10l3 2-3 2 M12.5 15h4',
+      play: 'M8 5.5v13l10.5-6.5z',
+      refresh: 'M20 11a8 8 0 0 0-14.4-4 M4 4v4h4 M4 13a8 8 0 0 0 14.4 4 M20 20v-4h-4',
+      more: 'M6 12h.01 M12 12h.01 M18 12h.01',
+      arrowRight: 'M4.5 12h15 M13.5 6l6 6-6 6',
+      arrowLeft: 'M19.5 12h-15 M10.5 6l-6 6 6 6',
+      arrowUp: 'M12 19.5v-15 M6 10.5l6-6 6 6',
+      arrowDown: 'M12 4.5v15 M6 13.5l6 6 6-6',
+      pencil: 'M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z M14.5 6.5l3 3',
+      highlight: 'M15.5 4.5l4 4L10 18l-5 1 1-5z M13 7l4 4',
+      trash: 'M5 7h14 M9.5 7V4.5h5V7 M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7',
+      lock: 'M6.5 11h11a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z M8.5 11V8a3.5 3.5 0 0 1 7 0v3',
+      key: 'M8.5 9a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7 M11 14l8-8 M16.5 8.5l2 2',
+      shield: 'M12 3.5l7 2.8v5.4c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V6.3z M9 12l2.2 2.2L15 10.4',
+      eye: 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z M12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5',
+      bell: 'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z M10 20.5h4',
+      bold: 'M7 5h6a3.5 3.5 0 0 1 0 7H7z M7 12h7a3.5 3.5 0 0 1 0 7H7z',
+      italic: 'M10 5h8 M6 19h8 M14.5 5L9.5 19',
+      heading: 'M6 5v14 M18 5v14 M6 12h12',
+      list: 'M9 6h11 M9 12h11 M9 18h11 M4.5 6h.01 M4.5 12h.01 M4.5 18h.01',
+      undo: 'M9 6.5L4.5 11 9 15.5 M4.5 11H14a5.5 5.5 0 0 1 0 11h-2',
+      redo: 'M15 6.5l4.5 4.5-4.5 4.5 M19.5 11H10a5.5 5.5 0 0 0 0 11h2',
+      image: 'M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18V6A1.5 1.5 0 0 1 5 4.5z M8.5 9a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3 M4 17l5-5 4 4 3-3 4.5 4.5',
+      globe: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M3 12h18 M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9',
+      filter: 'M4 6h16 M7 12h10 M10 18h4',
+      star: 'M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z',
+      warn: 'M12 4l9 15.5H3z M12 10v4 M12 17v.01',
+      alert: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 7.5v5 M12 16v.01',
+      info: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 11v5 M12 8v.01',
+      flask: 'M9.5 3.5h5 M10.5 3.5v6L5 19a1.5 1.5 0 0 0 1.3 2.2h11.4A1.5 1.5 0 0 0 19 19l-5.5-9.5v-6 M7.5 15h9',
+      layers: 'M12 4l9 4.5-9 4.5-9-4.5z M3 12.5l9 4.5 9-4.5 M3 16.5l9 4.5 9-4.5',
+      columns: 'M4.5 5h6v14h-6z M13.5 5h6v14h-6z',
+      bookmark: 'M7 4h10v16l-5-3.5L7 20z',
+      send: 'M4 12l16-8-6 16-3-6.5z M11 13.5L20 4',
+      database: 'M4 6.5c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5-3.6-2.5-8-2.5-8 1.1-8 2.5z M4 6.5v11c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-11 M4 12c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5',
+      panel: 'M4.5 5h15a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z M9.5 5v14',
+      mail: 'M4.5 6h15a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M4 7.5l8 6 8-6',
+      logout: 'M10 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h4 M14.5 8l4 4-4 4 M18.5 12H9.5',
+      archive: 'M4 5.5h16v4H4z M5.5 9.5V19a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V9.5 M10 13h4',
+      copy: 'M9 9h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z M5.5 15H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v.5',
+      external: 'M13.5 4.5h6v6 M19.5 4.5L11 13 M17 14v4.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1H10',
+      wifi: 'M3 9.5a14 14 0 0 1 18 0 M6 13a9.5 9.5 0 0 1 12 0 M9.3 16.3a5 5 0 0 1 5.4 0 M12 19.5v.01',
+      wifiOff: 'M3 9.5a14 14 0 0 1 4-2.6 M10 6.2a14 14 0 0 1 11 3.3 M6 13a9.5 9.5 0 0 1 3-1.9 M14 11.2a9.5 9.5 0 0 1 4 1.8 M9.3 16.3a5 5 0 0 1 5.4 0 M12 19.5v.01 M4 4l16 16',
+      cursor: 'M5 4l6 15 2.2-6.3L19.5 10.5z',
+      sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 3v2 M12 19v2 M3 12h2 M19 12h2 M5.6 5.6L7 7 M17 17l1.4 1.4 M5.6 18.4L7 17 M17 7l1.4-1.4',
+      moon: 'M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z',
+      monitor: 'M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z M9 20h6 M12 16v4'
+    };
+    const g = this.props.glyph;
+    const size = Number(this.props.size) || 18;
+    const stroke = Number(this.props.stroke) || 1.75;
+    const sheet = !g;
+    return {
+      sheet: sheet,
+      single: !sheet,
+      d: ICONS[g] || '',
+      size: size,
+      stroke: stroke,
+      tiles: Object.keys(ICONS).map((n) => ({ n: n, d: ICONS[n] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

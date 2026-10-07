@@ -1,0 +1,17 @@
+.illustration {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+  margin-inline: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+.compact {
+  inline-size: 160px;
+}
+.default {
+  inline-size: 270px;
+}
+.hero {
+  inline-size: 480px;
+}

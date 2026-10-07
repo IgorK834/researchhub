@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <filter id="rhw" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.03"
+        numOctaves="2"
+        seed="3"
+        result="n"
+      ></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"></feDisplacementMap>
+    </filter>
+  </defs>
+  <path
+    d="M56 196 C40 114 112 56 204 60 C298 64 362 122 346 198 C334 262 246 284 168 274 C100 266 72 242 56 196Z"
+    fill="#FF8F87"
+    fill-opacity="0.5"
+  ></path>
+  <g
+    fill="none"
+    stroke="#1B1A17"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#rhw)"
+  >
+    <rect x="30" y="62" width="176" height="150" rx="8" fill="#FFFFFF"></rect>
+    <path d="M66 86 L122 106 L172 82 L84 150" stroke-width="1.6"></path>
+    <rect
+      x="44"
+      y="74"
+      width="44"
+      height="44"
+      rx="3"
+      fill="#FFD166"
+      transform="rotate(-5 66 96)"
+    ></rect>
+    <rect
+      x="100"
+      y="90"
+      width="44"
+      height="44"
+      rx="3"
+      fill="#B7E7C1"
+      transform="rotate(4 122 112)"
+    ></rect>
+    <rect
+      x="152"
+      y="70"
+      width="42"
+      height="46"
+      rx="3"
+      fill="#DDB8FF"
+      transform="rotate(-3 173 93)"
+    ></rect>
+    <rect
+      x="56"
+      y="136"
+      width="48"
+      height="42"
+      rx="3"
+      fill="#8CC8FF"
+      transform="rotate(3 80 157)"
+    ></rect>
+    <rect
+      x="116"
+      y="150"
+      width="50"
+      height="40"
+      rx="3"
+      fill="#FFFFFF"
+      transform="rotate(-4 141 170)"
+    ></rect>
+    <path
+      d="M54 90h24 M54 100h14 M110 106h24 M110 116h16 M160 86h24 M160 96h14 M66 152h26 M66 162h16 M124 164h28 M124 174h18"
+      stroke-width="1.6"
+    ></path>
+    <path
+      d="M246 262 C244 192 266 152 290 150 C316 152 338 192 336 262Z"
+      fill="#8CC8FF"
+    ></path>
+    <path d="M282 142 V152 M298 142 V152"></path>
+    <g transform="translate(290 118)">
+      <circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle>
+      <path
+        d="M-27 0 C-30 -24 -12 -32 2 -30 C20 -30 30 -18 27 0 C22 -10 6 -14 -6 -12 C-16 -10 -24 -6 -27 0Z"
+        fill="#1B1A17"
+      ></path>
+      <circle cx="-10" cy="7" r="8"></circle>
+      <circle cx="10" cy="7" r="8"></circle>
+      <path d="M-2 7h4"></path>
+      <circle cx="-10" cy="8" r="2.2" fill="#1B1A17" stroke="none"></circle>
+      <circle cx="10" cy="8" r="2.2" fill="#1B1A17" stroke="none"></circle>
+      <path d="M-5 20 q5 4 10 0"></path>
+    </g>
+    <path d="M262 192 C254 222 292 230 304 208"></path>
+    <circle cx="300" cy="170" r="0"></circle>
+    <ellipse cx="318" cy="52" rx="44" ry="26" fill="#FFFFFF"></ellipse>
+    <circle cx="296" cy="88" r="5" fill="#FFFFFF"></circle>
+    <circle cx="288" cy="102" r="3" fill="#FFFFFF"></circle>
+    <rect x="294" y="42" width="16" height="16" rx="2" fill="#FFD166"></rect>
+    <rect x="314" y="40" width="16" height="16" rx="2" fill="#B7E7C1"></rect>
+    <rect x="334" y="44" width="14" height="14" rx="2" fill="#DDB8FF"></rect>
+    <path d="M24 276 H376"></path>
+  </g>
+</svg>

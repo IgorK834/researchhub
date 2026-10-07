@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <filter id="rhw" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.03"
+        numOctaves="2"
+        seed="3"
+        result="n"
+      ></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"></feDisplacementMap>
+    </filter>
+  </defs>
+  <path
+    d="M70 200 C50 120 120 56 206 62 C300 68 356 126 340 200 C326 262 244 282 170 272 C110 264 82 244 70 200Z"
+    fill="#FFD166"
+    fill-opacity="0.65"
+  ></path>
+  <g
+    fill="none"
+    stroke="#1B1A17"
+    stroke-width="2.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#rhw)"
+  >
+    <rect x="156" y="52" width="208" height="160" rx="12" fill="#FFFFFF"></rect>
+    <path d="M184 76 V184 H340" stroke-width="2.4"></path>
+    <path
+      d="M178 100 h6 M178 130 h6 M178 160 h6 M216 184 v6 M256 184 v6 M296 184 v6"
+      stroke-width="1.8"
+    ></path>
+    <path
+      d="M196 170 C220 150 240 154 262 136 S310 112 332 100"
+      stroke-dasharray="4 8"
+      stroke-width="2"
+    ></path>
+    <path
+      d="M56 240 C54 178 76 152 98 150 C122 152 144 178 142 240Z"
+      fill="#DDB8FF"
+    ></path>
+    <path d="M90 142 V152 M106 142 V152"></path>
+    <g transform="translate(98 116)">
+      <circle cx="0" cy="2" r="27" fill="#FFFFFF"></circle>
+      <path
+        d="M-28 14 C-34 -22 -14 -34 0 -33 C16 -34 34 -22 28 14 C28 24 24 32 20 32 L20 8 C10 -6 -10 -6 -20 8 L-20 32 C-24 32 -28 24 -28 14Z"
+        fill="#1B1A17"
+      ></path>
+      <circle cx="-10" cy="9" r="8"></circle>
+      <circle cx="10" cy="9" r="8"></circle>
+      <path d="M-2 9h4"></path>
+      <circle cx="-10" cy="10" r="2.2" fill="#1B1A17" stroke="none"></circle>
+      <circle cx="10" cy="10" r="2.2" fill="#1B1A17" stroke="none"></circle>
+      <path d="M-4 20 q4 3 8 0"></path>
+    </g>
+    <path d="M128 184 C150 176 142 152 120 144"></path>
+    <circle cx="118" cy="144" r="7" fill="#FFFFFF"></circle>
+    <rect x="52" y="240" width="92" height="10" rx="5" fill="#FFFFFF"></rect>
+    <path d="M68 250 v26 M128 250 v26"></path>
+    <path d="M30 276 H380"></path>
+  </g>
+  <text
+    x="248"
+    y="150"
+    font-family="Georgia, serif"
+    font-size="56"
+    font-weight="700"
+    fill="#1B1A17"
+  >
+    ?
+  </text>
+</svg>
