@@ -1,0 +1,54 @@
+name: ResearchHub security regression
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.20'
+          python-version: '3.13.3'
+      - name: Prepare and verify the isolated AI worker
+        working-directory: ai-worker
+        run: |
+          uv sync --frozen
+          ./scripts/check.sh
+          uv build --wheel --out-dir dist
+      - name: Verify production browser bundle and coverage
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run test:coverage -- --runInBand
+          RESEARCHHUB_DEPLOYMENT_ENV=cloud npm run build
+          npm audit --omit=dev --audit-level=high
+          npx playwright install --with-deps chromium
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE=%s\n' "$(node -p 'require("@playwright/test").chromium.executablePath()')" >> "$GITHUB_ENV"
+      - name: Prepare existing scientific sandbox for E2E
+        run: docker build -t researchhub-sandbox:1.1.0 sandbox
+      - name: Verify Spring security, prompt injection and browser E2E
+        working-directory: backend
+        env:
+          SECURITY_BROWSER_TESTS: 'true'
+        run: ./mvnw --batch-mode verify
