@@ -29,6 +29,12 @@ jobs:
         with:
           version: '0.12.20'
           python-version: '3.13.3'
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
       - name: Install checksum-pinned scanners
         id: tools
         run: sh scripts/security/install-tools.sh "$RUNNER_TEMP/security-tools"
@@ -46,6 +52,11 @@ jobs:
       - name: Scan full Git history and tracked working files for secrets
         if: ${{ !cancelled() && steps.tools.outcome == 'success' }}
         run: python3 scripts/security/check.py secrets --gitleaks "$RUNNER_TEMP/security-tools/gitleaks"
+      # Trivy resolves BOMs/parents of pom.xml from ~/.m2 first; without it a shared runner IP
+      # gets throttled by Maven Central (HTTP 429) and the scan aborts.
+      - name: Populate local Maven cache for the dependency scan
+        working-directory: backend
+        run: ./mvnw --batch-mode --no-transfer-progress dependency:resolve
       - name: Scan Maven, npm and Python dependency inventories
         if: ${{ !cancelled() && steps.tools.outcome == 'success' }}
         run: python3 scripts/security/check.py dependencies --trivy "$RUNNER_TEMP/security-tools/trivy"
