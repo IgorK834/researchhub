@@ -106,7 +106,7 @@ cd ../backend
 SECURITY_BROWSER_TESTS=true ./mvnw verify
 ```
 
-Docker, the existing `researchhub-sandbox:1.1.0` image, the locked worker environment and Chrome (or
+Docker, the existing `researchhub-sandbox:1.1.1` image, the locked worker environment and Chrome (or
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE`) are required for E2E. The browser test covers login/session flags,
 document editor styling under enforcing CSP, upload rejection, quota feedback, preserved inputs
 and blocked inline script execution. Cloud cookie/header tests cover actual servlet Set-Cookie

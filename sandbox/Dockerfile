@@ -1,7 +1,7 @@
 FROM python:3.13.3-slim-bookworm@sha256:56a11364ffe0fee3bd60af6d6d5209eba8a99c2c16dc4c7c5861dc06261503cc
 
 LABEL org.opencontainers.image.title="ResearchHub isolated computation runtime" \
-      org.opencontainers.image.version="1.1.0"
+      org.opencontainers.image.version="1.1.1"
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MPLBACKEND=Agg \

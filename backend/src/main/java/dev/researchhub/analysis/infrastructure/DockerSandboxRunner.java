@@ -17,7 +17,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public final class DockerSandboxRunner implements SandboxRunner {
     public static final String IMAGE = SandboxRunner.IMAGE;
-    public static final String RUNTIME_VERSION = "1.1.0";
+    public static final String RUNTIME_VERSION = "1.1.1";
     static final int LOG_LIMIT = 64 * 1024;
     static final int OUTPUT_LIMIT = 16 * 1024 * 1024;
     private final SandboxProperties properties;

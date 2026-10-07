@@ -27,7 +27,7 @@ class DockerSandboxRunnerTest {
         final List<List<String>> calls = new ArrayList<>();
         final Map<String, Reply> replies = new HashMap<>();
         String ioFailure, interruption;
-        String savedVersion="1.1.0";
+        String savedVersion="1.1.1";
         Path staging;
         Request expected;
         @Override public Reply execute(List<String> command, Duration timeout, int stdoutLimit, int stderrLimit) throws IOException, InterruptedException {
@@ -75,7 +75,7 @@ class DockerSandboxRunnerTest {
         Fake fake = new Fake(); fake.expected = request();
         Result result = runner(fake).run(fake.expected);
         assertTrue(result.successful(), result.failureCode()); assertEquals(IMAGE_ID, result.imageId());
-        assertEquals("1.1.0", result.runtimeVersion()); assertEquals("captured", result.stdout()); assertTrue(result.stderrTruncated());
+        assertEquals("1.1.1", result.runtimeVersion()); assertEquals("captured", result.stdout()); assertTrue(result.stderrTruncated());
         assertArrayEquals(validResult(), result.files().get("result.json"));
         var create = fake.calls.stream().filter(c -> c.get(5).equals("create")).findFirst().orElseThrow();
         for (String restriction : List.of("none", "--read-only", "65532:65532", "--cap-drop", "ALL", "no-new-privileges:true", "--memory-swap", "--pids-limit", "--cpus", "--pull", "never", IMAGE_ID))

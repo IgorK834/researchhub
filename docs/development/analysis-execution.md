@@ -68,7 +68,7 @@ remain protected from update/delete. Persisted diagnostic summaries are sanitize
 RH-151 introduces [result v2](../../contracts/analysis/execution/v2/README.md): chart title, labelled axes/units/scales
 and series references to saved numeric table columns. Both runtime and Java validate them; Java derives counts and
 binds analysis/execution/code provenance. Legacy charts retain their images with explicitly absent metadata.
-The server runtime is now `researchhub-sandbox:1.1.0`, preserving pinned scientific dependencies and v1 compatibility.
+The server runtime is now `researchhub-sandbox:1.1.1`, preserving pinned scientific dependencies and v1 compatibility.
 
 The frontend provides `/app/workspaces/:workspaceId/analyses`, `/analyses/new`, and `/analyses/:analysisId` with an
 optional `?execution=` selector. The result view shows saved tables/images, historical attempts, exact code and a
@@ -94,7 +94,7 @@ for report save/update behavior, source/computation citations, component boundar
 Build the pinned image, then enable the runner in the backend's local environment:
 
 ```bash
-docker build -t researchhub-sandbox:1.1.0 sandbox
+docker build -t researchhub-sandbox:1.1.1 sandbox
 ```
 
 Runner configuration and limits are documented in `.env.example`. Execution is opt-in and fails closed when the

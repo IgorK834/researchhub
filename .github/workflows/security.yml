@@ -46,7 +46,7 @@ jobs:
           npx playwright install --with-deps chromium
           printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE=%s\n' "$(node -p 'require("@playwright/test").chromium.executablePath()')" >> "$GITHUB_ENV"
       - name: Prepare existing scientific sandbox for E2E
-        run: docker build -t researchhub-sandbox:1.1.0 sandbox
+        run: docker build -t researchhub-sandbox:1.1.1 sandbox
       - name: Verify Spring security, prompt injection and browser E2E
         working-directory: backend
         env:

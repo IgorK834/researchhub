@@ -141,7 +141,7 @@ axis.set_xlabel('Frequency f (Hz)')
 axis.set_ylabel('Impedance magnitude |Z| (Ω)')
 axis.set_title('Impedance magnitude versus frequency')
 axis.grid(True, which='both', alpha=0.25)
-figure.savefig('/outputs/impedance.png', dpi=120, metadata={{'Software': 'ResearchHub sandbox 1.1.0'}})
+figure.savefig('/outputs/impedance.png', dpi=120, metadata={{'Software': 'ResearchHub sandbox 1.1.1'}})
 plt.close(figure)
 result = {{'schemaVersion': '2.0', 'outputs': [
     {{'name': 'impedance-table', 'kind': 'TABLE', 'columns': columns, 'rows': frame.values.tolist()}},

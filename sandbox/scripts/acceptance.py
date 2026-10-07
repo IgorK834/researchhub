@@ -2,7 +2,7 @@
 """Real Docker security acceptance. Attack fixture source is executed exclusively in constrained containers.
 
 Run from repository root: python3 sandbox/scripts/acceptance.py
-Build researchhub-sandbox:1.1.0 first. This harness never evaluates fixture source on the host.
+Build researchhub-sandbox:1.1.1 first. This harness never evaluates fixture source on the host.
 """
 import hashlib
 import importlib.util
@@ -16,7 +16,7 @@ import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-IMAGE = 'researchhub-sandbox:1.1.0'
+IMAGE = 'researchhub-sandbox:1.1.1'
 VERSION = '00000000-0000-4000-8000-000000000001'
 LOG_LIMIT = 65_536
 

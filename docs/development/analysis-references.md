@@ -97,4 +97,4 @@ Details panels and selectors wrap long output metadata and analysis names in nar
 
 Reproduce frontend validation with `npm run test:coverage -- --runInBand`, `npm run lint`,
 `npm run build` and `npm run format:check`. Backend full verification needs a running Docker daemon
-and the pinned `researchhub-sandbox:1.1.0` image. Worker verification uses `sh scripts/check.sh`.
+and the pinned `researchhub-sandbox:1.1.1` image. Worker verification uses `sh scripts/check.sh`.

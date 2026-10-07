@@ -4,7 +4,7 @@ import java.util.*;
 
 /** Trusted launcher port. Saved runtime identity comes from completed server records, never from request JSON. */
 public interface SandboxRunner {
-    String IMAGE = "researchhub-sandbox:1.1.0";
+    String IMAGE = "researchhub-sandbox:1.1.1";
     Result run(Request request);
 
     record Input(UUID sourceVersionId, String format, byte[] bytes, String sha256) {
