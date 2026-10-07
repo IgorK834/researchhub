@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "decision": "ACCEPTED_LOCAL",
+  "reviewedAt": "2026-10-07",
+  "reviewer": "Codex: technical repository review under the RH-142 implementation request",
+  "reviewKind": "TECHNICAL_SELF_REVIEW",
+  "auditedBaseline": "188a041ee37877105966c5359a3661e09a26e505",
+  "cloudDecision": "DEFERRED_PENDING_DEPLOYMENT_PARITY_REVIEW",
+  "documents": {
+    "docs/adr/ADR-008-analysis-execution-boundary.md": "9f6af5888a3ad2b444311af7f1edc73667fe7e3817f7a9966308f6cb4f7bd00d",
+    "docs/security/analysis-execution-threat-model.md": "c52f1b471a44d29769fd42cffe3ab8ecbcf6a93af2c583bbfdcea10d57c05426"
+  },
+  "scope": "Local execution security contract; code/contract/configuration/test audit. Runtime test evidence is separate and required before enabling the target daemon.",
+  "findings": [
+    "RH-141 / Task 14.2 planning prerequisite exists.",
+    "Inherited RH-143\u2013145 code predates this ADR; historical sequencing is not claimed compliant.",
+    "All required threats have controls and concrete tests; local shared-kernel and artifact-decoding residual risks are explicit.",
+    "No generated code executed and no executor implementation changed during this review before committing the policy.",
+    "Cloud deployment is not approved; platform parity, identity isolation, egress, PID/storage and reconciliation require proof.",
+    "This record is an actual Codex technical self-review, not independent human security approval."
+  ]
+}
