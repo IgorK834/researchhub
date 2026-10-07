@@ -29,6 +29,7 @@ import { SourceVersionHistory } from '../features/sources/components/SourceVersi
 import type { AnalyzeTarget } from '../features/analysis/components/DatasetPreviewPanel';
 import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 
+import { SourceMetadataPanel } from '../features/sources/components/SourceMetadataPanel';
 import { SourceDetailFrame } from '../features/sources/components/SourceDetailFrame';
 import { Button } from '../shared/components/Button';
 import { Panel } from '../shared/components/content';
@@ -183,6 +184,7 @@ function SourceDetail({
           <dd>{source.sizeBytes.toLocaleString()} bytes</dd>
         </dl>
       </Panel>
+      <SourceMetadataPanel source={source} canEdit={canEditContent} />
       <Button href={askSourcePath} icon="sparkle" disabled={source.status !== 'READY'}>
         Ask this source
       </Button>

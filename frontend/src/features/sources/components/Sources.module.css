@@ -286,3 +286,30 @@
   height: 4px;
   width: min(220px, 100%);
 }
+
+.search,
+.filters,
+.collections,
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.search > div {
+  flex: 1 1 260px;
+  max-width: 480px;
+}
+.filters > div {
+  min-width: 160px;
+}
+.collections {
+  align-items: center;
+}
+.pagination {
+  align-items: center;
+  margin-top: var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}

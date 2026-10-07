@@ -1,9 +1,10 @@
 import { useState, type ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { describeError } from '../../../shared/api';
 import { Button } from '../../../shared/components/Button';
 import {
   DataTable,
+  ResponsiveFilters,
   EmptyState,
   type TableColumn,
 } from '../../../shared/components/content';
@@ -14,7 +15,8 @@ import { Tabs } from '../../../shared/components/navigation';
 import type { WorkspaceSource } from '../api/sourceApi';
 import { sourceContentPath } from '../api/sourceApi';
 import { SOURCE_TYPES, type SourceType } from '../api/sourceTypes';
-import { useSourcesQuery } from '../api/useSources';
+import { useSourceSearchQuery, useSourceFacetsQuery } from '../api/useSources';
+import { TextField, Select } from '../../../shared/components/forms';
 import { SourceStatusChip, SourceTypeBadge, SourceTypeTile } from './SourceVisuals';
 import { SourceProgress } from './SourceProgress';
 import { SourceRetry } from './SourceRetry';
@@ -36,18 +38,61 @@ export function SourceList({
   canEdit = false,
   archived = false,
 }: SourceListProps): ReactElement {
+  const [search, setSearch] = useSearchParams();
+  const rawType = search.get('type');
+  const type = SOURCE_TYPES.includes(rawType as SourceType)
+    ? (rawType as SourceType)
+    : 'ALL';
+  const page = Math.max(0, Math.min(1000000, Number(search.get('page')) || 0));
+  const filters = {
+    query: search.get('query') ?? '',
+    type: type === 'ALL' ? '' : type,
+    status: search.get('status') ?? '',
+    uploader: search.get('uploader') ?? '',
+    tag: search.get('tag') ?? '',
+    collection: search.get('collection') ?? '',
+    page,
+  };
   const {
-    data: sources,
+    data: result,
     error,
     isPending,
     isFetching,
     refetch,
-  } = useSourcesQuery(workspaceId);
-  const [type, setType] = useState<'ALL' | SourceType>('ALL');
+  } = useSourceSearchQuery(workspaceId, filters);
+  const {
+    data: facets,
+    error: facetsError,
+    refetch: refreshFacets,
+  } = useSourceFacetsQuery(workspaceId);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const readyCount = sources?.filter((source) => source.status === 'READY').length;
-  const rows =
-    sources?.filter((source) => type === 'ALL' || source.sourceType === type) ?? [];
+  const readyCount = facets?.ready;
+  const rows = result?.items ?? [];
+  const total = facets?.total;
+  const filtered = Boolean(
+    filters.query ||
+    filters.type ||
+    filters.status ||
+    filters.uploader ||
+    filters.tag ||
+    filters.collection,
+  );
+  const changeFilter = (key: string, value: string): void => {
+    const next = new URLSearchParams(search);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== 'page') next.delete('page');
+    setSearch(next);
+  };
+  const setType = (value: 'ALL' | SourceType): void =>
+    changeFilter('type', value === 'ALL' ? '' : value);
+  const clearFilters = (): void => {
+    const next = new URLSearchParams(search);
+    ['query', 'type', 'status', 'uploader', 'tag', 'collection', 'page'].forEach((key) =>
+      next.delete(key),
+    );
+    setSearch(next);
+  };
   const columns: readonly TableColumn<WorkspaceSource>[] = [
     {
       id: 'name',
@@ -60,7 +105,11 @@ export function SourceList({
             <Link to={`/app/workspaces/${workspaceId}/sources/${source.id}`}>
               {source.displayName}
             </Link>
+            {source.bibliography?.title ? <p>{source.bibliography.title}</p> : null}
             <p>{formatSourceBytes(source.sizeBytes)}</p>
+            {source.tags?.length || source.collections?.length ? (
+              <p>{[...(source.tags ?? []), ...(source.collections ?? [])].join(' · ')}</p>
+            ) : null}
             {source.status === 'UPLOADED' || source.status === 'PROCESSING' ? (
               <SourceProgress workspaceId={workspaceId} sourceId={source.id} />
             ) : null}
@@ -145,25 +194,31 @@ export function SourceList({
       <EmptyState
         context={type === 'ALL' ? 'Sources · empty' : `Sources · ${type}`}
         title={
-          sources?.length === 0 ? 'Bring in your research material' : `No ${type} sources`
+          total === 0 && !filtered
+            ? 'Bring in your research material'
+            : type !== 'ALL'
+              ? `No ${type} sources`
+              : 'No matching sources'
         }
         description={
-          type === 'ALL'
-            ? 'Add PDF, DOCX, XLSX, CSV or TXT files. AI answers can cite your sources.'
-            : `No ${type} sources in this workspace yet.`
+          filtered && type === 'ALL'
+            ? 'Try a different search or clear the filters.'
+            : type === 'ALL'
+              ? 'Add PDF, DOCX, XLSX, CSV or TXT files. AI answers can cite your sources.'
+              : `No ${type} sources in this workspace yet.`
         }
-        art={<Illustration scene={sources?.length === 0 ? 'sources' : 'search'} />}
+        art={<Illustration scene={total === 0 ? 'sources' : 'search'} />}
         tone="blue"
         actions={
-          canEdit && sources?.length === 0
+          canEdit && total === 0 && !filtered
             ? [
                 <Button key="upload" icon="upload" onClick={() => setUploadOpen(true)}>
                   Upload source
                 </Button>,
               ]
-            : type !== 'ALL'
+            : filtered
               ? [
-                  <Button key="clear" variant="secondary" onClick={() => setType('ALL')}>
+                  <Button key="clear" variant="secondary" onClick={clearFilters}>
                     Show all sources
                   </Button>,
                 ]
@@ -185,10 +240,10 @@ export function SourceList({
       <header className={styles.header}>
         <div>
           <h1 id="workspace-sources-heading">Sources</h1>
-          {sources !== undefined && error === null ? (
+          {facets !== undefined && error === null && facetsError === null ? (
             <p>
-              {sources.length} {sources.length === 1 ? 'source' : 'sources'} ·{' '}
-              {readyCount} ready · AI answers can cite these sources
+              {total} {total === 1 ? 'source' : 'sources'} · {readyCount} ready · AI
+              answers can cite these sources
             </p>
           ) : null}
         </div>
@@ -200,7 +255,7 @@ export function SourceList({
               label={`Grounded in ${readyCount} ready ${readyCount === 1 ? 'source' : 'sources'}`}
             />
           ) : null}
-          {canEdit && sources?.length !== 0 ? (
+          {canEdit && total !== 0 ? (
             <Button icon="upload" onClick={() => setUploadOpen(true)}>
               Upload source
             </Button>
@@ -217,7 +272,101 @@ export function SourceList({
       {error !== null ? (
         <p role="alert">Could not load the sources: {describeError(error)}</p>
       ) : null}
-      {sources !== undefined && error === null ? (
+      {facetsError ? (
+        <p role="alert">Could not load filter options: {describeError(facetsError)}</p>
+      ) : null}
+      <form
+        className={styles.search}
+        role="search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          changeFilter(
+            'query',
+            String(new FormData(event.currentTarget).get('query') ?? '').trim(),
+          );
+        }}
+      >
+        <TextField
+          label="Search sources"
+          type="search"
+          placeholder="Search filename or title"
+          maxLength={200}
+          key={filters.query}
+          name="query"
+          defaultValue={filters.query}
+        />
+        <Button variant="secondary" type="submit" icon="search">
+          Search
+        </Button>
+      </form>
+      <ResponsiveFilters>
+        <div className={styles.filters}>
+          <Select
+            label="Status"
+            value={filters.status}
+            onChange={(event) => changeFilter('status', event.target.value)}
+          >
+            <option value="">All statuses</option>
+            {['UPLOADED', 'PROCESSING', 'READY', 'FAILED'].map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Uploaded by"
+            value={filters.uploader}
+            onChange={(event) => changeFilter('uploader', event.target.value)}
+          >
+            <option value="">Anyone</option>
+            {(facets?.uploaders ?? []).map((id) => (
+              <option key={id} value={id}>
+                {uploaderNames.get(id) ?? id}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Tag"
+            value={filters.tag}
+            onChange={(event) => changeFilter('tag', event.target.value)}
+          >
+            <option value="">All tags</option>
+            {(facets?.tags ?? []).map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </Select>
+          {filtered ? (
+            <Button variant="ghost" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          ) : null}
+        </div>
+      </ResponsiveFilters>
+      {facets?.collections.length ? (
+        <div className={styles.collections} aria-label="Source collections">
+          <Button
+            variant={filters.collection === '' ? 'primary' : 'secondary'}
+            size="compact"
+            onClick={() => changeFilter('collection', '')}
+          >
+            All collections
+          </Button>
+          {facets.collections.map((collection) => (
+            <Button
+              key={collection}
+              variant={filters.collection === collection ? 'primary' : 'secondary'}
+              size="compact"
+              icon="folder"
+              onClick={() => changeFilter('collection', collection)}
+            >
+              {collection}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+      {result !== undefined && error === null ? (
         <Tabs
           label="Source types"
           value={type}
@@ -225,13 +374,33 @@ export function SourceList({
           items={(['ALL', ...SOURCE_TYPES] as const).map((value) => ({
             value,
             label: value === 'ALL' ? 'All sources' : value,
-            count:
-              value === 'ALL'
-                ? sources.length
-                : sources.filter((source) => source.sourceType === value).length,
+            count: value === 'ALL' ? total : (facets?.types[value] ?? 0),
             content: value === type ? collection : null,
           }))}
         />
+      ) : null}
+      {result && result.totalElements > 0 ? (
+        <nav className={styles.pagination} aria-label="Source pages">
+          <Button
+            variant="secondary"
+            size="compact"
+            disabled={page === 0 || isFetching}
+            onClick={() => changeFilter('page', String(page - 1))}
+          >
+            Previous
+          </Button>
+          <span role="status">
+            Page {page + 1} · {result.totalElements} matching sources
+          </span>
+          <Button
+            variant="secondary"
+            size="compact"
+            disabled={!result.hasNext || isFetching}
+            onClick={() => changeFilter('page', String(page + 1))}
+          >
+            Next
+          </Button>
+        </nav>
       ) : null}
       <Button
         className={styles.refresh}
@@ -241,6 +410,7 @@ export function SourceList({
         disabled={isFetching}
         onClick={() => {
           void refetch();
+          void refreshFacets();
         }}
       >
         Refresh sources

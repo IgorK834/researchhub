@@ -227,6 +227,41 @@ function stubWorkspaceApi(options: {
       sources.push(created);
       return Promise.resolve(jsonResponse(created, 201, 'application/json'));
     }
+    if (path.startsWith(`${sourcesPath}/search?`) && method === 'GET') {
+      const params = new URL(path, 'http://local').searchParams;
+      const items = sources.filter(
+        (source) => !params.get('type') || source.sourceType === params.get('type'),
+      );
+      return Promise.resolve(
+        options.sourcesResponse ??
+          jsonResponse(
+            { items, totalElements: items.length, page: 0, size: 30, hasNext: false },
+            200,
+            'application/json',
+          ),
+      );
+    }
+    if (path === `${sourcesPath}/facets` && method === 'GET') {
+      return Promise.resolve(
+        jsonResponse(
+          {
+            total: sources.length,
+            ready: sources.filter((source) => source.status === 'READY').length,
+            types: Object.fromEntries(
+              ['PDF', 'CSV', 'DOCX', 'XLSX', 'TXT'].map((type) => [
+                type,
+                sources.filter((source) => source.sourceType === type).length,
+              ]),
+            ),
+            uploaders: [...new Set(sources.map((source) => source.uploadedBy))],
+            tags: [],
+            collections: [],
+          },
+          200,
+          'application/json',
+        ),
+      );
+    }
     if (path === sourcesPath && method === 'GET') {
       return Promise.resolve(
         options.sourcesResponse ?? jsonResponse(sources, 200, 'application/json'),
