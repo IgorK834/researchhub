@@ -38,6 +38,36 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/sources/components/SourceSearchDialog.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/sources/components/SourceCommandSearch.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/sources/components/ExternalSources.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/sources/api/sourceTextSearch.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/sources/api/externalSourceApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/export/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'src/features/devtools/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'security/browserPolicy.cjs': {

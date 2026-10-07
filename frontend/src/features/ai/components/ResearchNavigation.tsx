@@ -186,7 +186,10 @@ export function ResearchScopePanel({
             Apply scope
           </Button>
         ) : null}
-        <p>Only ready sources can be used as evidence.</p>
+        <p>
+          Workspace sources only. Only ready uploaded sources can be used as evidence.
+          External web references are kept separately and are not included in answers.
+        </p>
       </fieldset>
     </Panel>
   );

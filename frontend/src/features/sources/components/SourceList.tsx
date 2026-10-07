@@ -248,6 +248,9 @@ export function SourceList({
           ) : null}
         </div>
         <div className={styles.headerActions}>
+          <Link to={`/app/workspaces/${workspaceId}/external-sources`}>
+            External web references
+          </Link>
           {readyCount !== undefined && error === null ? (
             <Sticker
               tone="blue"

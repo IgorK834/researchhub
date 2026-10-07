@@ -36,7 +36,15 @@ export const appRoutes: RouteObject[] = [
           { path: 'workspaces', element: <WorkspaceListPage /> },
           { path: 'workspaces/:workspaceId', element: <WorkspaceDetailPage /> },
           ...(
-            ['documents', 'sources', 'ask', 'analyses', 'members', 'settings'] as const
+            [
+              'documents',
+              'sources',
+              'external-sources',
+              'ask',
+              'analyses',
+              'members',
+              'settings',
+            ] as const
           ).map((section) => ({
             path: `workspaces/:workspaceId/${section}`,
             element: <WorkspaceDetailPage section={section} />,

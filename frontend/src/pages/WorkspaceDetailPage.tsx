@@ -12,6 +12,7 @@ import { AnalysisList } from '../features/analysis/components/AnalysisList';
 
 import { DocumentList } from '../features/documents/components/DocumentList';
 import { SourceList } from '../features/sources/components/SourceList';
+import { ExternalSources } from '../features/sources/components/ExternalSources';
 import {
   useWorkspaceMembersQuery,
   useWorkspaceQuery,
@@ -169,6 +170,14 @@ function WorkspaceDetail({
         uploaderNames={
           new Map(members?.map((member) => [member.userId, member.displayName]))
         }
+      />
+    );
+  if (section === 'external-sources')
+    return (
+      <ExternalSources
+        key={workspace.id}
+        workspaceId={workspace.id}
+        canEdit={canEditContent}
       />
     );
   if (section === 'ask')

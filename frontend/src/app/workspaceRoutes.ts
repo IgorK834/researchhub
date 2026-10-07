@@ -3,6 +3,7 @@ export const WORKSPACE_SECTIONS = {
   overview: 'Overview',
   documents: 'Documents',
   sources: 'Sources',
+  'external-sources': 'External web references',
   ask: 'Ask AI',
   analyses: 'Analyses',
   members: 'Members',
