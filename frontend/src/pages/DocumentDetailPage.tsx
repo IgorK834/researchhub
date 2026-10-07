@@ -115,6 +115,7 @@ function DocumentScreen({
   const [authoringHost] = useState(() => window.document.createElement('div'));
   const [presenceHost] = useState(() => window.document.createElement('div'));
   const [statusHost] = useState(() => window.document.createElement('div'));
+  const [exportHost] = useState(() => window.document.createElement('div'));
   const attach =
     (host: HTMLElement) =>
     (element: HTMLDivElement | null): void => {
@@ -154,6 +155,7 @@ function DocumentScreen({
       <div className={styles.topbarActions}>
         <div ref={attach(statusHost)} />
         <div ref={attach(presenceHost)} />
+        <div ref={attach(exportHost)} />
         <Button
           variant="secondary"
           icon="comment"
@@ -288,6 +290,7 @@ function DocumentScreen({
         }
       >
         <EditorArea
+          exportHost={exportHost}
           workspaceId={workspaceId}
           document={document}
           sourceTypes={
@@ -328,6 +331,7 @@ function DocumentScreen({
 }
 
 function EditorArea({
+  exportHost,
   commentsHost,
   provenanceHost,
   onOpenComments,
@@ -350,6 +354,7 @@ function EditorArea({
   focusBlock,
   onOpenAuthoring,
 }: {
+  readonly exportHost: HTMLElement;
   readonly commentsHost: HTMLElement;
   readonly provenanceHost: HTMLElement;
   readonly onOpenComments: () => void;
@@ -395,6 +400,7 @@ function EditorArea({
         </p>
       ) : null}
       <DocumentEditorForm
+        exportHost={exportHost}
         commentsHost={commentsHost}
         provenanceHost={provenanceHost}
         onOpenComments={onOpenComments}

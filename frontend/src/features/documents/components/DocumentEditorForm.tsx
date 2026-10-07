@@ -27,6 +27,7 @@ import type { SelectionAuthoringRequest } from '../../ai/api/authoringActions';
 import type { Editor } from '@tiptap/core';
 import type { CommentAnchor } from '../comments/commentAnchor';
 import { DocumentComments } from '../comments/DocumentComments';
+import { ExportDocument } from '../../export/ExportDocument';
 
 export interface DocumentAuthoringContext {
   readonly selectionRequest: SelectionAuthoringRequest | null;
@@ -49,6 +50,7 @@ export interface DocumentAuthoringContext {
 }
 
 export interface DocumentEditorFormProps {
+  readonly exportHost?: HTMLElement;
   readonly commentsHost?: HTMLElement;
   readonly provenanceHost?: HTMLElement;
   readonly onOpenComments?: () => void;
@@ -82,6 +84,7 @@ export interface DocumentEditorFormProps {
 
 /** Binds the editor to shared Yjs state when enabled; legacy documents retain revision autosave. */
 export function DocumentEditorForm({
+  exportHost,
   commentsHost,
   provenanceHost,
   onOpenComments,
@@ -208,6 +211,24 @@ export function DocumentEditorForm({
 
   return (
     <div className={styles.writingSurface}>
+      {exportHost
+        ? createPortal(
+            <ExportDocument
+              workspaceId={workspaceId}
+              documentId={document.id}
+              revision={autosave.revision}
+              settled={
+                settled &&
+                storedBody !== null &&
+                !previewing &&
+                !aiBusy &&
+                !realtime.accessRevoked &&
+                (!realtimeEnabled || realtime.connected)
+              }
+            />,
+            exportHost,
+          )
+        : null}
       {provenanceHost
         ? createPortal(
             <DocumentProvenance

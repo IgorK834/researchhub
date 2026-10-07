@@ -34,9 +34,11 @@ module.exports = {
     'src/features/ai/**/*.{ts,tsx}',
     'src/features/devtools/**/*.{ts,tsx}',
     'src/features/documents/**/*.{ts,tsx}',
+    'src/features/export/**/*.{ts,tsx}',
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/export/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'src/features/devtools/': { lines: 80, branches: 80, functions: 80, statements: 80 },
     'security/browserPolicy.cjs': {
       lines: 80,

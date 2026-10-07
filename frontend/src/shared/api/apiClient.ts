@@ -248,11 +248,11 @@ export const apiClient = {
     request<TResponse>('GET', path, options),
   getBlob: async (
     path: string,
-    options?: Pick<ApiRequestOptions, 'signal'>,
+    options?: Pick<ApiRequestOptions, 'signal'> & { readonly accept?: string },
   ): Promise<Blob> => {
     const response = await fetchResponse(path, {
       method: 'GET',
-      headers: { Accept: 'image/png, image/svg+xml' },
+      headers: { Accept: options?.accept ?? 'image/png, image/svg+xml' },
       ...(options?.signal === undefined ? {} : { signal: options.signal }),
     });
     if (!response.ok) throw await toApiError(response);
