@@ -266,7 +266,8 @@ Request correlation, structured logs, authenticated Prometheus metrics and verif
 
 ### Academic report export
 
-Documents can be exported to DOCX and PDF from the editor's **Export** action. The backend freezes the saved
+Documents can be exported to DOCX, PDF and LaTeX source bundles from the editor's **Export** action. The backend freezes the saved
 revision, citations and analysis provenance into a browser-independent report, then renders it asynchronously.
 See [report export contracts and verification](docs/development/report-export.md) for API routes, retention,
-configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232).
+configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232/RH-233). LaTeX downloads contain
+`report.tex`, chart images and provenance for local typesetting; the main backend generates sources only.

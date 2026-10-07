@@ -334,7 +334,8 @@ system content maintenance. Contracts and limitations: [document-origins-and-sna
 
 ## Academic report export
 
-`export` owns the stable, versioned report representation and its DOCX/PDF renderers. It reads documents,
+`export` owns the stable, versioned report representation and its DOCX/PDF renderers and LaTeX source bundles. It reads documents,
 source versions and saved analysis results through their application APIs, and uses workspace content-reader
 capabilities on every public operation. A module-local PostgreSQL queue and dedicated scheduler run expensive
-rendering asynchronously. Contracts, migration, limits and validation: [report-export.md](report-export.md).
+rendering asynchronously. LaTeX emits an editable `.tex` file with PNG assets in a ZIP; compilation stays outside
+the backend. Contracts, migrations, limits and validation: [report-export.md](report-export.md).
