@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import selectors
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -108,6 +109,8 @@ def sandbox(code, *, data=b'frequency (Hz),voltage (V),current (mA)\n200,2,4\n10
 
 
 def execute_tests():
+    subprocess.run([sys.executable, str(ROOT / 'scripts/security/check_analysis_boundary.py')],
+                   cwd=ROOT, check=True)
     assert docker('image', 'inspect', IMAGE, check=False).returncode == 0, 'Build sandbox image first'
     isolation = '''import os, socket, subprocess
 from pathlib import Path
@@ -122,12 +125,28 @@ for path in ['/execution/code.py', '/inputs/''' + VERSION + '''.csv', '/etc/forb
         pass
     else:
         raise AssertionError('filesystem write escaped')
-try:
-    socket.create_connection(('1.1.1.1', 443), timeout=0.5)
-except OSError:
-    pass
-else:
-    raise AssertionError('network escaped')
+for address in [('1.1.1.1', 443), ('169.254.169.254', 80), ('2606:4700:4700::1111', 443)]:
+    try:
+        socket.create_connection(address, timeout=0.5)
+    except OSError:
+        pass
+    else:
+        raise AssertionError('network escaped')
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as dns:
+    try:
+        dns.sendto(b'exfiltration-probe', ('1.1.1.1', 53))
+    except OSError:
+        pass
+    else:
+        raise AssertionError('DNS egress escaped')
+if hasattr(socket, 'AF_VSOCK'):
+    try:
+        host_socket = socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM)
+    except OSError:
+        pass
+    else:
+        host_socket.close()
+        raise AssertionError('host virtual sockets must be unavailable')
 assert subprocess.run(['python','-I','-m','pip','--version'], capture_output=True).returncode != 0
 '''
     with tempfile.TemporaryDirectory(prefix='rh-unmounted-secret-') as secret_directory:
@@ -135,7 +154,13 @@ assert subprocess.run(['python','-I','-m','pip','--version'], capture_output=Tru
         host_secret.write_text('researchhub-acceptance-secret')
         attempted_read = "\ntry:\n    Path(" + repr(str(host_secret)) + ").read_text()\nexcept OSError:\n    pass\nelse:\n    raise AssertionError('host secret was visible')\n"
         assert sandbox(isolation + attempted_read + text_result(), injected_env=True)[0] == 'SUCCESS'
-    print('PASS nonroot, fixed cwd, unmounted host secret, secret stripping, no network/socket, readonly input/root, no installer, cleanup')
+    print('PASS nonroot, fixed cwd, unmounted host secret, secret stripping, TCP/IPv6/metadata/DNS/VSOCK isolation, readonly input/root, no installer, cleanup')
+
+    seed = "from pathlib import Path\nPath('/tmp/rh-carryover').write_text('previous attempt')\n" + text_result()
+    assert sandbox(seed)[0] == 'SUCCESS'
+    fresh = "from pathlib import Path\nassert not Path('/tmp/rh-carryover').exists()\nassert not list(Path('/outputs').iterdir())\n" + text_result()
+    assert sandbox(fresh)[0] == 'SUCCESS'
+    print('PASS scratch and output state do not survive a fresh execution')
 
     specification = importlib.util.spec_from_file_location('fixture', ROOT / 'ai-worker/src/researchhub_worker/analysis/deterministic.py')
     fixture = importlib.util.module_from_spec(specification); specification.loader.exec_module(fixture)
@@ -166,6 +191,7 @@ assert subprocess.run(['python','-I','-m','pip','--version'], capture_output=Tru
         'output-symlink': ("from pathlib import Path\nPath('/outputs/result.json').symlink_to('/execution/manifest.json')", None, None),
         'undeclared-file': ("from pathlib import Path\nPath('/outputs/undeclared').write_text('bad')\n" + text_result(), None, None),
         'output-disk-cap': ("from pathlib import Path\nPath('/outputs/huge').write_bytes(b'x'*20_000_000)\n" + text_result(), None, None),
+        'output-inode-cap': ("from pathlib import Path\nfor n in range(1000): Path('/outputs/f'+str(n)).touch()\n" + text_result(), None, None),
         'memory-cap': ("blocks=[]\nwhile True: blocks.append(bytearray(16_000_000))", None, None),
         'pid-cap': ("import subprocess\nchildren=[]\nfor _ in range(100): children.append(subprocess.Popen(['python','-c','import time;time.sleep(30)']))", None, None),
         'malformed-json': ("from pathlib import Path\nPath('/outputs/result.json').write_text('{}')", None, None),

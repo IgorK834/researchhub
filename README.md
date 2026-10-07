@@ -216,6 +216,11 @@ Shared Java/Python contract and fixtures: [`contracts/analysis/dataset-preview/v
 Existing databases are upgraded by Flyway V19 (existing sources become version 1; no blobs move).
 
 
+RH-142: [ADR-008](docs/adr/ADR-008-analysis-execution-boundary.md) and the
+[threat model](docs/security/analysis-execution-threat-model.md) define the reviewed local security boundary.
+The committed, hash-bound review is required before generated-code execution checks; the dedicated analysis
+security workflow enforces it. Cloud execution remains deferred until deployment parity is demonstrated.
+
 RH-143–RH-145: [isolated scientific computations](docs/development/analysis-execution.md) add a pinned scientific
 Python image, a trusted Docker runner with filesystem/network/resource limits, durable authorized execution attempts,
 computed table/chart results and immutable provenance. The real CSV/XLSX impedance example runs against source-version

@@ -1,0 +1,80 @@
+name: Analysis security boundary
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'ai-worker/**'
+      - 'sandbox/**'
+      - 'contracts/analysis/**'
+      - 'docs/adr/ADR-008-analysis-execution-boundary.md'
+      - 'docs/security/analysis-execution-*'
+      - 'scripts/security/**'
+      - '.github/workflows/analysis-security.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+      - 'ai-worker/**'
+      - 'sandbox/**'
+      - 'contracts/analysis/**'
+      - 'docs/adr/ADR-008-analysis-execution-boundary.md'
+      - 'docs/security/analysis-execution-*'
+      - 'scripts/security/**'
+      - '.github/workflows/analysis-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analysis-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require the reviewed policy commit before any generated-code execution
+        run: python3 scripts/security/check_analysis_boundary.py
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.20'
+          python-version: '3.13.3'
+      - name: Verify the prerequisite gate with at least 80% coverage
+        run: |
+          uv sync --project ai-worker --frozen
+          mkdir -p security-reports
+          ai-worker/.venv/bin/python -m coverage run --branch --source=scripts/security --omit='*/test_*,*/check.py' --data-file=security-reports/.coverage-analysis-boundary -m unittest discover -s scripts/security -p test_analysis_boundary.py
+          ai-worker/.venv/bin/python -m coverage report --data-file=security-reports/.coverage-analysis-boundary --fail-under=80
+      - name: Verify and build the pinned AI worker
+        working-directory: ai-worker
+        run: |
+          ./scripts/check.sh
+          uv build --wheel --out-dir dist
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - name: Build the existing collaboration dependency for Spring integration tests
+        working-directory: collaboration
+        run: |
+          npm ci
+          npm run build
+      - name: Build the reviewed scientific image
+        run: docker build -t researchhub-sandbox:1.1.1 sandbox
+      - name: Verify sandbox protocol with at least 80% coverage
+        working-directory: sandbox
+        run: ../ai-worker/.venv/bin/python -m pytest
+      - name: Verify hostile-code isolation on the real Docker daemon
+        run: ai-worker/.venv/bin/python sandbox/scripts/acceptance.py
+      - name: Verify Spring build, module coverage and real computation E2E
+        working-directory: backend
+        env:
+          ANALYSIS_SANDBOX_TESTS: 'true'
+        run: ./mvnw --batch-mode --no-transfer-progress verify

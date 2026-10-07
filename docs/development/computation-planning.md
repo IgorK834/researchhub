@@ -1,5 +1,9 @@
 # Computation requests and plans (RH-140, RH-141)
 
+Task 14.2 / RH-141 is the planning prerequisite for
+[RH-142's security decision](../adr/ADR-008-analysis-execution-boundary.md). A validated plan remains untrusted;
+review and commit the execution boundary before dependent executor work or generated-code execution.
+
 The `analysis` module owns engine-independent computation intent. Runtime execution and result persistence extend these
 contracts in [analysis-execution.md](analysis-execution.md) (RH-143–RH-145). Java owns workspace authorization, the lifecycle,
 structural/reference validation and persistence; Python owns the model adapter. Source comparison in `ai` remains a

@@ -1,5 +1,11 @@
 # Scientific sandbox (RH-143–RH-145)
 
+The governing security decision is [RH-142 / ADR-008](../docs/adr/ADR-008-analysis-execution-boundary.md),
+with an explicit [threat model](../docs/security/analysis-execution-threat-model.md) and committed review.
+Before executor work or generated-code tests, run `python3 scripts/security/check_analysis_boundary.py`
+from the repository root. The real Docker acceptance harness also enforces this prerequisite.
+See [current validation](../docs/development/analysis-security-validation.md) for evidence and local/cloud limits.
+
 This image is the only place generated analysis Python executes. Spring authorizes and persists requests, plans,
 execution attempts and results; the AI worker produces code without running it. A validated plan does not prove that
 its code is safe. The trusted Java runner independently enforces the execution boundary.

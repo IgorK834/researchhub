@@ -1,5 +1,11 @@
 # Isolated scientific computations (RH-143–RH-145)
 
+Security prerequisite: [ADR-008](../adr/ADR-008-analysis-execution-boundary.md), its
+[threat model](../security/analysis-execution-threat-model.md) and committed technical review define the
+RH-142 boundary. Run `python3 scripts/security/check_analysis_boundary.py` before developing/testing execution.
+The dedicated `Analysis security boundary` workflow checks it before real generated-code tests.
+Current checks and acknowledged limitations: [analysis-security-validation.md](analysis-security-validation.md).
+
 Spring owns authorization, immutable source selection, planning validation, durable execution attempts and result
 persistence. The AI worker produces a structured plan and untrusted Python; it never executes that Python. A trusted
 local adapter launches the scientific sandbox with a fixed policy. This extends the RH-140/141 planning contracts.
