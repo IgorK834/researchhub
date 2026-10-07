@@ -4,6 +4,7 @@ import dev.researchhub.shared.error.ConflictException;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -46,7 +47,10 @@ public record Source(
         Instant createdAt,
         Instant updatedAt,
         UUID activeVersionId,
-        int activeVersionNumber
+        int activeVersionNumber,
+        BibliographicMetadata bibliography,
+        List<String> tags,
+        List<String> collections
 ) {
 
     /**
@@ -60,7 +64,19 @@ public record Source(
 
     private static final Pattern SHA256_HEX = Pattern.compile("^[0-9a-f]{64}$");
 
+    /** Compatibility for newly uploaded sources and callers that only own immutable file data. */
+    public Source(UUID id, UUID workspaceId, SourceFilename originalFilename, String displayName, SourceType sourceType,
+                  long sizeBytes, StorageKey storageKey, String contentSha256, SourceStatus status, String failureSummary,
+                  UUID uploadedBy, Instant createdAt, Instant updatedAt, UUID activeVersionId, int activeVersionNumber) {
+        this(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey, contentSha256, status,
+                failureSummary, uploadedBy, createdAt, updatedAt, activeVersionId, activeVersionNumber,
+                BibliographicMetadata.EMPTY, List.of(), List.of());
+    }
+
     public Source {
+        bibliography = Objects.requireNonNull(bibliography, "bibliography");
+        tags = SourceLabels.normalize(tags);
+        collections = SourceLabels.normalize(collections);
         Objects.requireNonNull(workspaceId, "workspaceId must not be null");
         Objects.requireNonNull(originalFilename, "originalFilename must not be null");
         Objects.requireNonNull(sourceType, "sourceType must not be null");
@@ -130,7 +146,19 @@ public record Source(
         }
         return new Source(id, workspaceId, filename, displayName, type, bytes, key, sha256,
                 SourceStatus.UPLOADED, null, replacementUploader, createdAt, now,
-                Objects.requireNonNull(versionId), versionNumber);
+                Objects.requireNonNull(versionId), versionNumber, bibliography, tags, collections);
+    }
+
+    public Source withBibliography(BibliographicMetadata metadata, Instant now) {
+        return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
+                contentSha256, status, failureSummary, uploadedBy, createdAt, now, activeVersionId, activeVersionNumber,
+                metadata, tags, collections);
+    }
+
+    public Source organize(String name, List<String> newTags, List<String> newCollections, Instant now) {
+        return new Source(id, workspaceId, originalFilename, SourceLabels.displayName(name), sourceType, sizeBytes, storageKey,
+                contentSha256, status, failureSummary, uploadedBy, createdAt, now, activeVersionId, activeVersionNumber,
+                bibliography, newTags, newCollections);
     }
 
     /** The canonical media type of the source's type, which is what is stored. */
@@ -151,7 +179,7 @@ public record Source(
             throw new IllegalArgumentException("use processingFailed to record a failure summary");
         }
         return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
-                contentSha256, next, null, uploadedBy, createdAt, now, activeVersionId, activeVersionNumber);
+                contentSha256, next, null, uploadedBy, createdAt, now, activeVersionId, activeVersionNumber, bibliography, tags, collections);
     }
 
     /** Explicitly reprocesses the same immutable bytes after a terminal run. */
@@ -161,7 +189,7 @@ public record Source(
         }
         return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
                 contentSha256, SourceStatus.PROCESSING, null, uploadedBy, createdAt, now,
-                activeVersionId, activeVersionNumber);
+                activeVersionId, activeVersionNumber, bibliography, tags, collections);
     }
 
     /** Moves a processing source to {@link SourceStatus#FAILED} with the safe explanation shown to members. */
@@ -171,7 +199,7 @@ public record Source(
         }
         return new Source(id, workspaceId, originalFilename, displayName, sourceType, sizeBytes, storageKey,
                 contentSha256, SourceStatus.FAILED, summary, uploadedBy, createdAt, now,
-                activeVersionId, activeVersionNumber);
+                activeVersionId, activeVersionNumber, bibliography, tags, collections);
     }
 
 }
