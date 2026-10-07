@@ -86,9 +86,10 @@ and the [CSP response-header contract](https://developer.mozilla.org/en-US/docs/
 ## Verification
 
 `.github/workflows/security.yml` pins third-party actions to verified commits, grants read-only
-repository access and runs the locked worker, frontend coverage/build/lint/runtime audit and Spring
-verify with the real browser security test. It uses the existing scientific sandbox for computation
-E2E. Module gates require at least 80%: JaCoCo security lines/branches (including auth's filter-chain
+repository access and runs targeted worker prompt-injection, frontend CSP, Spring security/auth/model-safety
+and real browser security regressions. It calls the reusable repository scanner workflow.
+[CI](ci.md) owns full component builds/tests and computation E2E with the existing scientific sandbox.
+Module gates require at least 80%: JaCoCo security lines/branches (including auth's filter-chain
 adapter) and AI lines, worker AI and
 evidence boundary, and frontend CSP lines/branches/functions/statements.
 

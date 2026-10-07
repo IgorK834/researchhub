@@ -1,13 +1,12 @@
 name: Repository security
 
 on:
-  pull_request:
-  push:
-    branches: [main, master]
-  schedule:
-    - cron: '23 6 * * 1'
-  workflow_dispatch:
+  workflow_call:
     inputs:
+      scan_dependencies:
+        description: Resolve and scan runtime and development dependency inventories
+        type: boolean
+        default: true
       scan_containers:
         description: Build and scan existing worker/sandbox images (HIGH/CRITICAL block)
         type: boolean
@@ -26,10 +25,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        if: inputs.scan_dependencies
         with:
           version: '0.12.20'
           python-version: '3.13.3'
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        if: inputs.scan_dependencies
         with:
           distribution: temurin
           java-version: '25'
@@ -39,6 +40,7 @@ jobs:
         id: tools
         run: sh scripts/security/install-tools.sh "$RUNNER_TEMP/security-tools"
       - name: Test security check policy (minimum 80% coverage)
+        if: inputs.scan_dependencies
         env:
           GITLEAKS_EXECUTABLE: ${{ runner.temp }}/security-tools/gitleaks
         run: |
@@ -55,10 +57,11 @@ jobs:
       # Trivy resolves BOMs/parents of pom.xml from ~/.m2 first; without it a shared runner IP
       # gets throttled by Maven Central (HTTP 429) and the scan aborts.
       - name: Populate local Maven cache for the dependency scan
+        if: inputs.scan_dependencies
         working-directory: backend
         run: ./mvnw --batch-mode --no-transfer-progress dependency:resolve
       - name: Scan Maven, npm and Python dependency inventories
-        if: ${{ !cancelled() && steps.tools.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.scan_dependencies && steps.tools.outcome == 'success' }}
         run: python3 scripts/security/check.py dependencies --trivy "$RUNNER_TEMP/security-tools/trivy"
       - name: Preserve redacted findings even on failed checks
         if: ${{ !cancelled() }}
@@ -70,7 +73,7 @@ jobs:
           retention-days: 7
 
   container-security:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_containers }}
+    if: inputs.scan_containers
     needs: repository-security
     runs-on: ubuntu-24.04
     timeout-minutes: 25

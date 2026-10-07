@@ -1,11 +1,11 @@
 # Repository hygiene and dependency scanning — RH-184
 
-The existing RH-182/RH-183 regression workflow remains responsible for builds, application tests,
-browser E2E and application coverage. `Repository security` adds independent repository checks on
-pull requests, pushes to main/master, weekly rescans of the default branch and manual runs. It
-does not add a service, change workspace authorization or give scanners application credentials.
-Require both workflow checks in the protected-branch rules before public exposure; workflow YAML
-does not itself configure GitHub branch protection.
+`ResearchHub CI` owns builds, component tests and application coverage. The RH-182/RH-183 security
+workflow owns browser/prompt-injection regressions and calls the reusable `Repository security`
+workflow for repository checks on pull requests, pushes to main/master, weekly rescans of the
+default branch and manual runs. It does not add a service, change workspace authorization or give
+scanners application credentials. Required branch checks and path selection are documented in
+[ci.md](ci.md); workflow YAML does not itself configure GitHub branch protection.
 
 ## Findings policy
 
@@ -15,7 +15,7 @@ does not itself configure GitHub branch protection.
 | Gitleaks | Any secret finding in full fetched Git history or tracked working files; shallow history; scanner errors | Redacted logs/JSON only; the exact public `tokenPolicy` identifiers `utf8-conservative-v1` and `utf8-conservative-v2` are excluded from the generic-key rule |
 | Runtime dependency scan | Every HIGH/CRITICAL finding, including findings with no available fix | LOW/MEDIUM/UNKNOWN findings remain visible warnings |
 | Development dependency scan | Scanner failures or incomplete inventories still fail | All dev-only findings, including HIGH/CRITICAL, are warnings and must be reviewed; this is not an assertion that CI tooling is safe |
-| Optional container scan | HIGH/CRITICAL OS or language-package findings, including unfixed findings; scanner/build failures | Opt-in manual job; not run during ordinary PR checks |
+| Optional container scan | HIGH/CRITICAL OS or language-package findings, including unfixed findings; scanner/build failures | Opt-in manual security job; not run during ordinary PR checks |
 | Check implementation tests | Test failures or coverage below 80% | Coverage includes branch execution; real Gitleaks integration runs after installing pinned tools |
 
 Warnings are emitted as Actions annotations and preserved in the JSON reports. There is no blanket
@@ -118,7 +118,7 @@ successful check, 1 for a policy finding and 2 when a complete check could not b
 Local untracked files are outside the gate until added to the index. Do not confuse an ignored
 local secrets file with a credential committed to Git.
 
-For image coverage, run `Repository security` manually with `scan_containers=true`. It builds only
+For image coverage, run `ResearchHub security regression` manually with `scan_containers=true`. It builds only
 the existing worker/sandbox Dockerfiles and scans both OS and installed language dependencies.
 The job does not publish or deploy images. Base-image/OS findings are evaluated independently from
 clean manifest scans; update the pinned base through a separate reviewed image change when needed.

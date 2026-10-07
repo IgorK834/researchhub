@@ -4,13 +4,47 @@ on:
   pull_request:
   push:
     branches: [main, master]
+  schedule:
+    - cron: '23 6 * * 1'
   workflow_dispatch:
+    inputs:
+      scan_containers:
+        description: Build and scan existing worker/sandbox images (HIGH/CRITICAL block)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      regression: ${{ steps.paths.outputs.regression }}
+      dependencies: ${{ steps.paths.outputs.dependencies }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: paths
+        run: python3 scripts/ci/check.py changes
+
+  repository-security:
+    needs: changes
+    uses: ./.github/workflows/repository-security.yml
+    with:
+      scan_dependencies: ${{ needs.changes.outputs.dependencies == 'true' }}
+      scan_containers: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_containers }}
+
   security:
+    needs: changes
+    if: needs.changes.outputs.regression == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -21,39 +55,46 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '26'
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: '0.12.20'
           python-version: '3.13.3'
-      - name: Prepare and verify the isolated AI worker
+      - name: Prompt-injection regression suite
         working-directory: ai-worker
         run: |
           uv sync --frozen
-          ./scripts/check.sh
-          uv build --wheel --out-dir dist
-      - name: Verify production browser bundle and coverage
+          uv run --frozen pytest -o addopts=--strict-markers tests/test_prompt_injection.py
+      - name: Prepare the cloud browser bundle for security E2E
         working-directory: frontend
         run: |
           npm ci
-          npm run lint
-          npm run test:coverage -- --runInBand
+          npm test -- --runInBand --testPathPatterns=browserPolicy
           RESEARCHHUB_DEPLOYMENT_ENV=cloud npm run build
-          npm audit --omit=dev --audit-level=high
           npx playwright install --with-deps chromium
           printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE=%s\n' "$(node -p 'require("@playwright/test").chromium.executablePath()')" >> "$GITHUB_ENV"
-      - name: Build the collaboration service used by Spring E2E tests
-        working-directory: collaboration
-        run: |
-          npm ci
-          npm run build
-      - name: Prepare existing scientific sandbox for E2E
-        run: docker build -t researchhub-sandbox:1.1.1 sandbox
-      - name: Verify Spring security, prompt injection and browser E2E
+      - name: Browser, session, authorization and model-safety regressions
         working-directory: backend
         env:
           SECURITY_BROWSER_TESTS: 'true'
-        run: ./mvnw --batch-mode verify
+        run: ./mvnw --batch-mode --no-transfer-progress '-Dtest=dev.researchhub.security.**,dev.researchhub.auth.**,ModelGatewayTest,GroundedContextBuilderTest,GenerationContractTest,ComputedContextContractsTest' test
+
+  security-required:
+    name: Security required
+    needs: [changes, repository-security, security]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/check.py gate
