@@ -45,6 +45,11 @@ jobs:
           npm audit --omit=dev --audit-level=high
           npx playwright install --with-deps chromium
           printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE=%s\n' "$(node -p 'require("@playwright/test").chromium.executablePath()')" >> "$GITHUB_ENV"
+      - name: Build the collaboration service used by Spring E2E tests
+        working-directory: collaboration
+        run: |
+          npm ci
+          npm run build
       - name: Prepare existing scientific sandbox for E2E
         run: docker build -t researchhub-sandbox:1.1.1 sandbox
       - name: Verify Spring security, prompt injection and browser E2E
