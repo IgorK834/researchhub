@@ -31,6 +31,9 @@
         <azure-storage-blob.version>12.35.0</azure-storage-blob.version>
         <azure-core-http-jdk.version>1.1.4</azure-core-http-jdk.version>
         <jacoco.version>0.8.14</jacoco.version>
+        <poi.version>5.5.1</poi.version>
+        <openhtmltopdf.version>1.1.29</openhtmltopdf.version>
+        <batik.version>1.19</batik.version>
         <!-- RH-184: patched BOMs/container until the Boot 4.1.1 baseline includes these fixes.
              Keep Jackson families aligned through their BOMs; see repository-security.md. -->
         <jackson-2-bom.version>2.22.3</jackson-2-bom.version>
@@ -38,6 +41,11 @@
         <tomcat.version>11.0.25</tomcat.version>
     </properties>
     <dependencies>
+        <!-- These document libraries are not managed by Spring Boot's BOM. -->
+        <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>${poi.version}</version></dependency>
+        <dependency><groupId>io.github.openhtmltopdf</groupId><artifactId>openhtmltopdf-pdfbox</artifactId><version>${openhtmltopdf.version}</version></dependency>
+        <dependency><groupId>org.apache.xmlgraphics</groupId><artifactId>batik-transcoder</artifactId><version>${batik.version}</version></dependency>
+        <dependency><groupId>org.apache.xmlgraphics</groupId><artifactId>batik-codec</artifactId><version>${batik.version}</version></dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
@@ -161,9 +169,21 @@
                         <include>dev/researchhub/processing/**</include>
                         <include>dev/researchhub/ai/**</include>
                         <include>dev/researchhub/analysis/**</include>
+                        <include>dev/researchhub/export/**</include>
                     </includes>
                 </configuration>
                 <executions>
+                    <execution>
+                        <id>export-coverage</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/export/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-export</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
+                            </limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>ai-diagnostics-coverage</id><phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
