@@ -15,6 +15,10 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
+import dev.researchhub.source.domain.BibliographicMetadata;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * JPA mapping for the {@code sources} table created by {@code V8__create_sources.sql}.
@@ -83,6 +87,18 @@ public class SourceEntity {
     @Column(name = "active_version_number", nullable = false)
     private int activeVersionNumber;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "bibliography", nullable = false, columnDefinition = "jsonb")
+    private BibliographicMetadata bibliography;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "tags", nullable = false, columnDefinition = "jsonb")
+    private List<String> tags;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "collections", nullable = false, columnDefinition = "jsonb")
+    private List<String> collections;
+
     /** Required by JPA. Application code uses {@link #fromDomain(Source)}. */
     protected SourceEntity() {
     }
@@ -105,6 +121,9 @@ public class SourceEntity {
         entity.updatedAt = source.updatedAt();
         entity.activeVersionId = source.activeVersionId();
         entity.activeVersionNumber = source.activeVersionNumber();
+        entity.bibliography = source.bibliography();
+        entity.tags = source.tags();
+        entity.collections = source.collections();
         return entity;
     }
 
@@ -115,7 +134,7 @@ public class SourceEntity {
         }
         return new Source(id, workspaceId, new SourceFilename(originalFilename), displayName, sourceType, sizeBytes,
                 new StorageKey(storageKey), contentSha256, status, failureSummary, uploadedBy, createdAt, updatedAt,
-                activeVersionId, activeVersionNumber);
+                activeVersionId, activeVersionNumber, bibliography, tags, collections);
     }
 
     public UUID getId() {
