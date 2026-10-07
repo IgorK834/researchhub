@@ -326,6 +326,7 @@ class AnalysisApiIntegrationTest {
         var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
+        jdbc.execute("DROP TABLE report_exports");jdbc.execute("DROP FUNCTION preserve_report_export()");
         jdbc.execute("DROP TABLE ai_usage_events,ai_rag_traces");
         jdbc.execute("DROP TABLE analysis_execution_records");jdbc.execute("DROP FUNCTION validate_analysis_execution_record()");
         jdbc.execute("DROP TABLE analysis_origins");
@@ -343,7 +344,7 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP FUNCTION preserve_request_correlation()");
         jdbc.execute("ALTER TABLE processing_jobs DROP COLUMN request_id");
         jdbc.execute("ALTER TABLE analysis_executions DROP COLUMN request_id");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31')");flyway.migrate();
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());
