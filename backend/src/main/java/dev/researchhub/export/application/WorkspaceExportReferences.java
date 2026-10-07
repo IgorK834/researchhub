@@ -19,8 +19,12 @@ public final class WorkspaceExportReferences implements ExportReferences {
                                   Integer pageStart,Integer pageEnd,String sectionTitle,List<Span> spans) {
         var source=sources.findOne(workspace,caller,sourceId);
         var version=versionId==null ? sources.activeVersion(workspace,caller,sourceId) : sources.findVersion(workspace,caller,sourceId,versionId);
-        return new SourceReference(sourceId,version.id(),version.versionNumber(),source.displayName(),version.contentSha256(),
-            processingVersion,chunkId,citedContentHash,pageStart,pageEnd,sectionTitle,spans);
+        var metadata = source.bibliography();
+        var frozen = new BibliographicMetadata(metadata.title(), metadata.authors(), metadata.publicationYear(),
+                metadata.doi(), metadata.venue(), metadata.url(), metadata.citationKey());
+        return new SourceReference(sourceId,version.id(),version.versionNumber(),
+            metadata.title() == null ? source.displayName() : metadata.title(),version.contentSha256(),
+            processingVersion,chunkId,citedContentHash,pageStart,pageEnd,sectionTitle,spans,frozen);
     }
     public List<Block> analysis(UUID analysisId,UUID executionId,String outputId,String renderMode,String caption) {
         var record=executions.record(workspace,caller,analysisId,executionId);

@@ -25,8 +25,19 @@ public record Report(String schemaVersion, UUID workspaceId, UUID documentId, lo
     public record Span(String unitId, long characterStart, long characterEnd) {}
     public record SourceReference(UUID sourceId, UUID sourceVersionId, int versionNumber, String title, String sha256,
                                   String processingVersion, String chunkId, String citedContentHash, Integer pageStart, Integer pageEnd,
-                                  String sectionTitle, List<Span> spans) {
+                                  String sectionTitle, List<Span> spans, BibliographicMetadata bibliography) {
         public SourceReference { spans=List.copyOf(spans); }
+        public SourceReference(UUID sourceId, UUID sourceVersionId, int versionNumber, String title, String sha256,
+                               String processingVersion, String chunkId, String citedContentHash, Integer pageStart,
+                               Integer pageEnd, String sectionTitle, List<Span> spans) {
+            this(sourceId, sourceVersionId, versionNumber, title, sha256, processingVersion, chunkId, citedContentHash,
+                    pageStart, pageEnd, sectionTitle, spans, null);
+        }
+    }
+    /** Frozen workspace-curated metadata; DOI/URL do not establish external evidence. */
+    public record BibliographicMetadata(String title, List<String> authors, Integer publicationYear, String doi,
+                                        String venue, String url, String citationKey) {
+        public BibliographicMetadata { authors = List.copyOf(authors); }
     }
     public record BibliographyEntry(int number, SourceReference source) {}
     /** Trusted operation metadata is preserved as JSON text, independently of the editor's attributes. */

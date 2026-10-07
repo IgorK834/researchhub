@@ -20,7 +20,18 @@ public final class ReportText {
     }
     public static String bibliography(BibliographyEntry entry) {
         var s=entry.source();
-        return "["+entry.number()+"] "+s.title()+". Source version "+s.versionNumber()+" ("+s.sourceVersionId()+"). SHA-256: "+s.sha256()+".";
+        var metadata = s.bibliography();
+        var description = new StringBuilder();
+        if (metadata != null && !metadata.authors().isEmpty()) description.append(String.join("; ", metadata.authors())).append(". ");
+        description.append(s.title()).append('.');
+        if (metadata != null) {
+            if (metadata.publicationYear() != null) description.append(" ").append(metadata.publicationYear()).append('.');
+            if (metadata.venue() != null) description.append(" ").append(metadata.venue()).append('.');
+            if (metadata.doi() != null) description.append(" DOI: ").append(metadata.doi()).append('.');
+            if (metadata.url() != null) description.append(" URL: ").append(metadata.url()).append('.');
+            if (metadata.citationKey() != null) description.append(" Citation key: ").append(metadata.citationKey()).append('.');
+        }
+        return "["+entry.number()+"] "+description+" Source version "+s.versionNumber()+" ("+s.sourceVersionId()+"). SHA-256: "+s.sha256()+".";
     }
     public static String provenance(AnalysisProvenance p) {
         if (p==null) return "";
