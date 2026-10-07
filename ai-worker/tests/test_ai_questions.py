@@ -1,4 +1,5 @@
 from __future__ import annotations
+from researchhub_worker.ai.safety import EVIDENCE_POLICY
 
 import hashlib
 import json
@@ -56,6 +57,6 @@ def test_foundry_receives_the_question_policy_and_can_return_insufficient_eviden
     result = ModelGateway(provider).generate_structured(request)
     assert result.answer.status == 'INSUFFICIENT_EVIDENCE' and result.answer.claims == []
     outbound = json.loads(opener.open.call_args.args[0].data)
-    assert outbound['messages'][0]['content'] == request.request.system_instruction
+    assert outbound['messages'][0]['content'] == request.request.system_instruction + '\n\n' + EVIDENCE_POLICY
     assert json.loads(outbound['messages'][1]['content'])['instruction'] == request.request.instruction
     assert 'tools' not in outbound

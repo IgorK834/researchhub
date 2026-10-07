@@ -1,4 +1,5 @@
 from __future__ import annotations
+from researchhub_worker.ai.safety import EVIDENCE_POLICY
 
 import hashlib
 import json
@@ -98,8 +99,8 @@ def test_foundry_uses_prepared_untrusted_context_only_and_translates_local_keys(
     result = ModelGateway(provider).generate_structured(command())
     assert result.answer.claims[0].evidence_ids == ['a'*64]
     body = json.loads(opener.open.call_args.args[0].data)
-    assert body['messages'][0]['content'] == command().request.system_instruction
-    assert json.loads(body['messages'][1]['content']) == {'instruction':command().request.instruction,'context':command().context.text}
+    assert body['messages'][0]['content'] == command().request.system_instruction + '\n\n' + EVIDENCE_POLICY
+    assert json.loads(body['messages'][1]['content']) == {'instruction':command().request.instruction,'context':command().context.text, 'evidenceTrust':'UNTRUSTED_EVIDENCE'}
     assert body['response_format']['json_schema']['schema']['properties']['claims']['items']['required'] == ['text','citationKeys']
     assert 'tools' not in body and 'evidence' not in json.loads(body['messages'][1]['content'])
 

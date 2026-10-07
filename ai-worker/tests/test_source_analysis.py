@@ -1,4 +1,5 @@
 from __future__ import annotations
+from researchhub_worker.ai.safety import EVIDENCE_POLICY
 import copy
 import hashlib
 import json
@@ -85,7 +86,7 @@ def test_foundry_uses_strict_schema_and_local_evidence_keys():
     body=json.loads(opener.open.call_args.args[0].data)
     assert body['response_format']['json_schema']['name']=='researchhub_source_analysis_v1'
     assert body['response_format']['json_schema']['strict']
-    assert body['messages'][0]['content']==request.request.system_instruction
+    assert body['messages'][0]['content']==request.request.system_instruction + '\n\n' + EVIDENCE_POLICY
     assert json.loads(body['messages'][1]['content'])['context']==request.context.text
 
 

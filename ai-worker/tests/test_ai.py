@@ -1,4 +1,5 @@
 from __future__ import annotations
+from researchhub_worker.ai.safety import EVIDENCE_POLICY
 
 import io
 import json
@@ -94,8 +95,8 @@ def test_foundry_adapter_uses_strict_schema_explicit_context_and_server_paramete
     assert 'tools' not in body and 'functions' not in body
     schema = body['response_format']['json_schema']
     assert schema['strict'] and schema['schema']['additionalProperties'] is False
-    assert body['messages'][0]['content'] == command().system_instruction
-    assert json.loads(body['messages'][1]['content']) == {'instruction': command().instruction, 'evidence': payload()['evidence']}
+    assert body['messages'][0]['content'] == command().system_instruction + '\n\n' + EVIDENCE_POLICY
+    assert json.loads(body['messages'][1]['content']) == {'instruction': command().instruction, 'evidence': payload()['evidence'], 'evidenceTrust': 'UNTRUSTED_EVIDENCE'}
     provider, opener = cloud()
     omitted = command().model_copy(update={'parameters': command().parameters.model_copy(update={'temperature': None})})
     provider.generate_structured(omitted)

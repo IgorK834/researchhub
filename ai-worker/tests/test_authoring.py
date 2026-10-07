@@ -1,4 +1,5 @@
 from __future__ import annotations
+from researchhub_worker.ai.safety import EVIDENCE_POLICY
 import io
 import json
 import hashlib
@@ -69,7 +70,7 @@ def test_foundry_authoring_uses_strict_schema_and_translates_keys():
     assert result.answer.citation_ids==['a'*64] and not result.usage.estimated
     body=json.loads(opener.open.call_args.args[0].data)
     assert body['response_format']['json_schema']['name']=='researchhub_authoring_v1'
-    assert body['messages'][0]['content']==request.request.system_instruction
+    assert body['messages'][0]['content']==request.request.system_instruction + '\n\n' + EVIDENCE_POLICY
     assert json.loads(body['messages'][1]['content'])['context']==request.context.text
 
 
