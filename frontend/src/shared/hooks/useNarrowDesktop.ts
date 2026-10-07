@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-/** Keep in sync with the shell/table CSS breakpoint. Smaller-device layouts are not designed yet. */
+/** Context docking follows the shell/table breakpoint; CSS stacks tool navigation below 801px. */
 export const NARROW_DESKTOP_QUERY = '(max-width: 1280px)';
 function subscribe(notify: () => void): () => void {
   if (!window.matchMedia) return () => {};

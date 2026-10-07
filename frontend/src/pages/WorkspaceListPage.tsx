@@ -7,6 +7,7 @@ import { WorkspaceList } from '../features/workspaces/components/WorkspaceList';
 import { describeError } from '../shared/api';
 import type { AppOutletContext } from '../app/AppOutletContext';
 import { Button } from '../shared/components/Button';
+import { Illustration } from '../shared/components/Illustration';
 import { Card, EmptyState, emptyStateCopy } from '../shared/components/content';
 import { Banner, Skeleton } from '../shared/components/feedback';
 import styles from '../features/workspaces/components/Workspaces.module.css';
@@ -67,6 +68,8 @@ export function WorkspaceListPage(): ReactElement {
         data.length === 0 ? (
           <div className={styles.firstRun}>
             <EmptyState
+              context={emptyStateCopy.workspaces.context}
+              art={<Illustration scene="workspace" />}
               title={emptyStateCopy.workspaces.title}
               description="A workspace holds your sources, documents and analyses — and the people you work on them with."
               actions={[

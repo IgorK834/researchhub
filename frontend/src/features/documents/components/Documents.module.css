@@ -1,9 +1,12 @@
 .listPage {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   gap: var(--space-5);
 }
 .listHeader {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
@@ -28,6 +31,7 @@
 }
 .filters > div {
   flex: 1;
+  min-inline-size: 0;
   max-width: 340px;
 }
 .filters label {

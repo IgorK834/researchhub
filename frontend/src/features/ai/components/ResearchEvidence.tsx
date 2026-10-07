@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { Card, Panel } from '../../../shared/components/content';
+import { Illustration } from '../../../shared/components/Illustration';
 import { SourceTypeTile, SourceTypeBadge } from '../../sources/components/SourceVisuals';
 import { citationPath, type Citation } from '../api/generationApi';
 import type { QuestionResponse } from '../api/questionApi';
@@ -22,6 +23,7 @@ export function CitationPanel({
   if (selected === null)
     return (
       <Panel title="Citation">
+        <Illustration scene="magnifier" size="compact" />
         <p>Select Inspect on an evidence card to see its source, location and quote.</p>
       </Panel>
     );

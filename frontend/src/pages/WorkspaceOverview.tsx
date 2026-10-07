@@ -15,6 +15,7 @@ import { WorkspaceQuestions } from '../features/ai/components/WorkspaceQuestions
 import { workspaceSectionPath } from '../app/workspaceRoutes';
 import { describeError } from '../shared/api';
 import { IconTile, ListRow, Panel } from '../shared/components/content';
+import { Illustration, type IllustrationScene } from '../shared/components/Illustration';
 import { Banner, Skeleton } from '../shared/components/feedback';
 import { AvatarStack, RoleBadge, Sticker } from '../shared/components/identity';
 import styles from '../features/workspaces/components/WorkspaceViews.module.css';
@@ -35,12 +36,14 @@ function CollectionState({
   error,
   empty,
   label,
+  scene,
   children,
 }: {
   readonly pending: boolean;
   readonly error: Error | null;
   readonly empty: boolean;
   readonly label: string;
+  readonly scene: IllustrationScene;
   readonly children: ReactNode;
 }): ReactElement {
   if (pending)
@@ -56,7 +59,13 @@ function CollectionState({
         {describeError(error)}
       </Banner>
     );
-  if (empty) return <p className={styles.quiet}>No {label} yet.</p>;
+  if (empty)
+    return (
+      <div className={styles.collectionEmpty}>
+        <Illustration scene={scene} size="compact" />
+        <p className={styles.quiet}>No {label} yet.</p>
+      </div>
+    );
   return <>{children}</>;
 }
 
@@ -83,33 +92,38 @@ export function WorkspaceOverview({
   return (
     <section className={styles.overview} aria-labelledby="workspace-overview-heading">
       <header className={styles.hero}>
-        <RoleBadge role={workspace.role} />
-        <h1 id="workspace-overview-heading">{workspace.name}</h1>
-        <p className={styles.heroDescription}>
-          {workspace.description ?? 'No description.'}
-        </p>
-        <div className={styles.heroMeta}>
-          {members.error === null && members.data !== undefined ? (
-            <AvatarStack
-              label="Workspace members"
-              people={members.data.map((member) => ({
-                userId: member.userId,
-                name: member.displayName,
-              }))}
-            />
-          ) : null}
-          {sources.error === null && readyCount !== undefined ? (
-            <Sticker
-              icon="sparkle"
-              label={`Grounded in ${readyCount} ${readyCount === 1 ? 'source' : 'sources'}`}
-            />
+        <div className={styles.heroContent}>
+          <RoleBadge role={workspace.role} />
+          <h1 id="workspace-overview-heading">{workspace.name}</h1>
+          <p className={styles.heroDescription}>
+            {workspace.description ?? 'No description.'}
+          </p>
+          <div className={styles.heroMeta}>
+            {members.error === null && members.data !== undefined ? (
+              <AvatarStack
+                label="Workspace members"
+                people={members.data.map((member) => ({
+                  userId: member.userId,
+                  name: member.displayName,
+                }))}
+              />
+            ) : null}
+            {sources.error === null && readyCount !== undefined ? (
+              <Sticker
+                icon="sparkle"
+                label={`Grounded in ${readyCount} ${readyCount === 1 ? 'source' : 'sources'}`}
+              />
+            ) : null}
+          </div>
+          {members.error !== null ? (
+            <Banner tone="error" lead="Could not load workspace members">
+              {describeError(members.error)}
+            </Banner>
           ) : null}
         </div>
-        {members.error !== null ? (
-          <Banner tone="error" lead="Could not load workspace members">
-            {describeError(members.error)}
-          </Banner>
-        ) : null}
+        <div className={styles.heroArt}>
+          <Illustration scene="hero" />
+        </div>
       </header>
       {workspace.archivedAt !== null ? (
         <Banner lead="This workspace is archived.">
@@ -141,6 +155,7 @@ export function WorkspaceOverview({
               error={documents.error}
               empty={recentDocuments.length === 0}
               label="documents"
+              scene="documents"
             >
               <ul className={styles.recentList}>
                 {recentDocuments.map((document) => (
@@ -177,6 +192,7 @@ export function WorkspaceOverview({
               error={sources.error}
               empty={recentSources.length === 0}
               label="sources"
+              scene="sources"
             >
               <ul className={styles.recentList}>
                 {recentSources.map((source) => (
@@ -212,6 +228,7 @@ export function WorkspaceOverview({
               error={conversations.error}
               empty={recentConversations.length === 0}
               label="AI conversations"
+              scene="thinking"
             >
               <ul className={styles.recentList}>
                 {recentConversations.map((conversation) => (

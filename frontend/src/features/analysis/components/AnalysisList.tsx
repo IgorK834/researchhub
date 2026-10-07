@@ -1,7 +1,8 @@
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../../shared/components/Button';
-import { Card, IconTile } from '../../../shared/components/content';
+import { Card, EmptyState, IconTile } from '../../../shared/components/content';
+import { Illustration } from '../../../shared/components/Illustration';
 import { Banner } from '../../../shared/components/feedback';
 import { describeError } from '../../../shared/api';
 import { useAnalysesQuery } from '../api/useAnalyses';
@@ -47,14 +48,27 @@ export function AnalysisList({
           </Button>
         </Banner>
       ) : null}
-      {analyses.data?.length === 0 ? (
-        <Card>
-          <h2>No analyses on this page</h2>
-          <p>
-            Computed results and their provenance appear here after an analysis is
-            created.
-          </p>
-        </Card>
+      {analyses.error === null && !analyses.isPending && analyses.data?.length === 0 ? (
+        <EmptyState
+          context="Analyses · empty"
+          title={offset === 0 ? 'No analyses yet' : 'No analyses on this page'}
+          description="Computed results and their provenance appear here after an analysis is created."
+          art={<Illustration scene={offset === 0 ? 'analyses' : 'search'} />}
+          tone={offset === 0 ? 'yellow' : 'blue'}
+          actions={
+            offset === 0 && canEdit
+              ? [
+                  <Button
+                    key="create"
+                    href={`/app/workspaces/${workspaceId}/analyses/new`}
+                    icon="lineChart"
+                  >
+                    Analyze data
+                  </Button>,
+                ]
+              : undefined
+          }
+        />
       ) : null}
       <ul className={styles.list}>
         {analyses.data?.map((analysis) => (

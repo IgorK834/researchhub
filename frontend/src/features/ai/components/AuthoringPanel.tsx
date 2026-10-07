@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 import { createPortal } from 'react-dom';
 import { Button } from '../../../shared/components/Button';
 import { Icon } from '../../../shared/components/icons';
+import { Illustration } from '../../../shared/components/Illustration';
 import { AiDraftBlock } from './AiDraftBlock';
 import {
   authoringCommand,
@@ -459,6 +460,14 @@ export function AuthoringPanel({
             : REWRITE_ACTIONS.find(([value]) => value === action)?.[1]}
       </h2>
       <p>Suggestions change the document only after you accept them.</p>
+      {suggestion === null &&
+      !busy &&
+      !sources.isPending &&
+      sources.error === null &&
+      error === null &&
+      kind !== 'REWRITE' ? (
+        <Illustration scene={kind === 'DRAFT' ? 'laptop' : 'magnifier'} size="compact" />
+      ) : null}
       {!settled ? (
         <p role="status">Save your changes before using AI authoring.</p>
       ) : null}
@@ -470,11 +479,14 @@ export function AuthoringPanel({
         </button>
       ) : null}
       {busy ? (
-        <p role="status">
-          {generatingDraft
-            ? 'Generating a source-grounded draft…'
-            : 'Working on your request…'}
-        </p>
+        <div>
+          <Illustration scene="thinking" size="compact" />
+          <p role="status">
+            {generatingDraft
+              ? 'Generating a source-grounded draft…'
+              : 'Working on your request…'}
+          </p>
+        </div>
       ) : null}
       {suggestion?.command.kind === 'DRAFT' ? (
         <div className={styles.result} role="status">

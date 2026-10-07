@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import type { AuthoringSuggestion } from '../api/authoringApi';
 import { citationPath } from '../api/generationApi';
 import { Button } from '../../../shared/components/Button';
+import { Illustration } from '../../../shared/components/Illustration';
 import { CitationReference, citationLocation, citationVariant } from './Citations';
 import styles from './AuthoringReview.module.css';
 
@@ -43,6 +44,7 @@ export function ClaimEvidencePanel({
       </p>
       {noEvidence ? (
         <div className={styles.noEvidence} role="status">
+          <Illustration scene="evidence" size="compact" />
           <strong>No supporting evidence found.</strong>
           <p>
             The returned excerpts do not support this claim. You can keep the claim as it

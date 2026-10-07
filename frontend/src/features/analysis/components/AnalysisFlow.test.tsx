@@ -397,7 +397,7 @@ it('shows read-only empty list and recovers from a list request failure', async 
   expect(screen.queryByRole('link', { name: 'New analysis' })).toBeNull();
   fail = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  await screen.findByText('No analyses on this page');
+  await screen.findByText('No analyses yet');
 });
 it('shows the accepted plan, warnings and opt-in read-only code without executing it', async () => {
   const mock = api();

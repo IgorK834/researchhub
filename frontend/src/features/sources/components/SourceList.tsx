@@ -5,11 +5,11 @@ import { Button } from '../../../shared/components/Button';
 import {
   DataTable,
   EmptyState,
-  IconTile,
   type TableColumn,
 } from '../../../shared/components/content';
 import { Avatar, Sticker } from '../../../shared/components/identity';
 import { Icon } from '../../../shared/components/icons';
+import { Illustration } from '../../../shared/components/Illustration';
 import { Tabs } from '../../../shared/components/navigation';
 import type { WorkspaceSource } from '../api/sourceApi';
 import { sourceContentPath } from '../api/sourceApi';
@@ -144,13 +144,16 @@ export function SourceList({
     rows.length === 0 ? (
       <EmptyState
         context={type === 'ALL' ? 'Sources · empty' : `Sources · ${type}`}
-        title="Bring in your research material"
+        title={
+          sources?.length === 0 ? 'Bring in your research material' : `No ${type} sources`
+        }
         description={
           type === 'ALL'
             ? 'Add PDF, DOCX, XLSX, CSV or TXT files. AI answers can cite your sources.'
             : `No ${type} sources in this workspace yet.`
         }
-        art={<IconTile icon="upload" tone="blue" size="large" />}
+        art={<Illustration scene={sources?.length === 0 ? 'sources' : 'search'} />}
+        tone="blue"
         actions={
           canEdit && sources?.length === 0
             ? [
@@ -158,7 +161,13 @@ export function SourceList({
                   Upload source
                 </Button>,
               ]
-            : undefined
+            : type !== 'ALL'
+              ? [
+                  <Button key="clear" variant="secondary" onClick={() => setType('ALL')}>
+                    Show all sources
+                  </Button>,
+                ]
+              : undefined
         }
       />
     ) : (

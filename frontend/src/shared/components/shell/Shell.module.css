@@ -214,3 +214,25 @@
     padding: var(--space-5);
   }
 }
+@media (max-width: 640px) {
+  .content {
+    padding: var(--space-3);
+  }
+  .topbar {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+  .topbarActions {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .topbarActions > div {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+}

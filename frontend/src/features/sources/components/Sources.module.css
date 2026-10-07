@@ -5,10 +5,16 @@
 }
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-5);
   margin-bottom: var(--space-5);
+}
+@media (max-width: 640px) {
+  .library {
+    padding: var(--space-3);
+  }
 }
 .header h1 {
   margin: 0 0 var(--space-2);

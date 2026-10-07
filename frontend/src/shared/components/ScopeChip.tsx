@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Badge } from './identity';
+import styles from './ScopeChip.module.css';
 
 /** null is the authorized workspace scope; an empty array is an explicit empty scope. */
 export function ScopeChip({
@@ -16,6 +17,7 @@ export function ScopeChip({
   const count = selectedSourceIds === null ? sourceCount : selectedSourceIds.length;
   return (
     <Badge
+      className={styles.scope}
       icon="library"
       tone="blue"
       label={

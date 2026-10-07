@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { describeError } from '../../../shared/api';
 import { Button } from '../../../shared/components/Button';
+import { Illustration } from '../../../shared/components/Illustration';
 import { DataTable, EmptyState, IconTile } from '../../../shared/components/content';
 import { TextField } from '../../../shared/components/forms';
 import type { DocumentSummary } from '../api/documentApi';
@@ -94,8 +95,9 @@ export function DocumentList({
           <EmptyState
             title="Nothing written yet"
             description="Your research starts with a blank page. Write your first document here."
-            art={<IconTile icon="file" tone="coral" size="large" />}
-            tone="yellow"
+            art={<Illustration scene="documents" size={column ? 'compact' : 'default'} />}
+            size={column ? 'compact' : 'default'}
+            tone="lavender"
             actions={
               canEdit
                 ? [
@@ -141,6 +143,8 @@ export function DocumentList({
             </div>
             {rows.length === 0 ? (
               <EmptyState
+                art={<Illustration scene="search" />}
+                tone="blue"
                 title="No matching documents"
                 description="Try another title or clear your search."
                 actions={[

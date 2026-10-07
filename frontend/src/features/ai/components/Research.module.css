@@ -69,6 +69,12 @@
   overflow-wrap: anywhere;
   gap: var(--space-4);
 }
+.insufficient {
+  padding: var(--space-3);
+  background: var(--color-brand-coral-tint);
+  border: var(--border-width) solid var(--color-brand-coral-mid);
+  border-radius: var(--radius-lg);
+}
 .answer {
   padding: var(--space-5);
   background: var(--color-brand-lavender-tint);
@@ -123,8 +129,6 @@
   margin-block: var(--space-4);
 }
 .composer {
-  position: sticky;
-  bottom: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-inline-size: 0;
@@ -134,10 +138,6 @@
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--elevation-e1);
-  z-index: 1;
-}
-.panel .composer {
-  position: static;
 }
 .panel .actions > * {
   max-inline-size: 100%;
@@ -237,4 +237,24 @@
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+}
+@media (max-width: 800px) {
+  .page {
+    padding: 0;
+  }
+  .banner {
+    flex-wrap: wrap;
+  }
+  .banner > div {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+  .composer button {
+    max-inline-size: 100%;
+    white-space: normal;
+  }
+  .investigations {
+    position: static;
+    max-block-size: none;
+  }
 }

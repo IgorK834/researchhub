@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { Card, Panel } from '../../../shared/components/content';
 import { Banner } from '../../../shared/components/feedback';
+import { Illustration } from '../../../shared/components/Illustration';
 import type { Citation, GeneratedResponse, AnalysisCitation } from '../api/generationApi';
 import { analysisCitationPath } from '../api/generationApi';
 import { Link } from 'react-router-dom';
@@ -57,6 +58,7 @@ export function AnswerState({
     );
   return (
     <Card className={state === 'thinking' ? styles.answer : undefined}>
+      {state === 'thinking' ? <Illustration scene="thinking" size="compact" /> : null}
       <p role="status" aria-live="polite">
         {message}
       </p>
@@ -192,11 +194,21 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
   return (
     <section aria-label="Source-grounded response" className={styles.response}>
       {status === 'INSUFFICIENT_EVIDENCE' ? (
-        <Banner tone="note" lead="There is insufficient evidence to answer this request.">
-          {reason === null || reason === undefined ? null : <p>{reasons[reason]}</p>}
-          {answer ? <p>{answer}</p> : null}
-          {insufficientAction}
-        </Banner>
+        <div className={styles.insufficient}>
+          {reason === 'NO_RETRIEVED_EVIDENCE' &&
+          evidence.length === 0 &&
+          analysisEvidence.length === 0 ? (
+            <Illustration scene="evidence" size="compact" />
+          ) : null}
+          <Banner
+            tone="note"
+            lead="There is insufficient evidence to answer this request."
+          >
+            {reason === null || reason === undefined ? null : <p>{reasons[reason]}</p>}
+            {answer ? <p>{answer}</p> : null}
+            {insufficientAction}
+          </Banner>
+        </div>
       ) : (
         <Card className={styles.answer}>
           <h3>Grounded answer</h3>

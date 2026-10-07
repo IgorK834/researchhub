@@ -6,6 +6,7 @@ import { useSourcesQuery } from '../../sources/api/useSources';
 import { CitationReference, citationLocation } from './Citations';
 import { citationPath } from '../api/generationApi';
 import { Button } from '../../../shared/components/Button';
+import { Illustration } from '../../../shared/components/Illustration';
 import { Icon } from '../../../shared/components/icons';
 import styles from './SourceComparisonPanel.module.css';
 import {
@@ -186,8 +187,11 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
               </Button>
             </div>
           ) : null}
-          {sources.data?.length === 0 ? (
-            <p>No sources available for comparison.</p>
+          {!sources.isPending && sources.error === null && sources.data?.length === 0 ? (
+            <div>
+              <Illustration scene="sources" size="compact" />
+              <p>No sources available for comparison.</p>
+            </div>
           ) : null}
           <details className={styles.settings} open={compare.data === undefined}>
             <summary>Comparison settings</summary>

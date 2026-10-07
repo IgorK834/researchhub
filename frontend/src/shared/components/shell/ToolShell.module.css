@@ -63,3 +63,31 @@
 .tool:has(.contextTrigger) .main {
   padding-top: var(--space-8);
 }
+@media (max-width: 800px) {
+  .tool {
+    display: block;
+  }
+  .secondary {
+    max-block-size: 240px;
+    overflow-y: auto;
+    border-right: 0;
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+  .secondary:has([data-illustration]) {
+    max-block-size: none;
+  }
+  .main {
+    padding: var(--space-3);
+  }
+  .contextTrigger {
+    right: var(--space-3);
+    max-inline-size: calc(100% - 2 * var(--space-3));
+    white-space: normal;
+  }
+  .tool:has(.contextTrigger) .secondary {
+    padding-top: var(--space-8);
+  }
+  .tool:has(.secondary):has(.contextTrigger) .main {
+    padding-top: var(--space-3);
+  }
+}

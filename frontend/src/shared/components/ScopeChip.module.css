@@ -1,0 +1,10 @@
+span.scope {
+  block-size: auto;
+  min-block-size: 26px;
+  padding-block: var(--space-1);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.scope svg {
+  flex-shrink: 0;
+}

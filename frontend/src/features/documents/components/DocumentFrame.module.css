@@ -1,5 +1,6 @@
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
@@ -8,9 +9,18 @@
 }
 .topbarActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+@media (max-width: 800px) {
+  .column {
+    position: static;
+    height: auto;
+  }
 }
 .saveStatus {
   display: inline-flex;

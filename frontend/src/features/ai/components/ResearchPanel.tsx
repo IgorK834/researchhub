@@ -29,7 +29,8 @@ import { ScopeChip } from '../../../shared/components/ScopeChip';
 import { AnswerState } from './GroundedAnswer';
 import { AnalysisEvidencePicker } from './AnalysisEvidencePicker';
 import type { AnalysisEvidenceReference } from '../api/generationApi';
-import { Card } from '../../../shared/components/content';
+import { Card, EmptyState } from '../../../shared/components/content';
+import { Illustration } from '../../../shared/components/Illustration';
 import { Banner } from '../../../shared/components/feedback';
 import { Select, Textarea } from '../../../shared/components/forms';
 import { ToolShell } from '../../../shared/components/shell';
@@ -495,6 +496,31 @@ function Panel({
         </>
       )}
       <div aria-label="Conversation history" className={styles.history}>
+        {!conversations.isPending &&
+        conversations.error === null &&
+        !sources.loading &&
+        sources.error === null &&
+        (conversationId === null || !history.isPending) &&
+        history.error === null &&
+        messages.length === 0 &&
+        visibleCompletion === null &&
+        !pending &&
+        error === null &&
+        !notice ? (
+          <EmptyState
+            title="Start with a research question"
+            description="Ask about your sources, then inspect the passages behind each answer."
+            art={
+              <Illustration
+                scene={variant === 'page' ? 'hero' : 'magnifier'}
+                size={variant === 'page' ? 'default' : 'compact'}
+              />
+            }
+            tone={variant === 'page' ? 'lavender' : 'blue'}
+            size={variant === 'page' ? 'default' : 'compact'}
+            headingLevel={variant === 'page' ? 'h2' : 'h3'}
+          />
+        ) : null}
         {conversationId !== null && history.isPending ? (
           <p role="status">Loading conversation history…</p>
         ) : null}

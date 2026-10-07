@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../../shared/components/Button';
+import { Illustration } from '../../../shared/components/Illustration';
 import { Panel, DataTable } from '../../../shared/components/content';
 import { Select, Textarea } from '../../../shared/components/forms';
 import { Banner } from '../../../shared/components/feedback';
@@ -68,6 +69,7 @@ export function NewAnalysis({
       ) : null}
       {!selected ? (
         <Panel title="Choose data">
+          <Illustration scene="sources" />
           <p>
             No ready CSV or XLSX datasets are available. Upload and process a dataset
             first.
