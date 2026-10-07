@@ -19,6 +19,40 @@ class SourceLibraryMigrationUpgradeTest {
 
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void externalDiscoveryMigrationPreservesExistingV34LibraryAndImmutableVersions() throws Exception {
+        String schema = "external_upgrade_" + UUID.randomUUID().toString().replace("-", "");
+        try {
+            Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema)
+                    .locations("classpath:db/migration").target("34").load().migrate();
+            try (var connection = dataSource.getConnection()) {
+                connection.setSchema(schema);
+                var jdbc = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
+                UUID user = UUID.randomUUID(), workspace = UUID.randomUUID(), source = UUID.randomUUID();
+                jdbc.update("INSERT INTO users(id,email,normalized_email,password_hash,display_name,status,created_at,updated_at) VALUES (?, 'old@example.com','old@example.com','hash','Old','ACTIVE',now(),now())", user);
+                jdbc.update("INSERT INTO workspaces(id,name,created_by,created_at,updated_at) VALUES (?, 'Old', ?,now(),now())", workspace, user);
+                UUID version = SourceRowFixture.insertReadyText(jdbc, source, workspace, user, "Curated source");
+                jdbc.update("UPDATE sources SET tags='[\"energy\"]',collections='[\"papers\"]',bibliography=jsonb_set(bibliography,'{title}','\"Solar paper\"') WHERE id=?", source);
+                String sourceBefore = jdbc.queryForObject("SELECT row_to_json(s)::text FROM sources s WHERE id=?", String.class, source);
+                String versionBefore = jdbc.queryForObject("SELECT row_to_json(v)::text FROM source_versions v WHERE id=?", String.class, version);
+                Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema)
+                        .locations("classpath:db/migration").load().migrate();
+                assertEquals(sourceBefore, jdbc.queryForObject("SELECT row_to_json(s)::text FROM sources s WHERE id=?", String.class, source));
+                assertEquals(versionBefore, jdbc.queryForObject("SELECT row_to_json(v)::text FROM source_versions v WHERE id=?", String.class, version));
+                assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM external_source_searches", Integer.class));
+                assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM external_source_references", Integer.class));
+                assertThrows(org.springframework.dao.DataAccessException.class, () -> jdbc.update(
+                        "INSERT INTO external_source_searches(id,workspace_id,searched_by,payload,searched_at) VALUES (?,?,?,'{}',now())", UUID.randomUUID(), workspace, user));
+                connection.setSchema("public");
+            }
+        } finally {
+            try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
+                statement.execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+            }
+        }
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void addsEmptyMetadataToExistingSourcesAndEnforcesBoundsWithoutChangingVersions() throws Exception {
         String schema = "library_upgrade_" + UUID.randomUUID().toString().replace("-", "");
         try {
