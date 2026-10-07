@@ -14,6 +14,7 @@ from urllib.request import Request, build_opener, HTTPRedirectHandler
 from .contracts import (ANSWER_SCHEMA, Claim, GenerationRequest, GenerationResult,
                         ModelMetadata, StructuredAnswer, UsageMetadata)
 from .context import ContextualRequest, LocalAnswer, LocalClaim, LOCAL_ANSWER_SCHEMA
+from .safety import model_messages
 
 
 class ProviderError(RuntimeError):
@@ -90,9 +91,9 @@ class FoundryModelProvider:
         contextual = input_request if isinstance(input_request, (ContextualRequest, PlanningRequest)) else None
         request = contextual.request if contextual is not None else input_request
         body = {'model': self._deployment, 'stream': False, 'store': False,
-            'messages': [{'role': 'system', 'content': request.system_instruction},
-                         {'role': 'user', 'content': contextual.user_message() if contextual is not None else json.dumps({'instruction': request.instruction,
-                             'evidence': [item.model_dump(by_alias=True) for item in request.evidence]}, ensure_ascii=False)}],
+            'messages': model_messages(request.system_instruction,
+                contextual.user_message() if contextual is not None else json.dumps({'instruction': request.instruction,
+                    'evidence': [item.model_dump(by_alias=True) for item in request.evidence]}, ensure_ascii=False)),
             'max_completion_tokens': request.parameters.max_output_tokens,
             'response_format': {'type': 'json_schema', 'json_schema': {
                 'name': schema_name,

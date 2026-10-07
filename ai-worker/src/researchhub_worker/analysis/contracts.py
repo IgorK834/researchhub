@@ -1,4 +1,5 @@
 """Computation-plan v1. Mirrors AnalysisContracts; physical indices are the column identity."""
+import json
 from typing import Annotated, Literal
 from uuid import UUID
 from pydantic import Field, model_validator
@@ -59,7 +60,10 @@ class PlanningRequest(ContractModel):
 
     def user_message(self):
         # A fixed protocol guides model-generated programs; the immutable application manifest supplies paths.
-        return self.model_dump_json(by_alias=True) + '\nExecution protocol: Python 3.13.3 with pinned scientific packages. Read only declared immutable inputs and the controlled /execution/manifest.json. Write /outputs/result.json using result schemaVersion 2.0 and the exact declared TABLE/CHART/TEXT names. TABLE has columns and computed rows of finite JSON scalars; TEXT has text. CHART has file (simple .png or passive .svg basename), title, xAxis and yAxis ({label,unit:null or string,scale:LINEAR or LOG}), series:[{name,tableName,xColumn,yColumn,yTransform:IDENTITY or ABS}]. Series reference actual numeric columns in persisted TABLE outputs; use [] when unavailable. Never supply source analysis IDs, code hashes or point counts. Maximum 100 columns, 10000 rows, 100000 total cells, 1 MiB JSON, 8 MiB/chart, 16 MiB total. No additional files, network, credentials, package installation or application access. Numeric results come from full immutable input, never preview samples.'
+        protocol = 'Execution protocol: Python 3.13.3 with pinned scientific packages. Read only declared immutable inputs and the controlled /execution/manifest.json. Write /outputs/result.json using result schemaVersion 2.0 and the exact declared TABLE/CHART/TEXT names. TABLE has columns and computed rows of finite JSON scalars; TEXT has text. CHART has file (simple .png or passive .svg basename), title, xAxis and yAxis ({label,unit:null or string,scale:LINEAR or LOG}), series:[{name,tableName,xColumn,yColumn,yTransform:IDENTITY or ABS}]. Series reference actual numeric columns in persisted TABLE outputs; use [] when unavailable. Never supply source analysis IDs, code hashes or point counts. Maximum 100 columns, 10000 rows, 100000 total cells, 1 MiB JSON, 8 MiB/chart, 16 MiB total. No additional files, network, credentials, package installation or application access. Numeric results come from full immutable input, never preview samples.'
+        data = self.model_dump(mode='json', by_alias=True)
+        data['executionProtocol'] = protocol
+        return json.dumps(data, ensure_ascii=False, separators=(',', ':'))
 
 
 class PlanInput(ContractModel):
