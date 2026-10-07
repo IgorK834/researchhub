@@ -142,6 +142,7 @@
                 <configuration>
                     <includes>
                         <include>dev/researchhub/security/**</include>
+                        <include>dev/researchhub/auth/infrastructure/SecurityConfiguration*</include>
                         <include>dev/researchhub/comment/**</include>
                         <include>dev/researchhub/document/**</include>
                         <include>dev/researchhub/audit/**</include>
@@ -231,7 +232,10 @@
                         <id>security-coverage-report</id><phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
                         <configuration>
-                            <includes><include>dev/researchhub/security/**</include></includes>
+                            <includes>
+                                <include>dev/researchhub/security/**</include>
+                                <include>dev/researchhub/auth/infrastructure/SecurityConfiguration*</include>
+                            </includes>
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-security</outputDirectory>
                             <rules><rule><element>BUNDLE</element><limits><limit>
                                 <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum>
