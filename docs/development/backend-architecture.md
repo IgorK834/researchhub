@@ -331,3 +331,10 @@ owns immutable version rows and has no dependency on collaboration implementatio
 explicit validated acceptance in the content transaction. This stores operation/block origins,
 not inferred authorship. Scheduled history uses a narrow workspace application guard for active
 system content maintenance. Contracts and limitations: [document-origins-and-snapshots.md](document-origins-and-snapshots.md).
+
+## Academic report export
+
+`export` owns the stable, versioned report representation and its DOCX/PDF renderers. It reads documents,
+source versions and saved analysis results through their application APIs, and uses workspace content-reader
+capabilities on every public operation. A module-local PostgreSQL queue and dedicated scheduler run expensive
+rendering asynchronously. Contracts, migration, limits and validation: [report-export.md](report-export.md).

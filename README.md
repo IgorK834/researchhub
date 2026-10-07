@@ -263,3 +263,10 @@ unsnapshotted content, retires old collaboration replicas and isolates offline b
 Request correlation, structured logs, authenticated Prometheus metrics and verification: [Observability (RH-185 / RH-186)](docs/development/observability.md).
 
 [AI usage/cost telemetry and protected RAG debugger](docs/development/ai-diagnostics.md) (RH-187 / RH-188).
+
+### Academic report export
+
+Documents can be exported to DOCX and PDF from the editor's **Export** action. The backend freezes the saved
+revision, citations and analysis provenance into a browser-independent report, then renders it asynchronously.
+See [report export contracts and verification](docs/development/report-export.md) for API routes, retention,
+configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232).
