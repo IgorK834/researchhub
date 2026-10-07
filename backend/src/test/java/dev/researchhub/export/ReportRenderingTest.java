@@ -17,7 +17,7 @@ import static dev.researchhub.export.ReportFixtures.*;
 class ReportRenderingTest {
     @Test void writesOfficeReadableDocxAndPaginatedPdfWithChartsCaptionsAndCitations() throws Exception {
         var report=rich();
-        var renderer=new AcademicReportRenderer();
+        var renderer=new AcademicReportRenderer(JSON);
         byte[] docx=renderer.render(report,ExportFormat.DOCX),pdf=renderer.render(report,ExportFormat.PDF);
         try(var word=new XWPFDocument(new ByteArrayInputStream(docx))) {
             assertTrue(word.getParagraphs().stream().anyMatch(p -> "Heading1".equals(p.getStyle())));

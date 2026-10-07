@@ -65,8 +65,8 @@ class ExportApiIntegrationTest {
         assertEquals(202,created.statusCode(),created.body());assertEquals("no-store",created.headers().firstValue("Cache-Control").orElseThrow());
         UUID id=UUID.fromString(browser.json(created).path("id").asString());assertTrue(created.headers().firstValue("Location").orElseThrow().endsWith(id.toString()));return id;
     }
-    @Test void fullHttpFlowExportsBothFormatsFromAFrozenRevisionAndViewerCanExport() throws Exception {
-        for(String format:List.of("DOCX","PDF")) {
+    @Test void fullHttpFlowExportsAllFormatsFromAFrozenRevisionAndViewerCanExport() throws Exception {
+        for(String format:List.of("DOCX","PDF","LATEX")) {
             UUID job=enqueue(viewer,format);
             assertEquals(409,viewer.get(path+"/"+job+"/download").statusCode());
             var representation=viewer.json(viewer.get(path+"/"+job+"/representation"));
@@ -74,10 +74,19 @@ class ExportApiIntegrationTest {
             assertEquals(1,representation.path("origins").size());
             dispatcher.dispatchAvailable();var ready=viewer.get(path+"/"+job);assertEquals("SUCCEEDED",viewer.json(ready).path("status").asString(),ready.body());
             var download=viewer.getBytes(path+"/"+job+"/download");assertEquals(200,download.statusCode());
+            assertEquals(ExportFormat.valueOf(format).mediaType(),download.headers().firstValue("Content-Type").orElseThrow());
+            assertTrue(viewer.json(ready).path("filename").asString().endsWith("."+ExportFormat.valueOf(format).extension()));
             assertTrue(download.headers().firstValue("Content-Disposition").orElseThrow().contains("filename*="));
             assertEquals("no-store",download.headers().firstValue("Cache-Control").orElseThrow());
             if(format.equals("DOCX")) try(var word=new XWPFDocument(new ByteArrayInputStream(download.body()))) { assertEquals(1,word.getTables().size());assertFalse(word.getParagraphs().isEmpty()); }
-            else try(var pdf=Loader.loadPDF(download.body())) { String text=new PDFTextStripper().getText(pdf);assertTrue(text.contains("Zażółć gęślą jaźń"));assertTrue(text.contains("[1, p. 3]"));assertTrue(text.contains("References")); }
+            else if(format.equals("PDF")) try(var pdf=Loader.loadPDF(download.body())) { String text=new PDFTextStripper().getText(pdf);assertTrue(text.contains("Zażółć gęślą jaźń"));assertTrue(text.contains("[1, p. 3]"));assertTrue(text.contains("References")); }
+            else {
+                var files=LatexReportRenderingTest.unzip(download.body());
+                assertTrue(LatexReportRenderingTest.tex(files).contains("Zażółć gęślą jaźń"));
+                assertTrue(LatexReportRenderingTest.tex(files).contains("[1, p. 3]"));
+                assertEquals(representation,json.readTree(files.get("report.json")));
+                assertEquals("HUMAN",json.readTree(files.get("report.json")).path("origins").get(0).path("category").asString());
+            }
             assertEquals(404,outsider.get(path+"/"+job).statusCode());assertEquals(404,outsider.get(path+"/"+job+"/download").statusCode());assertEquals(404,outsider.get(path+"/"+job+"/representation").statusCode());
             assertEquals(404,owner.get(path.replace(document.toString(),UUID.randomUUID().toString())+"/"+job).statusCode());
         }
@@ -86,7 +95,7 @@ class ExportApiIntegrationTest {
         assertEquals(401,new ApiBrowser(port,json).get(path+"/"+UUID.randomUUID()).statusCode());
         assertEquals(403,owner.sendWithoutCsrf("POST",path,"{\"format\":\"PDF\",\"revision\":1}").statusCode());
         assertEquals(404,outsider.postJson(path,"{\"format\":\"PDF\",\"revision\":1}").statusCode());
-        for(String input:List.of("{\"format\":\"LATEX\",\"revision\":1}","{\"format\":null,\"revision\":1}","{\"format\":\"PDF\",\"revision\":0}")) assertEquals(400,owner.postJson(path,input).statusCode());
+        for(String input:List.of("{\"format\":\"HTML\",\"revision\":1}","{\"format\":null,\"revision\":1}","{\"format\":\"PDF\",\"revision\":0}")) assertEquals(400,owner.postJson(path,input).statusCode());
         assertEquals(409,owner.postJson(path,"{\"format\":\"PDF\",\"revision\":2}").statusCode());
         assertEquals(404,owner.get(path+"/"+UUID.randomUUID()).statusCode());
         for(int i=0;i<4;i++) enqueue(owner,"PDF");
@@ -111,14 +120,15 @@ class ExportApiIntegrationTest {
         assertTrue(store.claim(now.plus(Duration.ofDays(8))).isEmpty());
     }
     @Test void savedSnapshotIsUnchangedWhenTheDocumentAndSourceAreUpdated() throws Exception {
-        UUID id=enqueue(owner,"PDF");var before=owner.get(path+"/"+id+"/representation").body();
+        UUID id=enqueue(owner,"LATEX");var before=owner.get(path+"/"+id+"/representation").body();
         assertEquals(200,owner.patchJson(path.replace("/exports",""),"{\"title\":\"Changed\",\"content\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]},\"revision\":1}").statusCode());
         SourceRowFixture.addVersion(jdbc,source,2,"new.txt","text/plain","TXT",20,"sources/"+UUID.randomUUID(),"e".repeat(64),"READY",Instant.now());
         assertEquals(before,owner.get(path+"/"+id+"/representation").body());
-        dispatcher.dispatchAvailable();assertEquals(200,owner.get(path+"/"+id+"/download").statusCode());
+        dispatcher.dispatchAvailable();var download=owner.getBytes(path+"/"+id+"/download");assertEquals(200,download.statusCode());
+        assertEquals(json.readTree(before),json.readTree(LatexReportRenderingTest.unzip(download.body()).get("report.json")));
     }
     @Test @EnabledIfEnvironmentVariable(named="EXPORT_BROWSER_TESTS",matches="true")
-    void productionBrowserCanGenerateAndDownloadBothFormats() throws Exception {
+    void productionBrowserCanGenerateAndDownloadAllFormats() throws Exception {
         var builder=new ProcessBuilder("node","e2e/export.cjs").directory(Path.of("../frontend").toFile());
         builder.environment().put("E2E_BACKEND_URL","http://127.0.0.1:"+port);
         builder.environment().put("E2E_WORKSPACE_ID",workspace.toString());builder.environment().put("E2E_DOCUMENT_ID",document.toString());
@@ -127,5 +137,8 @@ class ExportApiIntegrationTest {
         while(process.isAlive() && System.nanoTime()<deadline) { dispatcher.dispatchAvailable();Thread.sleep(150); }
         if(process.isAlive()) { process.destroyForcibly();fail("Browser export exceeded deadline"); }
         assertEquals(0,process.exitValue(),Files.readString(log));
+        var files=LatexReportRenderingTest.unzip(Files.readAllBytes(Path.of("target/export-qa/browser-report.zip")));
+        assertTrue(LatexReportRenderingTest.tex(files).contains("\\section*{Methods}"));
+        assertEquals(document.toString(),json.readTree(files.get("report.json")).path("documentId").asString());
     }
 }
