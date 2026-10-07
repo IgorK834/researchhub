@@ -6,6 +6,9 @@ import json
 import logging
 import os
 import secrets
+import time
+
+from .observability import WorkerMetrics
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -19,6 +22,7 @@ from .retrieval.embeddings import configured_provider, EmbeddingError
 from .ai.contracts import GenerationRequest
 from .ai.context import ContextualRequest
 from .ai.providers import configured_gateway, ProviderError
+from .ai.telemetry import invoke, error_content
 
 LOGGER = logging.getLogger(__name__)
 MAX_REQUEST_BYTES = 16 * 1024
@@ -40,6 +44,9 @@ def create_app(
         redoc_url=None,
         openapi_url=None,
     )
+    metrics = WorkerMetrics()
+    metrics.install(app)
+    app.state.metrics = metrics
     worker = processor or IdempotentSourceIngestProcessor()
     embeddings = embedding_provider or configured_provider()
     models = model_gateway or configured_gateway()
@@ -54,11 +61,12 @@ def create_app(
         except (ContractError, ValueError):
             return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
         try:
-            result = await run_in_threadpool(models.plan_computation, command)
+            request.state.diagnostics["analysisId"] = str(command.analysis_id)
+            result = await run_in_threadpool(metrics.ai_call, invoke, models, models.plan_computation, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
             return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
-                                content={"code": error.code})
+                                content=error_content(error))
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
 
@@ -84,11 +92,11 @@ def create_app(
         except (ContractError, ValueError):
             return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
         try:
-            result = await run_in_threadpool(models.generate_structured, command)
+            result = await run_in_threadpool(metrics.ai_call, invoke, models, models.generate_structured, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
             return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
-                                content={"code": error.code})
+                                content=error_content(error))
         except Exception:
             # Do not log provider bodies, prompt/source text or credentials.
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
@@ -105,11 +113,11 @@ def create_app(
         except (ContractError, ValueError, KeyError, TypeError):
             return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
         try:
-            result = await run_in_threadpool(models.generate_authoring, command)
+            result = await run_in_threadpool(metrics.ai_call, invoke, models, models.generate_authoring, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
             return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
-                                content={"code": error.code})
+                                content=error_content(error))
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
 
@@ -125,11 +133,11 @@ def create_app(
         except (ContractError, ValueError, KeyError, TypeError):
             return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})
         try:
-            result = await run_in_threadpool(models.generate_analysis, command)
+            result = await run_in_threadpool(metrics.ai_call, invoke, models, models.generate_analysis, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
             return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
-                                content={"code": error.code})
+                                content=error_content(error))
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
 
@@ -148,9 +156,9 @@ def create_app(
             if not isinstance(payload, dict) or set(payload) != {'texts'} or not isinstance(payload['texts'], list) or not 1 <= len(payload['texts']) <= 32:
                 raise ValueError('Invalid embedding request')
             if operation == 'documents':
-                result = await run_in_threadpool(embeddings.embed_documents, payload['texts'])
+                result = await run_in_threadpool(metrics.ai_call, embeddings.embed_documents, payload['texts'])
             elif operation == 'query' and len(payload['texts']) == 1:
-                result = await run_in_threadpool(embeddings.embed_query, payload['texts'][0])
+                result = await run_in_threadpool(metrics.ai_call, embeddings.embed_query, payload['texts'][0])
             else:
                 raise ValueError('Invalid embedding operation')
             return result.model_dump(by_alias=True)
@@ -173,6 +181,12 @@ def create_app(
             return JSONResponse(status_code=405, content={"error": "Method not allowed"})
         return JSONResponse(status_code=failure.status_code, content={"error": "Request failed"})
 
+    @app.get("/metrics", include_in_schema=False)
+    async def export_metrics(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+        return metrics.export()
+
     @app.get("/health", include_in_schema=False)
     async def health() -> dict[str, str]:
         return {"status": "UP"}
@@ -187,7 +201,17 @@ def create_app(
             )
         try:
             command = parse_source_ingest(await _request_json(request))
-            processed = await run_in_threadpool(worker.process, command)
+            request.state.diagnostics.update(jobId=str(command.job_id), sourceId=str(command.source_id), attempt=command.attempt)
+            started = time.perf_counter()
+            success = False
+            duplicate = False
+            try:
+                LOGGER.info("Source ingestion started", extra={"event": "worker.source.started"})
+                processed = await run_in_threadpool(worker.process, command)
+                success = processed.result.status == "SUCCEEDED"
+                duplicate = processed.duplicate
+            finally:
+                metrics.source_finished(started, success, duplicate)
             return JSONResponse(
                 status_code=200,
                 content=processed.result.model_dump(mode="json", by_alias=True),
@@ -197,7 +221,7 @@ def create_app(
         except IdempotencyConflict as conflict:
             return JSONResponse(status_code=409, content={"error": str(conflict)})
         except Exception:
-            LOGGER.exception("source-ingest processing failed")
+            LOGGER.error("Source ingestion failed", extra={"event": "worker.source.failed"})
             return JSONResponse(status_code=500, content={"error": "Processing failed"})
 
     return app

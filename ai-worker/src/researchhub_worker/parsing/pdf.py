@@ -4,7 +4,7 @@ from pypdf import PdfReader
 from ..contracts import PageStructure, UnitLocation
 from .common import ParseFailure, TextBuilder
 
-PARSER_VERSION = 'pypdf-6.14.2/rh-1'
+PARSER_VERSION = 'pypdf-6.19.0/rh-1'
 
 
 def _has_image(resources, seen=None):

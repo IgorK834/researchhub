@@ -85,7 +85,7 @@ pretend to reproduce old extracted text. These location APIs retain exact citati
 
 | Type | Implementation | Output and limitations |
 | --- | --- | --- |
-| PDF | pypdf 6.14.2 | One text unit per page, including empty pages, in original page order. Content-stream text order is deterministic; complex columns may need the cloud layout parser. No bounding boxes are invented. |
+| PDF | pypdf 6.19.0 | One text unit per page, including empty pages, in original page order. Content-stream text order is deterministic; complex columns may need the cloud layout parser. No bounding boxes are invented. |
 | DOCX | python-docx 1.2.0 | Paragraphs, headings and tables traversed together in body order; heading hierarchy and logical block index retained. Tables are linearized with tabs between cells and newlines between rows, including nested tables. No Microsoft Office required. Headers, footers, drawings and tracked revisions are outside this body-text parser. |
 | CSV | Python CSV reader (`csv-stdlib/rh-2`) | UTF-8 (optional BOM), comma/semicolon/tab/pipe delimiters, quoted separators and multiline fields. Versioned profile with assumed header, inferred primitive types, data-row count/completeness and per-column missing counts. Ordered bounded previews/samples remain strings, including formula-looking cells. Retrieval contains only a derived schema summary with a CSV sheet location; no PDF pages are invented. |
 | XLSX | openpyxl 3.1.5 | Read-only, `data_only=False`, `keep_vba=False`, `keep_links=False`. Ordered sheets including hidden/veryHidden, producer-reported used range/dimensions, first nonempty row as header candidate, samples/types, row estimate and formula detection. Formulas remain strings. |

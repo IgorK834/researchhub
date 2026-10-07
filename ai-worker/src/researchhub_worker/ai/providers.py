@@ -108,6 +108,8 @@ class FoundryModelProvider:
             if len(raw) > 256 * 1024:
                 raise ValueError('Response too large')
             payload = json.loads(raw)
+            from .telemetry import record_payload
+            record_payload(self._metadata, payload)
             if payload['model'] != self._metadata.name or len(payload['choices']) != 1:
                 raise ValueError('Model or choices differ from deployment contract')
             choice = payload['choices'][0]

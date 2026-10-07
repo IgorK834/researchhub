@@ -20,5 +20,6 @@ def test_main_starts_uvicorn_from_environment(monkeypatch) -> None:
         "host": "127.0.0.1",
         "port": 9010,
         "log_level": "warning",
+        "log_config": run.call_args.kwargs["log_config"],
         "access_log": False,
     }

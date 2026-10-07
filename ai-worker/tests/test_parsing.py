@@ -120,7 +120,8 @@ def test_mixed_pdf_preserves_blank_page_and_warns():
 
 
 def test_docx_body_order_sections_and_table_locations_without_office():
-    work = command('DOCX'); parser = SourceParser(downloader=lambda *_: docx_bytes())
+    work = command('DOCX'); blob = docx_bytes()
+    parser = SourceParser(downloader=lambda *_: blob)
     result = parser(work)
     assert result == parser(work)
     assert result.status == 'SUCCEEDED'
