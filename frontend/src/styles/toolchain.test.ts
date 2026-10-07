@@ -88,7 +88,20 @@ it.each(['development', 'production'])(
         name.endsWith('.js'),
       )!;
       const js = readFileSync(resolve(directory, 'dist', bundle), 'utf8');
-      expect(js).toContain('--color-background');
+      if (mode === 'production') {
+        const css = readdirSync(resolve(directory, 'dist')).find((name) =>
+          name.endsWith('.css'),
+        )!;
+        expect(readFileSync(resolve(directory, 'dist', css), 'utf8')).toContain(
+          '--color-background',
+        );
+        expect(js).not.toContain('insertStyleElement');
+        const html = readFileSync(resolve(directory, 'dist/index.html'), 'utf8');
+        expect(html).toContain(css);
+        expect(html).toMatch(/http-equiv=["']?Content-Security-Policy/);
+      } else {
+        expect(js).toContain('--color-background');
+      }
       // Exercise actual loader exports: the Jest proxy cannot catch a renamed CSS key.
       window.eval(js);
       expect(document.body.dataset.style).toMatch(/^rh_/);
