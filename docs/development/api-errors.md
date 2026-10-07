@@ -83,6 +83,8 @@ succeed. A client must treat the member as optional and fall back to `detail` wh
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |
 | `INTERNAL_ERROR` | 500 | Unexpected failure. |
 | `AI_UNAVAILABLE` | 503 | Model temporarily unavailable after bounded retries. |
+| `EXTERNAL_SEARCH_UNAVAILABLE` | 503 | Optional external discovery is disabled or not configured on this server. No provider call occurs. |
+| `EXTERNAL_SEARCH_FAILED` | 502 | External discovery provider failed or returned an invalid/oversized response; provider details and credentials are discarded. |
 | `AI_PROVIDER_ERROR` | 502 | Provider failure; unsafe details discarded. |
 | `AI_OUTPUT_INVALID` | 502 | Invalid structured response, identity, metadata, usage or citations. |
 | `AI_REFUSED` | 422 | Model refused/filtered a request; no partial response. |
