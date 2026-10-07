@@ -5,6 +5,10 @@ tags and flat collections to the stable `sources` row. Renaming or moving a sour
 does not change its ID, original filename, version IDs, storage keys or content digests. Processing,
 reprocessing and file replacement preserve this metadata.
 
+Passage search (Cmd/Ctrl K) and separately labeled external discovery are documented in
+[source-search-and-external-evidence.md](source-search-and-external-evidence.md). External references
+do not enter this uploaded-source library or its citation scope.
+
 ## Public contracts
 
 All existing source summaries now contain `bibliography`, `tags` and `collections`. Existing rows receive

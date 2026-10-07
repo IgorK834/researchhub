@@ -7,6 +7,10 @@ is the retrieval substrate. Spring then obtains batched embeddings from the work
 pgvector search projection. Azure AI Search provisioning remains deferred. RH-112 composes this retrieval
 with the shared model gateway for [workspace questions](workspace-questions.md).
 
+RH-306 exposes this existing retrieval through a keyboard-driven Sources-only dialog; RH-243 keeps
+external web discovery outside this index and AI evidence scope. UI, authorization and verification:
+[source-search-and-external-evidence.md](source-search-and-external-evidence.md).
+
 ## Canonical chunk and search contracts
 
 `contracts/retrieval/v1/` contains shared fixtures and JSON schemas. Public JSON uses camelCase in Java, Python and
