@@ -14,7 +14,7 @@ it('keeps the form before decorative art in both layouts and exposes the future 
   );
   expect(screen.getByRole('region', { name: 'Log in' })).toBeDefined();
   expect(screen.getByRole('link', { name: 'ResearchHub' }).getAttribute('href')).toBe(
-    '/login',
+    '/',
   );
   rerender(
     <MemoryRouter>

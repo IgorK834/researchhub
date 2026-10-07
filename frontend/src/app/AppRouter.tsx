@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-rou
 import { RequireAuthenticatedUser } from '../features/auth/components/RequireAuthenticatedUser';
 import { AppLayoutPage } from '../pages/AppLayoutPage';
 import { DocumentDetailPage } from '../pages/DocumentDetailPage';
+import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -13,6 +14,8 @@ import { WorkspaceListPage } from '../pages/WorkspaceListPage';
 import { AnalysisPage } from '../pages/AnalysisPage';
 
 export const appRoutes: RouteObject[] = [
+  // Public marketing page; it links on to the auth routes below.
+  { path: '/', element: <LandingPage /> },
   // Public: reaching these is how someone becomes authenticated, so they must not be behind the guard.
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },

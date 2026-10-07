@@ -1,0 +1,131 @@
+.plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: stretch;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.highlight {
+  position: relative;
+  border-color: var(--color-text-primary);
+  background: var(--color-brand-lavender-tint);
+  box-shadow: var(--elevation-e2);
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.planHeader h3 {
+  margin: 0;
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+}
+
+.tagline {
+  min-block-size: 3.2em;
+  margin-block: var(--space-2) var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.amount {
+  font-size: var(--type-display-size);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.period {
+  color: var(--color-text-secondary);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+}
+
+.cta {
+  inline-size: 100%;
+}
+
+.note {
+  margin-block: var(--space-2) var(--space-5);
+  color: var(--color-text-subtle);
+  font-size: var(--type-caption-size);
+  text-align: center;
+}
+
+.featuresLead {
+  margin-block-end: var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--border-width) solid var(--color-border-strong);
+  font-weight: var(--font-weight-bold);
+}
+
+.features {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan:not(.highlight) .features {
+  padding-block-start: var(--space-4);
+  border-block-start: var(--border-width) solid var(--color-border-strong);
+}
+
+.features li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.features svg {
+  flex: none;
+  box-sizing: content-box;
+  margin-block-start: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-mint-mid);
+  color: var(--color-brand-mint-ink);
+}
+
+.footnote {
+  margin-block: var(--space-5) 0;
+  color: var(--color-text-subtle);
+  font-size: var(--type-caption-size);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .plans {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan {
+    padding: var(--space-5);
+  }
+
+  .tagline {
+    min-block-size: 0;
+  }
+}

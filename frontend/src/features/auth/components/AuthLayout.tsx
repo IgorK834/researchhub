@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Sticker } from '../../../shared/components/identity';
+import { Illustration } from '../../../shared/components/Illustration';
 import { ResearchHubMark } from '../../../shared/components/shell/AppShell';
 import styles from './AuthLayout.module.css';
 
@@ -11,7 +12,7 @@ export interface AuthLayoutProps {
   readonly subtitle: string;
   readonly children: ReactNode;
   readonly footer: ReactNode;
-  /** Reserved for a future decorative illustration; never contains interactive content. */
+  /** Optional replacement artwork; never contains interactive content. */
   readonly art?: ReactNode;
 }
 
@@ -28,7 +29,7 @@ export function AuthLayout({
   return (
     <main className={[styles.layout, styles[variant]].join(' ')}>
       <section className={styles.formHalf} aria-labelledby="auth-title">
-        <Link to="/login" className={styles.brand} aria-label="ResearchHub">
+        <Link to="/" className={styles.brand} aria-label="ResearchHub">
           <ResearchHubMark />
           <span>ResearchHub</span>
         </Link>
@@ -46,7 +47,9 @@ export function AuthLayout({
             tone={login ? 'yellow' : 'blue'}
           />
         </div>
-        <div className={styles.art}>{art}</div>
+        <div className={styles.art}>
+          {art ?? <Illustration scene={login ? 'reading' : 'team'} size="hero" />}
+        </div>
         <p className={styles.caption}>
           {login ? 'Read. Question. Cite.' : 'Better together.'}
         </p>

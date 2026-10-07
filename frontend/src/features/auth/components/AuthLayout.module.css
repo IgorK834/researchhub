@@ -72,7 +72,9 @@
 
 .art {
   inline-size: 100%;
-  min-block-size: 384px;
+  display: grid;
+  place-items: center;
+  min-inline-size: 0;
 }
 
 .caption {
