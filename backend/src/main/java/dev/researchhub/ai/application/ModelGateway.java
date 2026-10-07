@@ -104,7 +104,15 @@ public class ModelGateway {
         return result;
     }
     private List<RetrievalChunk> resolve(UUID workspaceId, UUID callerId, Command command) {
-        return command.evidence().stream().map(ref -> retrieval.chunk(workspaceId, ref.sourceId(), callerId, ref.chunkId(), ref.processingVersion())).toList();
+        return command.evidence().stream().map(ref -> {
+            var chunk = retrieval.chunk(workspaceId, ref.sourceId(), callerId, ref.chunkId(), ref.processingVersion());
+            // Keep scope fixed even if a retrieval adapter accidentally returns an unrelated row.
+            if (!workspaceId.equals(chunk.workspaceId()) || !ref.sourceId().equals(chunk.sourceId())
+                    || !ref.chunkId().equals(chunk.chunkId()) || !ref.processingVersion().equals(chunk.processingVersion())) {
+                throw new ResourceNotFoundException("The requested source evidence was not found");
+            }
+            return chunk;
+        }).toList();
     }
     public ModelMetadata modelMetadata(UUID workspaceId, UUID callerId) {
         authorization.requireContentReader(workspaceId, callerId);

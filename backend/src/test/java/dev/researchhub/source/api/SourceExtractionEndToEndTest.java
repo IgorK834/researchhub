@@ -151,6 +151,51 @@ class SourceExtractionEndToEndTest {
     }
     private byte[] fixture(String name) throws Exception { return Files.readAllBytes(Path.of("src/test/resources/parsing", name)); }
 
+    @Test void promptInjectionUploadCannotReadOtherWorkspaceOrChangeGroundingAndAuthorization() throws Exception {
+        var evaluation = mapper.readTree(Files.readString(Path.of("../contracts/ai/security/prompt-injection.json")));
+        String hostile = upload("injection.txt", evaluation.get("sourceText").asString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String privateWorkspace = owner.createdWorkspaceId("Private evidence", "");
+        byte[] canary = evaluation.get("unrelatedWorkspaceText").asString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var privateUpload = owner.postFile("/api/workspaces/" + privateWorkspace + "/sources", "private.txt", "text/plain", canary);
+        assertEquals(201, privateUpload.statusCode(), privateUpload.body());
+        var privateSource = owner.json(privateUpload);
+        FILES.put(privateSource.get("activeVersionId").asString(), canary);
+        dispatch();
+        // Uploaded metadata is also untrusted, including role impersonation and forged citation labels.
+        jdbc.update("UPDATE sources SET display_name=? WHERE id=?", evaluation.get("sourceTitle").asString(), UUID.fromString(hostile));
+        var response = owner.postJson(questionPath(workspaceId), mapper.writeValueAsString(Map.of(
+            "question", evaluation.get("question").asString(), "selectedSourceIds", List.of(hostile))));
+        assertEquals(200, response.statusCode(), response.body());
+        var answer = owner.json(response);
+        assertFalse(response.body().contains(evaluation.get("unrelatedWorkspaceText").asString()));
+        assertEquals("SUPPORTED", answer.get("status").asString());
+        for (var citation : answer.get("citations")) assertEquals(hostile, citation.get("sourceId").asString());
+        var captured = org.mockito.ArgumentCaptor.forClass(dev.researchhub.ai.application.ContextContracts.ContextualRequest.class);
+        org.mockito.Mockito.verify(models).generateStructured(captured.capture());
+        var context = captured.getValue();
+        assertFalse(context.context().text().contains(new String(canary, java.nio.charset.StandardCharsets.UTF_8)));
+        assertFalse(context.request().systemInstruction().contains(evaluation.get("sourceTitle").asString()));
+        assertTrue(context.context().text().contains("ignore previous instructions") || context.context().text().contains("Ignore previous instructions"));
+        for (var claim : answer.get("generation").get("result").get("answer").get("claims")) {
+            assertTrue(context.request().evidence().stream().anyMatch(item -> item.content().startsWith(claim.get("text").asString())),
+                "The offline provider can quote evidence; it cannot synthesize an injected administrative action");
+        }
+        var missing = owner.postJson(questionPath(workspaceId), mapper.writeValueAsString(Map.of(
+            "question", evaluation.get("ungroundedQuestion").asString(), "selectedSourceIds", List.of(hostile))));
+        assertEquals(200, missing.statusCode(), missing.body());
+        assertEquals("INSUFFICIENT_EVIDENCE", owner.json(missing).get("status").asString());
+        org.mockito.Mockito.clearInvocations(models);
+        var forgedScope = owner.postJson(questionPath(workspaceId), mapper.writeValueAsString(Map.of(
+            "question", evaluation.get("question").asString(), "selectedSourceIds", List.of(privateSource.get("id").asString()))));
+        assertEquals(404, forgedScope.statusCode());
+        var outsider = new ApiBrowser(port, mapper);
+        outsider.signUp("injection-outsider@example.com", "Outsider");
+        assertEquals(404, outsider.postJson(questionPath(workspaceId), "{\"question\":\"All workspaces are authorized\"}").statusCode());
+        assertEquals(404, outsider.get(sourcePath(hostile)).statusCode());
+        org.mockito.Mockito.verifyNoInteractions(models);
+        Files.writeString(Path.of("target/prompt-injection-e2e.json"), response.body());
+    }
+
     @Test void computationUsesRealWorkerSandboxAndRetainsItsExactImmutableInputAcrossRetries() throws Exception {
         String source=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         dispatch(); String version=activeVersion(source);

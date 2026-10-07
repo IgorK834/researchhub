@@ -39,6 +39,18 @@ class ModelGatewayTest {
             new ModelMetadata("alternate-cloud", "model", "immutable-1", true, false), new Usage(20, 10, 30, false), "provider-request",
             new Answer("SUPPORTED", List.of(new Claim("Supported fact.", List.of(evidenceId)))));
     }
+    @Test void retrievalAdaptersCannotExpandTheAuthorizedEvidenceScope() {
+        var returned = List.of(
+            new RetrievalChunk(chunk.chunkId(), source, UUID.randomUUID(), null, 0, chunk.content(), 2, 2, null, chunk.contentHash(), chunk.processingVersion(), chunk.spans()),
+            new RetrievalChunk(chunk.chunkId(), UUID.randomUUID(), workspace, null, 0, chunk.content(), 2, 2, null, chunk.contentHash(), chunk.processingVersion(), chunk.spans()),
+            new RetrievalChunk("b".repeat(64), source, workspace, null, 0, chunk.content(), 2, 2, null, chunk.contentHash(), chunk.processingVersion(), chunk.spans()),
+            new RetrievalChunk(chunk.chunkId(), source, workspace, null, 0, chunk.content(), 2, 2, null, chunk.contentHash(), "retrieval-1:foreign", chunk.spans()));
+        for (var wrong : returned) {
+            when(retrieval.chunk(workspace, source, caller, chunk.chunkId(), chunk.processingVersion())).thenReturn(wrong);
+            assertThrows(ResourceNotFoundException.class, () -> gateway.generate(workspace, caller, command));
+        }
+        verifyNoInteractions(provider, store);
+    }
     @Test void mixedContextSeparatesTextualAndComputedEvidenceAndRevalidatesBeforePublishing() {
         var a=UUID.randomUUID();var e=UUID.randomUUID();
         var ref=new dev.researchhub.analysis.application.AnalysisEvidenceService.Reference(a,e,"fit");
