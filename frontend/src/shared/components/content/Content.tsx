@@ -211,6 +211,7 @@ export interface EmptyStateProps {
   readonly context?: string;
   readonly art?: ReactNode;
   readonly tone?: BrandTone;
+  readonly size?: 'default' | 'compact';
   readonly actions?: readonly [ReactElement] | readonly [ReactElement, ReactElement];
   readonly headingLevel?: 'h2' | 'h3';
 }
@@ -220,6 +221,7 @@ export function EmptyState({
   context,
   art,
   tone = 'mint',
+  size = 'default',
   actions,
   headingLevel: Heading = 'h2',
 }: EmptyStateProps): ReactElement {
@@ -227,7 +229,12 @@ export function EmptyState({
   if (actions && actions.length > 2)
     throw new Error('EmptyState supports at most two actions.');
   return (
-    <section aria-labelledby={id} className={styles.empty}>
+    <section
+      aria-labelledby={id}
+      className={[styles.empty, size === 'compact' ? styles.emptyCompact : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
       {art === undefined ? null : (
         <div aria-hidden="true" className={[styles.art, styles[tone]].join(' ')}>
           {art}

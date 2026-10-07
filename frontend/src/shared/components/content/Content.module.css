@@ -1,6 +1,7 @@
 .card,
 .tableCard,
 .empty {
+  min-inline-size: 0;
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -145,9 +146,11 @@
   }
 }
 .tableCard {
+  min-inline-size: 0;
   padding: var(--space-1);
 }
 .tableScroll {
+  max-inline-size: 100%;
   overflow: auto;
   border-radius: 12px;
 }
@@ -193,6 +196,7 @@
   padding: var(--space-4) var(--space-4) var(--space-5);
   border-radius: var(--radius-xl);
   text-align: center;
+  overflow-wrap: anywhere;
 }
 .art {
   background: var(--art-background);
@@ -201,6 +205,27 @@
   place-items: center;
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-4);
+  padding: var(--space-2);
+  min-inline-size: 0;
+}
+.art > * {
+  max-inline-size: 100%;
+}
+.emptyCompact {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+}
+.emptyCompact .art {
+  min-height: 0;
+  margin-bottom: var(--space-2);
+}
+.emptyCompact h2,
+.emptyCompact h3 {
+  font-size: var(--type-label-size);
+}
+.emptyCompact .description {
+  font-size: var(--type-caption-size);
+  margin-bottom: var(--space-3);
 }
 .empty h2,
 .empty h3 {
@@ -226,6 +251,14 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-2);
+}
+.actions > span,
+.actions > span > * {
+  max-inline-size: 100%;
+}
+.actions > span > * {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .keycap {
   display: inline-block;
