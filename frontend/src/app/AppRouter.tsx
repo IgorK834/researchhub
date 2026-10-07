@@ -1,3 +1,4 @@
+import { AiDebugger } from '../features/devtools/AiDebugger';
 import type { ReactElement } from 'react';
 import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router-dom';
 
@@ -25,6 +26,7 @@ export const appRoutes: RouteObject[] = [
     // or document URL opened directly or refreshed — waits for the session check before anything renders.
     element: <RequireAuthenticatedUser />,
     children: [
+      { path: 'workspaces/:workspaceId/devtools/ai', element: <AiDebugger /> },
       {
         // A pathless layout route: the shell renders inside the guard rather than beside it, so the
         // header and its outlet appear only once a user is known.
