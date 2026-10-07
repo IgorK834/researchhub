@@ -4,6 +4,11 @@
 # secrets; override any of them with the matching DB_* environment variable. See
 # docs/development/configuration.md.
 researchhub:
+  export:
+    retention: ${EXPORT_RETENTION:PT168H}
+    dispatcher:
+      enabled: ${EXPORT_DISPATCHER_ENABLED:true}
+      fixed-delay: ${EXPORT_FIXED_DELAY:PT1S}
   observability:
     scrape-token: ${METRICS_SCRAPE_TOKEN:local-development-metrics-token-change-before-deployment}
   environment: local
