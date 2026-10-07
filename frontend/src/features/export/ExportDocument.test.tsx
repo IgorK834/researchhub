@@ -59,38 +59,50 @@ it('prevents exporting unsaved edits and explains when export becomes available'
   expect(screen.getByText(/Wait for your changes/)).toBeTruthy();
   expect(createExport).not.toHaveBeenCalled();
 });
-it('generates the selected format, polls a job, and downloads its saved revision', async () => {
-  (createExport as jest.Mock).mockResolvedValue({ ...base, format: 'PDF' });
-  (fetchExport as jest.Mock)
-    .mockResolvedValueOnce({ ...base, format: 'PDF', status: 'RUNNING' })
-    .mockResolvedValue({
-      ...base,
-      format: 'PDF',
-      status: 'SUCCEEDED',
-      warnings: ['Legacy citation was frozen.'],
-    });
-  show();
-  open();
-  fireEvent.click(screen.getByRole('radio', { name: /PDF report/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Generate export' }));
-  await waitFor(() => expect(createExport).toHaveBeenCalledWith('w', 'd', 'PDF', 3));
-  await waitFor(() => expect(screen.getByText(/Preparing PDF/)).toBeTruthy());
-  await waitFor(
-    () => expect(screen.getByRole('button', { name: 'Download PDF' })).toBeTruthy(),
-    { timeout: 3000 },
-  );
-  expect(screen.getByText('Legacy citation was frozen.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Download PDF' }));
-  await waitFor(() =>
-    expect(downloadExport).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'SUCCEEDED', revision: 3 }),
-    ),
-  );
-  fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]!);
-  expect(screen.queryByRole('dialog')).toBeNull();
-  open();
-  expect(screen.getByRole('button', { name: 'Download PDF' })).toBeTruthy();
-});
+it.each(['PDF', 'LATEX'] as const)(
+  'generates %s, polls a job, and downloads its saved revision',
+  async (format) => {
+    const label = format === 'LATEX' ? 'LaTeX' : 'PDF';
+    (createExport as jest.Mock).mockResolvedValue({ ...base, format });
+    (fetchExport as jest.Mock)
+      .mockResolvedValueOnce({ ...base, format, status: 'RUNNING' })
+      .mockResolvedValue({
+        ...base,
+        format,
+        status: 'SUCCEEDED',
+        warnings: ['Legacy citation was frozen.'],
+      });
+    show();
+    open();
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: format === 'LATEX' ? /LaTeX sources/ : /PDF report/,
+      }),
+    );
+    if (format === 'LATEX') expect(screen.getByText(/Extract the ZIP/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate export' }));
+    await waitFor(() => expect(createExport).toHaveBeenCalledWith('w', 'd', format, 3));
+    await waitFor(() =>
+      expect(screen.getByText(new RegExp(`Preparing ${label}`))).toBeTruthy(),
+    );
+    await waitFor(
+      () =>
+        expect(screen.getByRole('button', { name: `Download ${label}` })).toBeTruthy(),
+      { timeout: 3000 },
+    );
+    expect(screen.getByText('Legacy citation was frozen.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: `Download ${label}` }));
+    await waitFor(() =>
+      expect(downloadExport).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'SUCCEEDED', revision: 3 }),
+      ),
+    );
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]!);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    open();
+    expect(screen.getByRole('button', { name: `Download ${label}` })).toBeTruthy();
+  },
+);
 it.each(['FAILED', 'EXPIRED'] as const)(
   'shows %s and allows regeneration',
   async (status) => {

@@ -1,6 +1,16 @@
 import { apiClient } from '../../shared/api';
 
-export type ExportFormat = 'DOCX' | 'PDF';
+export type ExportFormat = 'DOCX' | 'PDF' | 'LATEX';
+export const exportFormatLabels: Readonly<Record<ExportFormat, string>> = {
+  DOCX: 'DOCX',
+  PDF: 'PDF',
+  LATEX: 'LaTeX',
+};
+const mediaTypes: Readonly<Record<ExportFormat, string>> = {
+  DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  PDF: 'application/pdf',
+  LATEX: 'application/zip',
+};
 export interface ExportJob {
   readonly id: string;
   readonly workspaceId: string;
@@ -43,10 +53,7 @@ export async function downloadExport(job: ExportJob): Promise<void> {
   const blob = await apiClient.getBlob(
     `${path(job.workspaceId, job.documentId)}/${encodeURIComponent(job.id)}/download`,
     {
-      accept:
-        job.format === 'PDF'
-          ? 'application/pdf'
-          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      accept: mediaTypes[job.format],
     },
   );
   const url = URL.createObjectURL(blob);

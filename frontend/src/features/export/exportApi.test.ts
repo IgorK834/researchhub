@@ -45,7 +45,7 @@ it('sends explicit format/revision and escapes every path segment', async () => 
     { signal },
   );
 });
-it.each(['PDF', 'DOCX'] as const)(
+it.each(['PDF', 'DOCX', 'LATEX'] as const)(
   'downloads %s through authenticated transport and releases its URL',
   async (format) => {
     jest.useFakeTimers();
@@ -59,10 +59,11 @@ it.each(['PDF', 'DOCX'] as const)(
     expect(apiClient.getBlob).toHaveBeenCalledWith(
       '/api/workspaces/w/documents/d/exports/j/download',
       {
-        accept:
-          format === 'PDF'
-            ? 'application/pdf'
-            : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        accept: {
+          PDF: 'application/pdf',
+          DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          LATEX: 'application/zip',
+        }[format],
       },
     );
     expect(click).toHaveBeenCalledTimes(1);

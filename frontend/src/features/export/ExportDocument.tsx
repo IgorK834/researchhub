@@ -7,6 +7,7 @@ import {
   createExport,
   downloadExport,
   exportFailure,
+  exportFormatLabels,
   fetchExport,
   type ExportFormat,
 } from './exportApi';
@@ -67,7 +68,7 @@ export function ExportDocument({
                 disabled={download.isPending}
                 onClick={() => download.mutate()}
               >
-                Download {job.data.format}
+                Download {exportFormatLabels[job.data.format]}
               </Button>
             ) : null}
             <Button
@@ -107,7 +108,21 @@ export function ExportDocument({
               <strong>PDF report (.pdf)</strong>
               <span>A final report with paginated pages.</span>
             </label>
+            <label>
+              <input
+                type="radio"
+                name="export-format"
+                value="LATEX"
+                checked={format === 'LATEX'}
+                onChange={() => setFormat('LATEX')}
+              />
+              <strong>LaTeX sources (.zip)</strong>
+              <span>Edit report.tex and compile locally with included chart images.</span>
+            </label>
           </fieldset>
+          {format === 'LATEX' ? (
+            <p>Extract the ZIP, then use XeLaTeX or LuaLaTeX to typeset your report.</p>
+          ) : null}
           <p>
             Includes headings, lists, tables, charts, captions, and numbered citations
             with references.
@@ -138,12 +153,14 @@ export function ExportDocument({
           ) : null}
           {job.data?.status === 'QUEUED' || job.data?.status === 'RUNNING' ? (
             <p role="status">
-              Preparing {job.data.format} from revision {job.data.revision}…
+              Preparing {exportFormatLabels[job.data.format]} from revision{' '}
+              {job.data.revision}…
             </p>
           ) : null}
           {job.data?.status === 'SUCCEEDED' ? (
             <p role="status">
-              Your {job.data.format} report from revision {job.data.revision} is ready.
+              Your {exportFormatLabels[job.data.format]} report from revision{' '}
+              {job.data.revision} is ready.
             </p>
           ) : null}
           {job.data?.status === 'FAILED' ? (
