@@ -93,13 +93,19 @@ const server = createServer(async (req, res) => {
       dialog.getByText(/^Saved revision \d+ is ready to export\.$/),
     ).toBeVisible();
     await mkdir('../backend/target/export-qa', { recursive: true });
-    for (const format of ['DOCX', 'PDF']) {
+    for (const format of ['DOCX', 'PDF', 'LATEX']) {
+      const label = format === 'LATEX' ? 'LaTeX' : format;
+      const extension = format === 'LATEX' ? 'zip' : format.toLowerCase();
       await dialog
-        .getByRole('radio', { name: format === 'PDF' ? /PDF report/ : /Word document/ })
+        .getByRole('radio', {
+          name: { PDF: /PDF report/, DOCX: /Word document/, LATEX: /LaTeX sources/ }[
+            format
+          ],
+        })
         .check();
       await dialog.getByRole('button', { name: 'Generate export', exact: true }).click();
       const downloadButton = dialog.getByRole('button', {
-        name: `Download ${format}`,
+        name: `Download ${label}`,
         exact: true,
       });
       await expect(downloadButton).toBeVisible({ timeout: 15000 });
@@ -109,9 +115,9 @@ const server = createServer(async (req, res) => {
       const pending = page.waitForEvent('download');
       await downloadButton.click();
       const download = await pending;
-      assert(download.suggestedFilename().endsWith(`.${format.toLowerCase()}`));
+      assert(download.suggestedFilename().endsWith(`.${extension}`));
       assert(!/[\\/\r\n]/.test(download.suggestedFilename()));
-      const output = `../backend/target/export-qa/browser-report.${format.toLowerCase()}`;
+      const output = `../backend/target/export-qa/browser-report.${extension}`;
       await download.saveAs(output);
       const bytes = await readFile(output);
       assert(bytes.length > 1000);
@@ -125,7 +131,7 @@ const server = createServer(async (req, res) => {
     await expect(dialog).not.toBeVisible();
     assert.deepEqual(errors, []);
     console.log(
-      'Export E2E passed: saved revision -> asynchronous DOCX/PDF jobs -> downloaded files.',
+      'Export E2E passed: saved revision -> asynchronous DOCX/PDF/LaTeX jobs -> downloaded files.',
     );
   } finally {
     await browser?.close();
