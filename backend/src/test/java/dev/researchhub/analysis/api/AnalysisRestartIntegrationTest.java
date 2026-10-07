@@ -36,7 +36,7 @@ class AnalysisRestartIntegrationTest {
     }
     @Test void successfulRecordAndChartSurviveFullApplicationRestartWithoutReadingNewDataOrRunningCode() throws Exception {
         try (var database=new PostgreSQLContainer(DockerImageName.parse("pgvector/pgvector:0.8.2-pg17-bookworm").asCompatibleSubstituteFor("postgres"))) {
-            database.start();String endpoint,artifactEndpoint,before,provenanceBefore,codeBefore;
+            database.start();String endpoint,artifactEndpoint,before,provenanceBefore,codeBefore,correlationId,executionId;
             byte[] svg="<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\"><path d=\"M10 90L190 10\" stroke=\"black\"/></svg>".getBytes(StandardCharsets.UTF_8);
             try (var first=start(database)) {
                 var json=first.getBean(ObjectMapper.class);var jdbc=first.getBean(JdbcTemplate.class);var owner=browser(first);
@@ -60,7 +60,9 @@ class AnalysisRestartIntegrationTest {
                     "series":[{"name":"Z","tableName":"result","xColumn":"f","yColumn":"Z","yTransform":"IDENTITY"}]}]}
                     """.getBytes(StandardCharsets.UTF_8));
                 var queued=owner.postJson(path+"/"+id+"/execute","{}");assertEquals(202,queued.statusCode(),queued.body());
-                String executionId=owner.json(queued).get("id").asString();first.getBean(AnalysisExecutionDispatcher.class).dispatchAvailable();
+                executionId=owner.json(queued).get("id").asString();
+                correlationId=queued.headers().firstValue("X-Request-ID").orElseThrow();
+                assertEquals(correlationId,first.getBean(dev.researchhub.analysis.application.ExecutionStore.class).requestId(UUID.fromString(executionId)));first.getBean(AnalysisExecutionDispatcher.class).dispatchAvailable();
                 endpoint=path+"/"+id+"/executions/"+executionId+"/record";
                 var response=owner.get(endpoint);assertEquals(200,response.statusCode(),response.body());before=response.body();var record=owner.json(response);
                 assertEquals("SUCCEEDED",record.get("execution").get("status").asString());assertEquals(1,record.get("charts").get(0).get("series").get(0).get("pointCount").asInt());
@@ -71,6 +73,7 @@ class AnalysisRestartIntegrationTest {
                 assertEquals(artifactEndpoint,owner.json(citation).get("outputReferences").get(1).get("artifactUrl").asString());
             }
             try (var restarted=start(database)) {
+                assertEquals(correlationId,restarted.getBean(dev.researchhub.analysis.application.ExecutionStore.class).requestId(UUID.fromString(executionId)));
                 var owner=browser(restarted);assertEquals(200,owner.postJson("/api/auth/login","{\"email\":\"restart@example.test\",\"password\":\"correct-horse-battery-staple\"}").statusCode());
                 var response=owner.get(endpoint);assertEquals(200,response.statusCode(),response.body());
                 assertEquals(restarted.getBean(ObjectMapper.class).readTree(before),owner.json(response));

@@ -242,7 +242,10 @@ public class SourceService {
         try {
             return new SourceContent(summaryOf(source), storage.open(source.storageKey()));
         } catch (IOException failed) {
-            log.error("event=source.content_unavailable workspaceId={} sourceId={}", workspaceId, sourceId, failed);
+            try (var scope=dev.researchhub.shared.observability.CorrelationContext.open(dev.researchhub.shared.observability.CorrelationContext.currentOrNew(),java.util.Map.of("sourceId",sourceId.toString()))) {
+                log.atError().addKeyValue("event", "source.content_unavailable")
+                    .addKeyValue("errorType", failed.getClass().getSimpleName()).log("Source content unavailable");
+            }
             throw new UncheckedIOException("The stored content of source " + sourceId + " could not be opened",
                     failed);
         }
@@ -335,7 +338,8 @@ public class SourceService {
         } finally {
             if (staged != null) {
                 try { Files.deleteIfExists(staged); }
-                catch (IOException cleanup) { log.warn("event=source.staging_cleanup_failed", cleanup); }
+                catch (IOException cleanup) { log.atWarn().addKeyValue("event", "source.staging_cleanup_failed")
+                    .addKeyValue("errorType", cleanup.getClass().getSimpleName()).log("Source staging cleanup failed"); }
             }
         }
     }
@@ -350,7 +354,8 @@ public class SourceService {
         try {
             storage.delete(key);
         } catch (IOException | RuntimeException failed) {
-            log.warn("event=source.orphan_left storageKey={}", key, failed);
+            log.atWarn().addKeyValue("event", "source.orphan_left")
+                .addKeyValue("errorType", failed.getClass().getSimpleName()).log("Source storage cleanup failed");
         }
     }
 

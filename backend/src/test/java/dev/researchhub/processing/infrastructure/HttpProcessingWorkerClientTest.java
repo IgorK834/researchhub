@@ -57,6 +57,7 @@ class HttpProcessingWorkerClientTest {
         assertTrue(request.get().getRequestHeaders().getFirst("Content-Type").startsWith("application/json"));
         assertEquals("Bearer " + SERVICE_TOKEN,
                 request.get().getRequestHeaders().getFirst("Authorization"));
+        assertEquals(job.requestId(),request.get().getRequestHeaders().getFirst("X-Request-ID"));
         assertFalse(request.get().getRequestHeaders().containsKey("Cookie"));
         assertTrue(body.get().contains("\"schemaVersion\":\"4.0\""), body.get());
         assertTrue(body.get().contains("\"jobId\":\"" + job.id() + "\""), body.get());

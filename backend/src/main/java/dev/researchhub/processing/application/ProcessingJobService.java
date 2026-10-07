@@ -25,8 +25,9 @@ public class ProcessingJobService {
 
     @Transactional
     public ProcessingJob reprocessSource(UUID workspaceId, UUID sourceId) {
-        return queue.insertNextRun(ProcessingJob.pending(workspaceId, ProcessingJobType.SOURCE_INGEST,
-                ProcessingResourceType.SOURCE, sourceId, clock.instant()));
+        return logEnqueued(queue.insertNextRun(ProcessingJob.pending(workspaceId, ProcessingJobType.SOURCE_INGEST,
+                ProcessingResourceType.SOURCE, sourceId, clock.instant(),
+                dev.researchhub.shared.observability.CorrelationContext.currentOrNew())));
     }
 
     /**
@@ -36,7 +37,16 @@ public class ProcessingJobService {
     @Transactional
     public ProcessingJob enqueueSourceIngest(UUID workspaceId, UUID sourceId) {
         ProcessingJob pending = ProcessingJob.pending(workspaceId, ProcessingJobType.SOURCE_INGEST,
-                ProcessingResourceType.SOURCE, sourceId, clock.instant());
-        return queue.insertIfAbsent(pending);
+                ProcessingResourceType.SOURCE, sourceId, clock.instant(),
+                dev.researchhub.shared.observability.CorrelationContext.currentOrNew());
+        return logEnqueued(queue.insertIfAbsent(pending));
+    }
+
+    private ProcessingJob logEnqueued(ProcessingJob job) {
+        try (var scope=dev.researchhub.shared.observability.CorrelationContext.open(job.requestId(),
+                java.util.Map.of("jobId",job.id().toString(),"sourceId",job.resourceId().toString()))) {
+            org.slf4j.LoggerFactory.getLogger(getClass()).atInfo().addKeyValue("event", "processing.enqueued").log("Source ingestion enqueued");
+        }
+        return job;
     }
 }

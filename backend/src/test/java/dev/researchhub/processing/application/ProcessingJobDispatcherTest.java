@@ -38,6 +38,7 @@ class ProcessingJobDispatcherTest {
     private ProcessingJobStateListener listener;
     private ProcessingProperties properties;
     private ProcessingJobDispatcher dispatcher;
+    private io.micrometer.core.instrument.simple.SimpleMeterRegistry metrics;
 
     @BeforeEach
     void setUp() {
@@ -47,8 +48,10 @@ class ProcessingJobDispatcherTest {
         when(listener.supports(any())).thenReturn(true);
         when(queue.updateState(any(), any(), anyInt(), any())).thenReturn(true);
         properties = new ProcessingProperties();
+        metrics = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
         dispatcher = new ProcessingJobDispatcher(queue, worker, List.of(listener), properties,
-                Clock.fixed(NOW, ZoneOffset.UTC), mock(org.springframework.transaction.PlatformTransactionManager.class));
+                Clock.fixed(NOW, ZoneOffset.UTC), mock(org.springframework.transaction.PlatformTransactionManager.class),
+                new dev.researchhub.shared.observability.WorkMetrics(metrics));
     }
 
     @Test
@@ -83,6 +86,10 @@ class ProcessingJobDispatcherTest {
         assertEquals(ProcessingJobStatus.PENDING, updated.getValue().status());
         assertEquals(safe, updated.getValue().lastError());
         assertEquals(NOW.plusSeconds(2), updated.getValue().nextAttemptAt());
+        assertEquals(running.requestId(),updated.getValue().requestId());
+        assertEquals(1,metrics.get("researchhub.worker.failures").counter().count());
+        assertEquals(1,metrics.get("researchhub.worker.retries").counter().count());
+        assertEquals(1,metrics.get("researchhub.source.processing.duration").tag("outcome","failure").timer().count());
         verify(listener, never()).failed(any(), any());
     }
 
@@ -101,6 +108,8 @@ class ProcessingJobDispatcherTest {
         assertEquals(ProcessingJobStatus.FAILED, failed.status());
         assertEquals("WORKER_ERROR", failed.lastError().code());
         assertEquals("The processing worker could not complete the job.", failed.lastError().message());
+        assertEquals(1,metrics.get("researchhub.worker.failures").counter().count());
+        org.junit.jupiter.api.Assertions.assertNull(metrics.find("researchhub.worker.retries").counter());
         verify(listener).failed(ProcessingJobNotification.from(failed), ProcessingFailure.from(failed.lastError()));
     }
 

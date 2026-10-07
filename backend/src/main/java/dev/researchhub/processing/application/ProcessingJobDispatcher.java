@@ -29,6 +29,7 @@ public class ProcessingJobDispatcher {
     private static final ProcessingJobError UNEXPECTED = new ProcessingJobError("WORKER_ERROR",
             "The processing worker could not complete the job.");
 
+    private final dev.researchhub.shared.observability.WorkMetrics metrics;
     private final ProcessingJobQueue queue;
     private final ProcessingWorkerClient worker;
     private final List<ProcessingJobStateListener> listeners;
@@ -39,6 +40,16 @@ public class ProcessingJobDispatcher {
     public ProcessingJobDispatcher(ProcessingJobQueue queue, ProcessingWorkerClient worker,
                                    List<ProcessingJobStateListener> listeners, ProcessingProperties properties,
                                    Clock clock, PlatformTransactionManager transactionManager) {
+        this(queue, worker, listeners, properties, clock, transactionManager,
+            new dev.researchhub.shared.observability.WorkMetrics(io.micrometer.core.instrument.Metrics.globalRegistry));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ProcessingJobDispatcher(ProcessingJobQueue queue, ProcessingWorkerClient worker,
+                                   List<ProcessingJobStateListener> listeners, ProcessingProperties properties,
+                                   Clock clock, PlatformTransactionManager transactionManager,
+                                   dev.researchhub.shared.observability.WorkMetrics metrics) {
+        this.metrics = metrics;
         this.transactions = new TransactionTemplate(transactionManager);
         this.queue = queue;
         this.worker = worker;
@@ -53,7 +64,11 @@ public class ProcessingJobDispatcher {
         ProcessingProperties.Dispatcher policy = properties.getDispatcher();
         StaleJobRecovery recovery = queue.recoverStale(now.minus(policy.getStaleTimeout()), now,
                 policy.getMaxAttempts());
-        recovery.failed().forEach(job -> notifyFailed(job, job.lastError()));
+        recovery.failed().forEach(job -> {
+            recovered(job, false);
+            notifyFailed(job, job.lastError());
+        });
+        recovery.requeued().forEach(job -> recovered(job, true));
         if (!recovery.requeued().isEmpty() || !recovery.failed().isEmpty()) {
             log.warn("event=processing.stale_recovered requeued={} failed={}",
                     recovery.requeued().size(), recovery.failed().size());
@@ -68,9 +83,32 @@ public class ProcessingJobDispatcher {
         }
     }
 
+    private void recovered(ProcessingJob job, boolean retry) {
+        try (var ignored = dev.researchhub.shared.observability.CorrelationContext.open(job.requestId(),
+                java.util.Map.of("jobId", job.id().toString(), "sourceId", job.resourceId().toString()))) {
+            metrics.failure(dev.researchhub.shared.observability.WorkMetrics.Queue.SOURCE_INGEST);
+            if (retry) metrics.retry(dev.researchhub.shared.observability.WorkMetrics.Queue.SOURCE_INGEST,
+                dev.researchhub.shared.observability.WorkMetrics.RetryReason.STALE);
+            log.atWarn().addKeyValue("event", "processing.stale_recovered").addKeyValue("retry", retry)
+                .log("Stale processing attempt recovered");
+        }
+    }
+
     void dispatch(ProcessingJob job) {
+        try (var ignored = dev.researchhub.shared.observability.CorrelationContext.open(job.requestId(),
+                java.util.Map.of("jobId", job.id().toString(), "sourceId", job.resourceId().toString()))) {
+            var sample = metrics.start();
+            boolean success = false;
+            try { success = dispatchObserved(job); }
+            finally { metrics.finish(sample, dev.researchhub.shared.observability.WorkMetrics.Operation.SOURCE, success); }
+        }
+    }
+
+    private boolean dispatchObserved(ProcessingJob job) {
         ProcessingJobNotification notification = ProcessingJobNotification.from(job);
         try {
+            log.atInfo().addKeyValue("event", "processing.started").addKeyValue("attempt", job.attemptCount())
+                .log("Source ingestion started");
             listenersFor(notification).forEach(listener -> listener.running(notification));
             worker.execute(job);
             ProcessingJob succeeded = job.succeed(clock.instant());
@@ -81,15 +119,19 @@ public class ProcessingJobDispatcher {
                 return true;
             }));
             if (completed) {
-                log.info("event=processing.succeeded jobId={} jobType={} resourceType={} resourceId={} attempt={}",
-                        job.id(), job.jobType(), job.resourceType(), job.resourceId(), job.attemptCount());
+                log.atInfo().addKeyValue("event", "processing.succeeded").addKeyValue("attempt", job.attemptCount())
+                    .addKeyValue("jobType", job.jobType()).log("Source ingestion succeeded");
             }
+            return completed;
         } catch (RuntimeException failure) {
             ProcessingJobError safe = failure instanceof WorkerDispatchException dispatchFailure
                     ? dispatchFailure.safeError() : UNEXPECTED;
-            log.error("event=processing.attempt_failed jobId={} jobType={} resourceType={} resourceId={} attempt={}",
-                    job.id(), job.jobType(), job.resourceType(), job.resourceId(), job.attemptCount(), failure);
+            metrics.failure(dev.researchhub.shared.observability.WorkMetrics.Queue.SOURCE_INGEST);
+            log.atError().addKeyValue("event", "processing.attempt_failed").addKeyValue("errorCode", safe.code())
+                .addKeyValue("errorType", failure.getClass().getSimpleName()).addKeyValue("attempt", job.attemptCount())
+                .log("Source ingestion attempt failed");
             recordFailure(job, safe, !(failure instanceof WorkerDispatchException dispatchFailure) || dispatchFailure.retryable());
+            return false;
         }
     }
 
@@ -106,7 +148,12 @@ public class ProcessingJobDispatcher {
         }
         Instant retryAt = clock.instant().plus(backoff(job.attemptCount(), policy));
         ProcessingJob pending = job.retry(error, retryAt);
-        queue.updateState(job.id(), ProcessingJobStatus.RUNNING, job.attemptCount(), pending);
+        if (queue.updateState(job.id(), ProcessingJobStatus.RUNNING, job.attemptCount(), pending)) {
+            metrics.retry(dev.researchhub.shared.observability.WorkMetrics.Queue.SOURCE_INGEST,
+                dev.researchhub.shared.observability.WorkMetrics.RetryReason.FAILURE);
+            log.atWarn().addKeyValue("event", "processing.retry_scheduled").addKeyValue("attempt", job.attemptCount())
+                .log("Source ingestion retry scheduled");
+        }
     }
 
     private List<ProcessingJobStateListener> listenersFor(ProcessingJobNotification job) {

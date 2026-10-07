@@ -1,6 +1,6 @@
 # Health
 
-Actuator health for local checks and a future orchestrator. Only `health` is exposed on the web. `/actuator/env`, `/actuator/configprops`, and the other Actuator endpoints are not public. `management.endpoint.health.show-details` is `never`, so responses are a status and do not include the JDBC URL, username, password, or validation query.
+Actuator health for local checks and a future orchestrator. `health` and authenticated `prometheus` scraping are exposed on the web. See [observability.md](observability.md) for the dedicated scrape token. `/actuator/env`, `/actuator/configprops`, and the other Actuator endpoints are not public. `management.endpoint.health.show-details` is `never`, so responses are a status and do not include the JDBC URL, username, password, or validation query.
 
 ## URLs
 

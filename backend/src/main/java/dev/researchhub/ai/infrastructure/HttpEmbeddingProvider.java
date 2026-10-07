@@ -18,6 +18,9 @@ import java.util.*;
 @Component
 @Profile("local")
 public class HttpEmbeddingProvider implements EmbeddingProvider {
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.shared.observability.WorkMetrics metrics =
+        new dev.researchhub.shared.observability.WorkMetrics(io.micrometer.core.instrument.Metrics.globalRegistry);
     private final RestClient client;
     private final String token;
     private final ObjectMapper mapper;
@@ -30,7 +33,7 @@ public class HttpEmbeddingProvider implements EmbeddingProvider {
                 || timeout == null || timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("Invalid embedding worker connection");
         var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(timeout).build());
         factory.setReadTimeout(timeout);
-        this.client = RestClient.builder().baseUrl(baseUrl.toString()).requestFactory(factory).build();
+        this.client = RestClient.builder().baseUrl(baseUrl.toString()).requestFactory(factory).requestInterceptor(dev.researchhub.shared.observability.CorrelationContext.propagation()).build();
         this.token = token;
         this.mapper = mapper;
     }
@@ -62,14 +65,14 @@ public class HttpEmbeddingProvider implements EmbeddingProvider {
         } catch (RuntimeException error) { throw safe(error); }
     }
     private <T> T read(RestClient.RequestHeadersSpec<?> request, Class<T> type) {
-        return request.exchange((_request, response) -> {
+        return metrics.ai(() -> request.exchange((_request, response) -> {
             if (!response.getStatusCode().is2xxSuccessful()) throw new org.springframework.web.client.HttpClientErrorException(response.getStatusCode());
             try (var body = response.getBody()) {
                 byte[] bytes = body.readNBytes(4 * 1024 * 1024 + 1);
                 if (bytes.length > 4 * 1024 * 1024) throw new IllegalArgumentException("Embedding response limit");
                 return mapper.readerFor(type).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(bytes);
             }
-        });
+        }));
     }
     private static EmbeddingFailure safe(RuntimeException error) {
         boolean retryable = error instanceof org.springframework.web.client.ResourceAccessException

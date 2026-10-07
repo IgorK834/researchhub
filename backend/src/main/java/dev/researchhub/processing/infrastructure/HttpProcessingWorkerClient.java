@@ -69,6 +69,7 @@ public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
             WorkerJobResult result = client.post()
                     .uri("/internal/jobs/source-ingest")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + policy.getServiceToken())
+                    .header(dev.researchhub.shared.observability.CorrelationContext.HEADER, job.requestId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(objectMapper.writeValueAsBytes(request))
                     .exchange((_sent, response) -> readResult(response.getStatusCode().is2xxSuccessful(),

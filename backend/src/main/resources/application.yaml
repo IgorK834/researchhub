@@ -1,4 +1,6 @@
 researchhub:
+  observability:
+    scrape-token: ${METRICS_SCRAPE_TOKEN:}
   collaboration:
     enabled: ${COLLABORATION_ENABLED:false}
     service-token: ${COLLABORATION_SERVICE_TOKEN:}
@@ -76,11 +78,20 @@ server:
         # `secure` is set per profile: false locally so http://localhost works, true wherever the app is
         # served over HTTPS.
 
+logging:
+  structured:
+    format:
+      console: logstash
+
 management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       show-details: never

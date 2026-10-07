@@ -27,7 +27,7 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
 
     private static final String COLUMNS = """
             id, workspace_id, job_type, resource_type, resource_id, status, attempt_count, created_at,
-            started_at, finished_at, last_error_code, last_error_message, next_attempt_at
+            started_at, finished_at, last_error_code, last_error_message, next_attempt_at, request_id
             """;
 
     private static final RowMapper<ProcessingJob> ROW_MAPPER = PostgresProcessingJobQueue::map;
@@ -43,12 +43,12 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
         jdbc.update("""
                 INSERT INTO processing_jobs (
                     id, workspace_id, job_type, resource_type, resource_id, status, attempt_count, created_at,
-                    started_at, finished_at, last_error_code, last_error_message, next_attempt_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    started_at, finished_at, last_error_code, last_error_message, next_attempt_at, request_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (job_type, resource_type, resource_id, generation) DO NOTHING
                 """, job.id(), job.workspaceId(), job.jobType().name(), job.resourceType().name(), job.resourceId(),
                 job.status().name(), job.attemptCount(), timestamp(job.createdAt()), timestamp(job.startedAt()),
-                timestamp(job.finishedAt()), errorCode(job), errorMessage(job), timestamp(job.nextAttemptAt()));
+                timestamp(job.finishedAt()), errorCode(job), errorMessage(job), timestamp(job.nextAttemptAt()), job.requestId());
 
         return findByResource(job.jobType(), job.resourceType(), job.resourceId()).orElseThrow(() ->
                 new IllegalStateException("processing job insert did not create or find its idempotent row"));
@@ -62,12 +62,12 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
         }
         jdbc.update("""
                 INSERT INTO processing_jobs(id, workspace_id, job_type, resource_type, resource_id, status,
-                    attempt_count, created_at, next_attempt_at, generation)
-                VALUES (?, ?, ?, ?, ?, 'PENDING', 0, ?, ?,
+                    attempt_count, created_at, next_attempt_at, request_id, generation)
+                VALUES (?, ?, ?, ?, ?, 'PENDING', 0, ?, ?, ?,
                     (SELECT COALESCE(MAX(generation), -1) + 1 FROM processing_jobs
                      WHERE job_type = ? AND resource_type = ? AND resource_id = ?))
                 """, job.id(), job.workspaceId(), job.jobType().name(), job.resourceType().name(), job.resourceId(),
-                timestamp(job.createdAt()), timestamp(job.nextAttemptAt()), job.jobType().name(), job.resourceType().name(), job.resourceId());
+                timestamp(job.createdAt()), timestamp(job.nextAttemptAt()), job.requestId(), job.jobType().name(), job.resourceType().name(), job.resourceId());
         return find(job.id()).orElseThrow();
     }
 
@@ -101,7 +101,7 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
                 WHERE job.id = candidate.id
                 RETURNING job.id, job.workspace_id, job.job_type, job.resource_type, job.resource_id, job.status,
                           job.attempt_count, job.created_at, job.started_at, job.finished_at,
-                          job.last_error_code, job.last_error_message, job.next_attempt_at
+                          job.last_error_code, job.last_error_message, job.next_attempt_at, job.request_id
                 """, ROW_MAPPER, timestamp(now), maxAttempts, timestamp(now));
         return claimed.stream().findFirst();
     }
@@ -156,7 +156,7 @@ public class PostgresProcessingJobQueue implements ProcessingJobQueue {
                 ProcessingResourceType.valueOf(row.getString("resource_type")),
                 row.getObject("resource_id", UUID.class), ProcessingJobStatus.valueOf(row.getString("status")),
                 row.getInt("attempt_count"), instant(row, "created_at"), instant(row, "started_at"),
-                instant(row, "finished_at"), error, instant(row, "next_attempt_at"));
+                instant(row, "finished_at"), error, instant(row, "next_attempt_at"), row.getString("request_id"));
     }
 
     private static Timestamp timestamp(Instant value) {

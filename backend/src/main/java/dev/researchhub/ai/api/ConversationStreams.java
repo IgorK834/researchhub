@@ -36,7 +36,10 @@ public class ConversationStreams {
         // Send the terminal event while the servlet connection is still writable.
         // A servlet timeout callback runs after Spring has disabled emitter writes.
         state.deadline=timers.schedule(() -> state.error(ApiErrorCode.AI_UNAVAILABLE,"The research stream timed out",true),properties.timeout().toMillis(),TimeUnit.MILLISECONDS);
-        state.task=workers.submit(state::run);
+        String requestId=dev.researchhub.shared.observability.CorrelationContext.currentOrNew();
+        state.task=workers.submit(() -> {
+            try (var ignored=dev.researchhub.shared.observability.CorrelationContext.open(requestId)) { state.run(); }
+        });
         if (state.cancelled.get()) state.task.cancel(false);
         return state.emitter;
     }

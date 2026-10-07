@@ -133,3 +133,5 @@ and READY requires the exact job's complete indexed chunk set. The authorized
 `GET /api/workspaces/{workspaceId}/sources/{sourceId}/processing` endpoint exposes
 coarse progress and attempts. See [source-retrieval.md](source-retrieval.md) for stage
 semantics, failure handling, model namespaces and retry/rebuild behavior.
+
+RH-185/RH-186 persist request correlation, propagate `X-Request-ID`, emit safe structured logs and expose authenticated queue/attempt metrics. See [observability.md](observability.md) for the contract and E2E verification.

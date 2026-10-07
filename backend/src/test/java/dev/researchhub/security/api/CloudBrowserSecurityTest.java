@@ -35,7 +35,7 @@ class CloudBrowserSecurityTest {
                 .header("Access-Control-Request-Method", "POST").header("Access-Control-Request-Headers", "Content-Type,X-XSRF-TOKEN"))
             .andExpect(status().isOk()).andExpect(header().string("Access-Control-Allow-Origin", "https://app.example.com"))
             .andExpect(header().string("Access-Control-Allow-Credentials", "true"))
-            .andExpect(header().string("Access-Control-Expose-Headers", "Retry-After"));
+            .andExpect(header().string("Access-Control-Expose-Headers", "Retry-After, X-Request-ID"));
         for (String origin : new String[]{"https://evil.example.com", "http://localhost:3000", "null"}) {
             http.perform(options("/api/auth/login").header("Origin", origin).header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden()).andExpect(header().doesNotExist("Access-Control-Allow-Origin"));

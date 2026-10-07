@@ -108,8 +108,8 @@ public class SecurityConfiguration {
             configuration.setAllowedOrigins(policy.allowedOrigins());
             configuration.setAllowedMethods(
                     List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN"));
-            configuration.setExposedHeaders(List.of("Retry-After"));
+            configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN", "X-Request-ID"));
+            configuration.setExposedHeaders(List.of("Retry-After", "X-Request-ID"));
             // Without this the browser would strip the session and CSRF cookies from a cross-origin call.
             configuration.setAllowCredentials(true);
             configuration.setMaxAge(Duration.ofMinutes(30));

@@ -11,4 +11,15 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableConfigurationProperties(ProcessingProperties.class)
 public class ProcessingConfiguration {
+    @org.springframework.context.annotation.Bean
+    dev.researchhub.shared.observability.QueueMetrics sourceQueueMetrics(
+            io.micrometer.core.instrument.MeterRegistry registry, org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        return new dev.researchhub.shared.observability.QueueMetrics(registry, "SOURCE_INGEST",
+            java.util.Arrays.stream(dev.researchhub.processing.domain.ProcessingJobStatus.values()).map(Enum::name).toList(),
+            () -> jdbc.query("SELECT status,count(*) FROM processing_jobs GROUP BY status", result -> {
+                var counts = new java.util.HashMap<String, Long>();
+                while (result.next()) counts.put(result.getString(1), result.getLong(2));
+                return counts;
+            }));
+    }
 }

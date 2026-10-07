@@ -29,12 +29,20 @@ public class PostgresExecutionStore implements ExecutionStore {
         Integer next=jdbc.queryForObject("SELECT coalesce(max(attempt),0)+1 FROM analysis_executions WHERE analysis_id=?",Integer.class,analysis);
         if (next==null || next>100) throw new ConflictException("Analysis execution attempt limit reached");
         var execution=new Execution(UUID.randomUUID(),analysis,workspace,caller,next,Status.QUEUED,now,null,null,provenance,null,null,null);
-        jdbc.update("INSERT INTO analysis_executions(id,analysis_id,workspace_id,requested_by,attempt,status,payload,created_at) VALUES (?,?,?,?,?,'QUEUED',?::jsonb,?)",
-            execution.id(),analysis,workspace,caller,next,json.writeValueAsString(execution),Timestamp.from(now));
+        jdbc.update("INSERT INTO analysis_executions(id,analysis_id,workspace_id,requested_by,attempt,status,payload,created_at,request_id) VALUES (?,?,?,?,?,'QUEUED',?::jsonb,?,?)",
+            execution.id(),analysis,workspace,caller,next,json.writeValueAsString(execution),Timestamp.from(now),
+            dev.researchhub.shared.observability.CorrelationContext.currentOrNew());
         jdbc.update("INSERT INTO analysis_execution_records(execution_id,analysis_id,workspace_id,snapshot,created_at) VALUES (?,?,?,?::jsonb,?)",
             execution.id(),analysis,workspace,json.writeValueAsString(snapshot),Timestamp.from(now));
         jdbc.update("UPDATE analyses SET status='QUEUED',failure_code=NULL,updated_at=? WHERE workspace_id=? AND id=?",Timestamp.from(now),workspace,analysis);
+        try (var scope=dev.researchhub.shared.observability.CorrelationContext.open(requestId(execution.id()),
+                java.util.Map.of("jobId",execution.id().toString(),"analysisId",analysis.toString()))) {
+            org.slf4j.LoggerFactory.getLogger(getClass()).atInfo().addKeyValue("event", "analysis.execution.enqueued").log("Analysis execution enqueued");
+        }
         return execution;
+    }
+    public String requestId(UUID executionId) {
+        return jdbc.queryForObject("SELECT coalesce(request_id,id::text) FROM analysis_executions WHERE id=?",String.class,executionId);
     }
     @Transactional public Optional<Execution> claim(Instant now) {
         var queued=query("SELECT payload FROM analysis_executions WHERE status='QUEUED' ORDER BY created_at,id LIMIT 1 FOR UPDATE SKIP LOCKED");

@@ -17,6 +17,9 @@ import tools.jackson.databind.ObjectMapper;
 @Profile("local")
 public class ExecutionService {
     public static final int MAX_INPUT_BYTES=32*1024*1024, MAX_TOTAL_INPUT_BYTES=64*1024*1024;
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.shared.observability.WorkMetrics metrics =
+        new dev.researchhub.shared.observability.WorkMetrics(io.micrometer.core.instrument.Metrics.globalRegistry);
     private final WorkspaceAuthorizationService authorization;
     private final AnalysisService analyses;
     private final SourceService sources;
@@ -58,6 +61,18 @@ public class ExecutionService {
         return store.record(workspace,analysisId,executionId);
     }
     void execute(Execution claimed) {
+        String id=store.requestId(claimed.id());
+        try (var ignored=dev.researchhub.shared.observability.CorrelationContext.open(
+                id==null ? claimed.id().toString() : id,
+                Map.of("jobId",claimed.id().toString(),"analysisId",claimed.analysisId().toString()))) {
+            var sample=metrics.start(); boolean success=false;
+            org.slf4j.LoggerFactory.getLogger(getClass()).atInfo().addKeyValue("event","analysis.execution.started")
+                .log("Analysis execution started");
+            try { success=executeObserved(claimed); }
+            finally { metrics.finish(sample,dev.researchhub.shared.observability.WorkMetrics.Operation.ANALYSIS,success); }
+        }
+    }
+    private boolean executeObserved(Execution claimed) {
         Provenance provenance=claimed.provenance(); Validated validated=null; Failure failure=null; Diagnostics diagnostics=null;
         long started=System.nanoTime();
         try {
@@ -102,6 +117,11 @@ public class ExecutionService {
         catch (java.io.UncheckedIOException unavailable) { failure=Failure.INPUT_UNAVAILABLE; }
         catch (RuntimeException unsafe) { failure=Failure.INTERNAL_ERROR; }
         store.complete(claimed,provenance,failure==null ? validated : null,failure,diagnostics,clock.instant());
+        if (failure!=null) metrics.failure(dev.researchhub.shared.observability.WorkMetrics.Queue.ANALYSIS_EXECUTION);
+        org.slf4j.LoggerFactory.getLogger(getClass()).atInfo().addKeyValue("event","analysis.execution.completed")
+            .addKeyValue("outcome",failure==null ? "success" : "failure")
+            .addKeyValue("errorCode",failure==null ? null : failure.name()).log("Analysis execution completed");
+        return failure==null;
     }
     private Provenance provenance(Analysis analysis,UUID caller) {
         List<InputProvenance> inputs=new ArrayList<>(); long total=0;

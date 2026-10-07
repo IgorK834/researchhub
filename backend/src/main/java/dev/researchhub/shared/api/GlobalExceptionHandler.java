@@ -103,7 +103,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<Object> handleUnexpected(Exception exception) {
-        log.error("Unhandled API exception", exception);
+        log.atError().addKeyValue("event", "http.request.failed")
+            .addKeyValue("errorType", exception.getClass().getSimpleName()).log("Unhandled API exception");
         return body(problem(ApiErrorCode.INTERNAL_ERROR, "An unexpected error occurred"));
     }
 
