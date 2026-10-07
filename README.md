@@ -2,6 +2,7 @@
 
 Browser deployment and prompt-injection protection (RH-182/RH-183), including environment settings,
 CSP hosting requirements and evaluation commands: [browser and AI security](docs/development/browser-and-ai-security.md).
+Repository scans, blocking findings and warning policy: [repository security](docs/development/repository-security.md).
 
 ResearchHub is a collaborative AI workspace for students and researchers. A group shares source materials, writes a report in the same workspace, and uses AI that stays grounded in those sources. Charts, tables, calculations, and generated claims should keep provenance back to the source file, source fragment, dataset, or executed analysis.
 
@@ -93,8 +94,8 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.1.0` first with
-`docker build -t researchhub-sandbox:1.1.0 sandbox` from the repository root for the real computation E2E tests.
+`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.1.1` first with
+`docker build -t researchhub-sandbox:1.1.1 sandbox` from the repository root for the real computation E2E tests.
 Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
 processing, AI/retrieval and analysis modules. `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify` additionally enables
 the real Docker runner attack/cleanup tests.
@@ -218,7 +219,7 @@ Existing databases are upgraded by Flyway V19 (existing sources become version 1
 RH-143–RH-145: [isolated scientific computations](docs/development/analysis-execution.md) add a pinned scientific
 Python image, a trusted Docker runner with filesystem/network/resource limits, durable authorized execution attempts,
 computed table/chart results and immutable provenance. The real CSV/XLSX impedance example runs against source-version
-bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.1.0` and explicitly enable the local runner as
+bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.1.1` and explicitly enable the local runner as
 described in [sandbox/README.md](sandbox/README.md).
 
 RH-150–RH-151 add [durable execution records](contracts/analysis/record/v1/README.md) and
@@ -258,3 +259,7 @@ record explicit AI approval with citations, clipboard imports, human edits and e
 The Provenance inspector reports operations without AI detection or authorship percentages. Named and scheduled
 snapshots capture committed editor content and available Yjs state. Restore preserves later history and recent
 unsnapshotted content, retires old collaboration replicas and isolates offline buffers by epoch (Flyway V29).
+
+Request correlation, structured logs, authenticated Prometheus metrics and verification: [Observability (RH-185 / RH-186)](docs/development/observability.md).
+
+[AI usage/cost telemetry and protected RAG debugger](docs/development/ai-diagnostics.md) (RH-187 / RH-188).
