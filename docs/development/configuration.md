@@ -253,6 +253,12 @@ The adapter also has `account-key`; the committed default is Azurite's public de
 Container names, paths, and credentials belong to the chosen adapter's own settings, never to the source module. See
 [sources.md](sources.md#storage).
 
+RH-243 external web discovery is optional and separate from uploaded evidence. The backend local
+profile accepts `EXTERNAL_SEARCH_ENABLED=false`, `BRAVE_SEARCH_API_KEY` (required when enabled),
+and `EXTERNAL_SEARCH_TIMEOUT=PT8S` (positive, at most 30 seconds). Keep the provider key out of
+frontend build variables. Users must explicitly enable discovery for every search; existing AI
+and report source contracts remain workspace-only. See [source-search-and-external-evidence.md](source-search-and-external-evidence.md).
+
 ### Durable processing
 
 | Setting | Value |

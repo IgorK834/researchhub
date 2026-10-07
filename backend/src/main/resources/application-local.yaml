@@ -53,6 +53,10 @@ researchhub:
           max-bytes: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_BYTES:24576}
           collapse-exact-duplicates: ${AI_GROUNDED_RESPONSE_CONTEXT_COLLAPSE_EXACT_DUPLICATES:true}
   sources:
+    external-search:
+      enabled: ${EXTERNAL_SEARCH_ENABLED:false}
+      api-key: ${BRAVE_SEARCH_API_KEY:}
+      timeout: ${EXTERNAL_SEARCH_TIMEOUT:PT8S}
     storage:
       adapter: azure-blob
       azure-blob:
