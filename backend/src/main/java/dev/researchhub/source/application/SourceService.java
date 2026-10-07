@@ -199,6 +199,61 @@ public class SourceService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public SourceSearchPage search(UUID workspaceId, UUID callerId, String query, String type, String uploader,
+                                   String status, String tag, String collection, String pageNumber, String size) {
+        requireReader(workspaceId, callerId);
+        SourceSearch filters = validatedMetadata(() -> new SourceSearch(query, type, uploader == null || uploader.isBlank() ? null : UUID.fromString(uploader),
+                status, tag, collection, Integer.parseInt(pageNumber), Integer.parseInt(size)));
+        var page = sources.search(workspaceId, filters.query(), filters.type(),
+                filters.uploader() == null ? "" : filters.uploader().toString(), filters.status(), filters.tag(),
+                filters.collection(), org.springframework.data.domain.PageRequest.of(filters.page(), filters.size()));
+        return new SourceSearchPage(page.getContent().stream().map(entity -> summaryOf(entity.toDomain())).toList(),
+                page.getTotalElements(), filters.page(), filters.size(), page.hasNext());
+    }
+
+    @Transactional(readOnly = true)
+    public SourceLibraryFacets facets(UUID workspaceId, UUID callerId) {
+        requireReader(workspaceId, callerId);
+        var counts = sources.typeCounts(workspaceId);
+        return new SourceLibraryFacets(counts.stream().mapToLong(SourceRepository.TypeCount::getCount).sum(),
+                counts.stream().mapToLong(SourceRepository.TypeCount::getReady).sum(),
+                counts.stream().collect(java.util.stream.Collectors.toMap(SourceRepository.TypeCount::getType, SourceRepository.TypeCount::getCount)),
+                sources.uploaders(workspaceId), sources.tags(workspaceId), sources.collections(workspaceId));
+    }
+
+    @Transactional
+    public SourceSummary updateBibliography(UUID workspaceId, UUID callerId, UUID sourceId, SourceBibliography metadata) {
+        requireEditor(workspaceId, callerId);
+        Source current = lockedSource(workspaceId, sourceId);
+        Source changed = validatedMetadata(() -> current.withBibliography(metadata.toDomain(), clock.instant()));
+        try {
+            return summaryOf(sources.saveAndFlush(SourceEntity.fromDomain(changed)).toDomain());
+        } catch (org.springframework.dao.DataIntegrityViolationException duplicate) {
+            // This operation can only violate the workspace citation-key uniqueness rule after domain validation.
+            throw new ConflictException("The citation key is already used by another source in this workspace");
+        }
+    }
+
+    @Transactional
+    public SourceSummary organize(UUID workspaceId, UUID callerId, UUID sourceId, SourceOrganization organization) {
+        requireEditor(workspaceId, callerId);
+        Source current = lockedSource(workspaceId, sourceId);
+        Source changed = validatedMetadata(() -> current.organize(organization.displayName(), organization.tags(),
+                organization.collections(), clock.instant()));
+        return summaryOf(sources.saveAndFlush(SourceEntity.fromDomain(changed)).toDomain());
+    }
+
+    private Source lockedSource(UUID workspaceId, UUID sourceId) {
+        return sources.findByWorkspaceIdAndIdForUpdate(workspaceId, sourceId).map(SourceEntity::toDomain)
+                .orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND));
+    }
+
+    private static <T> T validatedMetadata(java.util.function.Supplier<T> operation) {
+        try { return operation.get(); }
+        catch (IllegalArgumentException invalid) { throw new ApiException(ApiErrorCode.VALIDATION_FAILED, invalid.getMessage()); }
+    }
+
     /**
      * One source's metadata.
      *
@@ -406,7 +461,8 @@ public class SourceService {
         return new SourceSummary(source.id(), source.workspaceId(), source.originalFilename().value(),
                 source.displayName(), source.mediaType(), source.sourceType().name(), source.sizeBytes(),
                 source.contentSha256(), source.status().name(), source.failureSummary(), source.uploadedBy(),
-                source.createdAt(), source.updatedAt(), source.activeVersionId(), source.activeVersionNumber());
+                source.createdAt(), source.updatedAt(), source.activeVersionId(), source.activeVersionNumber(),
+                SourceBibliography.from(source.bibliography()), source.tags(), source.collections());
     }
 
     private static SourceVersionSummary versionSummary(SourceVersion version, UUID activeVersionId) {

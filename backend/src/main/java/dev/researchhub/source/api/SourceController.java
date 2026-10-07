@@ -7,6 +7,11 @@ import dev.researchhub.source.application.SourceContent;
 import dev.researchhub.source.application.SourceExtractionService;
 import dev.researchhub.processing.application.SourceExtraction;
 import dev.researchhub.source.application.SourceService;
+import dev.researchhub.source.application.SourceBibliography;
+import dev.researchhub.source.application.SourceOrganization;
+import dev.researchhub.source.application.SourceLibraryFacets;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import dev.researchhub.source.application.UploadSourceCommand;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Profile;
@@ -75,6 +80,38 @@ public class SourceController {
     @GetMapping
     List<SourceResponse> list(@PathVariable UUID workspaceId) {
         return sources.list(workspaceId, currentUserId()).stream().map(SourceResponse::from).toList();
+    }
+
+    public record SearchPage(List<SourceResponse> items, long totalElements, int page, int size, boolean hasNext) {}
+
+    @GetMapping("/search")
+    ResponseEntity<SearchPage> search(@PathVariable UUID workspaceId,
+            @RequestParam(defaultValue = "") String query, @RequestParam(defaultValue = "") String type,
+            @RequestParam(defaultValue = "") String uploader, @RequestParam(defaultValue = "") String status,
+            @RequestParam(defaultValue = "") String tag, @RequestParam(defaultValue = "") String collection,
+            @RequestParam(defaultValue = "0") String page, @RequestParam(defaultValue = "30") String size) {
+        var result = sources.search(workspaceId, currentUserId(), query, type, uploader, status, tag, collection, page, size);
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(new SearchPage(result.items().stream().map(SourceResponse::from).toList(), result.totalElements(),
+                        result.page(), result.size(), result.hasNext()));
+    }
+
+    @GetMapping("/facets")
+    ResponseEntity<SourceLibraryFacets> facets(@PathVariable UUID workspaceId) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(sources.facets(workspaceId, currentUserId()));
+    }
+
+    @PutMapping("/{sourceId}/bibliography")
+    SourceResponse bibliography(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
+                                @RequestBody SourceBibliography metadata) {
+        return SourceResponse.from(sources.updateBibliography(workspaceId, currentUserId(), sourceId, metadata));
+    }
+
+    @PutMapping("/{sourceId}/organization")
+    SourceResponse organization(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
+                                @RequestBody SourceOrganization organization) {
+        return SourceResponse.from(sources.organize(workspaceId, currentUserId(), sourceId, organization));
     }
 
     @GetMapping("/{sourceId}")
