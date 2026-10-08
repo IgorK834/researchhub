@@ -145,6 +145,9 @@ export function fieldErrorsByName(error: unknown): Readonly<Record<string, strin
 /** Message safe to render in the UI for any error this layer can produce. */
 export function describeError(error: unknown): string {
   if (isApiError(error)) {
+    if (error.code === 'AI_OUTPUT_INVALID') {
+      return 'The AI response could not be validated. Please try again or rephrase your request.';
+    }
     const message = error.problem.detail || error.problem.title;
     if (
       error.code === 'RATE_LIMIT_EXCEEDED' &&

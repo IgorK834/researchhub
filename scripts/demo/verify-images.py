@@ -10,7 +10,7 @@ images = json.loads(subprocess.check_output(["docker", "image", "inspect", *IMAG
 for image in images:
     config = image["Config"]
     assert config["User"].split(":")[0] not in ("", "0", "root"), image["RepoTags"]
-    assert not any(value.startswith(("DB_PASSWORD=", "BLOB_CONNECTION_STRING=", "AI_WORKER_SERVICE_TOKEN=", "FOUNDRY_API_KEY=")) for value in config["Env"])
+    assert not any(value.startswith(("DB_PASSWORD=", "BLOB_CONNECTION_STRING=", "AI_WORKER_SERVICE_TOKEN=", "FOUNDRY_API_KEY=", "OPENAI_COMPAT_API_KEY=")) for value in config["Env"])
     if "researchhub-sandbox:1.1.1" in image["RepoTags"]:
         assert config.get("Healthcheck", {}).get("Test", ["NONE"]) == ["NONE"]
     else:

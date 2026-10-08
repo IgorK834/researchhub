@@ -1,5 +1,11 @@
 # ResearchHub AI worker
 
+RH-220–222 add the fixed-corpus `researchhub-evaluate` CLI: retrieval metrics, deterministic
+answer/citation checks, token/cost/latency reports and paired regression comparisons. Offline
+and authenticated Spring/pgvector modes share the same suite. Commands, contracts and limits:
+[AI evaluation](../docs/evaluation/README.md). `scripts/check.sh` enforces a dedicated >=80%
+branch-aware coverage gate for `evaluation/`.
+
 RH-112 workspace questions reuse the contextual gateway and Foundry adapter with the versioned
 `workspace-question:1` policy. The deterministic fixture quotes lexically matching passages or
 reports insufficient evidence. Contracts/configuration: [workspace questions](../docs/development/workspace-questions.md).
@@ -84,3 +90,8 @@ The check script enforces a separate context-module coverage gate. [Grounded con
 ## Document parser security
 
 Source ingestion runs in a fresh killable subprocess with configurable wall/CPU/memory limits, bounded output and no provider credentials. Compose applies container memory/PID limits and a read-only filesystem. See [upload and costly-request controls](../docs/development/upload-and-cost-controls.md) for settings, platform support, failure contracts and verification.
+
+RH-318 adds `openai-compatible` chat and embedding providers; configure HTTPS base, worker-only
+Bearer secret, model/version and (for embeddings) dimension. RH-346 uses the same fixed suite and
+runners with a pinned candidate matrix. See [configuration and safeguards](../docs/development/model-gateway.md#openai-compatible-chat-and-embeddings-rh-318),
+[one-command model evaluation](../docs/development/ai-evaluation.md) and [measured results](../docs/evaluation/results/demo-models/models.md).

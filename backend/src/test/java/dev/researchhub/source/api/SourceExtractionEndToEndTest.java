@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("local")
 @TestPropertySource(properties = {"researchhub.sources.storage.adapter=in-memory", "researchhub.processing.dispatcher.enabled=false",
     "researchhub.analysis.execution.dispatcher.enabled=false", "researchhub.analysis.sandbox.enabled=true",
+    "researchhub.security.quotas.llm.user=100",
     "researchhub.ai.conversations.stream.heartbeat=PT0.1S","researchhub.ai.conversations.stream.timeout=PT5S","researchhub.ai.conversations.stream.max-concurrent=1"})
 @Import({PostgresTestcontainersConfiguration.class, SourceExtractionEndToEndTest.Configuration.class})
 class SourceExtractionEndToEndTest {
@@ -167,6 +168,65 @@ class SourceExtractionEndToEndTest {
             new dev.researchhub.shared.observability.WorkMetrics(metrics)).dispatchAvailable();
     }
     private byte[] fixture(String name) throws Exception { return Files.readAllBytes(Path.of("src/test/resources/parsing", name)); }
+
+    @Test void evaluationCliMeasuresTheFixedCorpusThroughAuthorizedSpringAndRealPython() throws Exception {
+        Path fixtures = workerDirectory.resolve("src/researchhub_worker/evaluation/fixtures");
+        var suite = mapper.readTree(Files.readString(fixtures.resolve("suite.json")));
+        var workspaces = new HashMap<String, String>();
+        for (var source : suite.get("sources")) {
+            String fixtureWorkspace = source.get("workspaceFixtureId").asString();
+            if (!workspaces.containsKey(fixtureWorkspace)) {
+                workspaces.put(fixtureWorkspace, owner.createdWorkspaceId(
+                    "Evaluation " + suite.get("id").asString() + ":" + suite.get("version").asString() + " " + fixtureWorkspace,
+                    "Fixed synthetic evaluation corpus"));
+            }
+            workspaceId = workspaces.get(fixtureWorkspace);
+            upload(source.get("path").asString(), Files.readAllBytes(fixtures.resolve(source.get("path").asString())));
+            dispatch();
+        }
+        Path output = Path.of("target/evaluation-e2e").toAbsolutePath();
+        Files.createDirectories(output);
+        Path bindings = output.resolve("bindings.json"), baseline = output.resolve("spring-baseline.json");
+        var config = (tools.jackson.databind.node.ObjectNode) mapper.readTree(Files.readString(fixtures.resolve("baseline.json")));
+        config.put("index", "spring-hybrid");
+        config.put("name", "spring-pgvector-baseline");
+        Path configPath = output.resolve("spring-config.json");
+        Files.writeString(configPath, mapper.writeValueAsString(config));
+        evaluationCommand(output, "seed", "--url", "http://127.0.0.1:" + port, "--output", bindings.toString());
+        // Reseeding validates existing files and preserves identities; no duplicate fixtures.
+        String firstBindings = Files.readString(bindings);
+        evaluationCommand(output, "seed", "--url", "http://127.0.0.1:" + port, "--output", bindings.toString());
+        assertEquals(firstBindings, Files.readString(bindings));
+        evaluationCommand(output, "run", "--mode", "spring", "--url", "http://127.0.0.1:" + port,
+            "--bindings", bindings.toString(), "--config", configPath.toString(), "--output", baseline.toString());
+        var report = mapper.readTree(Files.readString(baseline));
+        assertEquals(suite.get("cases").size(), report.get("cases").size());
+        assertEquals(0, report.at("/summary/failures").asInt());
+        assertTrue(report.at("/manifest/backend/productionIndex").asBoolean());
+        assertTrue(report.at("/summary/spanRecallAtK/eligible").asInt() >= 20);
+        assertTrue(report.at("/summary/citationValidity/value").asDouble() > 0.99);
+        evaluationCommand(output, "compare", baseline.toString(), baseline.toString(), "--output", output.resolve("comparison.json").toString());
+        assertTrue(mapper.readTree(Files.readString(output.resolve("comparison.json"))).get("passed").asBoolean());
+        assertEquals(8, jdbc.queryForObject("SELECT count(*) FROM sources", Integer.class));
+        assertFalse(Files.readString(baseline).contains(TOKEN));
+    }
+
+    private void evaluationCommand(Path output, String... arguments) throws Exception {
+        var command = new ArrayList<String>(List.of(workerDirectory.resolve(".venv/bin/python").toString(),
+            "-m", "researchhub_worker.evaluation"));
+        command.addAll(List.of(arguments));
+        Path log = output.resolve("cli.log");
+        var builder = new ProcessBuilder(command).directory(workerDirectory.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
+        builder.environment().put("RH_EVALUATION_EMAIL", "parser-owner@example.com");
+        builder.environment().put("RH_EVALUATION_PASSWORD", "correct-horse-battery-staple");
+        var process = builder.start();
+        try {
+            assertTrue(process.waitFor(120, java.util.concurrent.TimeUnit.SECONDS), "Evaluation CLI timeout");
+            assertEquals(0, process.exitValue(), Files.readString(log));
+        } finally {
+            if (process.isAlive()) process.destroyForcibly();
+        }
+    }
 
     @Test
     @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "SOURCE_SEARCH_BROWSER_TESTS", matches = "true")
@@ -883,6 +943,67 @@ class SourceExtractionEndToEndTest {
         assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
             jdbc.update("UPDATE source_chunk_embeddings SET embedding='[1,0,0]'::public.vector WHERE source_id=?",UUID.fromString(id)));
         assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings WHERE dimension=2",Integer.class));
+    }
+
+    @Test void compatibleAdaptersNegotiateSchemaPreserveProvenanceAndRequireEmbeddingReprocessing() throws Exception {
+        String id=upload("lecture.pdf",fixture("lecture.pdf")); dispatch();
+        int compatiblePort;
+        try (var socket=new java.net.ServerSocket(0,0,InetAddress.getLoopbackAddress())) { compatiblePort=socket.getLocalPort(); }
+        var log=Files.createTempFile("researchhub-compatible-worker-",".log");
+        var builder=new ProcessBuilder(workerDirectory.resolve(".venv/bin/python").toString(),"tests/compatible_worker.py")
+            .directory(workerDirectory.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
+        builder.environment().put("AI_WORKER_PORT",Integer.toString(compatiblePort));
+        builder.environment().put("AI_WORKER_SERVICE_TOKEN",TOKEN);
+        var process=builder.start();
+        try {
+            var url=URI.create("http://127.0.0.1:"+compatiblePort);
+            boolean ready=false;
+            for (int i=0;i<100;i++) {
+                try { ready=HttpClient.newHttpClient().send(HttpRequest.newBuilder(url.resolve("/health")).timeout(Duration.ofSeconds(1)).GET().build(),HttpResponse.BodyHandlers.discarding()).statusCode()==200; }
+                catch (java.io.IOException starting) { /* bounded startup wait */ }
+                if (ready) break;
+                Thread.sleep(100);
+            }
+            assertTrue(ready,"Compatible fixture worker did not start");
+            var cloud=new dev.researchhub.ai.infrastructure.HttpModelProvider(mapper,url,TOKEN,Duration.ofSeconds(10));
+            var vector=new dev.researchhub.ai.infrastructure.HttpEmbeddingProvider(mapper,url,TOKEN,Duration.ofSeconds(10));
+            org.mockito.Mockito.doAnswer(call -> cloud.modelMetadata()).when(models).modelMetadata();
+            org.mockito.Mockito.doAnswer(call -> cloud.generateStructured((dev.researchhub.ai.application.ContextContracts.ContextualRequest)call.getArgument(0)))
+                .when(models).generateStructured(org.mockito.ArgumentMatchers.any(dev.researchhub.ai.application.ContextContracts.ContextualRequest.class));
+            org.mockito.Mockito.doAnswer(call -> vector.modelMetadata()).when(embeddings).modelMetadata();
+            org.mockito.Mockito.doAnswer(call -> vector.embedQuery(call.getArgument(0))).when(embeddings).embedQuery(org.mockito.ArgumentMatchers.anyString());
+            org.mockito.Mockito.doAnswer(call -> vector.embedDocuments(call.getArgument(0))).when(embeddings).embedDocuments(org.mockito.ArgumentMatchers.anyList());
+            assertEquals(0,owner.json(owner.get(searchPath(workspaceId))).size(),"Model switch must not silently use the old vector space");
+            assertEquals(202,owner.postJson(sourcePath(id)+"/reprocess","{}").statusCode()); dispatch();
+            assertEquals(2,owner.json(owner.get(searchPath(workspaceId))).size());
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM retrieval_embedding_models WHERE provider='openai-compatible' AND model_name='fixture-embedding' AND model_version='fixture-1' AND dimension=2",Integer.class));
+            var set=mapper.readValue(owner.get(sourcePath(id)+"/retrieval").body(),dev.researchhub.ai.application.RetrievalChunkSet.class);
+            var chunk=set.chunks().getFirst();
+            String path="/api/workspaces/"+workspaceId+"/ai/generations";
+            var command=new dev.researchhub.ai.application.GenerationContracts.Command("Quote the supplied evidence",List.of(
+                new dev.researchhub.ai.application.GenerationContracts.EvidenceReference(UUID.fromString(id),chunk.chunkId(),set.processingVersion())));
+            var response=owner.postJson(path,mapper.writeValueAsString(command));
+            assertEquals(200,response.statusCode(),response.body());
+            var result=mapper.readValue(response.body(),dev.researchhub.ai.application.GenerationContracts.GeneratedResponse.class);
+            assertEquals("openai-compatible",result.result().model().provider());
+            assertEquals(chunk.chunkId(),result.result().answer().claims().getFirst().evidenceIds().getFirst());
+            assertEquals(chunk.spans(),result.evidence().getFirst().spans());
+            assertFalse(result.result().usage().estimated());
+            assertEquals("SUCCEEDED",jdbc.queryForObject("SELECT status FROM ai_generation_runs WHERE request_id=?",String.class,result.result().requestId()));
+            var invalid=owner.postJson(path,mapper.writeValueAsString(new dev.researchhub.ai.application.GenerationContracts.Command("invalid-output-fixture",command.evidence())));
+            assertEquals(502,invalid.statusCode());
+            assertEquals("AI_OUTPUT_INVALID",owner.json(invalid).get("code").asString());
+            assertTrue(owner.json(invalid).get("detail").asString().contains("could not be validated"));
+            assertFalse(invalid.body().contains("fixture-private-key"));
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ai_generation_runs WHERE status='FAILED' AND error_code='AI_OUTPUT_INVALID'",Integer.class));
+            var outsider=new ApiBrowser(port,mapper); outsider.signUp("compatible-outsider@example.com","Outsider");
+            assertEquals(404,outsider.postJson(path,mapper.writeValueAsString(command)).statusCode());
+        } finally {
+            org.mockito.Mockito.reset(models,embeddings);
+            process.destroy();
+            if (!process.waitFor(5,java.util.concurrent.TimeUnit.SECONDS)) process.destroyForcibly();
+            Files.deleteIfExists(log);
+        }
     }
 
     @Test void modelGatewayIsGroundedAuditableAndIsolatedEndToEndWithTheRealPythonFake() throws Exception {

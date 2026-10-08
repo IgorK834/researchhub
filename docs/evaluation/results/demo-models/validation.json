@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-08",
+  "backlog": [
+    "RH-318",
+    "RH-346"
+  ],
+  "workerTests": {
+    "passed": 602,
+    "failed": 0,
+    "overallBranchAwareCoveragePercent": 97.809442790302,
+    "compatibleModuleBranchAwareCoveragePercent": 97.5166,
+    "modelEvaluationBranchAwareCoveragePercent": 99.5192
+  },
+  "backendVerify": {
+    "tests": 1181,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 11,
+    "result": "BUILD SUCCESS"
+  },
+  "additionalSpringCompatibleE2E": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "result": "BUILD SUCCESS"
+  },
+  "frontendCoverageRun": {
+    "tests": 1097,
+    "suites": 117,
+    "failures": 0
+  },
+  "frontendAdditionalTargetedRun": {
+    "tests": 21,
+    "failures": 0
+  },
+  "frontendBuild": "passed",
+  "frontendLint": "passed",
+  "demoOrchestrationTests": {
+    "tests": 27,
+    "failures": 0
+  },
+  "workerWheelBuild": "passed",
+  "measuredCandidates": [
+    "deterministic",
+    "qwen-local",
+    "gemma-local"
+  ],
+  "unavailableCandidates": [
+    "gemini-3-8-flash",
+    "foundry"
+  ],
+  "preferredCandidateAdoptionApproved": false,
+  "limitations": [
+    "No Gemini or Foundry credentials available; no scores fabricated.",
+    "No measured candidate satisfies all committed thresholds.",
+    "Fixture retrieval index is not production pgvector."
+  ]
+}

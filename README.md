@@ -294,3 +294,10 @@ configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232/RH-233).
 - [ADR-012 — Asynchronous report export pipeline](docs/adr/ADR-012-report-export-pipeline.md).
 - [Runtime profiles and Azure deployment contract](docs/development/configuration.md#azure-deployment-contract-rh-311--rh-312).
 - [Per-replica connection budget and Epic 21 validation](docs/development/persistence.md#connection-budget-and-autoscaling-rh-314).
+
+RH-318/RH-346 add OpenAI-compatible chat/embedding adapters alongside Foundry, with bounded schema
+fallback/repair and worker-only secrets. [AI evaluation](docs/development/ai-evaluation.md) documents
+the fixed-corpus comparison and one-command rerun. [Measured model results and acceptance thresholds](docs/evaluation/results/demo-models/models.md)
+include deterministic, local Qwen3 and Gemma3. Gemini 3.8 Flash is the preferred hosted candidate;
+its measurement and adoption remain pending a configured worker key. The current free local models
+miss documented thresholds, so the demo default remains the labeled deterministic fixture.

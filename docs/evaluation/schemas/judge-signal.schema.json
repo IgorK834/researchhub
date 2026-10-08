@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Explicitly imperfect supplemental signal, bound to the exact evaluated payload.",
+  "properties": {
+    "caseId": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Caseid",
+      "type": "string"
+    },
+    "observationHash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observationhash",
+      "type": "string"
+    },
+    "model": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "rubricVersion": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Rubricversion",
+      "type": "string"
+    },
+    "score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Score",
+      "type": "number"
+    },
+    "rationale": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "imperfectSupplemental": {
+      "const": true,
+      "default": true,
+      "title": "Imperfectsupplemental",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "caseId",
+    "observationHash",
+    "model",
+    "rubricVersion",
+    "score",
+    "rationale"
+  ],
+  "title": "JudgeSignal",
+  "type": "object"
+}

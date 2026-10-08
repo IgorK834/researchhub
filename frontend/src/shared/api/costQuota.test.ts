@@ -39,3 +39,16 @@ it('does not trust quota timing on other errors', () => {
     );
   }
 });
+it('gives clear guidance for an invalid AI answer without displaying provider details', () => {
+  const problem = decodeProblemDetail(
+    {
+      code: 'AI_OUTPUT_INVALID',
+      status: 502,
+      detail: 'Provider output did not match its schema',
+    },
+    502,
+  );
+  expect(describeError(new ApiError(problem!))).toBe(
+    'The AI response could not be validated. Please try again or rephrase your request.',
+  );
+});

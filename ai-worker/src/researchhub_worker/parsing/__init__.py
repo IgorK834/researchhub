@@ -58,10 +58,10 @@ def download(command, limits):
 
 
 class SourceParser:
-    def __init__(self, limits=None, downloader=download):
+    def __init__(self, limits=None, downloader=download, chunking=None):
         self.limits = limits or ParserLimits.from_env()
         self.downloader = downloader
-        self.chunking = ChunkingConfig.from_env()
+        self.chunking = chunking if chunking is not None else ChunkingConfig.from_env()
 
     def __call__(self, command):
         base = dict(schema_version=command.schema_version, job_id=command.job_id,

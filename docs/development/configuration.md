@@ -435,3 +435,28 @@ is `COST_QUOTA_RETENTION=P7D` (must cover the configured window), retries are bo
 (total attempts, 1–10), and `COST_QUOTA_CLEANUP_CRON=0 0 * * * *` runs hourly (`-` disables cleanup). The existing
 20/60 LLM, 10/30 analysis and 60/180 retrieval limits per minute are unchanged. Full contract and contention evidence:
 [upload-and-cost-controls.md](upload-and-cost-controls.md).
+
+### OpenAI-compatible worker providers (RH-318)
+
+Chat and embeddings are independently selected with `AI_WORKER_MODEL_PROVIDER=openai-compatible`
+and `AI_WORKER_EMBEDDING_PROVIDER=openai-compatible`. Their default remains `deterministic`; production
+may keep `foundry` chat and `azure` embeddings. Main/demo Compose pass credentials only to the worker.
+
+| Variable | Required when | Value |
+| --- | --- | --- |
+| `OPENAI_COMPAT_BASE_URL` | Either compatible adapter | HTTPS API base; no credentials/query/fragment/traversal. Vendor API prefix allowed; bare origin gets `/v1`. |
+| `OPENAI_COMPAT_API_KEY` | Either compatible adapter | Secret Bearer key, no whitespace. **Worker only.** |
+| `OPENAI_COMPAT_MODEL` | Compatible chat | Exact requested/returned model name. |
+| `OPENAI_COMPAT_MODEL_VERSION` | Compatible chat | Pinned release/deployment revision recorded in provenance. |
+| `OPENAI_COMPAT_EMBEDDING_MODEL` | Compatible embeddings | Exact requested/returned embedding model. |
+| `OPENAI_COMPAT_EMBEDDING_VERSION` | Compatible embeddings | Immutable vector-space revision; changes require source reprocessing. |
+| `OPENAI_COMPAT_EMBEDDING_DIMENSION` | Compatible embeddings | Integer 1–4,096; validated per vector and stored with model metadata. |
+
+Timeout, caps, no redirects, fallback/repair and embedding rebuild semantics are specified in
+[model gateway](model-gateway.md#openai-compatible-chat-and-embeddings-rh-318). Secrets must never be
+frontend variables or Java domain configuration. Python runtime/packages remain pinned; no schema or
+runtime dependency is added. `SSL_CERT_FILE` is the standard Python trust-store override for private
+CAs; never disable certificate verification. The optional evaluation helper uses `RH_LOCAL_MODEL_KEY`
+as a temporary loopback-only test Bearer value and optional hosted keys inherited from the environment;
+it does not expose production credentials. [Demo evaluation](ai-evaluation.md) documents candidates,
+thresholds, pricing, current public-demo terms and the single rerun command.

@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "deterministic",
+            "openai-compatible",
+            "foundry"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "baseUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseurl"
+        },
+        "apiKeyEnv": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Apikeyenv"
+        },
+        "deploymentEnv": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deploymentenv"
+        },
+        "endpointEnv": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endpointenv"
+        },
+        "modelEnv": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modelenv"
+        },
+        "versionEnv": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9_]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Versionenv"
+        },
+        "pricing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pricing"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "provider",
+        "model",
+        "version"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "Pricing": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "enum": [
+            "USD",
+            "EUR",
+            "PLN"
+          ],
+          "title": "Currency",
+          "type": "string"
+        },
+        "inputPerMillion": {
+          "minimum": 0,
+          "title": "Inputpermillion",
+          "type": "number"
+        },
+        "outputPerMillion": {
+          "minimum": 0,
+          "title": "Outputpermillion",
+          "type": "number"
+        },
+        "revision": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "inputPerMillion",
+        "outputPerMillion",
+        "revision"
+      ],
+      "title": "Pricing",
+      "type": "object"
+    },
+    "Thresholds": {
+      "additionalProperties": false,
+      "properties": {
+        "sourceRecallAtK": {
+          "default": 0.95,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Sourcerecallatk",
+          "type": "number"
+        },
+        "spanRecallAtK": {
+          "default": 0.95,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Spanrecallatk",
+          "type": "number"
+        },
+        "citationValidity": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Citationvalidity",
+          "type": "number"
+        },
+        "groundedAnswerRate": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Groundedanswerrate",
+          "type": "number"
+        },
+        "answerCorrectness": {
+          "default": 0.9,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Answercorrectness",
+          "type": "number"
+        },
+        "correctRefusalRate": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Correctrefusalrate",
+          "type": "number"
+        },
+        "schemaValidOutputRate": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Schemavalidoutputrate",
+          "type": "number"
+        },
+        "injectionPassRate": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Injectionpassrate",
+          "type": "number"
+        },
+        "p95LatencyMs": {
+          "default": 8000,
+          "minimum": 0,
+          "title": "P95Latencyms",
+          "type": "number"
+        },
+        "meanCostUsd": {
+          "default": 0.01,
+          "minimum": 0,
+          "title": "Meancostusd",
+          "type": "number"
+        }
+      },
+      "title": "Thresholds",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "preferredCandidate": {
+      "title": "Preferredcandidate",
+      "type": "string"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/Thresholds"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "maxItems": 12,
+      "minItems": 3,
+      "title": "Candidates",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "preferredCandidate",
+    "candidates"
+  ],
+  "title": "Matrix",
+  "type": "object"
+}

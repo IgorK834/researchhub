@@ -114,6 +114,48 @@ class AzureEmbeddingProvider:
         return self.embed_documents([text])
 
 
+class OpenAiCompatibleEmbeddingProvider:
+    """Fixed dimensional vector space; persisted namespace includes provider/model/version."""
+    def __init__(self, base_url, api_key, metadata, opener=None):
+        from ..ai.compatible_http import api_base_url, bearer_key
+        self._url = api_base_url(base_url) + '/embeddings'
+        self._api_key = bearer_key(api_key)
+        if metadata.provider != 'openai-compatible':
+            raise ValueError('Compatible embedding metadata is required')
+        self._metadata = metadata
+        self._opener = opener or build_opener(_NoRedirect)
+
+    def model_metadata(self):
+        return self._metadata
+
+    def embed_documents(self, texts):
+        from ..ai.compatible_http import RESPONSE_LIMIT, transient_status
+        request = Request(self._url, data=json.dumps(dict(input=texts, model=self._metadata.name,
+            dimensions=self._metadata.dimension, encoding_format='float')).encode(), method='POST',
+            headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + self._api_key})
+        try:
+            with self._opener.open(request, timeout=8) as response:
+                raw = response.read(RESPONSE_LIMIT + 1)
+            if len(raw) > RESPONSE_LIMIT:
+                raise ValueError('Response limit')
+            payload = json.loads(raw)
+            data = sorted(payload['data'], key=lambda item: item['index'])
+            if payload['model'] != self._metadata.name or [item['index'] for item in data] != list(range(len(texts))):
+                raise ValueError('Embedding model/count mismatch')
+            return EmbeddingBatch(metadata=self._metadata, vectors=[item['embedding'] for item in data])
+        except HTTPError as failure:
+            transient = transient_status(failure.code)
+            failure.close()
+            raise EmbeddingError(transient) from None
+        except (OSError, URLError):
+            raise EmbeddingError(True) from None
+        except (ValueError, KeyError, TypeError, IndexError):
+            raise EmbeddingError() from None
+
+    def embed_query(self, text):
+        return self.embed_documents([text])
+
+
 @dataclass(frozen=True)
 class RetryPolicy:
     attempts: int = 3
@@ -172,6 +214,10 @@ def configured_provider():
         provider = AzureEmbeddingProvider(os.environ['AZURE_EMBEDDING_ENDPOINT'], os.environ['AZURE_EMBEDDING_API_KEY'],
             os.environ['AZURE_EMBEDDING_DEPLOYMENT'], ModelMetadata(provider='azure', name=os.environ['AZURE_EMBEDDING_MODEL'],
                 version=os.environ['AZURE_EMBEDDING_VERSION'], dimension=int(os.environ['AZURE_EMBEDDING_DIMENSION'])))
+    elif name == 'openai-compatible':
+        provider = OpenAiCompatibleEmbeddingProvider(os.environ['OPENAI_COMPAT_BASE_URL'], os.environ['OPENAI_COMPAT_API_KEY'],
+            ModelMetadata(provider=name, name=os.environ['OPENAI_COMPAT_EMBEDDING_MODEL'],
+                version=os.environ['OPENAI_COMPAT_EMBEDDING_VERSION'], dimension=int(os.environ['OPENAI_COMPAT_EMBEDDING_DIMENSION'])))
     else:
         raise ValueError('Unknown embedding provider')
     return BatchedEmbeddingProvider(provider)

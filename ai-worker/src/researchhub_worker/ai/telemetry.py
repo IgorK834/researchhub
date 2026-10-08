@@ -6,7 +6,7 @@ _current: ContextVar[dict | None] = ContextVar('ai_provider_usage', default=None
 _active: ContextVar[bool] = ContextVar('ai_provider_usage_active', default=False)
 
 
-def record_payload(model, payload):
+def record_payload(model, payload, *, accumulate=False):
     """Capture only validated provider usage, before refusal/schema validation."""
     if not _active.get():
         return
@@ -17,6 +17,12 @@ def record_payload(model, payload):
                               total_tokens=raw['total_tokens'], estimated=False)
     except (ValueError, KeyError, TypeError):
         pass
+    previous = _current.get()
+    if accumulate and previous and previous.get('usage') is not None and usage is not None:
+        old = UsageMetadata.model_validate(previous['usage'])
+        usage = UsageMetadata(input_tokens=old.input_tokens + usage.input_tokens,
+            output_tokens=old.output_tokens + usage.output_tokens,
+            total_tokens=old.total_tokens + usage.total_tokens, estimated=old.estimated or usage.estimated)
     _current.set({'model': ModelMetadata.model_validate(model.model_dump()).model_dump(mode='json', by_alias=True),
                   'usage': None if usage is None else usage.model_dump(mode='json', by_alias=True)})
 

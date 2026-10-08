@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-08",
+  "backlog": [
+    "RH-220",
+    "RH-221",
+    "RH-222"
+  ],
+  "suiteCases": 33,
+  "corpusFiles": 8,
+  "workspaceFixtures": 2,
+  "python": "3.13.3",
+  "uv": "0.12.20",
+  "java": "25.0.2",
+  "springBoot": "4.1.1",
+  "workerTests": {
+    "passed": 527,
+    "failed": 0,
+    "overallCoveragePercent": 97.67
+  },
+  "evaluationCoverage": {
+    "covered_lines": 821,
+    "num_statements": 824,
+    "percent_covered": 99.24385633270322,
+    "percent_covered_display": "99",
+    "missing_lines": 3,
+    "excluded_lines": 5,
+    "percent_statements_covered": 99.63592233009709,
+    "percent_statements_covered_display": "99",
+    "num_branches": 234,
+    "num_partial_branches": 5,
+    "covered_branches": 229,
+    "missing_branches": 5,
+    "percent_branches_covered": 97.86324786324786,
+    "percent_branches_covered_display": "98"
+  },
+  "backendVerify": {
+    "tests": 1181,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 11,
+    "build": "SUCCESS"
+  },
+  "finalSpringE2E": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "observations": 33,
+    "build": "SUCCESS"
+  },
+  "wheelSmoke": {
+    "build": "SUCCESS",
+    "outsideCheckout": true,
+    "observations": 33,
+    "failures": 0
+  },
+  "lockfileCheck": "PASS",
+  "diffWhitespaceCheck": "PASS",
+  "offlineComparison": {
+    "qualityGate": "FAIL",
+    "intentionalRegressionExample": true
+  }
+}

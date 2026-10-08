@@ -758,7 +758,11 @@ function MessageView({
       )}
       {message.status === 'PENDING' ? <p role="status">Answer pending…</p> : null}
       {message.status === 'FAILED' || message.status === 'ABANDONED' ? (
-        <p>No complete answer was saved for this attempt.</p>
+        <p>
+          {message.errorCode === 'AI_OUTPUT_INVALID'
+            ? 'The AI response could not be validated. Please try again or rephrase your request.'
+            : 'No complete answer was saved for this attempt.'}
+        </p>
       ) : null}
     </article>
   );

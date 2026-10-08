@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ChunkingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "hierarchical-char-1",
+          "default": "hierarchical-char-1",
+          "title": "Version",
+          "type": "string"
+        },
+        "maxCharacters": {
+          "default": 1600,
+          "maximum": 8000,
+          "minimum": 32,
+          "title": "Maxcharacters",
+          "type": "integer"
+        },
+        "overlapCharacters": {
+          "default": 150,
+          "minimum": 0,
+          "title": "Overlapcharacters",
+          "type": "integer"
+        },
+        "minCharacters": {
+          "default": 200,
+          "minimum": 1,
+          "title": "Mincharacters",
+          "type": "integer"
+        }
+      },
+      "title": "ChunkingConfig",
+      "type": "object"
+    },
+    "ModelParameters": {
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature"
+        },
+        "maxOutputTokens": {
+          "maximum": 8192,
+          "minimum": 16,
+          "title": "Maxoutputtokens",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxOutputTokens"
+      ],
+      "title": "ModelParameters",
+      "type": "object"
+    },
+    "Pricing": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "enum": [
+            "USD",
+            "EUR",
+            "PLN"
+          ],
+          "title": "Currency",
+          "type": "string"
+        },
+        "inputPerMillion": {
+          "minimum": 0,
+          "title": "Inputpermillion",
+          "type": "number"
+        },
+        "outputPerMillion": {
+          "minimum": 0,
+          "title": "Outputpermillion",
+          "type": "number"
+        },
+        "revision": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "inputPerMillion",
+        "outputPerMillion",
+        "revision"
+      ],
+      "title": "Pricing",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "topK": {
+      "default": 6,
+      "maximum": 12,
+      "minimum": 1,
+      "title": "Topk",
+      "type": "integer"
+    },
+    "repetitions": {
+      "default": 1,
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Repetitions",
+      "type": "integer"
+    },
+    "chunking": {
+      "$ref": "#/$defs/ChunkingConfig"
+    },
+    "index": {
+      "default": "fixture-hybrid",
+      "enum": [
+        "fixture-hybrid",
+        "fixture-lexical",
+        "fixture-vector",
+        "spring-hybrid"
+      ],
+      "title": "Index",
+      "type": "string"
+    },
+    "templateId": {
+      "default": "workspace-question:2",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Templateid",
+      "type": "string"
+    },
+    "systemInstruction": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Systeminstruction",
+      "type": "string"
+    },
+    "parameters": {
+      "$ref": "#/$defs/ModelParameters"
+    },
+    "pricing": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Pricing"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "revision": {
+      "default": "working-tree",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "systemInstruction"
+  ],
+  "title": "RunConfig",
+  "type": "object"
+}

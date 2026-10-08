@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ChunkingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "hierarchical-char-1",
+          "default": "hierarchical-char-1",
+          "title": "Version",
+          "type": "string"
+        },
+        "maxCharacters": {
+          "default": 1600,
+          "maximum": 8000,
+          "minimum": 32,
+          "title": "Maxcharacters",
+          "type": "integer"
+        },
+        "overlapCharacters": {
+          "default": 150,
+          "minimum": 0,
+          "title": "Overlapcharacters",
+          "type": "integer"
+        },
+        "minCharacters": {
+          "default": 200,
+          "minimum": 1,
+          "title": "Mincharacters",
+          "type": "integer"
+        }
+      },
+      "title": "ChunkingConfig",
+      "type": "object"
+    },
+    "EvaluationCase": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "expectedAnswer": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Expectedanswer",
+          "type": "string"
+        },
+        "expectedStatus": {
+          "enum": [
+            "SUPPORTED",
+            "INSUFFICIENT_EVIDENCE"
+          ],
+          "title": "Expectedstatus",
+          "type": "string"
+        },
+        "expectedFacts": {
+          "items": {
+            "$ref": "#/$defs/Fact"
+          },
+          "maxItems": 30,
+          "title": "Expectedfacts",
+          "type": "array"
+        },
+        "expectedSourceIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Expectedsourceids",
+          "type": "array"
+        },
+        "workspaceFixtureId": {
+          "format": "uuid",
+          "title": "Workspacefixtureid",
+          "type": "string"
+        },
+        "selectedSourceIds": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 100,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selectedsourceids"
+        },
+        "tags": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Tags",
+          "type": "array"
+        },
+        "difficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "Difficulty",
+          "type": "string"
+        },
+        "forbiddenPatterns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Forbiddenpatterns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "question",
+        "expectedAnswer",
+        "expectedStatus",
+        "expectedFacts",
+        "expectedSourceIds",
+        "workspaceFixtureId",
+        "tags",
+        "difficulty"
+      ],
+      "title": "EvaluationCase",
+      "type": "object"
+    },
+    "Fact": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "answerPatterns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Answerpatterns",
+          "type": "array"
+        },
+        "supportedStatements": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Supportedstatements",
+          "type": "array"
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/Location"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Locations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "answerPatterns",
+        "supportedStatements",
+        "locations"
+      ],
+      "title": "Fact",
+      "type": "object"
+    },
+    "Location": {
+      "additionalProperties": false,
+      "properties": {
+        "sourceId": {
+          "format": "uuid",
+          "title": "Sourceid",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "unitId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Unitid",
+          "type": "string"
+        },
+        "characterStart": {
+          "minimum": 0,
+          "title": "Characterstart",
+          "type": "integer"
+        },
+        "characterEnd": {
+          "minimum": 1,
+          "title": "Characterend",
+          "type": "integer"
+        },
+        "chunkIds": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Chunkids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sourceId",
+        "unitId",
+        "characterStart",
+        "characterEnd"
+      ],
+      "title": "Location",
+      "type": "object"
+    },
+    "SourceFixture": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "workspaceFixtureId": {
+          "format": "uuid",
+          "title": "Workspacefixtureid",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sourceType": {
+          "enum": [
+            "PDF",
+            "DOCX",
+            "TXT",
+            "CSV",
+            "XLSX"
+          ],
+          "title": "Sourcetype",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "extractionSha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Extractionsha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "workspaceFixtureId",
+        "title",
+        "path",
+        "sourceType",
+        "sha256",
+        "extractionSha256"
+      ],
+      "title": "SourceFixture",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    },
+    "description": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "referenceChunking": {
+      "$ref": "#/$defs/ChunkingConfig"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceFixture"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/EvaluationCase"
+      },
+      "maxItems": 1000,
+      "minItems": 20,
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "description",
+    "referenceChunking",
+    "sources",
+    "cases"
+  ],
+  "title": "Suite",
+  "type": "object"
+}

@@ -320,6 +320,22 @@ it('handles local validation, source loading/errors and revoked history without 
     true,
   );
 });
+it('explains validation failure on a saved conversation attempt', async () => {
+  fetchList.mockResolvedValue({ items: [conversation], nextOffset: null });
+  fetchHistory.mockResolvedValue({
+    conversation,
+    messages: [
+      { ...turn.user, id: 'invalid', status: 'FAILED', errorCode: 'AI_OUTPUT_INVALID' },
+    ],
+    nextBeforeSequence: null,
+  });
+  panel();
+  expect(
+    await screen.findByText(
+      'The AI response could not be validated. Please try again or rephrase your request.',
+    ),
+  ).not.toBeNull();
+});
 it('renders pending/failed attempts and fails safely when conversations cannot be read', async () => {
   fetchList.mockResolvedValue({ items: [conversation], nextOffset: null });
   fetchHistory.mockResolvedValue({

@@ -12,3 +12,6 @@ uv run --frozen coverage report --include='src/researchhub_worker/parser_process
 uv run --frozen coverage report --include='src/researchhub_worker/observability.py' --fail-under=80
 
 uv run --frozen coverage report --include='src/researchhub_worker/ai/telemetry.py' --fail-under=80
+uv run --frozen coverage report --include='src/researchhub_worker/evaluation/*' --fail-under=80
+uv run --frozen coverage report --include='src/researchhub_worker/ai/providers.py,src/researchhub_worker/ai/compatible_*.py,src/researchhub_worker/retrieval/embeddings.py' --fail-under=80
+uv run --frozen coverage report --include='src/researchhub_worker/evaluation/models.py' --fail-under=80

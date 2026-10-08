@@ -1,0 +1,1 @@
+Notatka laboratoryjna. Stała czasowa układu RC wynosi 4,7 sekundy. Napięcie początkowe wynosi 5,0 V. Symbol pojemności to C, a jednostka to µF. Wynik pomiaru wymaga cytowania źródła i zachowania wersji danych. Znacznik próbki: λ😀. Wilgotności nie zmierzono.

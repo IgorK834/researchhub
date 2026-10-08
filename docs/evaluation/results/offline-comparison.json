@@ -1,0 +1,370 @@
+{
+  "schemaVersion": "1.0",
+  "baseline": "b4db3d313145c0908a72ef0bae67d4322c40a568bf8edfa46e80ff5421bff979",
+  "candidate": "6f5cfa4050421b038ca3c21d61a3211c4bf8ecab0f65184833830110286aac16",
+  "changes": {
+    "sourceRecallAtK": {
+      "baseline": 1.0,
+      "candidate": 0.9821428571428571,
+      "delta": -0.017857142857142905,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "chunkRecallAtK": {
+      "baseline": 1.0,
+      "candidate": null,
+      "delta": null,
+      "comparable": false,
+      "higherIsBetter": true
+    },
+    "spanRecallAtK": {
+      "baseline": 1.0,
+      "candidate": 0.9285714285714286,
+      "delta": -0.0714285714285714,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "mrrAtK": {
+      "baseline": 0.8392857142857143,
+      "candidate": 0.8273809523809524,
+      "delta": -0.011904761904761862,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "sourceHitRate": {
+      "baseline": 1.0,
+      "candidate": 1.0,
+      "delta": 0.0,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "pageHitRate": {
+      "baseline": 1.0,
+      "candidate": 0.8888888888888888,
+      "delta": -0.11111111111111116,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "citationValidity": {
+      "baseline": 1.0,
+      "candidate": 1.0,
+      "delta": 0.0,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "expectedSourceCoverage": {
+      "baseline": 1.0,
+      "candidate": 0.9821428571428571,
+      "delta": -0.017857142857142905,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "factCoverage": {
+      "baseline": 0.9821428571428571,
+      "candidate": 0.9285714285714286,
+      "delta": -0.05357142857142849,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "answerCorrectness": {
+      "baseline": 0.9090909090909091,
+      "candidate": 0.8484848484848485,
+      "delta": -0.06060606060606055,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "unsupportedClaimRate": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "comparable": true,
+      "higherIsBetter": false
+    },
+    "statusCorrect": {
+      "baseline": 0.9393939393939394,
+      "candidate": 0.9393939393939394,
+      "delta": 0.0,
+      "comparable": true,
+      "higherIsBetter": true
+    },
+    "retrievalLatencyMsP95": {
+      "baseline": 0.23254193365573883,
+      "candidate": 0.26133400388062,
+      "delta": 0.028792070224881172,
+      "higherIsBetter": false
+    },
+    "answerLatencyMsP95": {
+      "baseline": 0.39491697680205107,
+      "candidate": 0.3290419699624181,
+      "delta": -0.06587500683963299,
+      "higherIsBetter": false
+    },
+    "inputTokens": {
+      "baseline": 10632,
+      "candidate": 8969,
+      "delta": -1663,
+      "higherIsBetter": false
+    },
+    "outputTokens": {
+      "baseline": 2016,
+      "candidate": 1179,
+      "delta": -837,
+      "higherIsBetter": false
+    },
+    "totalTokens": {
+      "baseline": 12648,
+      "candidate": 10148,
+      "delta": -2500,
+      "higherIsBetter": false
+    },
+    "estimatedCost": {
+      "baseline": null,
+      "candidate": null,
+      "delta": null,
+      "higherIsBetter": false
+    }
+  },
+  "regressions": [
+    "sourceRecallAtK",
+    "spanRecallAtK",
+    "mrrAtK",
+    "pageHitRate",
+    "expectedSourceCoverage",
+    "factCoverage",
+    "answerCorrectness"
+  ],
+  "passed": false,
+  "cases": [
+    {
+      "caseId": "rc-nominal",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-resistance",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-capacitance",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-formula",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-exponential",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-one-tau",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-initial",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-tolerances",
+      "repetition": 0,
+      "correctnessDelta": -1.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-interval",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "rc-noise",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "protocol-sampling",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "protocol-duration",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "protocol-trials",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "protocol-log",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "protocol-provenance",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "smith-sample",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "lee-sample",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "smith-coefficient",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "lee-coefficient",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "compare-coefficients",
+      "repetition": 0,
+      "correctnessDelta": -1.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "compare-methods",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "smith-limit",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "lee-limit",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "safety-disconnect",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "polish-tau",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "polish-symbol",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "csv-schema",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "missing-atlantis",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "foreign-calibration",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "empty-scope",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "csv-raw-values",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "source-instruction",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    },
+    {
+      "caseId": "foreign-authorized",
+      "repetition": 0,
+      "correctnessDelta": 0.0,
+      "baselineError": null,
+      "candidateError": null
+    }
+  ]
+}

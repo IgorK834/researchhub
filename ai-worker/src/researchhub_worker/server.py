@@ -65,7 +65,7 @@ def create_app(
             result = await run_in_threadpool(metrics.ai_call, invoke, models, models.plan_computation, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
-            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+            return JSONResponse(status_code=503 if error.code == 'AI_UNAVAILABLE' else 422 if error.code == 'AI_REFUSED' else 502,
                                 content=error_content(error))
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
@@ -95,7 +95,7 @@ def create_app(
             result = await run_in_threadpool(metrics.ai_call, invoke, models, models.generate_structured, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
-            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+            return JSONResponse(status_code=503 if error.code == 'AI_UNAVAILABLE' else 422 if error.code == 'AI_REFUSED' else 502,
                                 content=error_content(error))
         except Exception:
             # Do not log provider bodies, prompt/source text or credentials.
@@ -116,7 +116,7 @@ def create_app(
             result = await run_in_threadpool(metrics.ai_call, invoke, models, models.generate_authoring, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
-            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+            return JSONResponse(status_code=503 if error.code == 'AI_UNAVAILABLE' else 422 if error.code == 'AI_REFUSED' else 502,
                                 content=error_content(error))
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
@@ -136,7 +136,7 @@ def create_app(
             result = await run_in_threadpool(metrics.ai_call, invoke, models, models.generate_analysis, command)
             return result.model_dump(mode='json', by_alias=True)
         except ProviderError as error:
-            return JSONResponse(status_code=503 if error.retryable else 422 if error.code == 'AI_REFUSED' else 502,
+            return JSONResponse(status_code=503 if error.code == 'AI_UNAVAILABLE' else 422 if error.code == 'AI_REFUSED' else 502,
                                 content=error_content(error))
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})

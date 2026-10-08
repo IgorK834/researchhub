@@ -118,3 +118,70 @@ product persistence uses the local profile; the cloud profile remains a deployme
 Economic metadata is now recorded independently of private prompts for every model gateway call.
 See [AI economics and RAG diagnostics](ai-diagnostics.md) for rates, unknown usage semantics,
 provider failure metadata and the operator-only workspace debugger.
+
+## OpenAI-compatible chat and embeddings (RH-318)
+
+`OpenAiCompatibleModelProvider` implements the same model protocol as deterministic and Foundry.
+Only its adapter knows the remote wire format; the Spring modular monolith still owns authorization,
+feature templates, context, immutable provenance and the generation audit. `ModelGateway` evidence
+and prompt-injection validation are unchanged. No database migration or package dependency is needed.
+
+| Worker environment variable | Contract |
+| --- | --- |
+| `AI_WORKER_MODEL_PROVIDER` | `deterministic` (default), `foundry`, `openai-compatible` |
+| `OPENAI_COMPAT_BASE_URL` | Required HTTPS API base. No userinfo, whitespace, query, fragment or path traversal. An origin gets `/v1`; an API prefix such as `/api/v1` or `/v1beta/openai` is preserved. |
+| `OPENAI_COMPAT_API_KEY` | Required nonblank, whitespace-free worker secret; sent only as `Authorization: Bearer …`. |
+| `OPENAI_COMPAT_MODEL` | Exact requested and returned model name; mismatch fails closed. |
+| `OPENAI_COMPAT_MODEL_VERSION` | Required operator-pinned snapshot/deployment revision, recorded in provenance. Re-evaluate vendor aliases after changes. |
+| `AI_WORKER_EMBEDDING_PROVIDER` | Independent selection: `deterministic` (default), `azure`, `openai-compatible`. |
+| `OPENAI_COMPAT_EMBEDDING_MODEL` | Exact embedding model requested/returned when compatible embeddings are enabled. |
+| `OPENAI_COMPAT_EMBEDDING_VERSION` | Required immutable vector-space/model revision. |
+| `OPENAI_COMPAT_EMBEDDING_DIMENSION` | Required integer 1–4,096. Sent as `dimensions` and locally checked for every vector. |
+
+Example for the user's preferred candidate (supply the secret through the worker environment):
+
+```dotenv
+AI_WORKER_MODEL_PROVIDER=openai-compatible
+OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+OPENAI_COMPAT_MODEL=gemini-3.8-flash
+OPENAI_COMPAT_MODEL_VERSION=GA-2026-09-provider-alias
+AI_WORKER_EMBEDDING_PROVIDER=deterministic
+```
+
+**All provider credentials belong exclusively to the worker.** Never put them in Spring, frontend
+`RESEARCHHUB_*` variables, browser requests, Git, generated reports or container images. Main and
+demo Compose forward these values only to the worker. Cloud production can continue selecting Foundry.
+
+Chat uses `/chat/completions`, `stream:false`, `store:false`, no tools/functions and `max_tokens`
+from the existing server parameter. Every attempt has an eight-second transport timeout, refuses
+redirects and reads at most **256 KiB**. TLS certificate verification remains enabled. 408, 429 and
+all 5xx map to `AI_UNAVAILABLE`; other HTTP errors are permanent `AI_PROVIDER_ERROR`. Usage is recorded
+through `record_payload` before validation, with repair responses accumulated instead of undercounted.
+Refusals, unexpected tools, incomplete responses and model-identity mismatches are never repaired.
+
+The adapter first requests strict `json_schema`. Only 400/422 explicitly identifying an unsupported
+`response_format`/`json_schema` permits a fallback to `json_object`. Generic 400s, authentication errors,
+redirects and malformed-schema errors do not negotiate weaker behavior. JSON mode supplies the exact
+trusted application schema and still validates against the existing local answer/authoring/source-
+analysis/plan contracts and evidence references. A schema-invalid content response gets **at most
+one repair**, using the original context and a fixed trusted formatting instruction. It never feeds
+provider error text or the invalid response back as trusted instructions. Strict rejection + fallback
++ one repair is at most three HTTP attempts within that completion. Transient-only gateway retry is
+preserved; a transient failure during repair cannot restart the repair budget in that worker call.
+Malformed envelopes and responses over the byte/content cap immediately fail with `AI_OUTPUT_INVALID`.
+The UI explains that the response could not be validated and offers explicit retry/rephrasing.
+
+Compatible embeddings use `/embeddings`, Bearer authentication, eight-second timeout, no redirects
+and the same 256 KiB cap. Batching and bounded transient retry use the existing wrapper. Model identity,
+exact indices/count, configured dimension, finite and nonzero vectors are locally validated.
+`retrieval_embedding_models` already stores `(provider, model, version, dimension)` under its hashed
+`index_id`. Changing any value selects a distinct vector space. Existing vectors remain invisible
+until sources are explicitly reprocessed; no silent mixing or automatic model swap occurs. If large
+vectors exceed the response cap, reduce document batch size at the adapter boundary rather than
+relaxing the cap. Supported endpoints must honor the requested model/dimension and security settings;
+API-shape compatibility alone does not guarantee provider data-retention behavior.
+
+The local HTTP fake tests exercise success, schema negotiation, one repair, invalid JSON, usage,
+429/5xx, redirects, oversize responses and all feature contracts. Existing deterministic/Foundry
+fixtures remain unchanged. Reproduction, measured selection, terms and limits:
+[AI evaluation](ai-evaluation.md).

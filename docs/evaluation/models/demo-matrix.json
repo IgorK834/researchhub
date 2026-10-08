@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0",
+  "preferredCandidate": "gemini-3-8-flash",
+  "thresholds": {
+    "sourceRecallAtK": 0.95,
+    "spanRecallAtK": 0.95,
+    "citationValidity": 1,
+    "groundedAnswerRate": 0.9,
+    "answerCorrectness": 0.9,
+    "correctRefusalRate": 1,
+    "schemaValidOutputRate": 1,
+    "injectionPassRate": 1,
+    "p95LatencyMs": 8000,
+    "meanCostUsd": 0.01
+  },
+  "candidates": [
+    {
+      "id": "deterministic",
+      "provider": "deterministic",
+      "model": "extractive-fixture",
+      "version": "1",
+      "pricing": {
+        "currency": "USD",
+        "inputPerMillion": 0,
+        "outputPerMillion": 0,
+        "revision": "local-hardware-excluded-2026-10-08"
+      }
+    },
+    {
+      "id": "qwen-local",
+      "provider": "openai-compatible",
+      "model": "qwen3:4b-instruct-2507-q4_K_M",
+      "version": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+      "baseUrl": "https://localhost:11435/v1",
+      "apiKeyEnv": "RH_LOCAL_MODEL_KEY",
+      "pricing": {
+        "currency": "USD",
+        "inputPerMillion": 0,
+        "outputPerMillion": 0,
+        "revision": "local-hardware-excluded-2026-10-08"
+      }
+    },
+    {
+      "id": "gemma-local",
+      "provider": "openai-compatible",
+      "model": "gemma3:1b-it-qat",
+      "version": "b491bd3989c65bf74267bfb9e7d5fd0bf7b6548bc12f91a98df3c56865ce2f80",
+      "baseUrl": "https://localhost:11435/v1",
+      "apiKeyEnv": "RH_LOCAL_MODEL_KEY",
+      "pricing": {
+        "currency": "USD",
+        "inputPerMillion": 0,
+        "outputPerMillion": 0,
+        "revision": "local-hardware-excluded-2026-10-08"
+      }
+    },
+    {
+      "id": "gemini-3-8-flash",
+      "provider": "openai-compatible",
+      "model": "gemini-3.8-flash",
+      "version": "GA-2026-09-provider-alias",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "apiKeyEnv": "OPENAI_COMPAT_API_KEY",
+      "pricing": {
+        "currency": "USD",
+        "inputPerMillion": 0.75,
+        "outputPerMillion": 3.75,
+        "revision": "google-paid-standard-2026-10-08"
+      }
+    },
+    {
+      "id": "foundry",
+      "provider": "foundry",
+      "model": "configured-deployment",
+      "version": "configured-version",
+      "apiKeyEnv": "FOUNDRY_API_KEY",
+      "deploymentEnv": "FOUNDRY_DEPLOYMENT",
+      "endpointEnv": "FOUNDRY_ENDPOINT",
+      "modelEnv": "FOUNDRY_MODEL",
+      "versionEnv": "FOUNDRY_MODEL_VERSION"
+    }
+  ]
+}
