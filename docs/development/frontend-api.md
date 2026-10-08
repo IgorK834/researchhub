@@ -229,7 +229,8 @@ client-side one and produce an error that does not match the contract.
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/auth/register` | Public | Creates an account. 201, no session — the client logs in afterwards. |
+| `GET /api/public/config` | Public | Non-secret environment, demo flag, registration mode and actual AI identity; public cache for 60 seconds. |
+| `POST /api/auth/register` | Public | Creates an account only in open mode. 201, no session; closed modes return the standard 403 error. |
 | `POST /api/auth/login` | Public | Verifies credentials, sets the session cookie, returns the user. |
 | `GET /api/auth/csrf` | Public | 204, sets the CSRF cookie. |
 | **`GET /api/me`** | Required | **Canonical identity read.** The user the session belongs to, or 401. |

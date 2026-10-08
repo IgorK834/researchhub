@@ -63,6 +63,7 @@ dev.researchhub
 | Endpoint | Auth |
 | --- | --- |
 | `POST /api/auth/register` | Public |
+| `GET /api/public/config` | Public, non-secret runtime allowlist; 60-second cache |
 | `POST /api/auth/login` | Public |
 | `GET /api/auth/csrf` | Public |
 | `GET /api/me` | Required, canonical identity read |
