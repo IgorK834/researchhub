@@ -3,6 +3,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 
 import { createQueryClient } from './queryClient';
 import { ToastProvider } from '../shared/components/feedback';
+import { PublicConfigProvider } from './PublicConfig';
+import { DemoBanner } from './DemoBanner';
 
 interface AppProvidersProps {
   readonly children: ReactNode;
@@ -19,7 +21,12 @@ export function AppProviders({ children }: AppProvidersProps): ReactElement {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        <PublicConfigProvider>
+          <DemoBanner />
+          {children}
+        </PublicConfigProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

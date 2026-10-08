@@ -1,0 +1,4 @@
+.banner {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+}
