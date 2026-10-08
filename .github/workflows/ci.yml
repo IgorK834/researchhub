@@ -239,6 +239,65 @@ jobs:
         if: always()
         run: docker compose --env-file .demo/scale.env -f infra/demo/compose.scale.yaml down -v
 
+  local-demo:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.collaboration == 'true' || needs.changes.outputs.performance == 'true' || needs.changes.outputs.sandbox == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.20'
+          python-version: '3.13.3'
+      - name: Clean Linux x86-64 demo, bounded repeat and reset
+        run: |
+          started=$(date +%s)
+          scripts/demo/up.sh
+          first_seconds=$(($(date +%s) - started))
+          test "$first_seconds" -lt 600
+          sha256sum .demo/local/accounts.json .demo/local/seed-manifest.json > "$RUNNER_TEMP/demo-baseline.sha256"
+          started=$(date +%s)
+          scripts/demo/up.sh
+          repeat_seconds=$(($(date +%s) - started))
+          test "$repeat_seconds" -lt 120
+          sha256sum --check "$RUNNER_TEMP/demo-baseline.sha256"
+          scripts/demo/reset.sh
+          python3 scripts/demo/stack.py smoke
+          printf '{"firstSeconds":%s,"repeatSeconds":%s}\n' "$first_seconds" "$repeat_seconds" > .demo/local/timings.json
+      - name: Browser acceptance on the production HTTPS origin
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          node e2e/demo-smoke.mjs
+      - name: Demo orchestration coverage (minimum 80%)
+        run: |
+          uv sync --project ai-worker --frozen
+          ai-worker/.venv/bin/python -m coverage run --branch --source=scripts/demo --data-file="$RUNNER_TEMP/demo.coverage" -m unittest discover -s scripts/demo -p 'test_*.py'
+          ai-worker/.venv/bin/python -m coverage report --data-file="$RUNNER_TEMP/demo.coverage" --include='scripts/demo/stack.py' --fail-under=80
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: local-demo-acceptance
+          include-hidden-files: true
+          path: |
+            .demo/local/timings.json
+            .demo/local/browser/
+          retention-days: 14
+      - name: Release only the local demo stack
+        if: always()
+        run: scripts/demo/down.sh
+
   performance:
     needs: changes
     if: needs.changes.outputs.performance == 'true'
@@ -299,7 +358,7 @@ jobs:
 
   ci:
     name: CI required
-    needs: [changes, backend, frontend, ai-worker, collaboration, sandbox, infra, containers, performance, scripts, docs]
+    needs: [changes, backend, frontend, ai-worker, collaboration, sandbox, infra, containers, local-demo, performance, scripts, docs]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
