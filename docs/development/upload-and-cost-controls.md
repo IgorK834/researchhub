@@ -1,6 +1,6 @@
 # Upload and costly-request controls (RH-180 / RH-181)
 
-The security module is part of the Spring modular monolith. It supplies public upload inspection/scanning and quota contracts; Python document parsing stays in the worker. There are no new runtime libraries, database tables, or infrastructure services.
+The security module is part of the Spring modular monolith. It supplies public upload inspection/scanning and quota contracts; Python document parsing stays in the worker. The shared quota adapter uses the existing PostgreSQL database and Spring JDBC/transaction support; no additional infrastructure service or runtime library is required.
 
 ## Upload boundary
 
@@ -47,9 +47,41 @@ Both budgets are global for a category: a user across all workspaces, and a work
 
 Ordinary traffic (workspace/document/source reads, conversation history, suggestion acceptance, analysis drafts/status/artifacts) consumes none of these budgets. Query embeddings inside an already admitted LLM operation are covered by that request. Authentication/workspace authorization failures consume no budget. Authenticated admitted requests consume budget even if body validation, resource lookup, idempotency or the provider later fails; this is a **request limit, not token billing**. The client never automatically retries quota failures.
 
-Settings live under `researchhub.security.quotas`: `window` (1 second–1 day), `llm.user/workspace`, `analysis.user/workspace`, `retrieval.user/workspace`, and `max-buckets` (default 100,000). Invalid policies fail startup. In-memory state is bounded and expired windows release capacity; exhaustion fails closed with the same error contract.
+Settings live under `researchhub.security.quotas`: `window` (1 second–1 day), `llm.user/workspace`, `analysis.user/workspace`, and the adapter settings below. Invalid policies fail startup. Every replica must use identical policies/window settings and synchronized UTC clocks. Both adapters use fixed windows aligned to the Unix epoch (`Clock` truncated to `policy.window()`), including non-minute durations; retry delays round up to the end of the same window. Fixed windows can permit bursts across a boundary.
 
-The configured adapter exists only on the **local single-instance profile**. Budgets reset on restart and fixed windows can allow bursts across a boundary. Multi-instance/external deployment must provide an atomic shared `CostQuotaStore` adapter; splitting these budgets across instances is unsupported. The abstraction avoids requiring Redis or another infrastructure service for the portfolio MVP.
+| Setting | Default / behavior |
+| --- | --- |
+| `store` / `COST_QUOTA_STORE` | `memory` on local; `postgres` on demo/azure. Only these two values are accepted. |
+| `max-buckets` | 100,000; memory only. Expired windows release capacity, and capacity exhaustion fails closed. |
+| `retention` / `COST_QUOTA_RETENTION` | `P7D`; PostgreSQL history retention, at least the configured/admitted window. |
+| `max-attempts` / `COST_QUOTA_MAX_ATTEMPTS` | 3 total attempts, bounded to 1–10. |
+| `cleanup-cron` / `COST_QUOTA_CLEANUP_CRON` | `0 0 * * * *` (hourly); `-` disables the scheduled cleanup. |
+
+`CostQuotaConfiguration` retains `@ConditionalOnMissingBean(CostQuotaStore.class)` so an explicit store bean overrides either adapter. Memory remains suitable only for one process and resets on restart. PostgreSQL preserves shared budgets across process restarts and replica changes until their window expires. Multi-instance deployments must select PostgreSQL or supply an equivalent atomic shared implementation.
+
+### PostgreSQL atomic admission (RH-309)
+
+Flyway V37 creates `cost_quota_bucket` with `scope_type`, UUID `scope_id`, `category`, `window_start`, `request_count`, and `updated_at`. A unique constraint on `(scope_type, scope_id, category, window_start)` is the upsert conflict target; a `window_start` index supports retention cleanup. These transient counters have no foreign keys to user/workspace lifecycle tables. Flyway remains the sole schema writer.
+
+Each admission uses one independent `REQUIRES_NEW`, `READ_COMMITTED` transaction. It executes the conditional `INSERT ... ON CONFLICT ... DO UPDATE SET request_count = request_count + 1 WHERE request_count < :limit RETURNING request_count` first for USER and then WORKSPACE. PostgreSQL serializes conflicting upserts. An empty result raises the existing `RateLimitExceededException` and rolls back **all** increments and new rows, including `updated_at`. A success commits once and remains charged even if subsequent controller validation or a business transaction fails.
+
+Lock order is always USER → WORKSPACE, independent of UUID order. SQLSTATE `40P01` (deadlock) and `40001` (serialization failure) retry the entire transaction up to `max-attempts`; other database errors and exhausted retries propagate as infrastructure failures, without being mislabeled as quota denials. Cleanup deletes only rows with `window_start < Clock.instant() - retention`; retention validation prevents removal of live budgets. Cleanup is safe to run on each replica.
+
+Micrometer `researchhub.security.quotas.rejections` counts each rejected admission once, tagged only by `category=LLM|ANALYSIS|RETRIEVAL`; Prometheus exports `researchhub_security_quotas_rejections_total`. Both adapters expose it. Retried database conflicts are not quota rejections, and user/workspace identifiers never become metric tags.
+
+### Replica contention proof (RH-310)
+
+`CostQuotaStoreContract` runs the same admission, scope/category separation, aligned expiry, rounded delay, rollback, and rejection-counter assertions against both adapters. PostgreSQL tests additionally compare all counter/timestamp rows before and after denial, prove independence from later business rollback, inject real SQLSTATE failures after the user upsert and at commit, and verify scheduled cleanup. `FlywayMigrationIntegrationTest` covers V37 and its key/index.
+
+`PostgresCostQuotaConcurrencyTest` creates two store instances with separate eight-connection Hikari pools against one Testcontainers PostgreSQL. Every contention scenario runs 20 consecutive repetitions with a fixed UTC clock and a timeout guard:
+
+- Eight threads per replica each attempt 100 admissions for one pair, with each scope limiting in turn: exactly 73 of 1,600 calls succeed; both counters are 73.
+- Sixteen users share one workspace: exactly 73 calls succeed; each user's count equals only its admitted calls, and each can spend its complete remaining budget in another workspace.
+- Callers swap user/workspace UUIDs: the typed scope order remains unchanged, all four budgets are exact, and the test terminates within its deadline.
+
+`PostgresCostQuotaHttpIntegrationTest` starts two real Spring/Tomcat applications with independent pools against the same PostgreSQL and a fixed clock. Both HTTP scenarios also repeat 20 times. Real sessions, CSRF and workspace authorization precede admission. It verifies global user/workspace limits, unchanged rows on denial, no generation rows for refused work, ordinary reads, and the complete 429 ProblemDetail/header contract. Invalid business input deliberately consumes admitted requests, proving the existing request-admission semantics without an external model provider.
+
+Run all quota proof tests with `./mvnw -Dtest='*CostQuota*Test,FlywayMigrationIntegrationTest' test` (Docker required).
 
 Rejection contract: HTTP `429`, `application/problem+json`, `code: RATE_LIMIT_EXCEEDED`, `quotaCategory: LLM | ANALYSIS | RETRIEVAL`, positive `retryAfterSeconds`, `Retry-After` header with that same delay and `Cache-Control: private, no-store`. No provider call, generation run or analysis execution is created on refusal. The frontend preserves input and displays a clear delay through its shared error formatter.
 
@@ -70,3 +102,11 @@ Verified locally on 2026-10-06:
 - Worker: 381 tests passed; total coverage 97.14%, parser/Office security coverage 97.22% (including branches).
 - Frontend: 1007 tests in 104 suites passed; shared quota/error code and upload UI retain 100% line coverage. Production Webpack build, TypeScript, lint and formatting passed; existing bundle-size warnings remain.
 - Docker worker image built; Linux checks verified real RAM/CPU/time termination, uid 10001, 1 GiB container memory, 64 PIDs and read-only root filesystem.
+
+Verified for RH-309 / RH-310 / RH-313 on 2026-10-08:
+
+- `SECURITY_BROWSER_TESTS=true ./mvnw -q clean verify` completed with exit code 0 and produced the executable backend JAR. Surefire reports: **1,067 tests, 0 failures, 0 errors, 10 optional tests skipped** (unrelated opt-in sandbox/browser/LaTeX checks). All new quota, migration and Azure tests ran without skips.
+- The three replica contention scenarios and both two-server HTTP scenarios each passed **20 consecutive repetitions** (60 contention + 40 HTTP checks). Shared adapter contract, statement/commit conflict retries, exact rollback and scheduled retention cleanup passed against real PostgreSQL. The 10 existing Azurite integration/contract tests passed unchanged.
+- Security JaCoCo: **100.00% lines / 89.73% branches**. Azure adapter/configuration: **98.65% / 88.89%**. Source module: **97.59% / 88.72%**. All existing coverage gates and the new Azure 80% line/branch gates passed. Reports are under `backend/target/site/jacoco-security`, `jacoco-azure-blob` and `jacoco-source`.
+- `npm run build` passed with the existing three Webpack bundle-size warnings. Chrome E2E confirmed upload 415 without persistence, AI 429, preserved input and no automatic retry; evidence is in `backend/target/security-browser-e2e.log` and `security-*-browser.png`.
+- Surefire logged its fork-JVM shutdown timeout after `System.exit(0)` and terminated the fork; Maven still completed successfully. No test failure or quota-test timeout was reported.

@@ -145,16 +145,40 @@ names, or credentials:
 Size limits and hashing are not the adapter's job. `SourceService` meters the stream it passes to `store`, so every
 adapter enforces the same limit and produces the same digest.
 
-The adapter is selected by `researchhub.sources.storage.adapter`. The local profile selects `azure-blob`, implemented
-under `source.infrastructure`; its endpoint, emulator account, key, and container name live under
-`researchhub.sources.storage.azure-blob`. It uses Azure's `BlobServiceClient` against Azurite, not a filesystem-only
-substitute, so cloud wiring later changes credentials and endpoint rather than the source rules or adapter API.
+The adapter is selected by `researchhub.sources.storage.adapter=azure-blob` and is active on `local`, `demo` and
+`azure`. The same `AzureBlobSourceStorage` and `SourceStorage` port serve Azurite and Azure Blob Storage. Endpoint,
+container and local key settings live under `researchhub.sources.storage.azure-blob`; credential strategy settings
+live under `researchhub.sources.storage.azure`. Source callers and server-side workspace authorization do not change.
 
-The configured private container is created idempotently on the first storage operation. This is intentionally lazy:
-the backend can start and unrelated local tests can run while Azurite is stopped, but an upload fails instead of
-silently falling back to local disk. `SourceStorageContract` is the common adapter contract, and
-`AzureBlobSourceStorageIntegrationTest` runs it against a real Azurite container as well as exercising the complete
-`SourceService` -> PostgreSQL + Azurite -> read-back path.
+Local/demo retain Azurite's public development endpoint/account/key. The `azure` profile reuses the product bean graph
+but excludes that emulator configuration document: it requires `BLOB_ENDPOINT` as an HTTPS service URL without query,
+userinfo or fragment, and has no emulator account/key defaults. The endpoint is authoritative even if a connection
+string specifies a different endpoint. Set `BLOB_AUTH=connection-string` (default) and inject `BLOB_CONNECTION_STRING`
+with an account key; SAS-only connection strings cannot sign worker read URLs. `BLOB_CONTAINER_NAME` defaults to
+`researchhub-sources`, without credentials. Cloud secrets belong to environment/secret injection, never committed files.
+Property records redact credentials in `toString`, and SDK configuration/operation exceptions omit raw SDK causes
+and signed URLs from diagnostics.
+
+`azure-blob.create-container=true` locally creates the private container idempotently on the first operation. This
+keeps local startup independent of Azurite. `create-container-on-startup` defaults to false and can be enabled locally
+with `BLOB_CREATE_CONTAINER_ON_STARTUP=true`. Both switches are false on `azure`, and enabling either there fails
+startup: infrastructure must provision the container and its access policy. A missing cloud container fails the
+storage operation; there is no storage fallback.
+
+`BlobServiceClientFactory` is a replaceable Spring bean and the credential seam for Task 21.17. Selecting
+`researchhub.sources.storage.azure.auth=managed-identity` with the default factory fails fast with a safe explanation;
+Task 21.17 supplies the token-credential factory. Key-based service SAS remains read-only, scoped to one blob and
+short-lived. Managed identity cannot sign this service SAS: it needs a **user delegation key** and the Azure RBAC
+`Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey` permission. Until that follow-up supplies
+user delegation SAS, the adapter returns empty temporary access; the current `SourceIngestInputResolver` requires
+signed access, so worker ingestion cannot run with that strategy. This limitation is explicit; no public blob URL or
+new worker transport is introduced. See [Microsoft's user delegation SAS documentation](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-user-delegation-sas-create-java).
+
+`SourceStorageContract` is the common adapter contract. The unchanged `AzureBlobSourceStorageIntegrationTest` runs
+it against real Azurite and exercises `SourceService` → PostgreSQL + Azurite → read-back plus read-only SAS.
+Configuration tests load real profile files, prove cloud defaults are absent and startup fails without `BLOB_ENDPOINT`,
+and exercise optional local provisioning and the managed-identity factory seam. `./mvnw verify` enforces 80% line and
+branch coverage for the Azure adapter/configuration, in addition to the existing source module gate.
 
 **Upload order.** The bytes are stored first, then the source row and its idempotent `SOURCE_INGEST` job are inserted
 in one PostgreSQL transaction. Storage is not transactional, so this

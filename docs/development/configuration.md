@@ -325,7 +325,11 @@ autosave, and a negative value fails startup. See [persistence.md](persistence.m
 | Storage adapter | `researchhub.sources.storage.adapter`; local default `azure-blob`. |
 | Blob endpoint | `researchhub.sources.storage.azure-blob.endpoint`; local default `http://127.0.0.1:10000/devstoreaccount1`. |
 | Blob account | `researchhub.sources.storage.azure-blob.account-name`; local Azurite default `devstoreaccount1`. |
-| Blob container | `researchhub.sources.storage.azure-blob.container-name`; local default `researchhub-sources`, created automatically. |
+| Blob container | `researchhub.sources.storage.azure-blob.container-name`; default `researchhub-sources`; cloud container is provisioned by infrastructure. |
+| Cloud endpoint | `BLOB_ENDPOINT` required on `azure`, HTTPS without credentials; no Azurite defaults. |
+| Cloud auth | `researchhub.sources.storage.azure.auth` / `BLOB_AUTH`: `connection-string` or `managed-identity`. |
+| Connection string | `researchhub.sources.storage.azure.connection-string` / `BLOB_CONNECTION_STRING`: required for `azure` key-based auth; inject as a secret. |
+| Container provisioning | `azure-blob.create-container=true` locally; `create-container-on-startup=false` unless `BLOB_CREATE_CONTAINER_ON_STARTUP=true`. Both are disabled on `azure`. |
 
 The adapter also has `account-key`; the committed default is Azurite's public development key, never a cloud key.
 Container names, paths, and credentials belong to the chosen adapter's own settings, never to the source module. See
@@ -371,3 +375,13 @@ The existing AI worker/provider handles these features. Server-owned output/toke
 are `AI_SOURCE_ANALYSIS_MAX_OUTPUT_TOKENS` (6144), `AI_SOURCE_ANALYSIS_TEMPERATURE` (0 or `none`),
 `AI_SOURCE_ANALYSIS_CONTEXT_MAX_TOKENS` (98304) and `AI_SOURCE_ANALYSIS_CONTEXT_MAX_BYTES` (65536).
 [Source analysis](source-analysis.md) describes bounds, contracts and the offline/Foundry provider distinction.
+
+### Shared costly-operation quotas (RH-309 / RH-310)
+
+`COST_QUOTA_STORE=memory|postgres` selects the adapter under `researchhub.security.quotas.store`. Local defaults to
+memory; demo/azure default to PostgreSQL. All replicas must use identical quota policies and synchronized UTC clocks.
+Flyway V37 owns `cost_quota_bucket`; no Hibernate schema generation or Redis is involved. PostgreSQL history retention
+is `COST_QUOTA_RETENTION=P7D` (must cover the configured window), retries are bounded by `COST_QUOTA_MAX_ATTEMPTS=3`
+(total attempts, 1–10), and `COST_QUOTA_CLEANUP_CRON=0 0 * * * *` runs hourly (`-` disables cleanup). The existing
+20/60 LLM, 10/30 analysis and 60/180 retrieval limits per minute are unchanged. Full contract and contention evidence:
+[upload-and-cost-controls.md](upload-and-cost-controls.md).
