@@ -6,8 +6,6 @@ import dev.researchhub.processing.domain.ProcessingJobStatus;
 import dev.researchhub.processing.infrastructure.ProcessingProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -20,9 +18,6 @@ import java.util.List;
 
 /** Claims committed jobs and drives retryable worker delivery outside the end-user HTTP request. */
 @Component
-@Profile("local")
-@ConditionalOnProperty(prefix = "researchhub.processing.dispatcher", name = "enabled",
-        havingValue = "true", matchIfMissing = true)
 public class ProcessingJobDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(ProcessingJobDispatcher.class);
@@ -59,6 +54,10 @@ public class ProcessingJobDispatcher {
     }
 
     @Scheduled(fixedDelayString = "${researchhub.processing.dispatcher.fixed-delay:PT1S}")
+    public void scheduledDispatch() {
+        if (properties.getDispatcher().isEnabled()) dispatchAvailable();
+    }
+
     public void dispatchAvailable() {
         Instant now = clock.instant();
         ProcessingProperties.Dispatcher policy = properties.getDispatcher();

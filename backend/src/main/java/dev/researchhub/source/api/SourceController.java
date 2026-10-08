@@ -13,8 +13,6 @@ import dev.researchhub.source.application.SourceLibraryFacets;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import dev.researchhub.source.application.UploadSourceCommand;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -43,8 +41,6 @@ import java.util.UUID;
 /** Workspace-scoped upload and read endpoints for immutable research source files. */
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/sources")
-@Profile("local")
-@ConditionalOnBean(SourceService.class)
 public class SourceController {
 
     private final SourceExtractionService extractions;

@@ -25,8 +25,6 @@ import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,8 +46,8 @@ import java.util.UUID;
  * Adding and reading a workspace's sources.
  *
  * <p>Depends on the {@link SourceStorage} port and nothing cloud-specific. Which adapter answers it is configuration
- * ({@code researchhub.sources.storage.adapter}), and this service only exists once one is configured: with no
- * storage there is nothing to upload into, so the bean is left out rather than failing at the first request.
+ * ({@code researchhub.sources.storage.adapter}). This service is unconditional; a missing storage adapter
+ * fails startup before the application serves requests.
  *
  * <p>Access follows the workspace, exactly as for documents: reading needs {@code VIEW_CONTENT}, adding needs
  * {@code EDIT_CONTENT} on an active workspace, and a caller who is not a member gets the same 404 as a source that
@@ -63,8 +61,6 @@ import java.util.UUID;
  * harmless to readers and is what a later reconciliation job would sweep.
  */
 @Service
-@Profile("local")
-@ConditionalOnProperty(prefix = "researchhub.sources.storage", name = "adapter")
 public class SourceService {
 
     /**

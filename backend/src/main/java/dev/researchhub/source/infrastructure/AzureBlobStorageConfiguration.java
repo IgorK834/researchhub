@@ -8,14 +8,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import java.io.IOException;
 
 /** The same adapter serves Azurite and Azure; profiles supply endpoint and credential settings. */
 @Configuration(proxyBeanMethods = false)
-@Profile({"local", "demo", "azure"})
 @ConditionalOnProperty(prefix = "researchhub.sources.storage", name = "adapter", havingValue = "azure-blob")
 @EnableConfigurationProperties({AzureBlobStorageProperties.class, AzureBlobAuthenticationProperties.class})
 public class AzureBlobStorageConfiguration {

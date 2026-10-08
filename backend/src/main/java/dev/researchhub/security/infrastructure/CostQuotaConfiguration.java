@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.Map;
 
 @Configuration
-@Profile({"local", "demo", "azure"})
 @EnableScheduling
 public class CostQuotaConfiguration {
     public CostQuotaConfiguration(@Value("${researchhub.security.quotas.store:memory}") String store) {

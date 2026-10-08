@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.net.URI;
 import java.time.Duration;
 
-/** Local dispatcher and worker transport policy. */
+/** Dispatcher and worker transport policy. */
 @ConfigurationProperties("researchhub.processing")
 public class ProcessingProperties {
 

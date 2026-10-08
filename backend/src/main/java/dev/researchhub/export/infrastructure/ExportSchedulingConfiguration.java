@@ -4,7 +4,6 @@ import org.springframework.context.annotation.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 @Configuration
-@Profile("local")
 public class ExportSchedulingConfiguration {
     @Bean("exportScheduler")
     ThreadPoolTaskScheduler exportScheduler() {
