@@ -1,0 +1,13 @@
+# Cloud storage has no emulator endpoint or credentials. Flyway owns all database schema.
+researchhub:
+  sources:
+    storage:
+      adapter: azure-blob
+      azure:
+        auth: ${BLOB_AUTH:connection-string}
+        connection-string: ${BLOB_CONNECTION_STRING:}
+      azure-blob:
+        endpoint: ${BLOB_ENDPOINT:}
+        container-name: ${BLOB_CONTAINER_NAME:researchhub-sources}
+        create-container: false
+        create-container-on-startup: false
