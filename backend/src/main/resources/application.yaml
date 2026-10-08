@@ -21,6 +21,8 @@ researchhub:
       cpus: ${ANALYSIS_SANDBOX_CPUS:1}
       pids: ${ANALYSIS_SANDBOX_PIDS:64}
   auth:
+    registration:
+      mode: ${REGISTRATION_MODE:open}
     session-store: ${AUTH_SESSION_STORE:servlet}
     password:
       # Minimum password length, enforced in one place: dev.researchhub.user.application.PasswordPolicy,

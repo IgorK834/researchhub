@@ -127,8 +127,11 @@ class AzureProfileStartupIntegrationTest {
             var register=browser.send("POST","/api/auth/register","""
                 {"email":"azure@example.test","password":"correct-horse-battery-staple","displayName":"Azure Researcher"}
                 """);
-            assertEquals(201,register.statusCode(),register.body());
-            UUID owner=UUID.fromString(json.readTree(register.body()).path("id").asString());
+            assertEquals(403,register.statusCode(),register.body());
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM users",Integer.class));
+            UUID owner=dev.researchhub.workspace.UserRowFixture.insertUser(jdbc,"azure@example.test","Azure Researcher");
+            jdbc.update("UPDATE users SET password_hash=? WHERE id=?",application.getBean(org.springframework.security.crypto.password.PasswordEncoder.class)
+                .encode("correct-horse-battery-staple"),owner);
             var login=browser.send("POST","/api/auth/login","""
                 {"email":"azure@example.test","password":"correct-horse-battery-staple"}
                 """);

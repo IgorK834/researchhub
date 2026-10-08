@@ -3,6 +3,8 @@
 researchhub:
   environment: cloud
   auth:
+    registration:
+      mode: ${REGISTRATION_MODE:disabled}
     session-store: jdbc
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:}

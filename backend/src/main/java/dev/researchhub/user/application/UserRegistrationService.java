@@ -37,13 +37,15 @@ public class UserRegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
     private final Clock clock;
+    private final RegistrationPolicy registrationPolicy;
 
     public UserRegistrationService(UserRepository users, PasswordEncoder passwordEncoder,
-                                   PasswordPolicy passwordPolicy, Clock clock) {
+                                   PasswordPolicy passwordPolicy, Clock clock, RegistrationPolicy registrationPolicy) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
         this.clock = clock;
+        this.registrationPolicy = registrationPolicy;
     }
 
     /**
@@ -55,6 +57,10 @@ public class UserRegistrationService {
      * @throws ConflictException when an account already uses the same normalized email
      */
     public UserAccount register(RegisterUserCommand command) {
+        return registrationPolicy.register(command, () -> createAccount(command));
+    }
+
+    private UserAccount createAccount(RegisterUserCommand command) {
         String passwordFailure = passwordPolicy.describeFailure(command.rawPassword());
         if (passwordFailure != null) {
             throw new ApiException(ApiErrorCode.VALIDATION_FAILED, passwordFailure);

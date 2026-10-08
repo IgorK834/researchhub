@@ -351,7 +351,8 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP FUNCTION reject_external_evidence_mutation()");
         jdbc.execute("DROP TABLE spring_session_attributes, spring_session");
         jdbc.execute("DROP TABLE cost_quota_bucket");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37')");flyway.migrate();
+        jdbc.execute("DROP TABLE registration_rejections");
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());
