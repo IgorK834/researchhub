@@ -9,7 +9,6 @@ import dev.researchhub.workspace.application.WorkspaceSummary;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,13 +50,10 @@ import java.util.UUID;
  * {@code user.application.UserAccount} of which only {@code id()} is read — the allowed cross-module
  * dependency recorded in docs/development/backend-architecture.md.
  *
- * <p>Active on the {@code local} profile only, matching {@code WorkspaceService} and
- * {@code CurrentUserResolver}, because the chain below it needs repositories that exist only where JPA
- * is auto-configured.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @RestController
 @RequestMapping("/api/workspaces")
-@Profile("local")
 public class WorkspaceController {
 
     private static final Logger log = LoggerFactory.getLogger(WorkspaceController.class);

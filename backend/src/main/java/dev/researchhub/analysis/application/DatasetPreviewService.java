@@ -7,7 +7,6 @@ import dev.researchhub.shared.error.ConflictException;
 import dev.researchhub.source.application.SourceExtractionService;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.source.application.SourceVersionSummary;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -22,7 +21,6 @@ import java.util.UUID;
  * file, so no workbook is parsed on the request path and no formula can run.
  */
 @Service
-@Profile("local")
 public class DatasetPreviewService {
     private static final Set<String> TABULAR = Set.of("CSV", "XLSX");
 

@@ -4,7 +4,6 @@ import dev.researchhub.processing.application.ProcessingJobNotification;
 import dev.researchhub.source.infrastructure.SourceRepository;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +11,6 @@ import org.springframework.transaction.annotation.Propagation;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class SourceProcessingProgress {
     public enum Stage {
         EXTRACT(10), CHUNK(30), EMBED(50), INDEX(75), FINALIZE(90);

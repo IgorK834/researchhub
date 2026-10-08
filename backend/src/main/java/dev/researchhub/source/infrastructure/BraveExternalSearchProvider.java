@@ -7,7 +7,6 @@ import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.shared.error.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -22,7 +21,6 @@ import java.util.List;
 
 /** Fixed provider destination, bounded response, no redirects, no following discovered URLs. */
 @Component
-@Profile("local")
 public class BraveExternalSearchProvider implements ExternalSearchProvider {
     private final boolean enabled;
     private final String key;

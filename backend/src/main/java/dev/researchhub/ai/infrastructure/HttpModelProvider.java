@@ -4,7 +4,6 @@ import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.shared.error.ApiErrorCode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.*;
@@ -16,7 +15,6 @@ import java.util.Set;
 
 /** Internal service HTTP adapter. Only the Python provider adapter knows Foundry's protocol. */
 @Component
-@Profile("local")
 public class HttpModelProvider implements ModelProvider, AuthoringModelProvider, SourceAnalysisModelProvider {
     @org.springframework.beans.factory.annotation.Autowired
     private dev.researchhub.shared.observability.WorkMetrics metrics =

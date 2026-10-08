@@ -8,13 +8,11 @@ import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 /** Authorizes queueing, reauthorizes durable jobs and validates exact immutable bytes before isolated execution. */
 @Service
-@Profile("local")
 public class ExecutionService {
     public static final int MAX_INPUT_BYTES=32*1024*1024, MAX_TOTAL_INPUT_BYTES=64*1024*1024;
     @org.springframework.beans.factory.annotation.Autowired

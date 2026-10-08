@@ -8,7 +8,6 @@ import dev.researchhub.ai.application.RetrievalIdentity;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.source.application.SourceReadScope;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.*;
 import java.time.Clock;
@@ -16,7 +15,6 @@ import java.util.*;
 
 /** Persists immutable intent and audited plans. Execution uses the separate isolated runner boundary. */
 @Service
-@Profile("local")
 public class AnalysisService {
     @org.springframework.beans.factory.annotation.Autowired
     private dev.researchhub.ai.observability.AiObservation observation=dev.researchhub.ai.observability.AiObservation.none();

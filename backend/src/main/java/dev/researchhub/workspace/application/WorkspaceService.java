@@ -15,7 +15,6 @@ import dev.researchhub.workspace.infrastructure.WorkspaceEntity;
 import dev.researchhub.workspace.infrastructure.WorkspaceMemberEntity;
 import dev.researchhub.workspace.infrastructure.WorkspaceMemberRepository;
 import dev.researchhub.workspace.infrastructure.WorkspaceRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,13 +34,9 @@ import java.util.UUID;
  * <p>Every write goes through {@link WorkspaceAuthorizationService} before it touches a row, so there is
  * one place that decides what a role may do and no method here that quietly skips it.
  *
- * <p>Active on the {@code local} profile only, because it needs repositories, which exist only where
- * JPA is auto-configured. The {@code test} and {@code cloud} profiles exclude JDBC and JPA entirely, so
- * omitting this guard would stop {@code BackendApplicationTests} and {@code CloudProfileStartupTests}
- * from starting (docs/development/backend-architecture.md).
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @Service
-@Profile("local")
 public class WorkspaceService {
 
     private final WorkspaceRepository workspaces;

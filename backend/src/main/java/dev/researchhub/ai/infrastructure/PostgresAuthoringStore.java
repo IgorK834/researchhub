@@ -3,14 +3,12 @@ package dev.researchhub.ai.infrastructure;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.AuthoringContracts.*;
 import dev.researchhub.shared.error.ResourceNotFoundException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class PostgresAuthoringStore implements AuthoringStore {
     private final JdbcTemplate jdbc; private final ObjectMapper json;
     public PostgresAuthoringStore(JdbcTemplate jdbc, ObjectMapper json) { this.jdbc = jdbc; this.json = json; }

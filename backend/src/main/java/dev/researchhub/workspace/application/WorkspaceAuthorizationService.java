@@ -10,7 +10,6 @@ import dev.researchhub.workspace.infrastructure.WorkspaceMemberRepository;
 import dev.researchhub.workspace.infrastructure.WorkspaceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,11 +36,9 @@ import java.util.UUID;
  *       not that the thing they are looking at vanished.
  * </ul>
  *
- * <p>Active on the {@code local} profile only, because it needs a repository, which exists only where
- * JPA is auto-configured (docs/development/backend-architecture.md).
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @Service
-@Profile("local")
 public class WorkspaceAuthorizationService {
 
     /**

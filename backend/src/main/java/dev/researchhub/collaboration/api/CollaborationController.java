@@ -3,14 +3,12 @@ package dev.researchhub.collaboration.api;
 import dev.researchhub.auth.application.CurrentUserResolver;
 import dev.researchhub.collaboration.application.CollaborationService;
 import dev.researchhub.collaboration.application.CollaborationContracts.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 public class CollaborationController {
     private final CollaborationService service;
     private final CurrentUserResolver users;

@@ -6,7 +6,6 @@ import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.source.domain.BibliographicMetadata;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import dev.researchhub.source.application.ExternalSourceContracts.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class ExternalSourceService {
     private final WorkspaceAuthorizationService authorization;
     private final ExternalSearchProvider provider;

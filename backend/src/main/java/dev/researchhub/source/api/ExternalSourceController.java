@@ -5,13 +5,11 @@ import dev.researchhub.source.application.ExternalSourceService;
 import dev.researchhub.source.application.ExternalSourceContracts.*;
 import dev.researchhub.security.application.CostlyOperation;
 import dev.researchhub.security.application.CostCategory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/external-sources")
 public class ExternalSourceController {
     private final ExternalSourceService sources;

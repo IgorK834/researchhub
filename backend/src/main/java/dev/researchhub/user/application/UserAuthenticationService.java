@@ -3,7 +3,6 @@ package dev.researchhub.user.application;
 import dev.researchhub.user.domain.UserStatus;
 import dev.researchhub.user.infrastructure.UserEntity;
 import dev.researchhub.user.infrastructure.UserRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +19,9 @@ import java.util.UUID;
  * {@link UserStatus#ACTIVE}. It never explains which. A caller that reported "no such user"
  * separately from "wrong password" would turn the login form into an account-enumeration oracle.
  *
- * <p>Active on the {@code local} profile only, for the same reason as
- * {@link UserRegistrationService}: {@link UserRepository} exists only where JPA is configured.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @Service
-@Profile("local")
 public class UserAuthenticationService {
 
     private final UserRepository users;

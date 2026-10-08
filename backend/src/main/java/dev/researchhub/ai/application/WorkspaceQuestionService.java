@@ -4,14 +4,12 @@ import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.ai.application.QuestionContracts.*;
 import dev.researchhub.shared.error.ApiErrorCode;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /** Question -> scoped retrieval -> the shared grounded gateway. No vendor/storage access here. */
 @Service
-@Profile("local")
 public class WorkspaceQuestionService {
     public static final String NO_EVIDENCE = "No searchable evidence was found in the authorized sources for this question.";
     public static final String INSUFFICIENT = "The supplied evidence does not contain enough information to answer this question.";

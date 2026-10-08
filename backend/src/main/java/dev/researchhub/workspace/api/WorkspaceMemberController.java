@@ -5,7 +5,6 @@ import dev.researchhub.workspace.application.AddWorkspaceMemberCommand;
 import dev.researchhub.workspace.application.WorkspaceMemberSummary;
 import dev.researchhub.workspace.application.WorkspaceMembershipService;
 import jakarta.validation.Valid;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -50,7 +49,6 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/members")
-@Profile("local")
 public class WorkspaceMemberController {
 
     private final WorkspaceMembershipService memberships;

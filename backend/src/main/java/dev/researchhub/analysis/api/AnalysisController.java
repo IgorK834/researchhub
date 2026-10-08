@@ -5,14 +5,12 @@ import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.analysis.application.*;
 import dev.researchhub.analysis.application.AnalysisContracts.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.*;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/analyses")
 public class AnalysisController {
     private final AnalysisService analyses;

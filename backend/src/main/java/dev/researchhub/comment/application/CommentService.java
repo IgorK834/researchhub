@@ -11,7 +11,6 @@ import dev.researchhub.shared.error.ApiException;
 import dev.researchhub.shared.error.ConflictException;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.user.application.UserLookupService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
@@ -23,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class CommentService {
     private final DocumentService documents;
     private final PostgresCommentStore store;

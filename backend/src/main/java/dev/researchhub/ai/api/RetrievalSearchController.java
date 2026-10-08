@@ -4,14 +4,12 @@ import dev.researchhub.security.application.CostlyOperation;
 import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/retrieval")
 public class RetrievalSearchController {
     private final RetrievalSearchService search;

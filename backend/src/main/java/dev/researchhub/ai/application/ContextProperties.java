@@ -1,12 +1,10 @@
 package dev.researchhub.ai.application;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Server feature configuration, never accepted from a browser request. */
 @Component
-@Profile("local")
 public class ContextProperties {
     private final ContextContracts.Budget budget;
     public ContextProperties(@Value("${researchhub.ai.features.grounded-response.context.max-tokens:32768}") int maxTokens,

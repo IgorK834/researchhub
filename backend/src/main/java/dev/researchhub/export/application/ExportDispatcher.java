@@ -2,13 +2,11 @@ package dev.researchhub.export.application;
 
 import java.time.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /** Dedicated scheduler keeps expensive rendering off HTTP threads and other modules' dispatchers. */
 @Component
-@Profile("local")
 public class ExportDispatcher {
     private final ExportStore store;
     private final ExportService service;

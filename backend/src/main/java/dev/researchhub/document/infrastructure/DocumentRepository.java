@@ -9,9 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data repository for {@link DocumentEntity}. Found by the JPA scan in
- * {@code dev.researchhub.shared.infrastructure.persistence.JpaPersistenceConfiguration}, which is active on
- * the {@code local} profile only.
+ * Spring Data repository for {@link DocumentEntity}. Found by Spring Boot's repository auto-configuration
+ * in every runtime with JPA persistence.
  *
  * <p>Extends the bare {@link Repository} marker rather than {@code JpaRepository}, and that is the point:
  * {@code JpaRepository} would inherit {@code findAll()} and — more dangerously here — {@code findById(id)}, a

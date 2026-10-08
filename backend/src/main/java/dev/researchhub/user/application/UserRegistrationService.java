@@ -8,7 +8,6 @@ import dev.researchhub.user.domain.User;
 import dev.researchhub.user.domain.UserEmail;
 import dev.researchhub.user.infrastructure.UserEntity;
 import dev.researchhub.user.infrastructure.UserRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,9 +23,7 @@ import java.time.Instant;
  * constructed — without {@code user} depending on {@code auth}. See
  * docs/development/backend-architecture.md.
  *
- * <p>Active on the {@code local} profile only, because it needs {@link UserRepository}, which exists
- * only where JPA is auto-configured. The {@code test} and {@code cloud} profiles exclude JDBC and
- * JPA entirely.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  *
  * <p>Deliberately <strong>not</strong> {@code @Transactional}. Registration writes exactly one row,
  * so the single insert is already atomic, and keeping the unique-constraint failure inside its own
@@ -34,7 +31,6 @@ import java.time.Instant;
  * would fail on commit and turn a 409 into a 500.
  */
 @Service
-@Profile("local")
 public class UserRegistrationService {
 
     private final UserRepository users;

@@ -5,7 +5,6 @@ import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -14,7 +13,6 @@ import java.util.stream.Collectors;
 
 /** Research assistance for a server-derived anchored claim, using the existing evidence model contract. */
 @Service
-@Profile("local")
 public class EvidenceAssistanceService {
     public record Evidence(List<Candidate> candidates, List<String> warnings, AuthoringContracts.Result generation, ContextContracts.Summary context) {}
     private final WorkspaceAuthorizationService authorization;

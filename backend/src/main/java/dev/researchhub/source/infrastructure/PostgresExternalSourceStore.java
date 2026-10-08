@@ -3,7 +3,6 @@ package dev.researchhub.source.infrastructure;
 import dev.researchhub.source.application.ExternalSourceStore;
 import dev.researchhub.source.application.ExternalSourceContracts.*;
 import dev.researchhub.shared.error.ResourceNotFoundException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +11,6 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class PostgresExternalSourceStore implements ExternalSourceStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/documents/{documentId}/comments")
 public class CommentController {
     public record AnchorRequest(@NotNull @Pattern(regexp = "TEXT_MARK_V1") String strategy, @NotNull UUID id,

@@ -3,14 +3,12 @@ package dev.researchhub.analysis.application;
 import dev.researchhub.ai.application.GenerationContracts;
 import dev.researchhub.ai.application.RetrievalIdentity;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import java.util.*;
 
 /** Reads computed evidence from immutable successful outputs; never performs a calculation or runs code. */
 @Service
-@Profile("local")
 public final class AnalysisEvidenceService {
     public record Reference(UUID analysisId,UUID executionId,String outputId) {
         public Reference {

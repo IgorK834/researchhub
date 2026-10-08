@@ -6,7 +6,6 @@ import dev.researchhub.source.domain.SourceVersion;
 import dev.researchhub.source.infrastructure.SourceVersionEntity;
 import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
 import dev.researchhub.source.infrastructure.SourceVersionRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -15,7 +14,6 @@ import java.util.UUID;
 
 /** Source-owned implementation of the narrow processing input port. */
 @Component
-@Profile("local")
 public class SourceIngestInputResolver implements SourceIngestInputProvider {
 
     private final SourceVersionRepository versions;

@@ -2,7 +2,6 @@ package dev.researchhub.comment.infrastructure;
 
 import dev.researchhub.comment.application.CommentContracts.*;
 import dev.researchhub.shared.error.ConflictException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +14,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class PostgresCommentStore {
     private final JdbcTemplate jdbc;
     public PostgresCommentStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }

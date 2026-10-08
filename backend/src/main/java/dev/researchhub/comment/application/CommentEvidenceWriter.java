@@ -7,7 +7,6 @@ import dev.researchhub.comment.infrastructure.PostgresCommentEvidence;
 import dev.researchhub.document.application.DocumentService;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -17,7 +16,6 @@ import java.util.UUID;
 
 /** Short commit boundary: lock, reauthorize, check anchor, append. Never called during inference. */
 @Service
-@Profile("local")
 public class CommentEvidenceWriter {
     private final DocumentService documents;
     private final CommentService comments;

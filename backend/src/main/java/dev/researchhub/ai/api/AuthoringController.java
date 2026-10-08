@@ -6,7 +6,6 @@ import dev.researchhub.ai.application.AuthoringContracts.*;
 import dev.researchhub.ai.application.AuthoringService;
 import dev.researchhub.auth.application.CurrentUserResolver;
 import dev.researchhub.document.application.DocumentDetail;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.*;
@@ -14,7 +13,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/documents/{documentId}/ai/suggestions")
 public class AuthoringController {
     private final AuthoringService authoring; private final CurrentUserResolver users; private final ObjectMapper json;

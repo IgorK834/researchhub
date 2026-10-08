@@ -1,6 +1,5 @@
 package dev.researchhub.source.infrastructure;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -9,7 +8,6 @@ import java.util.UUID;
 
 /** Immutable processing-job to source-version binding. */
 @Repository
-@Profile("local")
 public class SourceVersionJobRepository {
     private final JdbcTemplate jdbc;
     public SourceVersionJobRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }

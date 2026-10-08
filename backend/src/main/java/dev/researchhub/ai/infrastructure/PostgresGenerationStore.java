@@ -3,7 +3,6 @@ package dev.researchhub.ai.infrastructure;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.shared.error.ApiErrorCode;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +10,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.*;
 
 @Repository
-@Profile("local")
 public class PostgresGenerationStore implements GenerationStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

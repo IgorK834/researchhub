@@ -9,7 +9,6 @@ import dev.researchhub.export.domain.Report.*;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import tools.jackson.databind.*;
@@ -18,7 +17,6 @@ import java.time.*;
 import java.util.*;
 
 @Service
-@Profile("local")
 public class ExportService {
     private final DocumentService documents;
     private final DocumentProvenance provenance;

@@ -2,12 +2,10 @@ package dev.researchhub.ai.observability;
 
 import dev.researchhub.auth.application.CurrentUserResolver;
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/devtools/ai")
 public class AiDiagnosticsController {
     private final AiDiagnosticsService service;

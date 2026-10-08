@@ -4,7 +4,6 @@ import dev.researchhub.user.domain.UserEmail;
 import dev.researchhub.user.domain.UserStatus;
 import dev.researchhub.user.infrastructure.UserEntity;
 import dev.researchhub.user.infrastructure.UserRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +27,9 @@ import java.util.UUID;
  * several candidates, would let any account enumerate the user table. An owner adding a colleague already
  * knows their address; they type it in full or the add fails.
  *
- * <p>Active on the {@code local} profile only, because it needs {@link UserRepository}, which exists only
- * where JPA is configured.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @Service
-@Profile("local")
 public class UserLookupService {
 
     private final UserRepository users;

@@ -4,7 +4,6 @@ import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.ConversationContracts.*;
 import dev.researchhub.shared.error.*;
 import jakarta.annotation.PreDestroy;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -15,7 +14,6 @@ import java.util.concurrent.atomic.*;
 
 /** One-way research events; validated answer deltas follow complete persistence, never raw model tokens. */
 @Component
-@Profile("local")
 public class ConversationStreams {
     private final ConversationService conversations;
     private final ConversationStreamProperties properties;

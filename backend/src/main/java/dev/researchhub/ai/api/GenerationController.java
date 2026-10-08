@@ -5,13 +5,11 @@ import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/ai")
 public class GenerationController {
     private final ModelGateway gateway;

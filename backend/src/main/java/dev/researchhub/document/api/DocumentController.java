@@ -5,7 +5,6 @@ import dev.researchhub.document.application.CreateDocumentCommand;
 import dev.researchhub.document.application.DocumentService;
 import dev.researchhub.document.application.ReviseDocumentCommand;
 import jakarta.validation.Valid;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -57,7 +56,6 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/documents")
-@Profile("local")
 public class DocumentController {
 
     private final DocumentService documents;

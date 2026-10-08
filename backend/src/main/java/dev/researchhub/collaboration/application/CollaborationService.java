@@ -10,7 +10,6 @@ import dev.researchhub.document.application.DocumentDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -23,7 +22,6 @@ import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class CollaborationService {
     private static final Logger log = LoggerFactory.getLogger(CollaborationService.class);
     private final DocumentService documents;

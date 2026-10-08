@@ -3,13 +3,11 @@ package dev.researchhub.ai.application;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import dev.researchhub.source.application.SourceReadScope;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class RetrievalSearchService {
     private final WorkspaceAuthorizationService authorization;
     private final SourceReadScope sources;

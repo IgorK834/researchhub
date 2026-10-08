@@ -27,9 +27,8 @@ import java.util.List;
  * <p>Nothing here depends on the database. Authentication is performed by
  * {@code dev.researchhub.auth.api.AuthController} calling {@code user.application}, rather than by a
  * {@code UserDetailsService} or {@code DaoAuthenticationProvider} wired into the filter chain. That
- * matters for a concrete reason: JPA and the user repository exist only on the {@code local} profile, so
- * a chain that needed them would fail to start on {@code test} and {@code cloud}, where
- * {@code BackendApplicationTests} and {@code CloudProfileStartupTests} load the context.
+ * keeps the filter chain usable in explicit HTTP infrastructure slices as well as every product profile.
+ * Product authentication and workspace permissions are resolved by the application services on the server.
  */
 @Configuration
 public class SecurityConfiguration {

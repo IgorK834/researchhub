@@ -8,7 +8,6 @@ import dev.researchhub.processing.application.SourceIngestInputProvider;
 import dev.researchhub.processing.application.WorkerDispatchException;
 import dev.researchhub.processing.domain.ProcessingJob;
 import dev.researchhub.processing.domain.ProcessingJobError;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -25,7 +24,6 @@ import java.net.http.HttpClient;
 
 /** Authenticated HTTP adapter. It creates a fresh request and never forwards an end-user request or token. */
 @Component
-@Profile("local")
 public class HttpProcessingWorkerClient implements ProcessingWorkerClient {
 
     private static final ProcessingJobError REJECTED = new ProcessingJobError("WORKER_HTTP_ERROR",

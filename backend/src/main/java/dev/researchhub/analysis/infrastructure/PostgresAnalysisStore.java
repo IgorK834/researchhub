@@ -4,7 +4,6 @@ import dev.researchhub.analysis.application.*;
 import dev.researchhub.analysis.application.AnalysisContracts.*;
 import dev.researchhub.analysis.domain.AnalysisStatus;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +13,6 @@ import java.sql.Timestamp;
 import java.util.*;
 
 @Repository
-@Profile("local")
 public class PostgresAnalysisStore implements AnalysisStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

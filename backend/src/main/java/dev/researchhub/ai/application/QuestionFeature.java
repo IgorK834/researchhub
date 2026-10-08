@@ -1,12 +1,10 @@
 package dev.researchhub.ai.application;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Retrieval limits belong to feature configuration; model/context configuration stays in the gateway. */
 @Component
-@Profile("local")
 public class QuestionFeature implements GenerationPolicy {
     private final int topK;
     private final String instruction;

@@ -3,7 +3,6 @@ package dev.researchhub.processing.application;
 import dev.researchhub.processing.domain.ProcessingJob;
 import dev.researchhub.processing.domain.ProcessingJobType;
 import dev.researchhub.processing.domain.ProcessingResourceType;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +11,6 @@ import java.util.UUID;
 
 /** Creates idempotent durable processing work inside the caller's database transaction. */
 @Service
-@Profile("local")
 public class ProcessingJobService {
 
     private final ProcessingJobQueue queue;

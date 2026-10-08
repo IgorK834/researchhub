@@ -2,7 +2,6 @@ package dev.researchhub.document.application;
 
 import dev.researchhub.document.domain.DocumentVersionReason;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -25,7 +24,6 @@ import java.util.Optional;
  * <p>Configured by {@code researchhub.documents.history.autosave-checkpoint-interval} (default ten minutes).
  */
 @Component
-@Profile("local")
 public class CheckpointPolicy {
 
     private final Duration autosaveInterval;

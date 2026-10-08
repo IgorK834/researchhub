@@ -3,13 +3,11 @@ package dev.researchhub.ai.application;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
 /** All product generation calls share authorization, evidence validation and bounded audit persistence. */
 @Service
-@Profile("local")
 public class ModelGateway {
     @org.springframework.beans.factory.annotation.Autowired
     private dev.researchhub.ai.observability.AiObservation observation=dev.researchhub.ai.observability.AiObservation.none();

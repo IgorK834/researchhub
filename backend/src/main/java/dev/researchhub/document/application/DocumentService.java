@@ -19,7 +19,6 @@ import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,10 +37,9 @@ import java.util.UUID;
  * <p>Every repository call is scoped by workspace id, so a document belonging to another workspace is not
  * something this class has to remember to reject — there is no query that would find it.
  *
- * <p>Active on the {@code local} profile only, like the workspace services, because it needs a repository.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @Service
-@Profile("local")
 public class DocumentService {
 
     /**

@@ -2,7 +2,6 @@ package dev.researchhub.ai.infrastructure;
 
 import dev.researchhub.ai.application.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -16,7 +15,6 @@ import java.util.*;
 
 /** Calls the internal Python provider boundary, using service credentials only. */
 @Component
-@Profile("local")
 public class HttpEmbeddingProvider implements EmbeddingProvider {
     @org.springframework.beans.factory.annotation.Autowired
     private dev.researchhub.shared.observability.WorkMetrics metrics =

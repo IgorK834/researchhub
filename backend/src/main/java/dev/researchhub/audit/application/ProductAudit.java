@@ -1,7 +1,6 @@
 package dev.researchhub.audit.application;
 
 import dev.researchhub.audit.infrastructure.PostgresProductAudit;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +13,6 @@ import java.util.*;
 
 /** Typed, append-only product history. Callers cannot submit arbitrary metadata or user text. */
 @Service
-@Profile("local")
 @Transactional(propagation = Propagation.MANDATORY)
 public class ProductAudit {
     public enum Type {

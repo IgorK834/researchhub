@@ -2,14 +2,12 @@ package dev.researchhub.audit.application;
 
 import dev.researchhub.audit.infrastructure.PostgresProductAudit;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class ProductAuditQuery {
     public record Page(List<ProductAudit.Event> events, UUID nextCursor) {}
     private final PostgresProductAudit store;

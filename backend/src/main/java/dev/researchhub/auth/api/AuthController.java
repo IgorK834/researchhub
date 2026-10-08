@@ -12,7 +12,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -31,15 +30,10 @@ import java.util.Optional;
  * session and the browser receives only a session cookie. No token is minted, returned, or expected in
  * an {@code Authorization} header.
  *
- * <p>Active on the {@code local} profile only, because it depends on {@code user.application}, which
- * needs the user repository, which exists only where JPA is auto-configured. The {@code test} and
- * {@code cloud} profiles exclude JDBC and JPA, so these routes are absent there. The security filter
- * chain itself applies on every profile — see
- * {@code dev.researchhub.auth.infrastructure.SecurityConfiguration}.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @RestController
 @RequestMapping("/api/auth")
-@Profile("local")
 public class AuthController {
 
     /**

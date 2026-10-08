@@ -3,7 +3,6 @@ package dev.researchhub.ai.infrastructure;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.ConversationContracts.*;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -17,7 +16,6 @@ import java.util.concurrent.CancellationException;
 
 /** Scoped persistence of visible questions and complete answers. No provider payload is accepted. */
 @Repository
-@Profile("local")
 public class PostgresConversationStore implements ConversationStore {
     private static final Duration LEASE = Duration.ofMinutes(5);
     private final JdbcTemplate jdbc;

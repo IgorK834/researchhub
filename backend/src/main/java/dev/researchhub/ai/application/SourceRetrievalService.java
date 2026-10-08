@@ -4,13 +4,11 @@ import dev.researchhub.source.application.SourceExtractionService;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.shared.error.ResourceNotFoundException;
 import dev.researchhub.shared.error.ConflictException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class SourceRetrievalService {
     private final SourceExtractionService extractions;
     private final RetrievalStore retrieval;

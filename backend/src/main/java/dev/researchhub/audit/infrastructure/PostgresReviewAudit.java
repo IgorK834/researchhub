@@ -1,7 +1,6 @@
 package dev.researchhub.audit.infrastructure;
 
 import dev.researchhub.audit.application.ReviewAudit.Event;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -10,7 +9,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class PostgresReviewAudit {
     private final JdbcTemplate jdbc;
     public PostgresReviewAudit(JdbcTemplate jdbc) { this.jdbc = jdbc; }

@@ -2,12 +2,10 @@ package dev.researchhub.document.api;
 
 import dev.researchhub.auth.application.CurrentUserResolver;
 import dev.researchhub.document.application.DocumentProvenance;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspace}/documents/{document}/blocks/{block}/provenance")
 public class DocumentProvenanceController {
     private final DocumentProvenance service;

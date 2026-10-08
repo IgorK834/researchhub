@@ -2,7 +2,6 @@ package dev.researchhub.ai.infrastructure;
 
 import dev.researchhub.ai.application.*;
 import dev.researchhub.processing.application.SourceExtraction;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +11,6 @@ import java.time.Instant;
 import java.util.*;
 
 @Repository
-@Profile("local")
 public class PostgresRetrievalStore implements RetrievalStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;

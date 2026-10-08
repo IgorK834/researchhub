@@ -5,7 +5,6 @@ import dev.researchhub.document.infrastructure.PostgresDocumentProvenance;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.user.application.UserLookupService;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import tools.jackson.databind.*;
@@ -17,7 +16,6 @@ import java.util.*;
 
 /** Operation history for stable blocks. This is recorded origin, never inferred authorship or span percentages. */
 @Service
-@Profile("local")
 public class DocumentProvenance {
     public enum Category { HUMAN, AI_GENERATED, AI_REWRITTEN, IMPORTED, ANALYSIS_DERIVED }
     public record Operation(UUID id, UUID blockId, Category category, UUID actorUserId, String actorName,

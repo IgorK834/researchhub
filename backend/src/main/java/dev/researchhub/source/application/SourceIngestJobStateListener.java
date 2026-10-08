@@ -13,7 +13,6 @@ import dev.researchhub.source.domain.SourceVersion;
 import dev.researchhub.source.infrastructure.SourceVersionEntity;
 import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
 import dev.researchhub.source.infrastructure.SourceVersionRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,6 @@ import dev.researchhub.source.infrastructure.SourceExtractionRepository;
 
 /** Mirrors a SOURCE_INGEST job onto the source status shown to workspace members. */
 @Component
-@Profile("local")
 public class SourceIngestJobStateListener implements ProcessingJobStateListener {
 
     private static final String SOURCE_INGEST = "SOURCE_INGEST";

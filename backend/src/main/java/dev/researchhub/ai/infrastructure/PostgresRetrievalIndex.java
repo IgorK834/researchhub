@@ -1,7 +1,6 @@
 package dev.researchhub.ai.infrastructure;
 
 import dev.researchhub.ai.application.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,7 +9,6 @@ import java.util.*;
 
 /** Exact cosine and full-text candidates are selected within the mandatory workspace scope. */
 @Repository
-@Profile("local")
 public class PostgresRetrievalIndex implements RetrievalIndex {
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;

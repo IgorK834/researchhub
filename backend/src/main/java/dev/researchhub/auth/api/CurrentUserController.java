@@ -1,7 +1,6 @@
 package dev.researchhub.auth.api;
 
 import dev.researchhub.auth.application.CurrentUserResolver;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
  * the entry point with {@code 401 UNAUTHENTICATED} before reaching this class.
  */
 @RestController
-@Profile("local")
 public class CurrentUserController {
 
     private final CurrentUserResolver currentUserResolver;

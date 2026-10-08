@@ -6,8 +6,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data repository for {@link UserEntity}. Found by the JPA scan in
- * {@code dev.researchhub.shared.infrastructure.persistence.JpaPersistenceConfiguration}.
+ * Spring Data repository for {@link UserEntity}. Found by Spring Boot's repository auto-configuration
+ * in every runtime with JPA persistence.
  *
  * <p>Lookups go through the normalized email, never the raw one, so sign-in is case- and
  * whitespace-insensitive in the same way the unique index is.

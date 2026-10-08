@@ -1,7 +1,6 @@
 package dev.researchhub.ai.application;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
@@ -9,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 
 /** Versioned server-owned template and feature parameters; no controller/provider defaults. */
 @Component
-@Profile("local")
 public class GenerationFeature implements GenerationPolicy {
     public static final String FEATURE_ID = "grounded-response";
     private final String templateId;

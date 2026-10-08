@@ -2,14 +2,12 @@ package dev.researchhub.analysis.application;
 
 import dev.researchhub.document.application.DocumentReferenceValidator;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.*;
 import java.util.*;
 
 /** References remain capabilities scoped by the document workspace, never client-supplied images or code. */
 @Component
-@Profile("local")
 public final class AnalysisDocumentReferences implements DocumentReferenceValidator {
     private final ExecutionService executions;
     private final ObjectMapper json;

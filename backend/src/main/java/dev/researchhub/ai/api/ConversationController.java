@@ -5,14 +5,12 @@ import dev.researchhub.security.application.CostCategory;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.ConversationContracts.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.UUID;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/ai/conversations")
 public class ConversationController {
     private final ConversationService conversations;

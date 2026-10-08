@@ -3,7 +3,6 @@ package dev.researchhub.audit.infrastructure;
 import dev.researchhub.audit.application.ProductAudit;
 import dev.researchhub.audit.application.ProductAudit.Event;
 import dev.researchhub.shared.error.ResourceNotFoundException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -15,7 +14,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class PostgresProductAudit {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

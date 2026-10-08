@@ -8,7 +8,6 @@ import dev.researchhub.source.application.SourceReadScope;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import java.time.Clock;
@@ -17,7 +16,6 @@ import java.util.stream.Collectors;
 
 /** Read-only, persisted AI interpretations. No document write is available in this workflow. */
 @Service
-@Profile("local")
 public class SourceAnalysisService {
     private final WorkspaceAuthorizationService authorization;
     private final SourceReadScope scope;

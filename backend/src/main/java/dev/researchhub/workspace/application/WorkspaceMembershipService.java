@@ -18,7 +18,6 @@ import dev.researchhub.workspace.infrastructure.WorkspaceMemberRepository;
 import dev.researchhub.workspace.infrastructure.WorkspaceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,10 +41,9 @@ import java.util.UUID;
  * <p>Reading the roster needs only membership, so an editor or viewer can see who their collaborators are.
  * Changing it needs {@link WorkspaceCapability#MANAGE_MEMBERS}, which only an owner holds.
  *
- * <p>Active on the {@code local} profile only, like {@link WorkspaceService}, because it needs repositories.
+ * <p>Available in every product runtime; persistence dependencies must be configured at startup.
  */
 @Service
-@Profile("local")
 public class WorkspaceMembershipService {
 
     /**

@@ -4,14 +4,12 @@ import dev.researchhub.audit.application.ProductAuditQuery;
 import dev.researchhub.auth.application.CurrentUserResolver;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 /** Bounded workspace-scoped product history; there are no mutation routes. */
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/audit-events")
 public class ProductAuditController {
     private final ProductAuditQuery query;

@@ -7,7 +7,6 @@ import dev.researchhub.processing.domain.ProcessingJobError;
 import dev.researchhub.processing.domain.ProcessingJobStatus;
 import dev.researchhub.processing.domain.ProcessingJobType;
 import dev.researchhub.processing.domain.ProcessingResourceType;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -22,7 +21,6 @@ import java.util.UUID;
 
 /** PostgreSQL implementation whose single-statement claim uses {@code FOR UPDATE SKIP LOCKED}. */
 @Repository
-@Profile("local")
 public class PostgresProcessingJobQueue implements ProcessingJobQueue {
 
     private static final String COLUMNS = """

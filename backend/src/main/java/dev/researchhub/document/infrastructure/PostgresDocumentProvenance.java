@@ -1,7 +1,6 @@
 package dev.researchhub.document.infrastructure;
 
 import dev.researchhub.document.application.DocumentProvenance.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -9,7 +8,6 @@ import java.sql.Timestamp;
 import java.util.*;
 
 @Repository
-@Profile("local")
 public class PostgresDocumentProvenance {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

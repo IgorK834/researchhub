@@ -5,7 +5,6 @@ import dev.researchhub.analysis.application.AnalysisContracts.*;
 import dev.researchhub.ai.application.ModelFailure;
 import dev.researchhub.shared.error.ApiErrorCode;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,6 @@ import java.util.Set;
 
 /** Analysis owns its worker port/adapter; the literature/authoring AI module does not depend on computation. */
 @Component
-@Profile("local")
 public class HttpAnalysisPlanner implements AnalysisPlanner {
     @org.springframework.beans.factory.annotation.Autowired
     private dev.researchhub.shared.observability.WorkMetrics metrics =

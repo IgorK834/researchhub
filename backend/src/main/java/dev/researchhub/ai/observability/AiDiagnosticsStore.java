@@ -2,14 +2,12 @@ package dev.researchhub.ai.observability;
 
 import java.util.*;
 import java.time.Instant;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.ObjectMapper;
 import static dev.researchhub.ai.observability.AiDiagnostics.*;
 
 @Repository
-@Profile("local")
 public class AiDiagnosticsStore {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

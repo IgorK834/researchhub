@@ -3,7 +3,6 @@ package dev.researchhub.ai.application;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.ai.application.ContextContracts.*;
 import dev.researchhub.shared.error.*;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +10,6 @@ import java.util.*;
 
 /** Packs already-authorized retrieval evidence; it never searches, tokenizes or calls a vendor. */
 @Component
-@Profile("local")
 public class GroundedContextBuilder {
     public static final int FRAMING_RESERVE = 2048;
     private static final ObjectMapper JSON = new ObjectMapper();

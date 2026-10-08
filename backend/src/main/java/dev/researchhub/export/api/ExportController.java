@@ -8,12 +8,10 @@ import jakarta.validation.constraints.*;
 import java.nio.charset.StandardCharsets;
 import java.net.URI;
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/documents/{documentId}/exports")
 public class ExportController {
     public record Request(@NotNull ExportFormat format,@Min(1) long revision) {}

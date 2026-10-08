@@ -4,7 +4,6 @@ import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.GenerationContracts.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.shared.observability.CorrelationContext;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;
@@ -12,7 +11,6 @@ import static dev.researchhub.ai.observability.AiDiagnostics.*;
 
 /** Per-call metadata, independent of private-content capture. No provider body or exception is retained. */
 @Service
-@Profile("local")
 public class AiObservation {
     private final AiDiagnosticsStore store;
     private final AiDiagnosticsProperties properties;

@@ -2,14 +2,12 @@ package dev.researchhub.ai.api;
 
 import dev.researchhub.ai.application.*;
 import dev.researchhub.auth.application.CurrentUserResolver;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /** Authorized current retrieval substrate, not an AI generation or search execution endpoint. */
 @RestController
-@Profile("local")
 @RequestMapping("/api/workspaces/{workspaceId}/sources/{sourceId}/retrieval")
 public class SourceRetrievalController {
     private final SourceRetrievalService retrieval;

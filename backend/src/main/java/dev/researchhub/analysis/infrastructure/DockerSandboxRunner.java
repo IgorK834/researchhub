@@ -10,11 +10,9 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 /** Local Docker is a privileged server dependency. Only validated bytes cross into this disposable container. */
-@Component
 public final class DockerSandboxRunner implements SandboxRunner {
     public static final String IMAGE = SandboxRunner.IMAGE;
     public static final String RUNTIME_VERSION = "1.1.1";

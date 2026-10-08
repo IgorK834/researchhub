@@ -3,7 +3,6 @@ package dev.researchhub.ai.observability;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -11,7 +10,6 @@ import java.util.*;
 import static dev.researchhub.ai.observability.AiDiagnostics.*;
 
 @Service
-@Profile("local")
 public class AiDiagnosticsService {
     private final WorkspaceAuthorizationService authorization;
     private final AiDiagnosticsProperties properties;

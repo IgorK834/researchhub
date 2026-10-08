@@ -6,14 +6,12 @@ import dev.researchhub.analysis.application.ReproductionContracts.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.source.application.SourceService;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import java.util.*;
 
 /** Append-only reproduction workflow and log-free citation views for documents and AI consumers. */
 @Service
-@Profile("local")
 public class AnalysisReproductionService {
     private final WorkspaceAuthorizationService authorization;
     private final AnalysisService analyses;

@@ -16,7 +16,6 @@ import dev.researchhub.source.infrastructure.SourceExtractionRepository;
 import dev.researchhub.source.infrastructure.SourceVersionJobRepository;
 import dev.researchhub.source.infrastructure.SourceVersionRepository;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -26,7 +25,6 @@ import java.time.Clock;
 import java.util.UUID;
 
 @Service
-@Profile("local")
 public class SourceExtractionService implements SourceIngestResultSink, SourceReadScope {
     private final SourceRepository sources;
     private final SourceExtractionRepository extractions;

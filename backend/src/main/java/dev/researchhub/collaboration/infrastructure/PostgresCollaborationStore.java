@@ -4,7 +4,6 @@ import dev.researchhub.collaboration.application.CollaborationContracts.*;
 import dev.researchhub.document.application.DocumentWriteGuard;
 import dev.researchhub.shared.error.ConflictException;
 import dev.researchhub.shared.error.ForbiddenException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
@@ -13,7 +12,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class PostgresCollaborationStore implements DocumentWriteGuard, dev.researchhub.document.application.DocumentSnapshotState {
     private final JdbcTemplate jdbc;
     public PostgresCollaborationStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }

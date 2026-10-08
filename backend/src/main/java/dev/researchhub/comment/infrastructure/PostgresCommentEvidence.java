@@ -2,7 +2,6 @@ package dev.researchhub.comment.infrastructure;
 
 import dev.researchhub.comment.application.CommentEvidenceContracts.Suggestion;
 import dev.researchhub.shared.error.ConflictException;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -11,7 +10,6 @@ import java.time.Instant;
 import java.util.*;
 
 @Repository
-@Profile("local")
 public class PostgresCommentEvidence {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

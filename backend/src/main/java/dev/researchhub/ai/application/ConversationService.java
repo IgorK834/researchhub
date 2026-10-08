@@ -4,13 +4,11 @@ import dev.researchhub.ai.application.ConversationContracts.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.source.application.SourceReadScope;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
 @Service
-@Profile("local")
 public class ConversationService {
     private final ConversationStore store;
     private final WorkspaceAuthorizationService authorization;

@@ -1,13 +1,11 @@
 package dev.researchhub.ai.application;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.*;
 
 @Component
-@Profile("local")
 public class SourceAnalysisFeature {
     private final Map<SourceAnalysisContracts.Kind,String> templates = new EnumMap<>(SourceAnalysisContracts.Kind.class);
     private final GenerationContracts.Parameters parameters;

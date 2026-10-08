@@ -8,7 +8,6 @@ import dev.researchhub.document.application.*;
 import dev.researchhub.source.application.*;
 import dev.researchhub.shared.error.*;
 import dev.researchhub.workspace.application.WorkspaceAuthorizationService;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 
 /** Application orchestration only: authorized retrieval -> proposal -> explicit atomic approval. */
 @Service
-@Profile("local")
 public class AuthoringService {
     private final DocumentService documents;
     private final WorkspaceAuthorizationService authorization;

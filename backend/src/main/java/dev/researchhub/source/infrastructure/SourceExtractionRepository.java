@@ -1,7 +1,6 @@
 package dev.researchhub.source.infrastructure;
 
 import dev.researchhub.processing.application.SourceExtraction;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -12,7 +11,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@Profile("local")
 public class SourceExtractionRepository {
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
