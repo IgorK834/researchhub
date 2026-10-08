@@ -33,7 +33,11 @@ researchhub:
       min-length: 12
   security:
     quotas:
-      # Single-instance local adapter. A multi-instance deployment needs an atomic shared store.
+      # Memory is for a single instance; demo/azure select the shared PostgreSQL adapter.
+      store: ${COST_QUOTA_STORE:memory}
+      retention: ${COST_QUOTA_RETENTION:P7D}
+      max-attempts: ${COST_QUOTA_MAX_ATTEMPTS:3}
+      cleanup-cron: ${COST_QUOTA_CLEANUP_CRON:0 0 * * * *}
       window: PT1M
       max-buckets: 100000
       llm: {user: 20, workspace: 60}
@@ -123,3 +127,13 @@ spring:
 researchhub:
   auth:
     session-store: ${AUTH_SESSION_STORE:jdbc}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "demo | azure"
+researchhub:
+  security:
+    quotas:
+      store: ${COST_QUOTA_STORE:postgres}

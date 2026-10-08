@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 /** Single-instance development adapter. Bounded state, fixed windows, atomic admission. */
 public final class InMemoryCostQuotaStore implements CostQuotaStore {
@@ -14,11 +16,17 @@ public final class InMemoryCostQuotaStore implements CostQuotaStore {
     private final Map<Key, Bucket> buckets = new HashMap<>();
     private final Clock clock;
     private final int maxBuckets;
+    private final CostQuotaMetrics metrics;
 
     public InMemoryCostQuotaStore(Clock clock, int maxBuckets) {
+        this(clock, maxBuckets, new SimpleMeterRegistry());
+    }
+
+    public InMemoryCostQuotaStore(Clock clock, int maxBuckets, MeterRegistry registry) {
         if (maxBuckets < 2) throw new IllegalArgumentException("At least two quota buckets are required");
         this.clock = java.util.Objects.requireNonNull(clock);
         this.maxBuckets = maxBuckets;
+        this.metrics = new CostQuotaMetrics(registry);
     }
 
     @Override
@@ -29,10 +37,14 @@ public final class InMemoryCostQuotaStore implements CostQuotaStore {
         Key workspace = new Key(true, workspaceId, category);
         Bucket u = buckets.get(user), w = buckets.get(workspace);
         long wait = Math.max(retry(u, policy.userRequests(), now), retry(w, policy.workspaceRequests(), now));
-        if (wait > 0) throw new RateLimitExceededException(category, wait);
+        if (wait > 0) {
+            metrics.rejected(category);
+            throw new RateLimitExceededException(category, wait);
+        }
         int additions = (u == null ? 1 : 0) + (w == null ? 1 : 0);
         if (buckets.size() + additions > maxBuckets) {
             long seconds = buckets.values().stream().mapToLong(b -> seconds(now, b.expiresAt())).min().orElse(1);
+            metrics.rejected(category);
             throw new RateLimitExceededException(category, seconds);
         }
         buckets.put(user, increment(u, now, policy));
@@ -40,7 +52,7 @@ public final class InMemoryCostQuotaStore implements CostQuotaStore {
     }
 
     private static Bucket increment(Bucket bucket, Instant now, QuotaPolicy policy) {
-        return bucket == null ? new Bucket(1, now.plus(policy.window()))
+        return bucket == null ? new Bucket(1, CostQuotaWindow.at(now, policy.window()).end())
                 : new Bucket(bucket.requests() + 1, bucket.expiresAt());
     }
     private static long retry(Bucket bucket, int limit, Instant now) {
