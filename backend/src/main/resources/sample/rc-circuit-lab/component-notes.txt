@@ -1,0 +1,7 @@
+ResearchHub project-authored synthetic component notes.
+Resistance: 10,000 ohms, tolerance +/- 1 percent.
+Capacitance: 470 microfarads, tolerance +/- 5 percent.
+Expected time constant from component values: tau = R * C = 4.7 seconds.
+Combined worst-case nominal range: 4.42035 to 4.98435 seconds.
+Voltage supply: 3.3 V. Temperature samples are synthetic, around 22 C.
+No other environmental measurement was recorded.

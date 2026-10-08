@@ -38,19 +38,23 @@ other documentation assets also select `docs` to catch broken image links.
 | `collaboration` | `collaboration/`, contracts | `npm ci`, build, tests with coverage |
 | `sandbox` | `sandbox/`, worker Python manifest/lock | Image build, runtime pytest with coverage, constrained Docker acceptance tests |
 | `infra` | `infra/azure/`, when that directory exists | Azure CLI `az bicep build` and `lint` for every recursive `.bicep`; `build-params` for `.bicepparam`; Bicep 0.48.1; no Azure login or deployment |
-| `performance` | `performance/k6/`, when top-level `.js` files exist | k6 2.3.0 `inspect` for each script; no load is sent to an application |
+| `performance` | `performance/k6/`, `infra/demo/`, `scripts/demo/` | k6 2.3.0 `inspect` for every script; Node tests with 80% configuration-helper coverage |
+| `containers` | Backend/frontend/sandbox or performance selection | Build all four pinned non-root images; static-hosting checks; public-REST real sandbox seed; shared-session/failover/quota proof; two-minute 5-VU smoke and resource evidence |
 | `scripts` | `scripts/`, `ai-worker/scripts/` | ShellCheck for tracked shell scripts, including extensionless scripts; CI helper tests with branch coverage of at least 80% |
 | `docs` | Markdown files and `docs/` assets | Lychee 0.24.2 offline Markdown link check across the repository; validates local files/images, without depending on external sites |
 
 Changes to `.github/` or `scripts/ci/` select all available jobs. Pushes to `main`/`master` and
 manual runs also select all available jobs, so the default branch verifies the entire repository.
-Missing infrastructure/load-test directories skip their jobs; this task adds validation without
-creating infrastructure or load scenarios. Compiler, linter and inspector failures propagate to
+Missing optional Azure infrastructure skips its job. Compiler, linter and inspector failures propagate to
 their job and the required aggregate. Bicep uses each template's linter configuration; default
 warning-level diagnostics remain warnings, while error diagnostics fail.
 
 The backend and sandbox jobs require the committed RH-142 analysis security boundary before
 computation tests, using `scripts/security/check_analysis_boundary.py` from the prerequisite work.
+The containers job uses the same boundary through the temporary host seed server. It stops that
+server before starting two container replicas with the sandbox disabled, then retains sanitized
+summary/resource evidence for 14 days. An 80% branch-aware Python coverage gate covers the fixture,
+REST seed/client, consistency and report modules using unit tests plus the actual REST/topology run.
 
 Secret and tracked-file hygiene checks run on every pull request, including documentation-only
 changes. Dependency scans run for changed Maven/npm/Python inventories, scanner policy changes,

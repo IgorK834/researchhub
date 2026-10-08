@@ -5,6 +5,7 @@ from .contracts import Candidate, PlanningRequest, PLAN_SCHEMA
 from ..ai.contracts import UsageMetadata
 from ..ai.providers import ProviderError, FakeModelProvider
 from .deterministic import impedance_plan
+from .rc_fixture import rc_plan
 
 
 def generate_candidate(provider, request):
@@ -22,7 +23,7 @@ def generate_candidate(provider, request):
                                        'requiredColumns': selection.columns or [c.index for c in sheet.columns]})
             if not inputs:
                 raise ProviderError('AI_OUTPUT_INVALID')
-            fixture = impedance_plan(request)
+            fixture = impedance_plan(request) or rc_plan(request)
             output = json.dumps(fixture or {'schemaVersion': '1.0', 'summary': 'Offline planning fixture; configure a model for this computation.',
                 'inputs': inputs, 'transformations': [], 'statisticalOperations': [],
                 'outputs': [{'kind': 'TEXT', 'name': 'planning-note', 'description': 'Offline fixture only.',

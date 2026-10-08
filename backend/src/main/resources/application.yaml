@@ -1,4 +1,5 @@
 researchhub:
+  # INSTANCE_ID / researchhub.instance-id overrides the hostname resolved before logging starts.
   observability:
     scrape-token: ${METRICS_SCRAPE_TOKEN:}
   collaboration:
@@ -99,6 +100,9 @@ server:
 
 logging:
   structured:
+    json:
+      add:
+        replicaId: ${researchhub.instance-id}
     format:
       console: logstash
 

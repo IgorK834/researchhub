@@ -1,0 +1,3 @@
+# Committed deterministic fixtures must retain their exact bytes on every platform.
+*.pdf binary
+*.xlsx binary

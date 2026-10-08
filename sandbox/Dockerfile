@@ -15,5 +15,7 @@ RUN python -m pip install --no-cache-dir --only-binary=:all: -r /opt/researchhub
 COPY runtime/ /opt/researchhub/
 RUN chmod -R a-w /opt/researchhub
 WORKDIR /execution
+# One-shot execution: exit status and the validated result manifest are its health.
+HEALTHCHECK NONE
 USER 65532:65532
 ENTRYPOINT ["python", "-I", "/opt/researchhub/run.py"]

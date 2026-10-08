@@ -1,0 +1,27 @@
+# Root context is only for frontend and its public contract fixtures.
+**
+!frontend
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/webpack.config.cjs
+!frontend/babel.config.cjs
+!frontend/THIRD_PARTY_NOTICES.md
+!frontend/src
+!frontend/src/**
+!frontend/public
+!frontend/public/**
+!frontend/security
+!frontend/security/**
+!frontend/docker
+!frontend/docker/**
+!contracts
+!contracts/**
+**/.env*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/__pycache__

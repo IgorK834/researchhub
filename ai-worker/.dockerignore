@@ -1,6 +1,10 @@
-.coverage
-.pytest_cache/
-.venv/
-__pycache__/
-htmlcov/
-tests/
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!src
+!src/**
+**/.env*
+**/*.key
+**/*.pem
+**/*.p12

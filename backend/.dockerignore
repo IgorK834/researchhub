@@ -1,0 +1,17 @@
+**
+!.mvn
+!.mvn/**
+!mvnw
+!pom.xml
+!src
+!src/**
+!docker
+!docker/HealthProbe.java
+src/test
+**/.env*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore

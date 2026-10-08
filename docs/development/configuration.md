@@ -1,5 +1,11 @@
 # Configuration
 
+Production build/runtime contracts: [containers](containers.md). For the synthetic local demo,
+shared environment-based state and replica identifiers, see [two-replica demo](../../scripts/demo/README.md).
+`INSTANCE_ID` / `researchhub.instance-id` selects a bounded diagnostic hostname/replica identifier;
+the default is the hostname resolved before logging starts. Every backend response carries
+`X-Replica-Id`, and structured application logs include `replicaId`.
+
 How ResearchHub separates local development, automated tests, and Azure deployment. Follow this document instead of inventing a new place for secrets.
 
 Generation provider settings, versioned feature templates and model parameters (RH-110):

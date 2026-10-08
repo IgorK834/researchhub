@@ -11,12 +11,12 @@ import subprocess
 
 FILTERS = {
     "backend": ("backend/", "ai-worker/", "collaboration/", "sandbox/", "contracts/", "compose.yaml", ".env.example"),
-    "frontend": ("frontend/", "contracts/"),
+    "frontend": ("frontend/", "contracts/", ".dockerignore"),
     "ai-worker": ("ai-worker/", "contracts/"),
     "collaboration": ("collaboration/", "contracts/"),
     "sandbox": ("sandbox/", "ai-worker/pyproject.toml", "ai-worker/uv.lock"),
     "infra": ("infra/azure/",),
-    "performance": ("performance/k6/",),
+    "performance": ("performance/k6/", "performance/test/", "infra/demo/", "scripts/demo/"),
     "scripts": ("scripts/", "ai-worker/scripts/"),
     "regression": ("backend/", "frontend/", "ai-worker/", "collaboration/", "sandbox/", "contracts/", "compose.yaml", ".env.example"),
     "dependencies": ("scripts/security/", ".gitleaks.toml"),

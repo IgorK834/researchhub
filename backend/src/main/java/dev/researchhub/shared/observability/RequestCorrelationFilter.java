@@ -16,6 +16,8 @@ import java.io.IOException;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class RequestCorrelationFilter extends OncePerRequestFilter {
+    @org.springframework.beans.factory.annotation.Value("${researchhub.instance-id:unknown-host}")
+    private String replicaId = "unknown-host";
     private static final String ATTRIBUTE = RequestCorrelationFilter.class.getName() + ".id";
     @Override protected boolean shouldNotFilterAsyncDispatch() { return false; }
     @Override protected boolean shouldNotFilterErrorDispatch() { return false; }
@@ -30,6 +32,7 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
             request.setAttribute(ATTRIBUTE, id);
         }
         response.setHeader(CorrelationContext.HEADER, id);
+        response.setHeader("X-Replica-Id", replicaId);
         try (var ignored = CorrelationContext.open(id)) {
             try { chain.doFilter(request, response); }
             finally {

@@ -49,6 +49,7 @@ id_ed25519
 Thumbs.db
 
 # Temporary output and logs
+.demo/
 tmp/
 temp/
 *.tmp

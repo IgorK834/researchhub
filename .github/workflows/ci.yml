@@ -177,6 +177,68 @@ jobs:
       - name: Build and lint existing Azure infrastructure
         run: python3 scripts/ci/check.py infra
 
+  containers:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.performance == 'true' || needs.changes.outputs.sandbox == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.20'
+          python-version: '3.13.3'
+      - name: Build all production runtime images
+        run: |
+          docker build -t researchhub-backend:demo backend
+          docker build -f frontend/Dockerfile -t researchhub-frontend:demo .
+          docker build -t researchhub-ai-worker:demo ai-worker
+          docker build -t researchhub-sandbox:1.1.1 sandbox
+          python3 scripts/demo/verify-images.py
+      - name: Real sandbox seed and idempotence through public REST
+        run: |
+          uv sync --project ai-worker --frozen
+          scripts/demo/scale-up.sh --dependencies-only
+          mkdir -p backend/target
+          container_id=$(docker create researchhub-backend:demo)
+          docker cp "$container_id:/app/backend.jar" backend/target/backend-0.0.1-SNAPSHOT.jar
+          docker rm "$container_id"
+          python3 scripts/demo/seed-server.py > .demo/seed-server.log 2>&1 &
+          seed_pid=$!
+          trap 'kill "$seed_pid" 2>/dev/null || true' EXIT
+          python3 scripts/demo/wait-health.py http://127.0.0.1:18083/actuator/health/readiness
+          ai-worker/.venv/bin/python -m coverage run --branch --source=scripts/demo --data-file=.demo/coverage scripts/demo/seed.py --load-users 5
+          ai-worker/.venv/bin/python -m coverage run --append --branch --source=scripts/demo --data-file=.demo/coverage scripts/demo/seed.py --load-users 5
+          kill "$seed_pid"
+          wait "$seed_pid" || true
+          trap - EXIT
+      - name: Shared state, replica failure and two-minute smoke
+        run: |
+          scripts/demo/scale-up.sh
+          ai-worker/.venv/bin/python -m coverage run --append --branch --source=scripts/demo --data-file=.demo/coverage scripts/demo/consistency.py
+          ai-worker/.venv/bin/python -m coverage run --append --branch --source=scripts/demo --data-file=.demo/coverage scripts/demo/run-load.py --runs 1 --scenarios smoke --output .demo/ci-results
+          ai-worker/.venv/bin/python -m coverage run --append --branch --source=scripts/demo --data-file=.demo/coverage -m unittest discover -s scripts/demo -p 'test_*.py'
+          ai-worker/.venv/bin/python -m coverage report --data-file=.demo/coverage --include='scripts/demo/api.py,scripts/demo/seed.py,scripts/demo/generate_fixtures.py,scripts/demo/consistency.py,scripts/demo/run-load.py' --fail-under=80
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: local-two-instance-evidence
+          include-hidden-files: true
+          path: |
+            .demo/ci-results/
+            .demo/consistency.json
+          retention-days: 14
+      - name: Release demo containers
+        if: always()
+        run: docker compose --env-file .demo/scale.env -f infra/demo/compose.scale.yaml down -v
+
   performance:
     needs: changes
     if: needs.changes.outputs.performance == 'true'
@@ -191,6 +253,12 @@ jobs:
           k6-version: '2.3.0'
       - name: Inspect load-test scripts without running load
         run: python3 scripts/ci/check.py performance
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - name: Validate synthetic load configuration (80% coverage gate)
+        run: node --test --experimental-test-coverage --test-coverage-lines=80 --test-coverage-branches=80 performance/test/*.test.js
 
   scripts:
     needs: changes
@@ -231,7 +299,7 @@ jobs:
 
   ci:
     name: CI required
-    needs: [changes, backend, frontend, ai-worker, collaboration, sandbox, infra, performance, scripts, docs]
+    needs: [changes, backend, frontend, ai-worker, collaboration, sandbox, infra, containers, performance, scripts, docs]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

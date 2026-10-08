@@ -1,0 +1,13 @@
+{
+  "recordedAfter": "2026-10-08-local-two-instance (two smoke, two api-read, and the first retrieval run)",
+  "method": "ceil(max recorded endpoint p95 * 3 / 50) * 50, minimum 100 ms; local regression budgets, not an SLA",
+  "p95ms": {
+    "analysis-history": 100,
+    "audit-read": 100,
+    "document-read": 100,
+    "source-list": 100,
+    "workspace-detail": 100,
+    "workspace-list": 100,
+    "workspace-question": 900
+  }
+}

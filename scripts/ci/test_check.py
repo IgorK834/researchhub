@@ -65,6 +65,13 @@ class CiChecksTest(unittest.TestCase):
         self.assertTrue(selected["sandbox"])
         self.assertTrue(selected["dependencies"])
 
+    def test_demo_and_load_tests_select_validation_that_drives_container_acceptance(self):
+        self.optional_components()
+        for path in ("infra/demo/compose.scale.yaml", "scripts/demo/seed.py", "performance/test/api.test.js", "performance/k6/lib/baseline.json"):
+            with self.subTest(path=path):
+                self.assertTrue(check.select_jobs([path], self.root)["performance"])
+        self.assertTrue(check.select_jobs([".dockerignore"], self.root)["frontend"])
+
     def test_filters_do_not_match_similarly_named_paths(self):
         selected = check.select_jobs(["frontend-old/app.ts", "compose.yaml.backup", "backendish/pom.txt"], self.root)
         self.assertFalse(any(selected.values()))

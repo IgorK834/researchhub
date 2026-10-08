@@ -1,0 +1,49 @@
+%PDF-1.4
+%ResearchHub synthetic fixture
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 954 >>
+stream
+BT /F1 20 Tf 50 790 Td (RC circuit laboratory protocol) Tj
+/F1 11 Tf
+0 -25 Td (Synthetic teaching dataset authored for ResearchHub; no real participants.) Tj
+0 -25 Td (Objective: estimate the discharge time constant and compare with R times C.) Tj
+0 -25 Td (Circuit: a 3.3 V charged capacitor discharges through a 10,000 ohm resistor.) Tj
+0 -25 Td (Nominal capacitance C = 470 microfarads; resistance R = 10,000 ohms.) Tj
+0 -25 Td (Expected time constant tau = R * C = 4.7 seconds from these component values.) Tj
+0 -25 Td (Procedure: charge, disconnect the supply, close the resistor discharge loop.) Tj
+0 -25 Td (Record voltage every 0.25 s from 0 to 20 s; repeat for three trials.) Tj
+0 -25 Td (The worksheet includes time_s, voltage_v, trial and temperature_c.) Tj
+0 -25 Td (Use all immutable rows for the fit; retain inputs, code and output provenance.) Tj
+0 -25 Td (The measurements are a simulation with small, fixed-seed measurement noise.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Title (RC circuit laboratory protocol) /Author (ResearchHub synthetic fixtures) /CreationDate (D:20260101000000Z) >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000040 00000 n 
+0000000089 00000 n 
+0000000146 00000 n 
+0000000272 00000 n 
+0000000342 00000 n 
+0000001347 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R /Info 6 0 R >>
+startxref
+1483
+%%EOF

@@ -1,0 +1,15 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!webpack.config.cjs
+!babel.config.cjs
+!THIRD_PARTY_NOTICES.md
+!src
+!src/**
+!public
+!public/**
+!security
+!security/**
+!docker
+!docker/**
