@@ -1,1 +1,2 @@
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=dev.researchhub.auth.infrastructure.SessionStoreAutoConfigurationFilter
+org.springframework.boot.env.EnvironmentPostProcessor=dev.researchhub.config.CloudEnvironmentConfiguration
