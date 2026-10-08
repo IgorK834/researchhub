@@ -172,6 +172,26 @@ const disagreement: SourceAnalysis = {
     ],
   },
 };
+
+test.each([
+  ['deterministic', 'Fixture AI (deterministic)'],
+  ['live', 'Live model: recorded-model'],
+])('historical comparison identifies its %s provider', (provider, label) => {
+  render(
+    <MemoryRouter>
+      <ComparisonResult
+        analysis={{
+          ...comparison,
+          generation: {
+            ...comparison.generation!,
+            model: { ...comparison.generation!.model, provider, name: 'recorded-model' },
+          },
+        }}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText(label)).toBeTruthy();
+});
 function view(id = 'w') {
   return (
     <QueryClientProvider

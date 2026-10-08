@@ -5,6 +5,7 @@ import { Button } from '../../../shared/components/Button';
 import { Icon } from '../../../shared/components/icons';
 import { Illustration } from '../../../shared/components/Illustration';
 import { AiDraftBlock } from './AiDraftBlock';
+import { AiModeChip } from './AiModeChip';
 import {
   authoringCommand,
   REWRITE_ACTIONS,
@@ -451,6 +452,7 @@ export function AuthoringPanel({
   );
   return (
     <section aria-label="AI-assisted authoring" className={styles.panel}>
+      <AiModeChip />
       <h2>
         <Icon name="sparkle" />{' '}
         {kind === 'DRAFT'

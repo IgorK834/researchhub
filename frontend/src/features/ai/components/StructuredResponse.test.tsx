@@ -54,7 +54,7 @@ it('renders escaped claims with versioned citations and model/usage metadata', (
     screen.getByRole('link', { name: 'Theory · Page 2' }).getAttribute('href'),
   ).toContain('processingVersion=v1&unit=u2&page=2');
   expect(
-    screen.getByText('Model: extractive-fixture (1) · deterministic'),
+    screen.getByText('Fixture AI (deterministic) (1) · deterministic'),
   ).not.toBeNull();
   expect(screen.getByText('Estimated tokens: 15 · Input: 10 · Output: 5')).not.toBeNull();
 });

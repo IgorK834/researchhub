@@ -43,6 +43,7 @@ import {
 } from './ResearchNavigation';
 import type { WorkspaceQuestion } from '../api/questionApi';
 import styles from './Research.module.css';
+import { AiModeChip } from './AiModeChip';
 
 export interface ResearchSources {
   readonly sources: readonly {
@@ -445,12 +446,14 @@ function Panel({
           </div>
           <div className={styles.actions}>
             <h1>{lastQuestion ?? 'Ask AI'}</h1>
+            <AiModeChip />
             {actions}
           </div>
         </>
       ) : (
         <>
           <h2>Research conversation</h2>
+          <AiModeChip />
           <p>
             Ask about workspace sources. Answers link to the passages that support them.
           </p>

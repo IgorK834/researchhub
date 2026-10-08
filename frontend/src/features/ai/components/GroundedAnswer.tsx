@@ -156,7 +156,10 @@ export function GenerationDetails({
     <details className={styles.provenance}>
       <summary>Generation details</summary>
       <p>
-        Model: {model.name} ({model.version}) · {model.provider}
+        {model.provider === 'deterministic'
+          ? 'Fixture AI (deterministic)'
+          : `Live model: ${model.name}`}{' '}
+        ({model.version}) · {model.provider}
       </p>
       <p>
         {usage.estimated ? 'Estimated tokens' : 'Tokens'}: {usage.totalTokens} · Input:{' '}

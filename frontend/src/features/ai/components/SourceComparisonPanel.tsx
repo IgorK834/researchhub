@@ -8,6 +8,7 @@ import { citationPath } from '../api/generationApi';
 import { Button } from '../../../shared/components/Button';
 import { Illustration } from '../../../shared/components/Illustration';
 import { Icon } from '../../../shared/components/icons';
+import { AiModeChip } from './AiModeChip';
 import styles from './SourceComparisonPanel.module.css';
 import {
   compareSources,
@@ -400,7 +401,13 @@ function Provenance({ analysis }: { readonly analysis: SourceAnalysis }): ReactE
         <p key={warning}>{warning}</p>
       ))}
       {analysis.generation === null ? null : (
-        <p>AI-assisted interpretation generated with {analysis.generation.model.name}.</p>
+        <AiModeChip
+          ai={
+            analysis.generation.model.provider === 'deterministic'
+              ? { mode: 'deterministic', modelName: null }
+              : { mode: 'live', modelName: analysis.generation.model.name }
+          }
+        />
       )}
     </>
   );

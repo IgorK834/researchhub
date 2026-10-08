@@ -26,7 +26,8 @@ module.exports = {
     'src/pages/{AppLayoutPage,WorkspaceDetailPage,WorkspaceOverview,AskAIPage,AnalysisPage,WorkspaceListPage,SourceRoutePage,SourceDetailPage,DocumentDetailPage,LoginPage,RegisterPage}.tsx',
     'src/features/workspaces/components/{WorkspaceCard,WorkspaceList,CreateWorkspaceForm,CreateWorkspaceDialog,MemberList,AddMemberForm,RoleInformation,EditWorkspaceForm,ArchiveWorkspaceButton}.tsx',
     'src/features/auth/components/AuthLayout.tsx',
-    'src/app/{AppRouter,workspaceRoutes}.{ts,tsx}',
+    'src/features/auth/components/RegistrationNotice.tsx',
+    'src/app/{AppRouter,workspaceRoutes,PublicConfig,DemoBanner}.{ts,tsx}',
     '!src/**/index.ts',
     '!src/**/*.typecheck.tsx',
     'src/features/sources/**/*.{ts,tsx}',
@@ -38,6 +39,18 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/auth/components/RegistrationNotice.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/ai/components/AiModeChip.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/sources/components/SourceSearchDialog.tsx': {
       lines: 80,
       branches: 80,
