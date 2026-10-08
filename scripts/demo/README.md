@@ -1,6 +1,8 @@
 # Synthetic RC lab and two-replica demo
 
 RH-316/RH-325 use one reproducible workspace for video, collaboration, provenance and load tests.
+For the complete host-backed, single-origin portfolio demo, use
+[local demo guide](../../docs/deployment/demo.md).
 Every source is authored for this project. The dataset is a simulation; it contains no private
 data, real participant or external copyrighted material.
 
@@ -93,6 +95,9 @@ ports are loopback-only for diagnosis and the quota proof.
 | Host seed backend | 18083 | temporary real sandbox adapter; stopped before the scale test |
 
 `scale-up.sh` waits for health and proves that both replica IDs appear through the load balancer.
+This separate HTTP benchmark topology explicitly overrides the portfolio profile: local runtime,
+insecure loopback cookies, collaboration disabled, and the original minute-based quota limits.
+The normal portfolio demo keeps HTTPS, hourly quotas and disabled registration.
 All backend responses include `X-Replica-Id`; structured application logs carry `replicaId`.
 `INSTANCE_ID` / `researchhub.instance-id` overrides the default hostname resolved before logging
 starts. This bounded diagnostic value contains no user or workspace data.

@@ -164,7 +164,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="http://127.0.0.1:18083")
     parser.add_argument("--state", type=Path, default=Path(".demo/accounts.json"))
-    parser.add_argument("--load-users", type=int, choices=range(1, 201), default=200)
+    parser.add_argument("--load-users", type=int, choices=range(0, 201), default=200)
     args = parser.parse_args()
     seed(args.base_url, args.state, args.load_users)
 
