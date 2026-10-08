@@ -9,9 +9,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = {"DB_URL=jdbc:postgresql://example/researchhub", "BLOB_ENDPOINT=https://example.blob.core.windows.net",
+@SpringBootTest(classes = dev.researchhub.support.HttpSecurityTestApplication.class, properties = {"researchhub.environment=cloud", "server.servlet.session.cookie.secure=true",
         "researchhub.auth.cors.allowed-origins=https://app.example.com"})
-@ActiveProfiles("cloud") @AutoConfigureMockMvc
+@ActiveProfiles("test") @AutoConfigureMockMvc
 class CloudBrowserSecurityTest {
     @Autowired MockMvc http;
     @Test void httpsCloudHasHeadersAndSecureCsrfCookiesEvenOnErrors() throws Exception {

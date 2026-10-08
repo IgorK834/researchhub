@@ -10,7 +10,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties="researchhub.observability.scrape-token=test-metrics-token-at-least-32-characters")
+@SpringBootTest(classes = dev.researchhub.support.HttpSecurityTestApplication.class, properties="researchhub.observability.scrape-token=test-metrics-token-at-least-32-characters")
 @org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics
 @AutoConfigureMockMvc @ActiveProfiles("test")
 class ObservabilityApiTest {

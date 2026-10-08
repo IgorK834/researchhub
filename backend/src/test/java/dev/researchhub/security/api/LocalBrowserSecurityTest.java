@@ -9,7 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest @ActiveProfiles("test") @AutoConfigureMockMvc
+@SpringBootTest(classes = dev.researchhub.support.HttpSecurityTestApplication.class) @ActiveProfiles("test") @AutoConfigureMockMvc
 class LocalBrowserSecurityTest {
     @Autowired MockMvc http;
     @Test void developmentDoesNotSetHstsEvenWhenRequestIsSecure() throws Exception {

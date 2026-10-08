@@ -55,6 +55,13 @@ class ProcessingJobDispatcherTest {
     }
 
     @Test
+    void disablingScheduledDispatchKeepsTheBeanButDoesNotClaimOrCallTheWorker() {
+        properties.getDispatcher().setEnabled(false);
+        dispatcher.scheduledDispatch();
+        org.mockito.Mockito.verifyNoInteractions(queue, worker);
+    }
+
+    @Test
     void successfulDeliveryCompletesTheDurableJobAndNotifiesItsOwner() {
         ProcessingJob running = running(1);
         ProcessingJobNotification notification = ProcessingJobNotification.from(running);
@@ -123,7 +130,7 @@ class ProcessingJobDispatcherTest {
                 .thenReturn(new StaleJobRecovery(List.of(), List.of(stale)));
         when(queue.claimNext(eq(NOW), eq(5))).thenReturn(Optional.of(claimed));
 
-        dispatcher.dispatchAvailable();
+        dispatcher.scheduledDispatch();
 
         verify(listener).failed(ProcessingJobNotification.from(stale), ProcessingFailure.from(stale.lastError()));
         verify(worker).execute(claimed);
