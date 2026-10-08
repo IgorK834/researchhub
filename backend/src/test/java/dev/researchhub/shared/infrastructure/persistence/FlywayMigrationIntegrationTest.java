@@ -21,6 +21,32 @@ class FlywayMigrationIntegrationTest {
 
     @Test
     @Order(1)
+    void createsSharedQuotaBucketsWithUniqueScopeAndCleanupIndex() {
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM flyway_schema_history WHERE success = true AND version = '37'
+                """, Integer.class));
+        assertEquals(6, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_name = 'cost_quota_bucket' AND is_nullable = 'NO'
+                AND column_name IN ('scope_type', 'scope_id', 'category', 'window_start', 'request_count', 'updated_at')
+                """, Integer.class));
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.table_constraints
+                WHERE table_name = 'cost_quota_bucket' AND constraint_name = 'uq_cost_quota_bucket'
+                AND constraint_type = 'UNIQUE'
+                """, Integer.class));
+        assertEquals("scope_type,scope_id,category,window_start", jdbcTemplate.queryForObject("""
+                SELECT string_agg(column_name, ',' ORDER BY ordinal_position)
+                FROM information_schema.key_column_usage WHERE constraint_name = 'uq_cost_quota_bucket'
+                """, String.class));
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM pg_indexes WHERE tablename = 'cost_quota_bucket'
+                AND indexname = 'ix_cost_quota_bucket_cleanup'
+                """, Integer.class));
+    }
+
+    @Test
+    @Order(1)
     void appliesClasspathMigrationsOnAFreshDatabase() {
         String database = jdbcTemplate.queryForObject("SELECT current_database()", String.class);
         assertEquals("test", database,
@@ -85,8 +111,8 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(36, appliedVersions,
-                "A fresh database should have exactly versions 1 through 36 applied");
+        assertEquals(37, appliedVersions,
+                "A fresh database should have exactly versions 1 through 37 applied");
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'report_exports'", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
