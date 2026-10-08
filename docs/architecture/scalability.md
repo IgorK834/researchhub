@@ -20,6 +20,11 @@ Recorded runs retain endpoint percentiles, error rates, replica distribution, re
 the exact source/script/compose identities. Results are evidence for this fixture and local
 topology; they do not claim Azure throughput or a production SLA.
 
+The [2026-10-08 local report](../../performance/results/2026-10-08-local-two-instance/README.md)
+retains all eight runs (83,432 runtime requests), both session/failover and exact global-quota
+checks, endpoint percentiles, resource samples and verified source hashes. It also records the
+initial Hikari waiters and the limits of this laptop measurement.
+
 Each replica uses the existing [connection budget](../development/persistence.md):
 `maxReplicas × (poolSize + scheduler headroom) <= 0.8 × max_connections`.
 With two replicas, pool eight and headroom two, 20 connections fit the demo's limit of 50, with

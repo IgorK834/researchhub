@@ -1,3 +1,6 @@
 # Committed deterministic fixtures must retain their exact bytes on every platform.
 *.pdf binary
 *.xlsx binary
+
+# Retain the original RFC 4180 CRLF bytes in exported performance measurements.
+performance/results/**/*.csv -text whitespace=cr-at-eol

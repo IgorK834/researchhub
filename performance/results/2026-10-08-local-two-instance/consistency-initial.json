@@ -1,0 +1,32 @@
+{
+  "sessions": {
+    "authenticatedRequests": 100,
+    "authenticationFailures": 0,
+    "replicaDistribution": {
+      "backend-1": 50,
+      "backend-2": 50
+    },
+    "afterStoppingBackend1": {
+      "backend-2": 20
+    },
+    "sameSessionAfterFailover": true
+  },
+  "quotas": {
+    "workspaceLimit": 60,
+    "userLimit": 20,
+    "users": 4,
+    "attempts": 128,
+    "admitted": 60,
+    "rejected": 68,
+    "admittedByReplica": {
+      "backend-1": 30,
+      "backend-2": 30
+    },
+    "rejectedByReplica": {
+      "backend-1": 34,
+      "backend-2": 34
+    },
+    "window": 29857375,
+    "workspaceId": "01a11a4b-86d0-7e92-8dc5-14ac8392e9b6"
+  }
+}

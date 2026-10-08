@@ -1,0 +1,709 @@
+{
+    "metrics": {
+        "http_req_receiving": {
+            "min": 0.005292,
+            "med": 0.022042,
+            "p(50)": 0.022042,
+            "p(95)": 0.5342504999999997,
+            "p(99)": 1.8887289999999999,
+            "max": 23.841125,
+            "avg": 0.13050139781408293
+        },
+        "http_req_connecting": {
+            "avg": 0.0007685747761151327,
+            "min": 0,
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 2.283417
+        },
+        "vus": {
+            "value": 50,
+            "min": 0,
+            "max": 50
+        },
+        "data_sent": {
+            "count": 11415894,
+            "rate": 92093.16489385326
+        },
+        "http_req_waiting": {
+            "med": 4.15725,
+            "p(50)": 4.15725,
+            "p(95)": 15.463124999999991,
+            "p(99)": 34.566374999999944,
+            "max": 288.747459,
+            "avg": 6.305465637778595,
+            "min": 0.456375
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 34951,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "iterations": {
+            "count": 5800,
+            "rate": 46.78918325488559
+        },
+        "http_req_duration": {
+            "p(99)": 35.05247899999996,
+            "max": 288.831792,
+            "avg": 6.443868732711568,
+            "min": 0.474792,
+            "med": 4.272708,
+            "p(50)": 4.272708,
+            "p(95)": 15.699437499999991
+        },
+        "http_req_blocked": {
+            "p(50)": 0.001,
+            "p(95)": 0.004834,
+            "p(99)": 0.017895999999999985,
+            "max": 13.993583,
+            "avg": 0.004428045835598645,
+            "min": 0.000333,
+            "med": 0.001
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(50)": 4.272708,
+            "p(95)": 15.699437499999991,
+            "p(99)": 35.05247899999996,
+            "max": 288.831792,
+            "avg": 6.443868732711568,
+            "min": 0.474792,
+            "med": 4.272708
+        },
+        "replica_requests": {
+            "count": 34800,
+            "rate": 280.7350995293136
+        },
+        "iteration_duration": {
+            "max": 1363.724792,
+            "avg": 1039.601201337416,
+            "min": 1006.119208,
+            "med": 1032.0040629999999,
+            "p(50)": 1032.0040629999999,
+            "p(95)": 1080.9106867,
+            "p(99)": 1188.38316849
+        },
+        "checks": {
+            "passes": 34800,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.99": false
+            },
+            "value": 1
+        },
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "data_received": {
+            "count": 137407054,
+            "rate": 1108476.5224344758
+        },
+        "http_reqs": {
+            "count": 34951,
+            "rate": 281.95323171405283
+        },
+        "http_req_sending": {
+            "avg": 0.007901697118823338,
+            "min": 0.001208,
+            "med": 0.003333,
+            "p(50)": 0.003333,
+            "p(95)": 0.015875,
+            "p(99)": 0.07310399999999999,
+            "max": 4.873
+        },
+        "vus_max": {
+            "max": 50,
+            "value": 50,
+            "min": 50
+        },
+        "authentication_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        }
+    },
+    "setup_data": {
+        "documentId": "01a11a44-27cf-7e7a-a473-1c1ef7294161",
+        "sessions": [
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NTI5NDkyZGYtYTEzOC00MWU3LThkZTctZmYyMzZiOTI4MDYz"
+                    ],
+                    "XSRF-TOKEN": [
+                        "9a38147d-19e9-4a29-ac62-cd0e2ed782bd"
+                    ]
+                },
+                "csrf": "9a38147d-19e9-4a29-ac62-cd0e2ed782bd"
+            },
+            {
+                "cookies": {
+                    "XSRF-TOKEN": [
+                        "fa9bf193-9a6e-4821-bbbc-7bd7baf63d6c"
+                    ],
+                    "JSESSIONID": [
+                        "YjJhMDIwYjItYTEzMC00NzY5LWFmMGUtNDk2OTYyZjk4MWVh"
+                    ]
+                },
+                "csrf": "fa9bf193-9a6e-4821-bbbc-7bd7baf63d6c"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "OWVjNDQ2ZTgtOTViYy00MTJjLTg3MzgtYWMyYjNkYzEwN2Vm"
+                    ],
+                    "XSRF-TOKEN": [
+                        "5d5f4bce-923a-4d48-a365-0397b896b462"
+                    ]
+                },
+                "csrf": "5d5f4bce-923a-4d48-a365-0397b896b462"
+            },
+            {
+                "csrf": "fd776d03-4dc8-493d-8896-62fffaf59feb",
+                "cookies": {
+                    "JSESSIONID": [
+                        "MjE3OTA0NWYtYzY2MS00ZGVkLWJkYzQtYTQxMjgxMTk2NDQ5"
+                    ],
+                    "XSRF-TOKEN": [
+                        "fd776d03-4dc8-493d-8896-62fffaf59feb"
+                    ]
+                }
+            },
+            {
+                "csrf": "0817bd24-af60-4c21-8b4e-e8db563e0d4b",
+                "cookies": {
+                    "JSESSIONID": [
+                        "YmM0NGVlYmItOWNiNS00ZjQzLTgyMmEtZDVkNGU5YmE0MWVh"
+                    ],
+                    "XSRF-TOKEN": [
+                        "0817bd24-af60-4c21-8b4e-e8db563e0d4b"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZThlOThhYmEtM2ZkMS00NGYwLWIwYTAtOTVkNGQ3ODE3MTNi"
+                    ],
+                    "XSRF-TOKEN": [
+                        "07c2ce0a-a802-47e0-81ba-f237c1a5c617"
+                    ]
+                },
+                "csrf": "07c2ce0a-a802-47e0-81ba-f237c1a5c617"
+            },
+            {
+                "csrf": "2c9a4d22-8141-49e1-be8f-52bccf6e2e73",
+                "cookies": {
+                    "JSESSIONID": [
+                        "ODE5YmZjMTktYThkMy00NDk0LWI4NjktODc0NjIwMjVlZTgx"
+                    ],
+                    "XSRF-TOKEN": [
+                        "2c9a4d22-8141-49e1-be8f-52bccf6e2e73"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZjNiODUyN2EtZWJkNS00MWY5LTkzYmYtNzYyN2I3NzRhNzA2"
+                    ],
+                    "XSRF-TOKEN": [
+                        "e73c9b4f-1006-4633-8264-930091dace41"
+                    ]
+                },
+                "csrf": "e73c9b4f-1006-4633-8264-930091dace41"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "YTc5MWY2ZGMtZWIzMy00MmEzLWI4NjQtYTNjODkyNjg5YTI1"
+                    ],
+                    "XSRF-TOKEN": [
+                        "54d68b38-9cce-4f60-be61-ef072ded0862"
+                    ]
+                },
+                "csrf": "54d68b38-9cce-4f60-be61-ef072ded0862"
+            },
+            {
+                "csrf": "60e98498-3159-497d-b445-40ebeae19e6f",
+                "cookies": {
+                    "JSESSIONID": [
+                        "NmZlMjYwYjEtZjY0ZC00ZGNkLWFmYWQtOWJmNjg4YmI4MGRl"
+                    ],
+                    "XSRF-TOKEN": [
+                        "60e98498-3159-497d-b445-40ebeae19e6f"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NzUyMDdmZDMtNGZiNC00MzBkLWI0MTctMWE0YzM1NzM3ZTM3"
+                    ],
+                    "XSRF-TOKEN": [
+                        "0d4af32d-0413-43be-b993-6f83e61c3125"
+                    ]
+                },
+                "csrf": "0d4af32d-0413-43be-b993-6f83e61c3125"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NzlmZmUzNWQtOWYyNC00ZDUwLWE4ODUtNWU4NDUxYjgyMDBl"
+                    ],
+                    "XSRF-TOKEN": [
+                        "95852b94-c30a-45ab-908e-27566400807b"
+                    ]
+                },
+                "csrf": "95852b94-c30a-45ab-908e-27566400807b"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NmUwOTUzNGYtZmU2ZS00MTBmLWFkNzAtMjcxZWE3Mjk3Mjgz"
+                    ],
+                    "XSRF-TOKEN": [
+                        "c662bdd2-0168-45d9-8bae-84ddff6416f8"
+                    ]
+                },
+                "csrf": "c662bdd2-0168-45d9-8bae-84ddff6416f8"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MTdkMDYxNzktM2RmYS00YTExLWIyY2MtMTJmZjE2YjlkYWY2"
+                    ],
+                    "XSRF-TOKEN": [
+                        "76148835-96a6-49ca-a7b3-a9cbab5caf88"
+                    ]
+                },
+                "csrf": "76148835-96a6-49ca-a7b3-a9cbab5caf88"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "YWFkOTY3Y2ItNGNkZS00MTdjLTlmNDgtNjY2YzU1ZjBhMjJl"
+                    ],
+                    "XSRF-TOKEN": [
+                        "eb1011c7-3b86-4193-8cfd-a5d09c49837a"
+                    ]
+                },
+                "csrf": "eb1011c7-3b86-4193-8cfd-a5d09c49837a"
+            },
+            {
+                "csrf": "78c4ff8f-595e-4437-a385-d69e1303b6c4",
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZWQ1ZjJlODItMWI4MC00ZDQ4LWE2MmItNTM0NjgyYjU2MDYy"
+                    ],
+                    "XSRF-TOKEN": [
+                        "78c4ff8f-595e-4437-a385-d69e1303b6c4"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NTAyMDUwYTEtODRmYi00NjVlLWIxYjktYzBhYWUxZDkwNzc0"
+                    ],
+                    "XSRF-TOKEN": [
+                        "ee948c5a-02f2-4e17-99b7-5a62568f2f37"
+                    ]
+                },
+                "csrf": "ee948c5a-02f2-4e17-99b7-5a62568f2f37"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MTJiMDc3NTUtMzdmMi00MjdjLWFhZTktYzQ2ZmVkNzIwNmEy"
+                    ],
+                    "XSRF-TOKEN": [
+                        "815d0824-7bfb-49f1-bf19-db90dae505de"
+                    ]
+                },
+                "csrf": "815d0824-7bfb-49f1-bf19-db90dae505de"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "YWNhZWQzNzctYWEwZC00ODI2LTk1NDItZThkNDg3NjkyMjk0"
+                    ],
+                    "XSRF-TOKEN": [
+                        "337d3c48-734e-4c9f-91d2-2c6ea9778d5d"
+                    ]
+                },
+                "csrf": "337d3c48-734e-4c9f-91d2-2c6ea9778d5d"
+            },
+            {
+                "csrf": "4a1b2b7f-a1d1-4980-bfbd-ff55c02a4294",
+                "cookies": {
+                    "JSESSIONID": [
+                        "NTZlODZkMDUtZGNjMS00OTNmLTkzNDQtMDg4OWYzMDE0MmEz"
+                    ],
+                    "XSRF-TOKEN": [
+                        "4a1b2b7f-a1d1-4980-bfbd-ff55c02a4294"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "OGM5N2Q2NDEtZjg3Zi00OTdlLTg5YmItNTc1OWY1YzAwMWNl"
+                    ],
+                    "XSRF-TOKEN": [
+                        "f6cf52cf-4c3d-4d18-a880-309f28dd1bf1"
+                    ]
+                },
+                "csrf": "f6cf52cf-4c3d-4d18-a880-309f28dd1bf1"
+            },
+            {
+                "csrf": "9ef7cc8d-a943-486b-b3ee-3d451709911e",
+                "cookies": {
+                    "JSESSIONID": [
+                        "YjhlYTc5NDEtNjZkMS00ZmFjLTg3NDMtYThiZjUzN2YwZDNh"
+                    ],
+                    "XSRF-TOKEN": [
+                        "9ef7cc8d-a943-486b-b3ee-3d451709911e"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZjRjODE3N2QtNzM5Zi00NzlmLThjMjYtMWQ0MjM0YWZjZTJj"
+                    ],
+                    "XSRF-TOKEN": [
+                        "fd23aed0-c674-4c03-904b-208167650aed"
+                    ]
+                },
+                "csrf": "fd23aed0-c674-4c03-904b-208167650aed"
+            },
+            {
+                "cookies": {
+                    "XSRF-TOKEN": [
+                        "09378bd4-0ca4-4c20-ba98-cdb359af0133"
+                    ],
+                    "JSESSIONID": [
+                        "YjA5Y2IwM2UtMjVjYy00NjA4LTk5ZmMtODU3YjY3MmZkYjJm"
+                    ]
+                },
+                "csrf": "09378bd4-0ca4-4c20-ba98-cdb359af0133"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MGJkMGQ3MGEtMTUwYy00NWI3LWFlMGEtM2JjMjAxMWZjYjc4"
+                    ],
+                    "XSRF-TOKEN": [
+                        "5de22ba6-d6bb-4e59-8b7b-7444eb4e86e9"
+                    ]
+                },
+                "csrf": "5de22ba6-d6bb-4e59-8b7b-7444eb4e86e9"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NjRjODViOGYtN2M5Mi00OWZjLTg3OTItNjc3YzkzYjExMTJj"
+                    ],
+                    "XSRF-TOKEN": [
+                        "8f3ed43f-f3c3-43dd-b8cb-0089768d95ef"
+                    ]
+                },
+                "csrf": "8f3ed43f-f3c3-43dd-b8cb-0089768d95ef"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NWEyYWJhZjUtN2VmNS00MjdhLTg1NjQtYmU0MjQ1ZGVjMjJl"
+                    ],
+                    "XSRF-TOKEN": [
+                        "f2e5d5bc-681d-48b3-905d-c3c98cc3bbf8"
+                    ]
+                },
+                "csrf": "f2e5d5bc-681d-48b3-905d-c3c98cc3bbf8"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MzBjYzhiYzgtYmUwMy00NzA4LWEyYzctMjVmMWNmOWI1MTNi"
+                    ],
+                    "XSRF-TOKEN": [
+                        "c9dc2ad9-ef77-4b60-a1d5-1a936922849f"
+                    ]
+                },
+                "csrf": "c9dc2ad9-ef77-4b60-a1d5-1a936922849f"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ODkyOWNmMmUtOTJkNC00NGFmLThlMDMtMWU0OWM1YWFjZDM5"
+                    ],
+                    "XSRF-TOKEN": [
+                        "5b98272a-54b2-43cb-b8d6-7eaf636dba0c"
+                    ]
+                },
+                "csrf": "5b98272a-54b2-43cb-b8d6-7eaf636dba0c"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MGIzMjI5YzgtNTM4OC00YTkyLWE3OGMtNDc3N2ZlOWI2MzA4"
+                    ],
+                    "XSRF-TOKEN": [
+                        "f55885ce-ac24-43f8-823c-fdcfcd20cd5b"
+                    ]
+                },
+                "csrf": "f55885ce-ac24-43f8-823c-fdcfcd20cd5b"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ODZhOTczNzgtMzZhOC00N2JjLWEzMDktZWE3YTY4M2ZlZmMz"
+                    ],
+                    "XSRF-TOKEN": [
+                        "19875ade-0653-444d-a83e-0e73154f5f46"
+                    ]
+                },
+                "csrf": "19875ade-0653-444d-a83e-0e73154f5f46"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MTg4ODcwY2EtZmU2Ny00N2QzLWJhNDktNjE5MDU4MjVlOTA1"
+                    ],
+                    "XSRF-TOKEN": [
+                        "f34e1d9e-831d-41a5-9483-3b5a86e649cb"
+                    ]
+                },
+                "csrf": "f34e1d9e-831d-41a5-9483-3b5a86e649cb"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MTVjNDVjMjEtYWIzMi00MTcyLThkNDMtZTM4ZjY5M2IyMjll"
+                    ],
+                    "XSRF-TOKEN": [
+                        "30c1b233-e584-44d9-928d-997fb3b966b7"
+                    ]
+                },
+                "csrf": "30c1b233-e584-44d9-928d-997fb3b966b7"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZjNjMjMzNGEtOTRkYi00NzRlLWIzZmItYzI2NDc0ZmE0ZmM4"
+                    ],
+                    "XSRF-TOKEN": [
+                        "3128b2c8-88ef-4a4e-b476-87f9c33f640d"
+                    ]
+                },
+                "csrf": "3128b2c8-88ef-4a4e-b476-87f9c33f640d"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "N2Q3ZDE1N2MtNTQ2NS00ZWQwLWFjYzktMmRiNzA1YzAwZWRj"
+                    ],
+                    "XSRF-TOKEN": [
+                        "eda8781e-3cc3-4f07-a3e4-fef723071870"
+                    ]
+                },
+                "csrf": "eda8781e-3cc3-4f07-a3e4-fef723071870"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZjA1ZDY0MjEtOGIxMC00ZmM0LWIzYWEtMzA0MzcxYThiMjcw"
+                    ],
+                    "XSRF-TOKEN": [
+                        "c6936e22-4214-44e5-860f-1fae2ec97bd5"
+                    ]
+                },
+                "csrf": "c6936e22-4214-44e5-860f-1fae2ec97bd5"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NjQwZmY5ZWItY2NmNy00NDFlLTgzMTUtNzM2NmQ5MjBiYzgw"
+                    ],
+                    "XSRF-TOKEN": [
+                        "8ab1c27d-03ef-43ad-9b78-0b1290da5bcc"
+                    ]
+                },
+                "csrf": "8ab1c27d-03ef-43ad-9b78-0b1290da5bcc"
+            },
+            {
+                "cookies": {
+                    "XSRF-TOKEN": [
+                        "3457f5fa-d59c-4f3b-b18f-477b8305cc92"
+                    ],
+                    "JSESSIONID": [
+                        "MmU1YTVhMmQtOGNjNy00NDZiLWI3ZGUtNmM0Mjk1MTBiZTQy"
+                    ]
+                },
+                "csrf": "3457f5fa-d59c-4f3b-b18f-477b8305cc92"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZTdkMTBjM2UtNzJlYS00NDI3LWEzMzAtOWIwNTQ1MDY2NGI3"
+                    ],
+                    "XSRF-TOKEN": [
+                        "231295a0-fb5f-4af0-8068-18a76ea0e20c"
+                    ]
+                },
+                "csrf": "231295a0-fb5f-4af0-8068-18a76ea0e20c"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "MGYwYmYwM2UtMmY4Ny00ZGZjLWJkYWQtMjUzM2NhN2QwNWQ4"
+                    ],
+                    "XSRF-TOKEN": [
+                        "6507b653-416d-4ac9-af90-e5fccb0ec325"
+                    ]
+                },
+                "csrf": "6507b653-416d-4ac9-af90-e5fccb0ec325"
+            },
+            {
+                "csrf": "808c6ab5-e929-4ded-a59b-6192051a21a9",
+                "cookies": {
+                    "JSESSIONID": [
+                        "M2YzZmJiN2UtM2NlNS00OTQ1LTk5Y2EtYzVhMmFmYzlhNTU4"
+                    ],
+                    "XSRF-TOKEN": [
+                        "808c6ab5-e929-4ded-a59b-6192051a21a9"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NDg5YmNkOGEtZTE0NC00OTNhLTgzMzgtMGFlNmE4ZGZmZTVk"
+                    ],
+                    "XSRF-TOKEN": [
+                        "474e5e20-bd08-4f3f-9553-ad45355a29d1"
+                    ]
+                },
+                "csrf": "474e5e20-bd08-4f3f-9553-ad45355a29d1"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "OTQxZDY1MWMtNDJhNy00ZDQwLWI5MDgtYTc2M2RiYzhhNmMw"
+                    ],
+                    "XSRF-TOKEN": [
+                        "e53d9bf8-013d-4b11-a4aa-77a398d0120c"
+                    ]
+                },
+                "csrf": "e53d9bf8-013d-4b11-a4aa-77a398d0120c"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZDMxZmYwOGUtMDFkNS00YjhkLWE4YTktMjA2MGMwYjAzZTRk"
+                    ],
+                    "XSRF-TOKEN": [
+                        "3d1ecd45-5c57-48b8-96da-b7b78a8fb242"
+                    ]
+                },
+                "csrf": "3d1ecd45-5c57-48b8-96da-b7b78a8fb242"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "OWQ0MGVmYWUtOWEzMi00MDhmLTkzNzItMzk3OWQ1YjA0MThk"
+                    ],
+                    "XSRF-TOKEN": [
+                        "e9b4b8dc-86a3-46f2-8eed-7a6d0792db98"
+                    ]
+                },
+                "csrf": "e9b4b8dc-86a3-46f2-8eed-7a6d0792db98"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZTE4ODI0MjktYmQyYy00NGViLWI2Y2YtOTkzYjU3YzVkYmNj"
+                    ],
+                    "XSRF-TOKEN": [
+                        "dccdf68c-bd81-4712-93ac-1bc43c2b75d5"
+                    ]
+                },
+                "csrf": "dccdf68c-bd81-4712-93ac-1bc43c2b75d5"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NWVlYzlmNGUtYTBiNy00ODFmLTlmZTctYmM4MzYxMzA0ZDI2"
+                    ],
+                    "XSRF-TOKEN": [
+                        "32c6f23b-d7ed-4f08-97d1-a6fc9a35c3b5"
+                    ]
+                },
+                "csrf": "32c6f23b-d7ed-4f08-97d1-a6fc9a35c3b5"
+            },
+            {
+                "csrf": "d4692249-1e02-4d5c-a9f8-713dd2bd31ce",
+                "cookies": {
+                    "JSESSIONID": [
+                        "Njg2ZTdmZTktMzg1Zi00NzE0LWFkNTEtMWJhM2U0M2FhZjc5"
+                    ],
+                    "XSRF-TOKEN": [
+                        "d4692249-1e02-4d5c-a9f8-713dd2bd31ce"
+                    ]
+                }
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "NjZmZTFkYWQtNDk4ZS00YmMyLWJjYzUtYWQxMzU0ZmIzMDE1"
+                    ],
+                    "XSRF-TOKEN": [
+                        "e470b72c-3a1f-4c37-ab61-2def7280fad1"
+                    ]
+                },
+                "csrf": "e470b72c-3a1f-4c37-ab61-2def7280fad1"
+            },
+            {
+                "csrf": "74806f43-b44d-4843-bcb8-c76ee8e13c35",
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZGFhYzU3ZjktYzg3YS00OThiLTllZDItOGU4NGRhNGExNmU3"
+                    ],
+                    "XSRF-TOKEN": [
+                        "74806f43-b44d-4843-bcb8-c76ee8e13c35"
+                    ]
+                }
+            }
+        ],
+        "workspaceId": "01a11a43-fff8-728f-a631-ab3fd559c835"
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "endpoint succeeds": {
+                    "passes": 34800,
+                    "fails": 0,
+                    "name": "endpoint succeeds",
+                    "path": "::endpoint succeeds",
+                    "id": "64f1fdd48848501ecadd836d41e05254"
+                }
+            }
+    }
+}

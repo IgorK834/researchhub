@@ -1,0 +1,95 @@
+{
+  "runs": [
+    {
+      "scenario": "smoke",
+      "run": 1,
+      "exitCode": 0,
+      "scriptSha256": "0dae002a9c9802a3ab21ac65089e6db0f2ad128f43bedb5e99143d08b87b2895",
+      "summary": "smoke-1-summary.json",
+      "requests": 3420,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-2": 1710,
+        "backend-1": 1710
+      },
+      "latencyMs": {
+        "p50": 6.0439165,
+        "p95": 21.8716646,
+        "p99": 48.081439519999996
+      },
+      "endpoints": {
+        "analysis-history": {
+          "requests": 570,
+          "errors": 0,
+          "p50": 5.0498335,
+          "p95": 16.077684899999984,
+          "p99": 25.00284897999999
+        },
+        "audit-read": {
+          "requests": 570,
+          "errors": 0,
+          "p50": 5.537354499999999,
+          "p95": 17.452862199999995,
+          "p99": 29.641547289999718
+        },
+        "document-read": {
+          "requests": 570,
+          "errors": 0,
+          "p50": 5.244604,
+          "p95": 18.11059565,
+          "p99": 30.47829051999994
+        },
+        "source-list": {
+          "requests": 570,
+          "errors": 0,
+          "p50": 6.135979000000001,
+          "p95": 21.360023099999996,
+          "p99": 52.732743309999485
+        },
+        "workspace-detail": {
+          "requests": 570,
+          "errors": 0,
+          "p50": 5.6457915,
+          "p95": 18.239060899999995,
+          "p99": 33.876094479999985
+        },
+        "workspace-list": {
+          "requests": 570,
+          "errors": 0,
+          "p50": 13.289271,
+          "p95": 43.928094449999975,
+          "p99": 75.27019473
+        }
+      }
+    },
+    {
+      "scenario": "retrieval",
+      "run": 1,
+      "exitCode": 0,
+      "scriptSha256": "0dae002a9c9802a3ab21ac65089e6db0f2ad128f43bedb5e99143d08b87b2895",
+      "summary": "retrieval-1-summary.json",
+      "requests": 40,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-2": 16,
+        "backend-1": 24
+      },
+      "latencyMs": {
+        "p50": 150.77864649999998,
+        "p95": 353.0770146,
+        "p99": 354.76309076
+      },
+      "endpoints": {
+        "workspace-question": {
+          "requests": 40,
+          "errors": 0,
+          "p50": 150.77864649999998,
+          "p95": 353.0770146,
+          "p99": 354.76309076
+        }
+      }
+    }
+  ]
+}

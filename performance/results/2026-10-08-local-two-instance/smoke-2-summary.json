@@ -1,0 +1,214 @@
+{
+    "root_group": {
+        "checks": {
+            "endpoint succeeds": {
+                "name": "endpoint succeeds",
+                "path": "::endpoint succeeds",
+                "id": "64f1fdd48848501ecadd836d41e05254",
+                "passes": 3510,
+                "fails": 0
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {}
+    },
+    "metrics": {
+        "http_req_sending": {
+            "med": 0.006459,
+            "p(50)": 0.006459,
+            "p(95)": 0.04221924999999985,
+            "p(99)": 0.1438852499999999,
+            "max": 0.867625,
+            "avg": 0.014126557855927322,
+            "min": 0.001584
+        },
+        "data_sent": {
+            "count": 1151624,
+            "rate": 9513.504628578525
+        },
+        "http_req_duration": {
+            "p(50)": 3.2173125000000002,
+            "p(95)": 12.599374749999997,
+            "p(99)": 20.707645499999987,
+            "max": 86.02325,
+            "avg": 4.654626555019854,
+            "min": 0.538,
+            "med": 3.2173125000000002
+        },
+        "vus": {
+            "value": 5,
+            "min": 5,
+            "max": 5
+        },
+        "http_req_waiting": {
+            "avg": 4.5281282660238285,
+            "min": 0.517042,
+            "med": 3.0938545,
+            "p(50)": 3.0938545,
+            "p(95)": 12.388551749999998,
+            "p(99)": 20.57906249999998,
+            "max": 85.794667
+        },
+        "http_reqs": {
+            "count": 3526,
+            "rate": 29.128098511639106
+        },
+        "replica_requests": {
+            "count": 3510,
+            "rate": 28.995923362408753
+        },
+        "checks": {
+            "passes": 3510,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.99": false
+            },
+            "value": 1
+        },
+        "data_received": {
+            "count": 13980850,
+            "rate": 115495.05844482406
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0.203375,
+            "avg": 0.00020938513896766875
+        },
+        "http_req_receiving": {
+            "avg": 0.11237173114010221,
+            "min": 0.007416,
+            "med": 0.0441245,
+            "p(50)": 0.0441245,
+            "p(95)": 0.37926024999999985,
+            "p(99)": 0.7247812499999997,
+            "max": 7.152708
+        },
+        "vus_max": {
+            "value": 5,
+            "min": 5,
+            "max": 5
+        },
+        "authentication_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "iterations": {
+            "count": 585,
+            "rate": 4.8326538937347925
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 3526,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "iteration_duration": {
+            "max": 1099.765084,
+            "avg": 1031.1820951111106,
+            "min": 1012.368542,
+            "med": 1029.757126,
+            "p(50)": 1029.757126,
+            "p(95)": 1049.6685256,
+            "p(99)": 1094.07872244
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(50)": 3.2173125000000002,
+            "p(95)": 12.599374749999997,
+            "p(99)": 20.707645499999987,
+            "max": 86.02325,
+            "avg": 4.654626555019854,
+            "min": 0.538,
+            "med": 3.2173125000000002
+        },
+        "http_req_blocked": {
+            "min": 0.000458,
+            "med": 0.001959,
+            "p(50)": 0.001959,
+            "p(95)": 0.013,
+            "p(99)": 0.04761449999999998,
+            "max": 2.262416,
+            "avg": 0.005983297787861607
+        },
+        "http_req_tls_handshaking": {
+            "p(50)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0
+        }
+    },
+    "setup_data": {
+        "documentId": "01a11a44-27cf-7e7a-a473-1c1ef7294161",
+        "sessions": [
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "YjMxZTRhMDQtYTJmYy00ZjNhLWFlNWYtZWE5MjAwYzlhYjM1"
+                    ],
+                    "XSRF-TOKEN": [
+                        "f973036c-edb3-47d7-b34a-9f257cfee6d6"
+                    ]
+                },
+                "csrf": "f973036c-edb3-47d7-b34a-9f257cfee6d6"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "ZWRlYjZjOWEtZTE1NS00YzQ3LWFiZTQtMzZlYzA5NzdjYjE5"
+                    ],
+                    "XSRF-TOKEN": [
+                        "fc39e422-b2f7-4473-972d-dda3bb8adc6f"
+                    ]
+                },
+                "csrf": "fc39e422-b2f7-4473-972d-dda3bb8adc6f"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "OTAzN2FlYTYtZWY1Zi00MzAwLThlYzgtMTNiMDVjNmJiYmE4"
+                    ],
+                    "XSRF-TOKEN": [
+                        "c061e037-cb9d-4ffc-8a03-c5d81dac472d"
+                    ]
+                },
+                "csrf": "c061e037-cb9d-4ffc-8a03-c5d81dac472d"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "N2ZlYTUxNzEtOTdlNy00ZWVmLWEwZWQtOGI2NTUzZjgwNGYw"
+                    ],
+                    "XSRF-TOKEN": [
+                        "1b85c909-3496-47ea-94ea-da7687a75bee"
+                    ]
+                },
+                "csrf": "1b85c909-3496-47ea-94ea-da7687a75bee"
+            },
+            {
+                "cookies": {
+                    "JSESSIONID": [
+                        "Y2I1ZTZkMTEtMDFmMC00MzMwLTk4NDQtMGE1MWRiZjRmMGFm"
+                    ],
+                    "XSRF-TOKEN": [
+                        "c65241af-4622-4236-8437-8b00e100f913"
+                    ]
+                },
+                "csrf": "c65241af-4622-4236-8437-8b00e100f913"
+            }
+        ],
+        "workspaceId": "01a11a43-fff8-728f-a631-ab3fd559c835"
+    }
+}

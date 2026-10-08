@@ -1,0 +1,92 @@
+{
+  "baseline": {
+    "samples": 288,
+    "peakDatabaseConnectionsIncludingMonitor": 17,
+    "services": {
+      "backend-1": {
+        "cpu_percent": 150.4,
+        "memory_bytes": 523868570.0,
+        "pool_active": 8.0,
+        "pool_pending": 19.0
+      },
+      "backend-2": {
+        "cpu_percent": 152.37,
+        "memory_bytes": 546517811.0,
+        "pool_active": 7.0,
+        "pool_pending": 6.0
+      },
+      "postgres": {
+        "cpu_percent": 52.42,
+        "memory_bytes": 85951775.0,
+        "pool_active": null,
+        "pool_pending": null
+      },
+      "ai-worker": {
+        "cpu_percent": 15.96,
+        "memory_bytes": 55889101.0,
+        "pool_active": null,
+        "pool_pending": null
+      }
+    }
+  },
+  "confirmation": {
+    "samples": 144,
+    "peakDatabaseConnectionsIncludingMonitor": 12,
+    "services": {
+      "backend-1": {
+        "cpu_percent": 33.64,
+        "memory_bytes": 564763034.0,
+        "pool_active": 2.0,
+        "pool_pending": 0.0
+      },
+      "backend-2": {
+        "cpu_percent": 34.25,
+        "memory_bytes": 565287322.0,
+        "pool_active": 1.0,
+        "pool_pending": 0.0
+      },
+      "postgres": {
+        "cpu_percent": 7.67,
+        "memory_bytes": 88552243.0,
+        "pool_active": null,
+        "pool_pending": null
+      },
+      "ai-worker": {
+        "cpu_percent": 13.36,
+        "memory_bytes": 66186117.0,
+        "pool_active": null,
+        "pool_pending": null
+      }
+    }
+  },
+  "final": {
+    "samples": 144,
+    "peakDatabaseConnectionsIncludingMonitor": 16,
+    "services": {
+      "backend-1": {
+        "cpu_percent": 141.76,
+        "memory_bytes": 492201574.0,
+        "pool_active": 2.0,
+        "pool_pending": 0.0
+      },
+      "backend-2": {
+        "cpu_percent": 78.27,
+        "memory_bytes": 462841446.0,
+        "pool_active": 1.0,
+        "pool_pending": 0.0
+      },
+      "postgres": {
+        "cpu_percent": 20.99,
+        "memory_bytes": 82931876.0,
+        "pool_active": null,
+        "pool_pending": null
+      },
+      "ai-worker": {
+        "cpu_percent": 16.47,
+        "memory_bytes": 69373788.0,
+        "pool_active": null,
+        "pool_pending": null
+      }
+    }
+  }
+}

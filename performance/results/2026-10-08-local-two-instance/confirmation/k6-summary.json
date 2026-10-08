@@ -1,0 +1,95 @@
+{
+  "runs": [
+    {
+      "scenario": "smoke",
+      "run": 1,
+      "exitCode": 0,
+      "scriptSha256": "4ba3ed71355cab3396eeae41ec9f1633cd8af8f803b91882c238bb551ccc7464",
+      "summary": "smoke-1-summary.json",
+      "requests": 3510,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-1": 1755,
+        "backend-2": 1755
+      },
+      "latencyMs": {
+        "p50": 3.0235835,
+        "p95": 11.885141849999997,
+        "p99": 18.03186122
+      },
+      "endpoints": {
+        "analysis-history": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 2.819917,
+          "p95": 4.734491399999999,
+          "p99": 8.95458356
+        },
+        "audit-read": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 2.61375,
+          "p95": 4.9803666,
+          "p99": 6.661631439999999
+        },
+        "document-read": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 2.69825,
+          "p95": 6.037391999999997,
+          "p99": 12.75210171999994
+        },
+        "source-list": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 3.105667,
+          "p95": 6.90695859999999,
+          "p99": 14.115014999999985
+        },
+        "workspace-detail": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 3.593292,
+          "p95": 6.127399999999999,
+          "p99": 16.55926827999999
+        },
+        "workspace-list": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 8.282334,
+          "p95": 15.86791619999999,
+          "p99": 22.178024999999984
+        }
+      }
+    },
+    {
+      "scenario": "retrieval",
+      "run": 1,
+      "exitCode": 0,
+      "scriptSha256": "4ba3ed71355cab3396eeae41ec9f1633cd8af8f803b91882c238bb551ccc7464",
+      "summary": "retrieval-1-summary.json",
+      "requests": 40,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-1": 16,
+        "backend-2": 24
+      },
+      "latencyMs": {
+        "p50": 142.810792,
+        "p95": 295.10668155,
+        "p99": 296.55143549999997
+      },
+      "endpoints": {
+        "workspace-question": {
+          "requests": 40,
+          "errors": 0,
+          "p50": 142.810792,
+          "p95": 295.10668155,
+          "p99": 296.55143549999997
+        }
+      }
+    }
+  ]
+}

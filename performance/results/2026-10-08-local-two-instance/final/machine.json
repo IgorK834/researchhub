@@ -1,0 +1,18 @@
+{
+  "os": "macOS-15.7.4-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "docker": {
+    "ServerVersion": "29.4.3",
+    "NCPU": 12,
+    "MemTotal": 8321429504,
+    "OperatingSystem": "Docker Desktop",
+    "Architecture": "aarch64"
+  },
+  "samplingFailures": [],
+  "host": {
+    "hw.model": "Mac16,8",
+    "hw.memsize": "25769803776",
+    "hw.ncpu": "12",
+    "machdep.cpu.brand_string": "Apple M4 Pro"
+  }
+}

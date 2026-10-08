@@ -1,0 +1,155 @@
+{
+  "backend": {
+    "tests": 1110,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 11,
+    "passed": 1099,
+    "build": "mvnw verify: BUILD SUCCESS; all existing JaCoCo gates passed",
+    "observabilityCoverage": {
+      "branchPercent": 92.5,
+      "linePercent": 99.03846153846153
+    },
+    "skippedTests": [
+      {
+        "class": "dev.researchhub.source.api.SourceApiIntegrationTest",
+        "test": "productionBrowserEditsOrganizesFiltersAndPreservesSourceIdentity",
+        "reason": "Environment variable [SOURCE_LIBRARY_BROWSER_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.export.LatexReportRenderingTest",
+        "test": "representativeSourcesActuallyCompileWithChartsAndEscapedCommands",
+        "reason": "Environment variable [LATEX_TEST_COMPILER] does not exist"
+      },
+      {
+        "class": "dev.researchhub.collaboration.api.CollaborationApiIntegrationTest",
+        "test": "twoBrowserSessionsMergeUndoReconnectAndSurviveProcessRestart",
+        "reason": "Environment variable [COLLABORATION_BROWSER_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.export.ExportApiIntegrationTest",
+        "test": "productionBrowserCanGenerateAndDownloadAllFormats",
+        "reason": "Environment variable [EXPORT_BROWSER_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.security.api.CostQuotaApiIntegrationTest",
+        "test": "productionBrowserShowsUploadRejectionAndQuotaWithoutLosingInput",
+        "reason": "Environment variable [SECURITY_BROWSER_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.analysis.infrastructure.DockerSandboxRunnerIntegrationTest",
+        "test": "exactImmutableInputMountReadOnlyNoSecretsAndNetworking",
+        "reason": "Environment variable [ANALYSIS_SANDBOX_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.analysis.infrastructure.DockerSandboxRunnerIntegrationTest",
+        "test": "loopTimeoutAndMemoryLimitDoNotPoisonTheNextRun",
+        "reason": "Environment variable [ANALYSIS_SANDBOX_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.analysis.infrastructure.DockerSandboxRunnerIntegrationTest",
+        "test": "nonzeroAndFilesystemEscapesAreControlledFailures",
+        "reason": "Environment variable [ANALYSIS_SANDBOX_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.analysis.infrastructure.DockerSandboxRunnerIntegrationTest",
+        "test": "stdoutAndStderrAreCappedAndDrained",
+        "reason": "Environment variable [ANALYSIS_SANDBOX_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.source.api.SourceExtractionEndToEndTest",
+        "test": "productionBrowserSearchesRealRetrievalAndRecordsExternalEvidenceSeparately",
+        "reason": "Environment variable [SOURCE_SEARCH_BROWSER_TESTS] does not exist"
+      },
+      {
+        "class": "dev.researchhub.source.api.SourceExtractionEndToEndTest",
+        "test": "productionDebuggerBrowserUsesRealWorkspaceEvidenceAndHasNoOverflowOrCspViolations",
+        "reason": "Environment variable [AI_DIAGNOSTICS_BROWSER_TESTS] does not exist"
+      }
+    ]
+  },
+  "frontend": {
+    "suitesPassed": 116,
+    "testsPassed": 1084,
+    "checks": [
+      "typecheck",
+      "lint",
+      "test:coverage",
+      "production Webpack build"
+    ],
+    "coverage": {
+      "lines": {
+        "total": 4252,
+        "covered": 4203,
+        "skipped": 0,
+        "pct": 98.84
+      },
+      "statements": {
+        "total": 4588,
+        "covered": 4509,
+        "skipped": 0,
+        "pct": 98.27
+      },
+      "functions": {
+        "total": 1636,
+        "covered": 1603,
+        "skipped": 0,
+        "pct": 97.98
+      },
+      "branches": {
+        "total": 5425,
+        "covered": 5173,
+        "skipped": 0,
+        "pct": 95.35
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": "Unknown"
+      }
+    }
+  },
+  "aiWorker": {
+    "testsPassed": 417,
+    "coveragePercent": 97.15447154471545,
+    "rcFixtureCoveragePercent": 100.0
+  },
+  "demoHelpers": {
+    "unitTestsPassed": 12,
+    "coveragePercent": 95.98145285935085,
+    "coverageMode": "branch coverage from unit tests plus actual seed, consistency and load runs",
+    "modules": {
+      "scripts/demo/api.py": 100.0,
+      "scripts/demo/consistency.py": 96.93877551020408,
+      "scripts/demo/generate_fixtures.py": 90.52631578947368,
+      "scripts/demo/run-load.py": 96.62921348314607,
+      "scripts/demo/seed.py": 95.85492227979275
+    }
+  },
+  "k6": {
+    "scriptsInspected": 5,
+    "unitTestsPassed": 7,
+    "lineCoveragePercent": 100,
+    "branchCoveragePercent": 97.8,
+    "functionCoveragePercent": 100
+  },
+  "containers": {
+    "built": [
+      "backend",
+      "frontend",
+      "ai-worker",
+      "sandbox"
+    ],
+    "nonRootAndHealthAcceptance": "passed",
+    "frontendReadOnlySpaHeadersAcceptance": "passed"
+  },
+  "shellcheck": {
+    "version": "0.11.0",
+    "scriptsPassed": [
+      "scripts/demo/scale-up.sh",
+      "scripts/demo/seed.sh"
+    ]
+  },
+  "ci": "Workflow configured and equivalent local stages executed; no GitHub Actions run was dispatched"
+}

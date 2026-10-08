@@ -30,6 +30,7 @@ Production image contracts: [containers](docs/development/containers.md).
 Synthetic RC fixtures, real sandbox seeding and two replicas: [demo](scripts/demo/README.md).
 Repeatable k6 scenarios and evidence: [performance](performance/README.md) and
 [scalability](docs/architecture/scalability.md).
+Recorded local validation: [2026-10-08 two-instance report](performance/results/2026-10-08-local-two-instance/README.md).
 
 Upload hardening and costly-operation quotas: [docs/development/upload-and-cost-controls.md](docs/development/upload-and-cost-controls.md).
 

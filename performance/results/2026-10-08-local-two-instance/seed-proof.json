@@ -1,0 +1,38 @@
+{
+  "workspaceId": "01a11a43-fff8-728f-a631-ab3fd559c835",
+  "documentId": "01a11a44-27cf-7e7a-a473-1c1ef7294161",
+  "analysisId": "06dd8253-7e2f-4b14-b737-d16233d8584d",
+  "executionId": "ff77e1b6-cd9f-4d9b-b0e5-b4af6b1e2f73",
+  "fixtureHashes": {
+    "rc-lab-instructions.pdf": "7993f3256caae38bf02590dd0d24f9241ae92640b04522532dfaa2b3909e939b",
+    "rc-theory-notes.pdf": "7633904247c1e6fa5823d0af0e79168d36c7f9dd9f275d4155932bc636bd399f",
+    "rc-measurements.xlsx": "ac27cc00b065e468925949e3072311c490106fd215c2c02f36d5a0d6834d5f05",
+    "component-notes.txt": "931a612a5387f8ffd92865bd4d303988db57c50725a3d6f737e9a99a88ae7267"
+  },
+  "answers": {
+    "grounded": {
+      "status": "SUPPORTED",
+      "citationCount": 3
+    },
+    "humidity": {
+      "status": "INSUFFICIENT_EVIDENCE",
+      "citationCount": 0
+    }
+  },
+  "executionProvenance": {
+    "planId": "a3db72c1-775f-4f01-87da-20e1bcad5225",
+    "planSha256": "a84551912f088d6f9312b3c45771ab86e30415e42ddf2fd8df23583ae436f271",
+    "codeSha256": "4da1ca7893d375bcd64e2c985b40fa1a4d397365dbc5d87dbab8a5c9799ac28d",
+    "inputs": [
+      {
+        "sourceId": "01a11a44-1214-7760-9256-470a3497e114",
+        "sourceVersionId": "da2d3535-b610-469d-a788-c1f8fa4f1589",
+        "format": "XLSX",
+        "sizeBytes": 34665,
+        "sha256": "ac27cc00b065e468925949e3072311c490106fd215c2c02f36d5a0d6834d5f05"
+      }
+    ],
+    "imageId": "sha256:16acf37bc0bf15c1f891f783e7258c067afe572157329be115ad4832394ca31d",
+    "runtimeVersion": "1.1.1"
+  }
+}

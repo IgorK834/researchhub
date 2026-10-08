@@ -1,0 +1,30 @@
+{
+  "measuredSeries": {
+    "baseline": {
+      "recordedHead": "9636fa612c2325bbdcd1354d2f2bd8b9d265d438",
+      "scriptTreeCommit": "d0b62a9ef498df0592e7ef44bc9158ab6acb5f70",
+      "budgetSnapshot": "initial-baseline.json",
+      "scriptSha256": "65e27c1f7b84684f7dbbccc7812558f5805e8ef31ac17bdf4b404bde749e240e",
+      "composeSha256": "18af231e930d916cc7db722c603debbd3e9776311d407437d83f6afb509f08ed",
+      "workingTreeBeforeCommit": true
+    },
+    "confirmation": {
+      "recordedHead": "9636fa612c2325bbdcd1354d2f2bd8b9d265d438",
+      "scriptTreeCommit": "d0b62a9ef498df0592e7ef44bc9158ab6acb5f70",
+      "budgetSnapshot": "read-baseline.json",
+      "scriptSha256": "4ba3ed71355cab3396eeae41ec9f1633cd8af8f803b91882c238bb551ccc7464",
+      "composeSha256": "18af231e930d916cc7db722c603debbd3e9776311d407437d83f6afb509f08ed",
+      "workingTreeBeforeCommit": true
+    },
+    "final": {
+      "recordedHead": "62c10f08fa999bea6eeb8d36340f79e4f6f833fb",
+      "scriptTreeCommit": "d0b62a9ef498df0592e7ef44bc9158ab6acb5f70",
+      "budgetSnapshot": "final-baseline.json",
+      "scriptSha256": "0dae002a9c9802a3ab21ac65089e6db0f2ad128f43bedb5e99143d08b87b2895",
+      "composeSha256": "18af231e930d916cc7db722c603debbd3e9776311d407437d83f6afb509f08ed",
+      "workingTreeBeforeCommit": false
+    }
+  },
+  "subsequentMixedRampFix": "62c10f08fa999bea6eeb8d36340f79e4f6f833fb",
+  "mixedLoadExecution": "inspect and unit coverage only; the full 12-minute mixed scenario was not measured"
+}

@@ -54,6 +54,10 @@ explains measured values and selected headroom; do not silently relax budgets af
 
 ## Evidence and interpretation
 
+The [2026-10-08 two-instance report](results/2026-10-08-local-two-instance/README.md) contains
+the recorded smoke, 50-VU read and deterministic retrieval baseline, the frozen p95 budgets,
+session/failover and quota proofs, and every repeated run with its resources and source identity.
+
 `run-load.py` retains two consecutive smoke and two consecutive 50-VU read runs by default.
 Each runs for two minutes, exports its original k6 summary with `--summary-export`, and records
 aggregate/endpoint p50, p95, p99, errors, auth failures and replica distribution.

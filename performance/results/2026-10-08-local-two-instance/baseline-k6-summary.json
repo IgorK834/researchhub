@@ -1,0 +1,256 @@
+{
+  "runs": [
+    {
+      "scenario": "smoke",
+      "run": 1,
+      "exitCode": 0,
+      "scriptSha256": "65e27c1f7b84684f7dbbccc7812558f5805e8ef31ac17bdf4b404bde749e240e",
+      "summary": "smoke-1-summary.json",
+      "requests": 3480,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-1": 1739,
+        "backend-2": 1741
+      },
+      "latencyMs": {
+        "p50": 4.7239375,
+        "p95": 16.404161049999985,
+        "p99": 28.96039307000002
+      },
+      "endpoints": {
+        "analysis-history": {
+          "requests": 580,
+          "errors": 0,
+          "p50": 3.939521,
+          "p95": 10.131796149999998,
+          "p99": 18.531400000000044
+        },
+        "audit-read": {
+          "requests": 580,
+          "errors": 0,
+          "p50": 4.10875,
+          "p95": 12.270658649999994,
+          "p99": 21.465271500000064
+        },
+        "document-read": {
+          "requests": 580,
+          "errors": 0,
+          "p50": 4.17025,
+          "p95": 9.592535399999997,
+          "p99": 21.56248882000058
+        },
+        "source-list": {
+          "requests": 580,
+          "errors": 0,
+          "p50": 4.862583,
+          "p95": 12.722930649999986,
+          "p99": 36.653891320000035
+        },
+        "workspace-detail": {
+          "requests": 580,
+          "errors": 0,
+          "p50": 4.7879165,
+          "p95": 8.813595849999997,
+          "p99": 13.77611075000005
+        },
+        "workspace-list": {
+          "requests": 580,
+          "errors": 0,
+          "p50": 11.1501875,
+          "p95": 22.779575299999994,
+          "p99": 46.08000393000001
+        }
+      }
+    },
+    {
+      "scenario": "api-read",
+      "run": 1,
+      "exitCode": 0,
+      "scriptSha256": "65e27c1f7b84684f7dbbccc7812558f5805e8ef31ac17bdf4b404bde749e240e",
+      "summary": "api-read-1-summary.json",
+      "requests": 34632,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-2": 17316,
+        "backend-1": 17316
+      },
+      "latencyMs": {
+        "p50": 4.1057500000000005,
+        "p95": 16.360873099999978,
+        "p99": 40.32694102000003
+      },
+      "endpoints": {
+        "analysis-history": {
+          "requests": 5772,
+          "errors": 0,
+          "p50": 3.678833,
+          "p95": 14.446997399999997,
+          "p99": 32.6844905
+        },
+        "audit-read": {
+          "requests": 5772,
+          "errors": 0,
+          "p50": 3.8595625,
+          "p95": 14.1351038,
+          "p99": 37.75653588999999
+        },
+        "document-read": {
+          "requests": 5772,
+          "errors": 0,
+          "p50": 4.100791,
+          "p95": 14.6291753,
+          "p99": 34.31507749999998
+        },
+        "source-list": {
+          "requests": 5772,
+          "errors": 0,
+          "p50": 4.2460415000000005,
+          "p95": 16.314847399999998,
+          "p99": 43.54843217999999
+        },
+        "workspace-detail": {
+          "requests": 5772,
+          "errors": 0,
+          "p50": 4.2368755,
+          "p95": 17.555422549999992,
+          "p99": 40.266948429999985
+        },
+        "workspace-list": {
+          "requests": 5772,
+          "errors": 0,
+          "p50": 4.6791875,
+          "p95": 21.263074849999995,
+          "p99": 49.48297799999998
+        }
+      }
+    },
+    {
+      "scenario": "smoke",
+      "run": 2,
+      "exitCode": 0,
+      "scriptSha256": "65e27c1f7b84684f7dbbccc7812558f5805e8ef31ac17bdf4b404bde749e240e",
+      "summary": "smoke-2-summary.json",
+      "requests": 3510,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-2": 1754,
+        "backend-1": 1756
+      },
+      "latencyMs": {
+        "p50": 3.2173125000000002,
+        "p95": 12.456202199999993,
+        "p99": 19.721217249999945
+      },
+      "endpoints": {
+        "analysis-history": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 2.879334,
+          "p95": 5.742091799999998,
+          "p99": 9.972798279999989
+        },
+        "audit-read": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 2.77675,
+          "p95": 7.541349999999997,
+          "p99": 13.128429999999998
+        },
+        "document-read": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 2.855291,
+          "p95": 7.381457999999997,
+          "p99": 13.056986719999983
+        },
+        "source-list": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 3.244875,
+          "p95": 6.564341399999999,
+          "p99": 9.60375788
+        },
+        "workspace-detail": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 3.715083,
+          "p95": 7.049832799999997,
+          "p99": 14.516367719999964
+        },
+        "workspace-list": {
+          "requests": 585,
+          "errors": 0,
+          "p50": 8.26975,
+          "p95": 18.96986719999999,
+          "p99": 41.509809719999836
+        }
+      }
+    },
+    {
+      "scenario": "api-read",
+      "run": 2,
+      "exitCode": 0,
+      "scriptSha256": "65e27c1f7b84684f7dbbccc7812558f5805e8ef31ac17bdf4b404bde749e240e",
+      "summary": "api-read-2-summary.json",
+      "requests": 34800,
+      "authenticationFailures": 0,
+      "errorRate": 0.0,
+      "replicaDistribution": {
+        "backend-1": 17400,
+        "backend-2": 17400
+      },
+      "latencyMs": {
+        "p50": 4.277271000000001,
+        "p95": 15.589535449999996,
+        "p99": 30.644796580000232
+      },
+      "endpoints": {
+        "analysis-history": {
+          "requests": 5800,
+          "errors": 0,
+          "p50": 3.8077705,
+          "p95": 13.399836050000001,
+          "p99": 23.664578670000008
+        },
+        "audit-read": {
+          "requests": 5800,
+          "errors": 0,
+          "p50": 4.047771,
+          "p95": 13.024364900000005,
+          "p99": 23.86820642000001
+        },
+        "document-read": {
+          "requests": 5800,
+          "errors": 0,
+          "p50": 4.220396,
+          "p95": 13.850763950000003,
+          "p99": 26.62318351
+        },
+        "source-list": {
+          "requests": 5800,
+          "errors": 0,
+          "p50": 4.464583,
+          "p95": 15.223016050000007,
+          "p99": 30.362084250000024
+        },
+        "workspace-detail": {
+          "requests": 5800,
+          "errors": 0,
+          "p50": 4.4760005,
+          "p95": 16.210160100000007,
+          "p99": 36.58096967000001
+        },
+        "workspace-list": {
+          "requests": 5800,
+          "errors": 0,
+          "p50": 4.8256665000000005,
+          "p95": 20.364291050000023,
+          "p99": 61.24931667000036
+        }
+      }
+    }
+  ]
+}
