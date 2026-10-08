@@ -7,6 +7,7 @@ import {
   type ButtonVariant,
 } from '../../../shared/components/Button';
 import type { IconName } from '../../../shared/components/icons';
+import { usePublicConfig } from '../../../app/PublicConfig';
 
 /**
  * A design-system Button that is a real link (middle-click and "open in new tab" keep working) but
@@ -28,8 +29,10 @@ export function LinkButton({
   readonly icon?: IconName;
   readonly className?: string;
   readonly onNavigate?: () => void;
-}): ReactElement {
+}): ReactElement | null {
   const navigate = useNavigate();
+  const { config } = usePublicConfig();
+  if (to === '/register' && config?.registrationMode !== 'open') return null;
   return (
     <Button
       href={to}

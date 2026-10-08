@@ -17,6 +17,7 @@ import {
 import { LinkButton } from './LinkButton';
 import { ProductTour } from './ProductTour';
 import styles from './Landing.module.css';
+import { usePublicConfig } from '../../../app/PublicConfig';
 
 function SectionHeader({
   id,
@@ -246,6 +247,7 @@ export function FinalCta(): ReactElement {
 }
 
 export function LandingFooter(): ReactElement {
+  const { config } = usePublicConfig();
   return (
     <footer className={styles.footer}>
       <div className={[styles.container, styles.footerGrid].join(' ')}>
@@ -263,9 +265,11 @@ export function LandingFooter(): ReactElement {
             <li>
               <Link to="/login">Log in</Link>
             </li>
-            <li>
-              <Link to="/register">Create account</Link>
-            </li>
+            {config?.registrationMode === 'open' ? (
+              <li>
+                <Link to="/register">Create account</Link>
+              </li>
+            ) : null}
           </ul>
         </nav>
         <p className={styles.footerLegal}>© ResearchHub · Privacy · Terms</p>

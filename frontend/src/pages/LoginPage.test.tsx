@@ -251,3 +251,11 @@ describe('LoginPage', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app'));
   });
 });
+
+jest.mock('../app/PublicConfig', () => ({
+  usePublicConfig: () => ({
+    config: { registrationMode: 'open' },
+    pending: false,
+    failed: false,
+  }),
+}));

@@ -7,6 +7,8 @@ import styles from '../features/auth/components/AuthLayout.module.css';
 import { Button } from '../shared/components/Button';
 import { TextField } from '../shared/components/forms';
 import { describeError, fieldErrorsByName, hasApiErrorCode } from '../shared/api';
+import { usePublicConfig } from '../app/PublicConfig';
+import { RegistrationNotice } from '../features/auth/components/RegistrationNotice';
 
 /**
  * Account creation form.
@@ -15,6 +17,7 @@ import { describeError, fieldErrorsByName, hasApiErrorCode } from '../shared/api
  * submission sends them to the login form rather than into the app.
  */
 export function RegisterPage(): ReactElement {
+  const { config } = usePublicConfig();
   const navigate = useNavigate();
   const { mutate, isPending, error } = useRegister();
 
@@ -48,7 +51,7 @@ export function RegisterPage(): ReactElement {
       : null;
 
   const submit = (): void => {
-    if (isPending) return;
+    if (isPending || config?.registrationMode !== 'open') return;
     if (password !== confirmPassword) {
       setConfirmTouched(true);
       confirmRef.current?.focus();
@@ -65,6 +68,8 @@ export function RegisterPage(): ReactElement {
       },
     );
   };
+
+  if (config?.registrationMode !== 'open') return <RegistrationNotice />;
 
   return (
     <AuthLayout

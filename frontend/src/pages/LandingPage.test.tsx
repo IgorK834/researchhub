@@ -116,3 +116,11 @@ it('offers the app instead of the auth links to a signed-in visitor', () => {
   fireEvent.click(within(header).getAllByRole('link', { name: 'Open workspaces' })[0]!);
   expect(path()).toBe('/app');
 });
+
+jest.mock('../app/PublicConfig', () => ({
+  usePublicConfig: () => ({
+    config: { registrationMode: 'open' },
+    pending: false,
+    failed: false,
+  }),
+}));

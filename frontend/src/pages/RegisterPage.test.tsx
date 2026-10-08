@@ -297,3 +297,11 @@ describe('RegisterPage', () => {
     expect(screen.queryByRole('button', { name: /Google/ })).toBeNull();
   });
 });
+
+jest.mock('../app/PublicConfig', () => ({
+  usePublicConfig: () => ({
+    config: { registrationMode: 'open' },
+    pending: false,
+    failed: false,
+  }),
+}));

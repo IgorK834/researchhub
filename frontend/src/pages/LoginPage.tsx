@@ -8,6 +8,7 @@ import { TextField } from '../shared/components/forms';
 import { Badge } from '../shared/components/identity';
 import { describeError, fieldErrorsByName, hasApiErrorCode } from '../shared/api';
 import { Button } from '../shared/components/Button';
+import { usePublicConfig } from '../app/PublicConfig';
 
 /**
  * Sign-in form.
@@ -17,6 +18,7 @@ import { Button } from '../shared/components/Button';
  * session id is in a cookie the page cannot read.
  */
 export function LoginPage(): ReactElement {
+  const { config } = usePublicConfig();
   const navigate = useNavigate();
   const { mutate, isPending, error } = useLogin();
 
@@ -119,9 +121,11 @@ export function LoginPage(): ReactElement {
           </span>
         </span>
       </Button>
-      <p className={styles.accountLink}>
-        No account yet? <Link to="/register">Create account</Link>
-      </p>
+      {config?.registrationMode === 'open' ? (
+        <p className={styles.accountLink}>
+          No account yet? <Link to="/register">Create account</Link>
+        </p>
+      ) : null}
     </AuthLayout>
   );
 }

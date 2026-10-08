@@ -7,12 +7,14 @@ import { ResearchHubMark } from '../../../shared/components/shell/AppShell';
 import { NAV_LINKS } from '../landingContent';
 import { LinkButton } from './LinkButton';
 import styles from './LandingHeader.module.css';
+import { usePublicConfig } from '../../../app/PublicConfig';
 
 /**
  * Sticky public navigation. Section links are plain in-page anchors; Log in and Create account lead to the
  * existing auth routes, and a visitor who already has a session is offered the app instead.
  */
 export function LandingHeader(): ReactElement {
+  const { config } = usePublicConfig();
   const [open, setOpen] = useState(false);
   const { data: user } = useCurrentUser();
   const close = (): void => setOpen(false);
@@ -23,9 +25,11 @@ export function LandingHeader(): ReactElement {
         <LinkButton to="/login" variant="ghost" onNavigate={close}>
           Log in
         </LinkButton>
-        <LinkButton to="/register" onNavigate={close}>
-          Create account
-        </LinkButton>
+        {config?.registrationMode === 'open' ? (
+          <LinkButton to="/register" onNavigate={close}>
+            Create account
+          </LinkButton>
+        ) : null}
       </>
     ) : (
       <LinkButton to="/app" icon="arrowRight" onNavigate={close}>
