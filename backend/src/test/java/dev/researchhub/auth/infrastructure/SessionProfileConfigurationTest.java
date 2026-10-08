@@ -26,7 +26,7 @@ class SessionProfileConfigurationTest {
                 assertEquals("on-save", environment.getProperty("spring.session.jdbc.flush-mode"));
                 assertEquals("on-set-attribute", environment.getProperty("spring.session.jdbc.save-mode"));
                 assertEquals("0 * * * * *", environment.getProperty("spring.session.jdbc.cleanup-cron"));
-                assertEquals(profile.equals("azure"), environment.getProperty("server.servlet.session.cookie.secure", Boolean.class));
+                assertEquals(profile.equals("azure") || profile.equals("demo"), environment.getProperty("server.servlet.session.cookie.secure", Boolean.class));
                 if (profile.equals("azure")) {
                     assertEquals("cloud", environment.getProperty("researchhub.environment"));
                     assertEquals("", environment.getProperty("researchhub.auth.cors.allowed-origins"));

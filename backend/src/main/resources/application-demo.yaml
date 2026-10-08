@@ -1,0 +1,30 @@
+# Overrides only; application.yaml's profile group supplies the local adapters.
+researchhub:
+  environment: demo
+  auth:
+    registration:
+      mode: ${REGISTRATION_MODE:disabled}
+    cors:
+      allowed-origins: []
+  sources:
+    max-size-bytes: 10485760
+  security:
+    quotas:
+      window: PT1H
+      llm: {user: 10, workspace: 30}
+      analysis: {user: 3, workspace: 10}
+      retrieval: {user: 60, workspace: 180}
+  collaboration:
+    enabled: ${COLLABORATION_ENABLED:true}
+    websocket-url: ${COLLABORATION_WEBSOCKET_URL:wss://localhost:8443/collaboration}
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10485760B
+      max-request-size: 11534336B
