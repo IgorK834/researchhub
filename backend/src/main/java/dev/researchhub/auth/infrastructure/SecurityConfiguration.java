@@ -155,6 +155,7 @@ public class SecurityConfiguration {
                             .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login")
                             .permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/public/config").permitAll()
                             // Everything else is closed by default: the identity reads, logout, and
                             // every future product route. A new endpoint is private until someone opens
                             // it here on purpose.
