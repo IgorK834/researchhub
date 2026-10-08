@@ -315,6 +315,21 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>azure-blob-coverage-report</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes>
+                                <include>dev/researchhub/source/infrastructure/AzureBlob*</include>
+                                <include>dev/researchhub/source/infrastructure/KeyBasedBlobServiceClientFactory*</include>
+                            </includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-azure-blob</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>authoring-coverage-report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
