@@ -1,0 +1,84 @@
+name: researchhub-demo
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.2-pg17-bookworm@sha256:feb68f4f15446397d8cac7f4fe48fe4586de83160d1fc48b46283312d1a33966
+    environment:
+      POSTGRES_DB: researchhub
+      POSTGRES_USER: researchhub
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:?Use scripts/demo/up.sh}
+    ports: ["127.0.0.1:25432:5432"]
+    volumes: [demo-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U researchhub -d researchhub"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --silent
+    ports: ["127.0.0.1:21000:10000"]
+    volumes: [demo-blobs:/data]
+    healthcheck:
+      test: [CMD, node, -e, "require('http').get('http://127.0.0.1:10000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  ai-worker:
+    image: researchhub-ai-worker:demo
+    build: {context: ../../ai-worker}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    pids_limit: 64
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=128m"]
+    ports: ["127.0.0.1:28090:8090"]
+    environment:
+      AI_WORKER_SERVICE_TOKEN: ${AI_WORKER_SERVICE_TOKEN:?Use scripts/demo/up.sh}
+      AI_WORKER_MODEL_PROVIDER: deterministic
+      AI_WORKER_EMBEDDING_PROVIDER: deterministic
+      AI_WORKER_MAX_FILE_BYTES: "10485760"
+      AI_WORKER_BLOB_URL_ORIGIN: http://127.0.0.1:21000
+      AI_WORKER_BLOB_URL_TARGET_ORIGIN: http://azurite:10000
+  collaboration:
+    image: researchhub-collaboration:demo
+    build: {context: ../../collaboration}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:28091:8091"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    pids_limit: 64
+    environment:
+      COLLABORATION_SERVICE_TOKEN: ${COLLABORATION_SERVICE_TOKEN:?Use scripts/demo/up.sh}
+      COLLABORATION_BACKEND_URL: http://host.docker.internal:28081
+      COLLABORATION_ALLOWED_ORIGINS: https://localhost:8443
+  caddy:
+    image: researchhub-caddy:local-demo
+    build: {context: ., dockerfile: Dockerfile.caddy}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:8443:8443"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      XDG_DATA_HOME: /data
+      XDG_CONFIG_HOME: /config
+      DEMO_PROXY_BIND: 0.0.0.0
+      DEMO_BACKEND: host.docker.internal:28081
+      DEMO_COLLABORATION: collaboration:8091
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../../frontend/dist:/srv:ro
+      - demo-caddy:/data
+    depends_on:
+      collaboration: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, --no-check-certificate, -q, -O, /dev/null, "https://localhost:8443/actuator/health/readiness"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+volumes:
+  demo-postgres:
+  demo-blobs:
+  demo-caddy:

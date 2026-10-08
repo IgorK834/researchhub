@@ -17,10 +17,13 @@ class ApiError(RuntimeError):
 
 
 class Client:
-    def __init__(self, base_url):
+    def __init__(self, base_url, ssl_context=None):
         self.base_url = base_url.rstrip("/")
         self.jar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
+        handlers = [urllib.request.HTTPCookieProcessor(self.jar)]
+        if ssl_context is not None:
+            handlers.append(urllib.request.HTTPSHandler(context=ssl_context))
+        self.opener = urllib.request.build_opener(*handlers)
 
     def request(self, method, path, body=None, expected=(200,), raw=None, content_type=None):
         headers = {}

@@ -1,0 +1,17 @@
+# Linux containers cannot reach a host process bound to loopback via host-gateway.
+# Only the edge and collaboration use the host network, and both listen on loopback.
+services:
+  caddy:
+    network_mode: host
+    ports: !reset []
+    environment:
+      DEMO_PROXY_BIND: 127.0.0.1
+      DEMO_BACKEND: 127.0.0.1:28081
+      DEMO_COLLABORATION: 127.0.0.1:28091
+  collaboration:
+    network_mode: host
+    ports: !reset []
+    environment:
+      COLLABORATION_HOST: 127.0.0.1
+      COLLABORATION_PORT: "28091"
+      COLLABORATION_BACKEND_URL: http://127.0.0.1:28081

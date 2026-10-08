@@ -1,5 +1,9 @@
 # ResearchHub
 
+Local portfolio demo (Java 25, Node/npm, Python 3.13 and Docker installed):
+`scripts/demo/up.sh`. See [demo deployment](docs/deployment/demo.md) for generated logins,
+local HTTPS, reset and end-to-end checks.
+
 Browser deployment and prompt-injection protection (RH-182/RH-183), including environment settings,
 CSP hosting requirements and evaluation commands: [browser and AI security](docs/development/browser-and-ai-security.md).
 Repository scans, blocking findings and warning policy: [repository security](docs/development/repository-security.md).

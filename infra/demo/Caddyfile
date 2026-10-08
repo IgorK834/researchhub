@@ -1,0 +1,29 @@
+{
+  admin off
+  auto_https disable_redirects
+  skip_install_trust
+}
+https://localhost:8443 {
+  bind {$DEMO_PROXY_BIND:0.0.0.0}
+  tls internal
+  handle /api/* {
+    reverse_proxy {$DEMO_BACKEND:host.docker.internal:28081}
+  }
+  handle /actuator/health/* {
+    reverse_proxy {$DEMO_BACKEND:host.docker.internal:28081}
+  }
+  handle /collaboration {
+    reverse_proxy {$DEMO_COLLABORATION:collaboration:8091}
+  }
+  handle {
+    root * /srv
+    header {
+      Content-Security-Policy "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' blob:; font-src 'self'; connect-src 'self' wss://localhost:8443; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      X-Content-Type-Options nosniff
+      X-Frame-Options DENY
+      Referrer-Policy strict-origin-when-cross-origin
+    }
+    try_files {path} /index.html
+    file_server
+  }
+}
