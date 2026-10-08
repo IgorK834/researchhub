@@ -1,6 +1,6 @@
 # Configuration
 
-How ResearchHub separates local development, automated tests, and a future cloud deployment. Follow this document instead of inventing a new place for secrets.
+How ResearchHub separates local development, automated tests, and Azure deployment. Follow this document instead of inventing a new place for secrets.
 
 Generation provider settings, versioned feature templates and model parameters (RH-110):
 [model-gateway.md](model-gateway.md). Foundry credentials belong only to the worker; the frontend
@@ -23,22 +23,22 @@ Security rules in [docs/context.md](../context.md) still apply, including “Nev
 
 ## Profiles
 
-| Profile | When it is used | Secrets |
-| --- | --- | --- |
-| `local` | Developer machine. This is the default when no profile is set. | Not in Git. Use environment variables when a later task needs a secret. |
-| `test` | `./mvnw test` and other automated tests. | None. Tests must start on a clean machine. |
-| `demo` | Runnable local product graph, with PostgreSQL-backed sessions for replica demonstrations. | Existing local defaults; inject values for a hosted demo. |
-| `azure` | Same product graph with JDBC sessions and the deployed HTTPS browser policy. No infrastructure is provisioned. | Required `DB_URL`, `DB_USER`, `DB_PASSWORD`; inject storage/worker/scrape credentials through the existing settings. |
-| `cloud` | A deployed environment, later. | A managed store such as Azure Key Vault. Not wired up yet. |
+Profiles select infrastructure adapters and connection/security settings. Product services, controllers,
+repositories, dispatchers and policies are unconditional; an incomplete runtime fails startup instead of serving a partial application.
 
-Shared non-secret defaults live in `backend/src/main/resources/application.yaml`. Each profile adds `application-local.yaml`, `application-test.yaml`, or `application-cloud.yaml` next to that file. Files use the `.yaml` extension.
+| Profile | Source bytes | Sessions | Cost quotas | Sandbox runner | Model/planner/embedding provider | Database |
+| --- | --- | --- | --- | --- | --- | --- |
+| `local` (default in `main`) | Azure Blob SDK with public Azurite defaults | Servlet memory (JDBC can be selected explicitly) | Memory (PostgreSQL can be selected explicitly) | Local Docker, disabled unless explicitly enabled | HTTP Python worker, localhost default | Local PostgreSQL defaults; Flyway + JPA validation |
+| `demo` | Same local adapters (`demo` includes `local`) | JDBC | PostgreSQL | Local Docker, disabled by default | HTTP Python worker | Same local PostgreSQL; shared replica state |
+| `azure` | Azure Blob SDK, required HTTPS `BLOB_ENDPOINT`, externally provisioned container | JDBC, required | PostgreSQL, required | Unavailable; no Docker runner bean | HTTP Python worker, required URL/token | Managed PostgreSQL, required credentials; Flyway + JPA validation |
+| `cloud` (deprecated) | Identical to `azure`; profile group alias for one release | JDBC | PostgreSQL | Unavailable | HTTP Python worker | Identical to `azure` |
+| `test` | Explicit test fixtures only | Servlet in HTTP slices | Explicit fixtures when needed | Explicit fixtures when needed | Explicit fixtures when needed | No JDBC/JPA in infrastructure slices; persistence/full product tests explicitly start Testcontainers |
 
-`demo` and `azure` are profile groups including `local`, so existing product services and Flyway/JPA
-remain available without changing their module boundaries. Their session overlay selects JDBC.
-The final Azure-only document in `application-local.yaml` overrides local browser settings with
-`Secure=true`, the configured `SESSION_COOKIE_SAME_SITE` (default `lax`), no CORS origins by default,
-and `DB_URL`/`DB_USER`/`DB_PASSWORD` without development defaults. The original `cloud` profile
-remains a configuration scaffold; do not combine it with `demo`/`azure` because it excludes persistence.
+`azure` does **not** activate `local` and cannot be combined with `local` or `test`. `cloud` maps to
+`azure` in `application.yaml`; existing deployment commands can keep the old name for this release,
+then must switch `SPRING_PROFILES_ACTIVE` to `azure`. Shared product policies live in `application.yaml`;
+`application-local.yaml` supplies development adapters and `application-azure.yaml` is the deployment contract.
+No Azure resources are provisioned by these profiles.
 
 `BackendApplication` activates `local` when the process does not already name a profile. A normal `./mvnw spring-boot:run` therefore uses `local`. Setting `spring.profiles.default` in `application.yaml` does not change which profile Spring Boot selects, so the default lives in `main` instead. `@SpringBootTest` does not call `main`; tests opt into `test` with `@ActiveProfiles`.
 
@@ -72,7 +72,7 @@ in `X-XSRF-TOKEN`, including when the next request is handled by another instanc
 
 | Setting | Explicit value / default | Effect |
 | --- | --- | --- |
-| `researchhub.auth.session-store` / `AUTH_SESSION_STORE` | `servlet` for local/test/cloud scaffold; `jdbc` for demo/azure | The single store selector. Only `jdbc` and `servlet` are accepted. JDBC without a JDBC session repository fails startup. |
+| `researchhub.auth.session-store` / `AUTH_SESSION_STORE` | `servlet` for local/test slices; `jdbc` for demo/azure/cloud | The single store selector. Only `jdbc` and `servlet` are accepted. JDBC without a JDBC session repository fails startup. |
 | `server.servlet.session.timeout` / `SESSION_TIMEOUT` | `30m` | Idle lifetime. Requests update last access; expired sessions cannot authenticate even before physical cleanup. |
 | `spring.session.jdbc.initialize-schema` | `never` | Only Flyway creates or changes the session tables. |
 | `spring.session.jdbc.cleanup-cron` / `SESSION_CLEANUP_CRON` | `0 * * * * *` | Six-field Spring cron: cleanup at second zero each minute on each JDBC instance. Deletes expired rows and cascades attributes. |
@@ -179,7 +179,8 @@ variables set:
 
 Set one to override its default, for example `DB_PORT` when `5432` is already in use. Docker Compose and Spring Boot read the same variable, so exporting it in the shell, or placing it in a private root `.env` (gitignored, loaded automatically by `docker compose`), keeps both in sync.
 
-These are local-only, throwaway defaults, not secrets, and they are unrelated to the cloud profile's `DB_URL`: `DB_URL` is one full JDBC URL required only when the cloud profile is active, while `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` are discrete local values the local profile assembles into its own URL. Neither is reused for the other.
+These are local-only, throwaway defaults. Local assembles its URL from `DB_HOST`/`DB_PORT`/`DB_NAME`;
+Azure/cloud require the full `DB_URL` and explicitly supplied `DB_USER`/`DB_PASSWORD`, without local fallbacks.
 
 They are also deliberately not named `RESEARCHHUB_*`: see Frontend below for why that prefix is reserved for values that are safe to expose in the browser bundle.
 
@@ -194,7 +195,7 @@ cd backend
 
 If Postgres is stopped or the host, port, or credentials are wrong, startup fails. HikariCP reports that it could not obtain a connection, and the process exits non-zero. It does not start HTTP on a database it cannot reach.
 
-The test and cloud profiles exclude JDBC, Flyway, and JPA auto-configuration, so a test on the `test` profile does not open a database. `./mvnw test` still needs Docker: `FlywayMigrationIntegrationTest` starts its own PostgreSQL 17 container and runs the same `db/migration` files. It does not use the Compose database. Cloud still checks that `DB_URL` is present and does not open a JDBC connection yet. When that connection is added, `ddl-auto` stays `none` or `validate`. Schema changes stay in Flyway. New migration files use `V<version>__<description>.sql` with no leading zeros. `V1__baseline.sql` is immutable.
+Only the `test` profile excludes JDBC, Flyway and JPA auto-configuration. Tests using it load explicit infrastructure slices, without scanning the full product graph. `./mvnw test` still needs Docker: persistence and full-profile tests start PostgreSQL Testcontainers and run `db/migration`; they never use the Compose database. Azure/cloud enable all persistence auto-configuration, run Flyway and validate entity mappings. New migration files use `V<version>__<description>.sql` with no leading zeros. `V1__baseline.sql` is immutable.
 
 Persistence rules: [persistence.md](persistence.md). Health probes: [health.md](health.md).
 
@@ -235,35 +236,79 @@ safe: committed jobs remain in PostgreSQL and are retried.
 
 ## Test profile
 
-`BackendApplicationTests` is annotated with `@ActiveProfiles("test")`. It loads `application-test.yaml` and does not load the cloud profile.
+`BackendApplicationTests`, browser security and actuator tests load the explicit
+`HttpSecurityTestApplication` infrastructure slice on `test`; they do not use profile guards to remove
+product services. Database tests use `local` plus Testcontainers, and `AzureProfileStartupIntegrationTest`
+boots the actual `azure` application against PostgreSQL and HTTPS Azurite. No deployment secrets are needed.
+`LocalProfileBeanGraphTests` checks a fixed product bean list and proves that deleting a required bean fails the assertion.
 
-The test profile has no database, object storage, or API credentials. `./mvnw test` must pass without `DB_URL`, `BLOB_ENDPOINT`, or any other secret in the environment.
+## Azure deployment contract (RH-311 / RH-312)
 
-## Cloud profile
+`CloudEnvironmentConfiguration` validates settings after ConfigData and **before bean creation**, including
+when the deprecated `cloud` alias is selected. Missing or blank values fail with the variable name;
+secret values are never included in this validation error.
 
-The cloud profile is a placeholder for deployment. It does not provision Azure or any other host.
-
-Startup fails when a mandatory value is missing or blank. The current mandatory variables are:
-
-| Variable | Purpose |
+| Required variable | Purpose |
 | --- | --- |
-| `DB_URL` | JDBC URL for the primary database |
-| `BLOB_ENDPOINT` | Object storage endpoint for source binaries |
+| `DB_URL` | Managed PostgreSQL JDBC URL, including deployment TLS settings (for example `sslmode=verify-full` with the trusted CA) |
+| `DB_USER`, `DB_PASSWORD` | Database credentials; no local fallback |
+| `BLOB_ENDPOINT` | HTTPS Blob service endpoint without embedded credentials, query or fragment |
+| `BLOB_CONNECTION_STRING` | Key-based credential required for the current `BLOB_AUTH=connection-string` adapter; the configured endpoint remains authoritative |
+| `AI_WORKER_BASE_URL` | Internal HTTP(S) Python worker URL; no localhost fallback |
+| `AI_WORKER_SERVICE_TOKEN` | Worker service credential, at least 32 characters, no surrounding whitespace |
+| `METRICS_SCRAPE_TOKEN` | Separate metrics bearer credential with the same minimum length |
 
-`application-cloud.yaml` maps those variables with no default. `CloudEnvironmentProperties` rejects a blank value. Add further mandatory cloud settings to this table and to that properties class in the same change. Do not introduce a one-off secret name in a feature task.
+`BLOB_CONTAINER_NAME` defaults to `researchhub-sources`; infrastructure must provision it. Startup and
+uploads cannot create a container in Azure. The existing managed-identity seam remains reserved for Task
+21.17; selecting it currently fails explicitly rather than falling back to a key or an emulator.
+Provider credentials remain in the Python worker. Do not inject Foundry credentials into Java or the frontend.
 
-Check the failure locally:
+Azure fixes `researchhub.auth.session-store=jdbc`, `researchhub.security.quotas.store=postgres` and
+`researchhub.sources.storage.adapter=azure-blob`. Changing these to local stores fails startup.
+`ANALYSIS_SANDBOX_ENABLED` defaults to `false` and setting it to `true` fails until an Azure runner exists.
+There is no `DockerSandboxRunner` bean under Azure. Planning and inspection remain available; execution
+is recorded as `FAILED` with the existing API `failureCode=SANDBOX_UNAVAILABLE`, preserving the request and provenance.
+
+Flyway is enabled and is the only schema writer; JPA uses `ddl-auto=validate`, open-in-view is disabled,
+and Spring Session uses `initialize-schema=never`. Azure/cloud exclude no datasource, Flyway or JPA auto-configuration.
+The provisioned database must permit the existing Flyway migrations, including the `vector` extension for V14;
+configure the managed server extension allowlist/privileges in Epic 21 before rollout.
+Session cookies are Secure/HttpOnly, with `SESSION_COOKIE_SAME_SITE=lax` by default. CORS defaults to same-origin;
+use exact HTTPS `CORS_ALLOWED_ORIGINS` if needed. `FORWARD_HEADERS_STRATEGY=none` trusts no forwarding headers by
+default. Set `framework` or `native` only behind an ingress that strips untrusted client forwarding headers
+and supplies authoritative values. Azure resources/ingress are the deployment task's responsibility.
+
+Only health and Prometheus are exposed by actuator. Health details stay hidden; readiness includes PostgreSQL.
+`/actuator/prometheus` requires `Authorization: Bearer <METRICS_SCRAPE_TOKEN>` and never uses browser authentication.
+
+Check missing configuration locally:
 
 ```bash
 cd backend
-SPRING_PROFILES_ACTIVE=cloud ./mvnw spring-boot:run \
-  -Dspring-boot.run.jvmArguments="-Dspring.devtools.restart.enabled=false" \
-  -Dspring-boot.run.arguments="--spring.main.web-application-type=none"
+SPRING_PROFILES_ACTIVE=azure ./mvnw spring-boot:run \
+  -Dspring-boot.run.jvmArguments="-Dspring.devtools.restart.enabled=false"
 ```
 
-Maven exits with code 1. The log contains `DB_URL must be set when the cloud profile is active`. The process does not keep serving HTTP. Devtools restart is disabled in this command so a failed start is not reported as a successful Maven build.
+Without the required environment Maven exits nonzero and names `DB_URL` before opening infrastructure connections.
+`cloud` has the same failure contract. Deployment injects these variable names from its secret configuration.
 
-Cloud hosts are expected to inject the same variable names from a managed secret store. Azure Key Vault is the likely store later. This repository does not connect to it yet.
+### Per-replica database pool (RH-314)
+
+| Hikari property | Variable | Default (milliseconds for time values) |
+| --- | --- | --- |
+| `maximum-pool-size` | `DB_POOL_MAX_SIZE` | `8` |
+| `minimum-idle` | `DB_POOL_MIN_IDLE` | `2` |
+| `connection-timeout` | `DB_POOL_CONNECTION_TIMEOUT_MS` | `3000` |
+| `max-lifetime` | `DB_POOL_MAX_LIFETIME_MS` | `240000` |
+| `leak-detection-threshold` | `DB_POOL_LEAK_DETECTION_THRESHOLD_MS` | `0`; staging sets `20000` |
+
+The infrastructure contract requires a server/network idle cutoff **greater than 240 seconds**, normally
+at least 300 seconds. If a shorter cutoff is selected, lower `DB_POOL_MAX_LIFETIME_MS` below it. Check the actual
+PostgreSQL/network/PgBouncer policy; Hikari's own idle timeout is a separate setting. Leak detection reports
+suspected long checkouts; it does not reclaim connections.
+
+Replica capacity, scheduler sharing, the smallest-tier worked example, Bicep validation and the Task 21.15
+alert contract are in [the connection budget](persistence.md#connection-budget-and-autoscaling-rh-314).
 
 ## Frontend
 
@@ -335,8 +380,7 @@ The adapter also has `account-key`; the committed default is Azurite's public de
 Container names, paths, and credentials belong to the chosen adapter's own settings, never to the source module. See
 [sources.md](sources.md#storage).
 
-RH-243 external web discovery is optional and separate from uploaded evidence. The backend local
-profile accepts `EXTERNAL_SEARCH_ENABLED=false`, `BRAVE_SEARCH_API_KEY` (required when enabled),
+RH-243 external web discovery is optional and separate from uploaded evidence. Every runtime profile accepts `EXTERNAL_SEARCH_ENABLED=false`, `BRAVE_SEARCH_API_KEY` (required when enabled),
 and `EXTERNAL_SEARCH_TIMEOUT=PT8S` (positive, at most 30 seconds). Keep the provider key out of
 frontend build variables. Users must explicitly enable discovery for every search; existing AI
 and report source contracts remain workspace-only. See [source-search-and-external-evidence.md](source-search-and-external-evidence.md).
@@ -351,7 +395,7 @@ and report source contracts remain workspace-only. See [source-search-and-extern
 | Attempt limit | `researchhub.processing.dispatcher.max-attempts`; `PROCESSING_MAX_ATTEMPTS`, default `5`, range 1–100. |
 | Retry delay | `initial-backoff` / `max-backoff`; `PROCESSING_INITIAL_BACKOFF` / `PROCESSING_MAX_BACKOFF`, defaults `PT2S` / `PT1M`. |
 | Stale lease | `researchhub.processing.dispatcher.stale-timeout`; `PROCESSING_STALE_TIMEOUT`, default `PT5M`. |
-| Worker URL | `researchhub.processing.worker.base-url`; `AI_WORKER_BASE_URL`, default `http://127.0.0.1:8090`. |
+| Worker URL | `researchhub.processing.worker.base-url`; `AI_WORKER_BASE_URL`, local/demo default `http://127.0.0.1:8090`; required in Azure/cloud. |
 | Worker published port | Compose-only `AI_WORKER_PORT`, default `8090`; keep the worker URL in sync. |
 | Worker timeout | `researchhub.processing.worker.request-timeout`; `AI_WORKER_REQUEST_TIMEOUT`, default `PT30S`. |
 | Signed source lifetime | `researchhub.processing.worker.source-access-ttl`; `AI_WORKER_SOURCE_ACCESS_TTL`, default `PT5M`, maximum `PT15M`. |
@@ -379,7 +423,7 @@ are `AI_SOURCE_ANALYSIS_MAX_OUTPUT_TOKENS` (6144), `AI_SOURCE_ANALYSIS_TEMPERATU
 ### Shared costly-operation quotas (RH-309 / RH-310)
 
 `COST_QUOTA_STORE=memory|postgres` selects the adapter under `researchhub.security.quotas.store`. Local defaults to
-memory; demo/azure default to PostgreSQL. All replicas must use identical quota policies and synchronized UTC clocks.
+memory; demo defaults to PostgreSQL and azure/cloud require PostgreSQL. All replicas must use identical quota policies and synchronized UTC clocks.
 Flyway V37 owns `cost_quota_bucket`; no Hibernate schema generation or Redis is involved. PostgreSQL history retention
 is `COST_QUOTA_RETENTION=P7D` (must cover the configured window), retries are bounded by `COST_QUOTA_MAX_ATTEMPTS=3`
 (total attempts, 1–10), and `COST_QUOTA_CLEANUP_CRON=0 0 * * * *` runs hourly (`-` disables cleanup). The existing

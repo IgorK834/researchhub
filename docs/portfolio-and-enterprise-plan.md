@@ -310,7 +310,9 @@ Effort: S ≈ ≤1 day, M ≈ 2–4 days, L ≈ 1–2 weeks. Everything through 
 - [ ] ADR-010 and the Azure ADR (#117); Bicep skeleton and modules (#118–#121, #128, #129).
 - [ ] `staging.bicepparam` / `production.bicepparam`; `az bicep build` + `what-if` in CI.
 - [ ] Scripts: deploy / seed / smoke / load / collect / destroy, with environment-tag guards.
-- [ ] Budgets, TTL tag, per-replica connection-pool sizing doc (`replicas × pool ≤ DB max connections`).
+- [ ] Budgets, TTL tag, per-replica connection-pool sizing and Epic 21 Bicep parameter validation
+  (`maxReplicas × (poolSize + scheduler headroom) ≤ 0.8 × max_connections`, also bounded by available user connections).
+  Required variables, rollout surge and smallest-tier example: [connection budget](development/persistence.md#connection-budget-and-autoscaling-rh-314).
 
 ### Phase 5 — One Azure validation window (S–M of work, ~1 day of cloud time)
 

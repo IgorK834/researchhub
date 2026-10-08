@@ -145,13 +145,13 @@ names, or credentials:
 Size limits and hashing are not the adapter's job. `SourceService` meters the stream it passes to `store`, so every
 adapter enforces the same limit and produces the same digest.
 
-The adapter is selected by `researchhub.sources.storage.adapter=azure-blob` and is active on `local`, `demo` and
-`azure`. The same `AzureBlobSourceStorage` and `SourceStorage` port serve Azurite and Azure Blob Storage. Endpoint,
+The adapter is selected by `researchhub.sources.storage.adapter=azure-blob`, independently of the product profile.
+Local/demo and azure/cloud select it with their respective connection settings. The same `AzureBlobSourceStorage` and `SourceStorage` port serve Azurite and Azure Blob Storage. Endpoint,
 container and local key settings live under `researchhub.sources.storage.azure-blob`; credential strategy settings
 live under `researchhub.sources.storage.azure`. Source callers and server-side workspace authorization do not change.
 
-Local/demo retain Azurite's public development endpoint/account/key. The `azure` profile reuses the product bean graph
-but excludes that emulator configuration document: it requires `BLOB_ENDPOINT` as an HTTPS service URL without query,
+Local/demo retain Azurite's public development endpoint/account/key. The `azure` profile boots the unconditional product graph
+without activating `local`: it requires `BLOB_ENDPOINT` as an HTTPS service URL without query,
 userinfo or fragment, and has no emulator account/key defaults. The endpoint is authoritative even if a connection
 string specifies a different endpoint. Set `BLOB_AUTH=connection-string` (default) and inject `BLOB_CONNECTION_STRING`
 with an account key; SAS-only connection strings cannot sign worker read URLs. `BLOB_CONTAINER_NAME` defaults to

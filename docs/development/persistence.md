@@ -52,7 +52,7 @@ file readable. They are applied together and neither is useful alone.
 
 Applied files are immutable. A checksum change fails startup (`spring.flyway.validate-on-migrate: true`). Ship a new migration instead of rewriting an old one.
 
-Hibernate `ddl-auto` is `validate` on the local profile, now that entities exist. Flyway still creates every table; `validate` only makes Hibernate check at startup that the entities match the schema the migrations produced, so a mapping that drifts from a migration fails immediately instead of failing later on a query. Do not set `create`, `create-drop`, or `update` on any profile. Production must not rely on Hibernate to create or alter schema.
+Hibernate `ddl-auto` is `validate` on every runtime profile, now that entities exist. Flyway still creates every table; `validate` only makes Hibernate check at startup that the entities match the schema the migrations produced, so a mapping that drifts from a migration fails immediately instead of failing later on a query. Do not set `create`, `create-drop`, or `update` on any profile. Production must not rely on Hibernate to create or alter schema.
 
 Flyway runs before JPA uses the database. Spring Boot orders that startup. Do not create tables from `ddl-auto` to skip a migration.
 
@@ -60,15 +60,19 @@ Flyway runs before JPA uses the database. Spring Boot orders that startup. Do no
 
 | Profile | Database |
 | --- | --- |
-| `local` | Connects with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`. Flyway enabled. JPA `ddl-auto: validate`. Open-session-in-view off. JDBC time zone UTC. |
-| `test` | JDBC, Flyway, and JPA auto-configuration are excluded. Tests on this profile do not open a database. |
-| `cloud` | `DB_URL` is required and is not a JDBC connection yet. The same auto-configuration is excluded. When a later task connects, map `spring.datasource.url` from `DB_URL` and keep `ddl-auto` at `validate` or `none`. |
+| `local` | Local `DB_HOST`/`DB_PORT`/`DB_NAME` defaults; Flyway enabled, JPA validation, open-in-view off, UTC. |
+| `demo` | Local adapter settings plus JDBC sessions and PostgreSQL quotas. |
+| `azure` | Required `DB_URL`, `DB_USER`, `DB_PASSWORD`; full PostgreSQL product graph, Flyway and JPA validation; capped Hikari pool. |
+| `cloud` | Deprecated one-release alias of `azure`, with identical persistence requirements. |
+| `test` | JDBC/Flyway/JPA auto-configuration excluded only for explicit infrastructure slices. Full product tests use local/azure and Testcontainers. |
 
 A wrong host, port, or password on the local profile fails startup. The process exits before it serves HTTP. The log is HikariCP failing to obtain a connection. After the process is up, a later database outage is a readiness failure, not a dead process: [health.md](health.md).
 
 ## Where types live
 
-`dev.researchhub.shared.infrastructure.persistence.JpaPersistenceConfiguration` is active on the `local` profile. It scans `dev.researchhub` for entities and repositories. There is no global `repositories` package.
+`dev.researchhub.shared.infrastructure.persistence.JpaPersistenceConfiguration` unconditionally scans
+`dev.researchhub` for entities. Spring Boot's JPA repository auto-configuration scans the same application
+root whenever a datasource/JPA runtime is available, regardless of profile. There is no global `repositories` package.
 
 A product entity and its repository live in the module that owns the concept, for example `dev.researchhub.workspace`. Map them explicitly: `@Table` and `@Column`, not implicit names. Column length for user-entered text must be at least the matching constant in `dev.researchhub.shared.validation.FieldLengths`.
 
@@ -327,6 +331,67 @@ commits.
 
 Annotate a new persistence test with `@PostgresIntegrationTest`. That annotation starts one PostgreSQL container for the Spring test context, points the datasource at it, uses the `local` profile so Flyway and JPA are enabled, and marks the class `@Transactional`. Classes that use the same annotation share that context and container. Each test method runs in a transaction that rolls back, so inserted rows and DDL from a test do not leak into the next method. Flyway has already committed `db/migration` during context startup, and those migrations stay. Do not reset the schema with Hibernate `create-drop`.
 
-Tests that do not use `@PostgresIntegrationTest` do not start a container. `BackendApplicationTests`, `CloudProfileStartupTests`, `GlobalExceptionHandlerIntegrationTest`, and `NormalizeTest` stay on the `test` profile or a web slice.
+`BackendApplicationTests`, browser/actuator security tests and `GlobalExceptionHandlerIntegrationTest` use
+explicit infrastructure or web slices. `CloudProfileStartupTests` validates configuration and missing-variable
+failures without opening infrastructure. `LocalProfileBeanGraphTests` and `AzureProfileStartupIntegrationTest`
+boot the complete product using PostgreSQL Testcontainers; the Azure test additionally uses HTTPS Azurite.
 
 Compose remains how you run the application. Testcontainers is only for Maven tests.
+
+## Connection budget and autoscaling (RH-314)
+
+Every Azure replica has one Hikari datasource, shared by JPA, JDBC stores, sessions, quotas and scheduled work.
+The runtime cap is `DB_POOL_MAX_SIZE=8`, with two idle connections and a three-second checkout timeout.
+No module creates another production pool. Increasing replicas multiplies that cap, even when replicas are idle.
+
+Deployment must satisfy:
+
+```text
+maxReplicas x (poolSize + scheduler headroom) <= 0.8 x max_connections
+```
+
+Scheduler headroom is a **conservative budget allowance**, not an additional datasource: use two connections
+per replica for product scheduling/session cleanup. All actual checkouts still count inside the Hikari cap.
+The 20% margin covers migration/startup, administration and other connections. Also subtract Azure's reserved
+connections, other applications, parallel rollout replicas and maintenance jobs before accepting the result.
+Use the stricter of this formula and 80% of the remaining user-connection limit.
+
+Worked smallest-tier example: Azure Flexible Server **B1ms** (1 vCore / 2 GiB) has a documented default
+`max_connections=50`, of which **35 are available to users**. Two replicas at pool size eight with two headroom:
+`2 x (8 + 2) = 20 <= 0.8 x 50 = 40`, and `20 <= 0.8 x 35 = 28`. Three replicas would budget 30 and exceed the
+stricter user limit, so this example caps at two, including any surge during rollout. Read the provisioned
+`SHOW max_connections` and current reserved limits rather than inferring them solely from a SKU.
+Source: [Microsoft PostgreSQL limits](https://learn.microsoft.com/en-us/azure/postgresql/configure-maintain/concepts-limits).
+
+`ProcessingJobDispatcher` claims and processes a bounded batch sequentially; `AnalysisExecutionDispatcher`
+and `ExportDispatcher` claim one job per tick. `DocumentSnapshotScheduler` visits at most 100 candidates sequentially.
+They inject the same JDBC/JPA infrastructure and do not create pools. Claim/update transactions finish before
+worker HTTP, sandbox execution or report rendering; document snapshots use a transaction per document, with no
+transaction around the scheduler loop. Thus one expensive background operation cannot retain the whole request pool.
+Spring currently has one `ThreadPoolTaskScheduler`, `exportScheduler` (one thread); it also serves unqualified
+product schedules. Spring Session cleanup can run independently. The headroom allowance covers both.
+A bounded pool is not a strict request/background priority partition: slow SQL, lock contention or session/quota
+traffic can still saturate it. Monitor waiters and timeouts; do not increase job concurrency without recalculating
+this budget and load-testing requests. There is no separate scheduler datasource or fairness guarantee.
+
+Hikari `max-lifetime=240000` ms must be shorter than the deployment's server/network idle cutoff (contract:
+>=300 seconds). Set staging `DB_POOL_LEAK_DETECTION_THRESHOLD_MS=20000`; production defaults to zero.
+Use [Hikari's lifetime/timeout guidance](https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby)
+when adapting to a different managed timeout; PostgreSQL idle-in-transaction and idle-session limits are distinct.
+
+Micrometer/Prometheus already exports `hikaricp.connections.active`, `.idle`, `.pending`, `.max`, `.timeout` and
+`.acquire` through the scrape-token-protected endpoint. Task **21.15** should alert per replica on
+`active / max >= 0.8` for five minutes, warn on sustained pending checkouts, and page on new connection timeouts
+or readiness failures. Prometheus names include `hikaricp_connections_active`, `hikaricp_connections_max`,
+`hikaricp_connections_pending` and `hikaricp_connections_timeout_total`; retain instance/replica and pool labels.
+
+**Epic 21 Bicep parameter validation contract:** parameters `maxReplicas`, backend pool size, scheduler headroom
+and the managed database connection limit must reference this section. Reject a parameter set violating either
+budget before deployment; include revision surge and other consumers. Render `DB_POOL_MAX_SIZE` from the same
+pool-size parameter used in validation, so code and deployment cannot diverge. This repository has no Azure Bicep
+module yet; RH-314 records its required validation rather than introducing infrastructure outside this change.
+
+Evidence: `CloudProfileStartupTests` asserts every Hikari default and staging override;
+`AzureProfileStartupIntegrationTest` checks the real single datasource and pool gauges after Flyway startup,
+and executes sessions, Blob storage and the unavailable-sandbox API. Profile graph tests assert all four scheduled
+product components. Transaction/claim behavior is covered by the processing, export and analysis integration suites.

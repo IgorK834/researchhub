@@ -53,7 +53,7 @@ dev.researchhub
     ├── api         HTTP translation of those errors
     ├── validation  Shared Bean Validation length limits and DTO normalization helpers
     └── infrastructure
-        └── persistence   JPA scan for the local profile; not product repositories
+        └── persistence   JPA entity scan for every runtime; not product repositories
 ```
 
 `user` owns the user record and its password hash. It has no `api` package: nothing exposes users over HTTP directly, and the endpoints that create and verify them belong to `auth`.
@@ -153,17 +153,25 @@ future endpoint gets both for free rather than reimplementing either.
 
 Logout is authenticated, not public. It needs a session to invalidate, so an anonymous POST has nothing to do; answering 401 rather than a silent 204 also avoids confirming the route to an unauthenticated caller.
 
-### Profile scoping, and why some beans have it
+### Profiles select infrastructure (RH-311 / RH-312)
 
-`JpaPersistenceConfiguration` is `@Profile("local")`, so `UserRepository` exists only there. Anything that needs it must carry the same guard, or the `test` and `cloud` contexts fail to start — `BackendApplicationTests` and `CloudProfileStartupTests` both load the full context on profiles that exclude JDBC and JPA.
+Product services, controllers, stores, repository interfaces, policies and dispatchers are unconditional.
+Spring Boot enables JPA repositories whenever the runtime supplies persistence. Profiles choose source storage,
+session/quota stores, sandbox runner and worker/provider connection settings; `azure` never includes `local`.
+Missing adapters or required deployment variables fail startup. Database-free tests explicitly load an
+infrastructure/web slice instead of using a profile to remove half the product.
 
-That is why `UserRegistrationService`, `UserAuthenticationService`, `UserLookupService`, `CurrentUserResolver`, `AuthController`, `CurrentUserController`, `WorkspaceService`, `WorkspaceMembershipService`, `WorkspaceAuthorizationService`, `WorkspaceController`, `WorkspaceMemberController`, `DocumentService`, and `DocumentController` are `@Profile("local")`.
+`LocalProfileBeanGraphTests` and `AzureProfileStartupIntegrationTest` assert the same fixed product bean list.
+The latter boots PostgreSQL + HTTPS Blob storage, runs Flyway and verifies the unavailable-sandbox state over HTTP.
+The security chain remains conditional only on a servlet web application; non-web persistence tests still use
+its password encoder and policy. Deployment settings: [configuration.md](configuration.md).
 
-Repository interfaces themselves carry no annotation: the guard is on `JpaPersistenceConfiguration`'s scan, so they are simply never instantiated elsewhere. Anything that *injects* one needs the guard, and so does anything that injects that.
+`dev.researchhub.config` owns cross-cutting startup validation; product rules remain in their modules.
+Decisions and implementation evidence:
 
-The security filter chain is deliberately **not** scoped that way, and authentication is performed by the controller calling `user.application` rather than by a `UserDetailsService` or `DaoAuthenticationProvider` wired into the chain. A chain that depended on the user repository could not start where the repository does not exist, which would leave the profiles used by those tests with no filter chain at all — and therefore no assurance that the public health routes and the deny-by-default rule behave the same everywhere. The chain instead depends on nothing but Spring Security itself, and only the `SecurityFilterChain` and `CorsConfigurationSource` beans are conditional, on a servlet web application, because `HttpSecurity` is absent from a non-web context such as `@SpringBootTest(webEnvironment = NONE)`.
-
-`dev.researchhub.config` holds cross-cutting startup configuration, including the cloud profile's required settings. It is not a dumping ground for product rules.
+- [ADR-009: shared session and quota state](../adr/ADR-009-shared-session-and-quota-state.md).
+- [ADR-011: durable processing in PostgreSQL](../adr/ADR-011-durable-processing-in-postgresql.md).
+- [ADR-012: report export pipeline](../adr/ADR-012-report-export-pipeline.md).
 
 `shared` holds technology that more than one module needs. It does not hold workspace, document, source, processing,
 or analysis behavior.

@@ -276,3 +276,11 @@ revision, citations and analysis provenance into a browser-independent report, t
 See [report export contracts and verification](docs/development/report-export.md) for API routes, retention,
 configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232/RH-233). LaTeX downloads contain
 `report.tex`, chart images and provenance for local typesetting; the main backend generates sources only.
+
+## Architecture decision index
+
+- [ADR-009 — Shared PostgreSQL sessions and atomic cost quotas](docs/adr/ADR-009-shared-session-and-quota-state.md).
+- [ADR-011 — Durable processing queue in PostgreSQL](docs/adr/ADR-011-durable-processing-in-postgresql.md).
+- [ADR-012 — Asynchronous report export pipeline](docs/adr/ADR-012-report-export-pipeline.md).
+- [Runtime profiles and Azure deployment contract](docs/development/configuration.md#azure-deployment-contract-rh-311--rh-312).
+- [Per-replica connection budget and Epic 21 validation](docs/development/persistence.md#connection-budget-and-autoscaling-rh-314).
