@@ -158,7 +158,7 @@ describe('realtime security and durability', () => {
 });
 it('validates environment configuration and emits structured logs', () => {
   expect(configuration({...process.env, COLLABORATION_SERVICE_TOKEN: 'x'.repeat(32)}).port).toBe(8091);
-  for (const extra of [{COLLABORATION_PORT: '-1'}, {COLLABORATION_SERVICE_TOKEN: ''}, {COLLABORATION_ALLOWED_ORIGINS: '*'}, {COLLABORATION_RECHECK_MS: '6000'}, {COLLABORATION_BACKEND_URL: 'ftp://localhost'}]) {
+  for (const extra of [{COLLABORATION_HOST: 'bad'}, {COLLABORATION_PORT: '-1'}, {COLLABORATION_SERVICE_TOKEN: ''}, {COLLABORATION_ALLOWED_ORIGINS: '*'}, {COLLABORATION_RECHECK_MS: '6000'}, {COLLABORATION_BACKEND_URL: 'ftp://localhost'}]) {
     expect(() => configuration({COLLABORATION_SERVICE_TOKEN: 'x'.repeat(32), ...extra})).toThrow();
   }
   log('test.event', {test: true});

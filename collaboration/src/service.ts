@@ -44,7 +44,7 @@ export function createService(config: Config, backend = new Backend(config), log
     connection.close({code: code === 'ACCESS_REVOKED' ? 4403 : code === 'ACCESS_EXPIRED' ? 4401 : code === 'STATE_REPLACED' ? 4409 : 1013, reason: code});
   };
   const server = new Server({
-    port: config.port, address: '0.0.0.0', stopOnSignals: false, quiet: true, timeout: 10000,
+    port: config.port, address: config.host ?? '0.0.0.0', stopOnSignals: false, quiet: true, timeout: 10000,
     maxDebounce: 1000, debounce: 500,
     async onUpgrade({request, socket}) {
       const origin = request.headers.origin;
