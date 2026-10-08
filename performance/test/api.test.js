@@ -127,6 +127,7 @@ test('every scenario exports inspectable configuration and executes its intended
         for (const value of [0, .9, .99]) { Math.random = () => value; module.default(data); }
       } finally { Math.random = original; }
       assert.equal(module.options.stages.reduce((maximum, stage) => Math.max(maximum, stage.target), 0), 200);
+      assert.equal(module.options.vus, 50, 'the mixed ramp starts at 50 VUs');
     } else module.default(data);
   }
 });

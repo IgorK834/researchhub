@@ -2,7 +2,7 @@ import { options as configure, prepare, readApi, readWorkspace, retrieval, pause
 import { positiveInteger, mixedRoute } from './lib/configuration.js';
 const maximum = positiveInteger(__ENV.MAX_VUS, 200);
 const configuration = configure(50, '12m');
-delete configuration.vus;
+configuration.vus = Math.min(50, maximum);
 delete configuration.duration;
 export const options = {
   ...configuration,
