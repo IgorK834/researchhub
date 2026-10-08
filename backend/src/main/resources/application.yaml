@@ -49,7 +49,7 @@ researchhub:
     storage:
       # Which SourceStorage adapter holds the bytes. The local profile selects azure-blob and supplies its
       # Azurite settings. Blob container names and credentials belong to the adapter's own settings, never here.
-      # With this unset in another profile, the source service and its HTTP controller are not created.
+      # Every runtime profile must supply an adapter; missing dependencies fail startup.
   documents:
     history:
       # How old the newest restore point must be before an autosave takes another one. A manual save is always
@@ -64,10 +64,10 @@ spring:
   application:
     name: backend
   profiles:
-    # Existing product beans are local-scoped. These overlays reuse that graph without a profile refactor.
+    # Product beans are unconditional; only infrastructure defaults are inherited.
     group:
       demo: [local]
-      azure: [local]
+      cloud: [azure]
   session:
     jdbc:
       # V36 is the only schema writer, including PostgreSQL deployments.
@@ -123,7 +123,7 @@ management:
 spring:
   config:
     activate:
-      on-profile: "demo | azure"
+      on-profile: demo
 researchhub:
   auth:
     session-store: ${AUTH_SESSION_STORE:jdbc}
@@ -132,8 +132,81 @@ researchhub:
 spring:
   config:
     activate:
-      on-profile: "demo | azure"
+      on-profile: demo
 researchhub:
   security:
     quotas:
       store: ${COST_QUOTA_STORE:postgres}
+
+---
+# Product policies apply to every runtime profile.
+researchhub:
+  export:
+    retention: ${EXPORT_RETENTION:PT168H}
+    dispatcher:
+      enabled: ${EXPORT_DISPATCHER_ENABLED:true}
+      fixed-delay: ${EXPORT_FIXED_DELAY:PT1S}
+  ai:
+    conversations:
+      stream:
+        max-concurrent: ${AI_CONVERSATION_STREAM_MAX_CONCURRENT:8}
+        timeout: ${AI_CONVERSATION_STREAM_TIMEOUT:PT90S}
+        heartbeat: ${AI_CONVERSATION_STREAM_HEARTBEAT:PT10S}
+    diagnostics:
+      enabled: ${AI_DIAGNOSTICS_ENABLED:false}
+      capture-content: ${AI_DIAGNOSTICS_CAPTURE_CONTENT:false}
+      staff-ids: ${AI_DIAGNOSTICS_STAFF_IDS:}
+      # Exact provider/model/version match; no speculative pricing defaults.
+      rates: []
+    features:
+      source-analysis:
+        max-output-tokens: ${AI_SOURCE_ANALYSIS_MAX_OUTPUT_TOKENS:6144}
+        temperature: ${AI_SOURCE_ANALYSIS_TEMPERATURE:0}
+        context:
+          max-tokens: ${AI_SOURCE_ANALYSIS_CONTEXT_MAX_TOKENS:98304}
+          max-bytes: ${AI_SOURCE_ANALYSIS_CONTEXT_MAX_BYTES:65536}
+      authoring:
+        max-output-tokens: ${AI_AUTHORING_MAX_OUTPUT_TOKENS:4096}
+        temperature: ${AI_AUTHORING_TEMPERATURE:0}
+      workspace-question:
+        top-k: ${AI_WORKSPACE_QUESTION_TOP_K:6}
+        temperature: ${AI_WORKSPACE_QUESTION_TEMPERATURE:0}
+        max-output-tokens: ${AI_WORKSPACE_QUESTION_MAX_OUTPUT_TOKENS:1024}
+      grounded-response:
+        template-id: grounded-response:2
+        # Use "none" for deployments that do not support temperature.
+        temperature: ${AI_GROUNDED_RESPONSE_TEMPERATURE:0}
+        max-output-tokens: ${AI_GROUNDED_RESPONSE_MAX_OUTPUT_TOKENS:1024}
+        context:
+          max-tokens: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_TOKENS:32768}
+          max-bytes: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_BYTES:24576}
+          collapse-exact-duplicates: ${AI_GROUNDED_RESPONSE_CONTEXT_COLLAPSE_EXACT_DUPLICATES:true}
+  sources:
+    external-search:
+      enabled: ${EXTERNAL_SEARCH_ENABLED:false}
+      api-key: ${BRAVE_SEARCH_API_KEY:}
+      timeout: ${EXTERNAL_SEARCH_TIMEOUT:PT8S}
+  processing:
+    dispatcher:
+      enabled: ${PROCESSING_DISPATCHER_ENABLED:true}
+      fixed-delay: ${PROCESSING_FIXED_DELAY:PT1S}
+      batch-size: ${PROCESSING_BATCH_SIZE:4}
+      max-attempts: ${PROCESSING_MAX_ATTEMPTS:5}
+      initial-backoff: ${PROCESSING_INITIAL_BACKOFF:PT2S}
+      max-backoff: ${PROCESSING_MAX_BACKOFF:PT1M}
+      stale-timeout: ${PROCESSING_STALE_TIMEOUT:PT5M}
+    worker:
+      request-timeout: ${AI_WORKER_REQUEST_TIMEOUT:PT30S}
+      source-access-ttl: ${AI_WORKER_SOURCE_ACCESS_TTL:PT5M}
+
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC

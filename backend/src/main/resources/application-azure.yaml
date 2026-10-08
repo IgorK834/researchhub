@@ -1,5 +1,16 @@
-# Cloud storage has no emulator endpoint or credentials. Flyway owns all database schema.
+# Deployment contract: validated before bean creation by CloudEnvironmentConfiguration.
+# No local/Azurite settings are inherited; infrastructure provisions the Blob container.
 researchhub:
+  environment: cloud
+  auth:
+    session-store: jdbc
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  security:
+    quotas:
+      store: postgres
+  observability:
+    scrape-token: ${METRICS_SCRAPE_TOKEN}
   sources:
     storage:
       adapter: azure-blob
@@ -7,7 +18,52 @@ researchhub:
         auth: ${BLOB_AUTH:connection-string}
         connection-string: ${BLOB_CONNECTION_STRING:}
       azure-blob:
-        endpoint: ${BLOB_ENDPOINT:}
+        endpoint: ${BLOB_ENDPOINT}
         container-name: ${BLOB_CONTAINER_NAME:researchhub-sources}
         create-container: false
         create-container-on-startup: false
+  processing:
+    worker:
+      base-url: ${AI_WORKER_BASE_URL}
+      service-token: ${AI_WORKER_SERVICE_TOKEN}
+  analysis:
+    sandbox:
+      enabled: ${ANALYSIS_SANDBOX_ENABLED:false}
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      pool-name: researchhub
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:8}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:3000}
+      # Deployment must keep server/network idle cutoff above this (default contract: >=300s).
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:240000}
+      # Enable 20000 in staging; disabled in production unless diagnosing a leak.
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_THRESHOLD_MS:0}
+  flyway:
+    enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+server:
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+  servlet:
+    session:
+      cookie:
+        secure: true
+        same-site: ${SESSION_COOKIE_SAME_SITE:lax}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,db

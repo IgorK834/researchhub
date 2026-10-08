@@ -1,4 +1,5 @@
-# Test profile: automated tests. No external services and no developer secrets.
+# Test profile: explicit HTTP/infrastructure slices. No external services or developer secrets.
+# Do not component-scan the full product graph here: use local/azure plus Testcontainers for that.
 # JDBC, Flyway, and JPA auto-configuration are excluded so tests on this profile never open
 # a database. Persistence tests that need PostgreSQL use Testcontainers and the local
 # profile instead. See docs/development/persistence.md.
