@@ -17,6 +17,11 @@ public final class SessionTestApplications {
     private SessionTestApplications() {}
 
     public static ConfigurableApplicationContext start(PostgreSQLContainer database, String store, String... overrides) {
+        return startWithConfiguration(database, store, StorageConfiguration.class, overrides);
+    }
+
+    public static ConfigurableApplicationContext startWithConfiguration(PostgreSQLContainer database, String store,
+            Class<?> configuration, String... overrides) {
         List<String> arguments = new ArrayList<>(List.of(
                 "--server.port=0", "--spring.datasource.url=" + database.getJdbcUrl(),
                 "--spring.datasource.username=" + database.getUsername(),
@@ -30,7 +35,7 @@ public final class SessionTestApplications {
                 "--researchhub.documents.history.scheduler.enabled=false",
                 "--spring.session.jdbc.cleanup-cron=*/1 * * * * *"));
         arguments.addAll(List.of(overrides));
-        return new SpringApplicationBuilder(BackendApplication.class, StorageConfiguration.class)
+        return new SpringApplicationBuilder(BackendApplication.class, StorageConfiguration.class, configuration)
                 .profiles("local").run(arguments.toArray(String[]::new));
     }
 
