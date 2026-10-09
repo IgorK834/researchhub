@@ -156,7 +156,7 @@ researchhub:
     conversations:
       stream:
         max-concurrent: ${AI_CONVERSATION_STREAM_MAX_CONCURRENT:8}
-        timeout: ${AI_CONVERSATION_STREAM_TIMEOUT:PT90S}
+        timeout: ${AI_CONVERSATION_STREAM_TIMEOUT:PT180S}
         heartbeat: ${AI_CONVERSATION_STREAM_HEARTBEAT:PT10S}
     diagnostics:
       enabled: ${AI_DIAGNOSTICS_ENABLED:false}
@@ -177,12 +177,12 @@ researchhub:
       workspace-question:
         top-k: ${AI_WORKSPACE_QUESTION_TOP_K:6}
         temperature: ${AI_WORKSPACE_QUESTION_TEMPERATURE:0}
-        max-output-tokens: ${AI_WORKSPACE_QUESTION_MAX_OUTPUT_TOKENS:1024}
+        max-output-tokens: ${AI_WORKSPACE_QUESTION_MAX_OUTPUT_TOKENS:4096}
       grounded-response:
         template-id: grounded-response:2
         # Use "none" for deployments that do not support temperature.
         temperature: ${AI_GROUNDED_RESPONSE_TEMPERATURE:0}
-        max-output-tokens: ${AI_GROUNDED_RESPONSE_MAX_OUTPUT_TOKENS:1024}
+        max-output-tokens: ${AI_GROUNDED_RESPONSE_MAX_OUTPUT_TOKENS:4096}
         context:
           max-tokens: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_TOKENS:32768}
           max-bytes: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_BYTES:24576}
@@ -202,7 +202,7 @@ researchhub:
       max-backoff: ${PROCESSING_MAX_BACKOFF:PT1M}
       stale-timeout: ${PROCESSING_STALE_TIMEOUT:PT5M}
     worker:
-      request-timeout: ${AI_WORKER_REQUEST_TIMEOUT:PT30S}
+      request-timeout: ${AI_WORKER_REQUEST_TIMEOUT:PT120S}
       source-access-ttl: ${AI_WORKER_SOURCE_ACCESS_TTL:PT5M}
 
 spring:

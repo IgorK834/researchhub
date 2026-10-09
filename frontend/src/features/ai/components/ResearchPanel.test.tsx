@@ -221,7 +221,7 @@ it('retries a transient failure using the same request identity and no partial a
   await submit();
   expect(await screen.findByRole('alert')).toHaveProperty(
     'textContent',
-    'Try again later',
+    'The AI service is unavailable or its request limit has been reached. Try again later or ask the administrator to check the provider limits.',
   );
   expect(screen.queryByLabelText('Answer preview')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Retry answer' }));

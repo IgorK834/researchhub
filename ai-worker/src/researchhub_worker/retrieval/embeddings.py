@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import nullcontext
 import hashlib
 import json
 import math
@@ -197,17 +198,19 @@ class BatchedEmbeddingProvider:
     def embed_documents(self, texts):
         self._validate(texts)
         vectors = []
-        for start in range(0, len(texts), self._batch_size):
-            vectors.extend(self._call(texts[start:start + self._batch_size]).vectors)
+        with self._provider.operation_scope() if callable(getattr(type(self._provider), 'operation_scope', None)) else nullcontext():
+            for start in range(0, len(texts), self._batch_size):
+                vectors.extend(self._call(texts[start:start + self._batch_size]).vectors)
         return EmbeddingBatch(metadata=self.model_metadata(), vectors=vectors)
 
     def embed_query(self, text):
         self._validate([text])
-        return self._call([text], query=True)
+        with self._provider.operation_scope() if callable(getattr(type(self._provider), 'operation_scope', None)) else nullcontext():
+            return self._call([text], query=True)
 
 
 def configured_provider():
-    name = os.getenv('AI_WORKER_EMBEDDING_PROVIDER', 'deterministic')
+    name = os.getenv('AI_WORKER_EMBEDDING_PROVIDER') or ('gemini' if os.getenv('GEMINI_API_KEY') else 'deterministic')
     if name == 'deterministic':
         provider = FakeEmbeddingProvider()
     elif name == 'azure':
@@ -218,6 +221,12 @@ def configured_provider():
         provider = OpenAiCompatibleEmbeddingProvider(os.environ['OPENAI_COMPAT_BASE_URL'], os.environ['OPENAI_COMPAT_API_KEY'],
             ModelMetadata(provider=name, name=os.environ['OPENAI_COMPAT_EMBEDDING_MODEL'],
                 version=os.environ['OPENAI_COMPAT_EMBEDDING_VERSION'], dimension=int(os.environ['OPENAI_COMPAT_EMBEDDING_DIMENSION'])))
+    elif name == 'gemini':
+        from .gemini import configured_embeddings
+        provider = configured_embeddings()
     else:
         raise ValueError('Unknown embedding provider')
+    if name in {'gemini', 'openai-compatible'}:
+        from ..ai.gemini_http import embedding_batch_size
+        return BatchedEmbeddingProvider(provider, batch_size=embedding_batch_size(provider.model_metadata().dimension))
     return BatchedEmbeddingProvider(provider)

@@ -105,6 +105,59 @@ class DemoStackTest(unittest.TestCase):
         with patch.dict(stack.os.environ, {"DOCKER_HOST": ""}), patch.object(stack.subprocess, "run", return_value=Mock(stdout="unix:///tmp/context.sock\n")):
             self.assertEqual("/tmp/context.sock", stack.backend_env({"DEMO_DB_PASSWORD": "test"}, False)["ANALYSIS_SANDBOX_SOCKET_PATH"])
 
+    def test_one_key_private_dotenv_auto_selection_and_secret_isolation(self):
+        (self.root / '.env').write_text('# private\nGEMINI_API_KEY="private-key"\nGEMINI_MODEL=gemini-3.8-flash\nDB_PASSWORD=ignored\n')
+        with patch.dict(stack.os.environ, {}, clear=True):
+            settings = stack.worker_env({'DEMO_DB_PASSWORD': 'db'})
+            self.assertEqual('gemini', stack.selected_provider(settings, 'AI_WORKER_MODEL_PROVIDER'))
+            self.assertEqual('private-key', settings['GEMINI_API_KEY'])
+            self.assertNotIn('DB_PASSWORD', settings)
+            seeded = stack.worker_env(seeding=True)
+            self.assertNotIn('GEMINI_API_KEY', seeded)
+            self.assertEqual('deterministic', seeded['AI_WORKER_EMBEDDING_PROVIDER'])
+        with patch.dict(stack.os.environ, {'GEMINI_API_KEY': 'process-key', 'AI_WORKER_MODEL_PROVIDER': 'deterministic'}, clear=True):
+            self.assertEqual('process-key', stack.worker_env()['GEMINI_API_KEY'])
+            self.assertEqual('deterministic', stack.selected_provider(stack.worker_env(), 'AI_WORKER_MODEL_PROVIDER'))
+        with patch.dict(stack.os.environ, {'DOCKER_HOST': 'unix:///tmp/docker.sock', 'GEMINI_API_KEY': 'process-key'}):
+            result = stack.backend_env({'DEMO_DB_PASSWORD': 'db', 'FOUNDRY_API_KEY': 'private-foundry'}, False)
+            self.assertNotIn('GEMINI_API_KEY', result)
+            self.assertNotIn('FOUNDRY_API_KEY', result)
+        (self.root / '.env').write_text('GEMINI_API_KEY="unterminated\n')
+        self.assertRaises(RuntimeError, stack.worker_env)
+
+    def test_reprocessing_records_model_identity_after_ready_and_is_idempotent(self):
+        self.save('accounts.json', {'accounts': {'owner': {'email': 'owner', 'password': 'synthetic'}}})
+        self.save('seed-manifest.json', {'workspaceId': 'workspace'})
+        profile = {'provider': 'gemini', 'name': 'embedding', 'version': '1', 'dimension': 768}
+        source = {'id': 'source', 'activeVersionId': 'version', 'status': 'READY'}
+        client = Mock()
+        client.get.side_effect = [[source], source]
+        response = Mock(__enter__=Mock(return_value=io.StringIO(json.dumps(profile))), __exit__=Mock())
+        with patch('api.Client', return_value=client) as factory, patch.object(stack.urllib.request, 'urlopen', return_value=response), patch.object(stack.ssl, 'create_default_context'), patch.object(stack, 'wait_health'), contextlib.redirect_stdout(io.StringIO()):
+            stack.reindex_demo({'AI_WORKER_SERVICE_TOKEN': 'service-token'}, {'GEMINI_API_KEY': 'key'})
+            self.assertEqual(profile, json.loads((self.state / 'embedding-profile.json').read_text()))
+            client.post.assert_called_once_with('/api/workspaces/workspace/sources/source/reprocess')
+            self.assertEqual(stack.URL, factory.call_args.args[0])
+        response = Mock(__enter__=Mock(return_value=io.StringIO(json.dumps(profile))), __exit__=Mock())
+        with patch('api.Client') as client, patch.object(stack.urllib.request, 'urlopen', return_value=response):
+            stack.reindex_demo({'AI_WORKER_SERVICE_TOKEN': 'token'}, {'GEMINI_API_KEY': 'key'})
+            client.assert_not_called()
+
+    def test_reprocessing_resumes_completed_sources_and_does_not_mark_failure_ready(self):
+        self.save('accounts.json', {'accounts': {'owner': {'email': 'owner', 'password': 'synthetic'}}})
+        self.save('seed-manifest.json', {'workspaceId': 'workspace'})
+        profile = {'provider': 'gemini', 'name': 'embedding', 'version': '1', 'dimension': 768}
+        self.save('embedding-reprocessing.json', {'profile': profile, 'completed': {'done': 'version'}})
+        sources = [{'id': 'done', 'activeVersionId': 'version', 'status': 'READY'},
+                   {'id': 'pending', 'activeVersionId': 'other', 'status': 'PROCESSING'}]
+        client = Mock()
+        client.get.side_effect = [sources, {**sources[1], 'status': 'READY'}, {**sources[1], 'status': 'FAILED'}]
+        response = Mock(__enter__=Mock(return_value=io.StringIO(json.dumps(profile))), __exit__=Mock())
+        with patch('api.Client', return_value=client), patch.object(stack.urllib.request, 'urlopen', return_value=response), patch.object(stack.ssl, 'create_default_context'), patch.object(stack, 'wait_health'), contextlib.redirect_stdout(io.StringIO()):
+            self.assertRaises(RuntimeError, stack.reindex_demo, {'AI_WORKER_SERVICE_TOKEN': 'token'}, {'GEMINI_API_KEY': 'key'})
+            client.post.assert_called_once_with('/api/workspaces/workspace/sources/pending/reprocess')
+            self.assertFalse((self.state / 'embedding-profile.json').exists())
+
     def test_readiness_is_bounded_and_tolerates_startup_failures(self):
         with patch.object(stack.urllib.request, "urlopen", side_effect=[stack.urllib.error.URLError("starting"), Mock(__enter__=Mock(return_value=Mock(status=200)), __exit__=Mock())]), patch.object(stack.time, "sleep"):
             stack.wait_health("http://test")

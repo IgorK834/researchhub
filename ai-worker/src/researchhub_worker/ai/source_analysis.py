@@ -176,11 +176,11 @@ def fake_answer(contextual, fields):
 
 
 def generate_analysis(provider, contextual):
-    from .providers import FakeModelProvider, FoundryModelProvider, OpenAiCompatibleModelProvider, ProviderError
+    from .providers import FakeModelProvider, StructuredChatProvider, ProviderError
     fields = instruction(contextual)
     if isinstance(provider, FakeModelProvider):
         answer, payload = fake_answer(contextual, fields), None
-    elif isinstance(provider, (FoundryModelProvider, OpenAiCompatibleModelProvider)):
+    elif isinstance(provider, StructuredChatProvider):
         payload = provider.complete(contextual, ANALYSIS_SCHEMA, 'researchhub_source_analysis_v1')
         answer = Answer.model_validate_json(payload['choices'][0]['message']['content'])
     else:

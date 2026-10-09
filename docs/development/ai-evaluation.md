@@ -1,14 +1,17 @@
 # Demo model selection (RH-346)
 
-The preferred hosted demo candidate is **Gemini 3.8 Flash**, as requested. It is **not approved for
-adoption yet**: no Gemini worker key was available during the 2026-10-08 run. Foundry was also
-unavailable. The default demo therefore remains the explicitly labeled deterministic fixture.
-Its refusal and injection thresholds fail; it demonstrates the product workflow, not LLM quality.
+The user-selected hosted demo candidate is **Gemini 3.8 Flash**, available through the native adapter.
+A private `GEMINI_API_KEY` automatically selects it for generation and native embeddings.
+The [complete native-v2 run on 2026-10-09](../evaluation/results/gemini-native-2026-10-09/models.md)
+passes citation membership, refusal, output validity, injection, latency and cost thresholds,
+but misses curated grounding and correctness gates. It is usable for the requested demo;
+the quality adoption gate remains **FAIL**. With no key the demo uses the labeled deterministic fixture.
+Its refusal and injection thresholds fail; it demonstrates the product workflow.
 No evaluated local candidate passes every threshold. Qwen3 4B is the stronger local alternative
 for correct refusals and injection handling, but misses grounded-answer, correctness, citation
 and output-validity thresholds. Gemma3 1B largely refuses answerable questions.
 
-[Measured results table](../evaluation/results/demo-models/models.md) and
+[Historical local-model results table](../evaluation/results/demo-models/models.md) and
 [machine-readable results](../evaluation/results/demo-models/models.json) contain the complete
 threshold decisions. Raw per-case reports include citations, curated support checks, usage,
 errors and latency. The README links this evidence rather than presenting an unmeasured winner.
@@ -32,11 +35,12 @@ all available candidates with this **one command from `ai-worker/`**:
 uv run --frozen python scripts/evaluate-demo-models.py --output ../docs/evaluation/results/demo-models
 ```
 
-It measures the deterministic provider and both real local models. Export `OPENAI_COMPAT_API_KEY`
-into this worker process to also evaluate Gemini 3.8 Flash. Export the existing five `FOUNDRY_*`
+It measures the deterministic provider and both real local models. Export `GEMINI_API_KEY`
+into this worker process to also evaluate native Gemini 3.8 Flash. Export the existing five `FOUNDRY_*`
 settings to evaluate the Foundry deployment. Give Foundry its deployment-specific USD pricing in
 the matrix; unavailable/unknown cost does not pass the cost gate. Credentials are neither read
-from the frontend nor written into reports. A private `.env` is not executed or loaded implicitly.
+from the frontend nor written into reports. This raw worker command does not load private `.env`;
+the repository-root helper below safely loads only worker provider settings.
 **Exit 0** means the preferred candidate passes all thresholds; **exit 1** retains the reports
 but blocks adoption. Missing keys produce `unavailable`, not invented metrics.
 
@@ -81,7 +85,7 @@ snapshots are recorded. Token totals include both responses of schema repair and
 failures. Missing usage/cost stays unknown. Local inference has zero API-token charge, excluding
 hardware/electricity. Gemini's matrix uses paid standard prices, not an assumed free entitlement.
 Temperature=0 and pinned inputs support reproducible comparisons; hosted aliases and GPU inference
-do not guarantee byte-identical generated text. `GA-2026-09-provider-alias` identifies the documented
+do not guarantee byte-identical generated text. `gemini-3.8-flash-ga-native-v2` identifies the configured
 Gemini release, not a provider-guaranteed immutable weight snapshot; re-evaluate after alias changes.
 
 Acceptance requires source/span recall >=95%, cited-fragment membership 100%, grounded answers
@@ -93,9 +97,9 @@ by weakening them. Full values and every miss are retained in the results table.
 ## Hosted terms and limits checked 2026-10-08
 
 Google lists `gemini-3.8-flash` as a generally available model with structured outputs, reachable
-through `https://generativelanguage.googleapis.com/v1beta/openai`.
+through the native `https://generativelanguage.googleapis.com/v1beta` API.
 [Model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash),
-[OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai).
+[Native REST API](https://ai.google.dev/api/generate-content).
 
 The current standard paid rate is **USD 0.75 / million input tokens and USD 3.75 / million output
 (including thinking) through 2026-12-31**; published rates become USD 1.50 / USD 7.50 on 2027-01-01.
@@ -119,19 +123,37 @@ hosted quota. Review applicable model notices before exposing either model publi
 [Qwen model card/license](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507),
 [Gemma terms](https://ai.google.dev/gemma/terms).
 
-## Enable a measured provider in the existing demo
+## Native Gemini run on 2026-10-09
 
-Bootstrap the seeded demo with `scripts/demo/up.sh` in its deterministic mode; the RC fixture and
-load seeder deliberately require that provider. After a candidate has been measured and its misses
-accepted, supply worker-only provider variables from
-[model-gateway configuration](model-gateway.md#openai-compatible-chat-and-embeddings-rh-318), then
-recreate only its existing worker:
+The user-selected model is now wired through native Gemini APIs. Put `GEMINI_API_KEY` in the
+private root `.env` and run `scripts/demo/up.sh`; startup and reprocessing are automatic.
+[Native Gemini setup and live feature smoke](native-gemini.md).
+
+The [native-v2 results table](../evaluation/results/gemini-native-2026-10-09/models.md) and
+[raw report](../evaluation/results/gemini-native-2026-10-09/gemini-3-8-flash.json) record **33 suite
+cases and two additional injection probes**, all with validated outputs and known token costs.
+The configured Google project initially exhausted its 20/day free-tier quota; after the user
+enabled billing, the complete fixed suite ran successfully. The interrupted native-v1 run is
+preserved in [quota-limited-v1](../evaluation/results/gemini-native-2026-10-09/quota-limited-v1/models.md).
+
+Native-v2 scores: source/span recall 100% on the fixture index, citation membership 100%,
+correct refusal 100%, schema-valid output 100%, injection pass 100%, p50 **2,185.8 ms**,
+p95 **3,481.5 ms**, average **0.001453 USD** per observation. Curated grounded-answer rate is
+**67.86%** and correctness **81.82%**, below the unchanged 90% thresholds; the adoption gate is
+**FAIL**. Some rejected claims are semantically plausible paraphrases or punctuation changes,
+which exact approved statement/fact rules conservatively fail. These metrics do not prove
+semantic support for arbitrary claims. No threshold or gold pattern was loosened to pass the model.
+
+The historical local-candidate reports above remain unchanged. Rerun the current fixed matrix
+with **one command from the repository root**:
 
 ```sh
-docker compose --env-file .demo/local/demo.env -f infra/demo/compose.demo.yaml up -d --no-deps ai-worker
+python3 scripts/demo/evaluate-ai.py
 ```
 
-Exported provider settings override Compose's deterministic default. For Gemini, keep deterministic
-embeddings until a separately measured compatible embedding model is explicitly configured.
-The demo startup/seeding checks remain deterministic; provider switching happens after bootstrap.
-No model has been silently promoted by this implementation.
+It loads only worker provider settings from private `.env`, writes `.demo/local/evaluation/`, and
+returns nonzero when thresholds are missed. It works with the pinned local worker environment or
+the running demo worker image. Full public API feature verification is separately reproduced with
+`python3 scripts/demo/ai-smoke.py --local-quota-window`; this temporarily shortens the managed local
+demo quota window to one minute and restores its original settings even if a check fails.
+Native configuration keeps Foundry available for production.

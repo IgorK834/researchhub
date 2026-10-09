@@ -1,5 +1,6 @@
 """Bounded economic metadata across provider validation failures; never prompt/output text."""
 from contextvars import ContextVar
+from contextlib import nullcontext
 from .contracts import ModelMetadata, UsageMetadata
 
 _current: ContextVar[dict | None] = ContextVar('ai_provider_usage', default=None)
@@ -28,7 +29,7 @@ def record_payload(model, payload, *, accumulate=False):
 
 
 def invoke(gateway, operation, command):
-    from .providers import ProviderError
+    from .providers import ModelGateway, ProviderError
     initial = None
     try:
         initial = {'model': ModelMetadata.model_validate(gateway.model_metadata().model_dump()).model_dump(mode='json', by_alias=True), 'usage': None}
@@ -37,7 +38,8 @@ def invoke(gateway, operation, command):
     token = _current.set(initial)
     active = _active.set(True)
     try:
-        return operation(command)
+        with gateway.operation_scope() if isinstance(gateway, ModelGateway) else nullcontext():
+            return operation(command)
     except ProviderError as failure:
         failure.telemetry = _current.get()
         raise

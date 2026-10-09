@@ -148,6 +148,9 @@ export function describeError(error: unknown): string {
     if (error.code === 'AI_OUTPUT_INVALID') {
       return 'The AI response could not be validated. Please try again or rephrase your request.';
     }
+    if (error.code === 'AI_UNAVAILABLE') {
+      return 'The AI service is unavailable or its request limit has been reached. Try again later or ask the administrator to check the provider limits.';
+    }
     const message = error.problem.detail || error.problem.title;
     if (
       error.code === 'RATE_LIMIT_EXCEEDED' &&

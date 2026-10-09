@@ -57,6 +57,87 @@ def credentials():
     return dict(line.split("=", 1) for line in file.read_text().splitlines() if line)
 
 
+def worker_setting(name):
+    return name.startswith(("GEMINI_", "OPENAI_COMPAT_", "FOUNDRY_", "AZURE_EMBEDDING_")) or name in (
+        "AI_WORKER_MODEL_PROVIDER", "AI_WORKER_EMBEDDING_PROVIDER")
+
+
+def without_worker_settings(values):
+    return {name: value for name, value in values.items() if not worker_setting(name)}
+
+
+def worker_env(values=None, seeding=False):
+    """Read only worker settings from private .env, without evaluating shell syntax.
+
+    Process environment wins over .env, which wins over the generated private demo
+    file. Neither the key nor provider settings are copied to Spring or the bundle.
+    """
+    config = dict(values or {})
+    file = ROOT / ".env"
+    if file.exists():
+        for line in file.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            name, separator, value = line.removeprefix('export ').partition('=')
+            name = name.strip()
+            if separator and worker_setting(name):
+                value = value.strip()
+                if value.startswith(('"', "'")):
+                    if len(value) < 2 or value[-1] != value[0]:
+                        raise RuntimeError('Malformed quoted worker setting in .env: ' + name)
+                    value = value[1:-1]
+                config[name] = value
+    config.update(os.environ)
+    if seeding:
+        config = without_worker_settings(config)
+        config.update(AI_WORKER_MODEL_PROVIDER='deterministic', AI_WORKER_EMBEDDING_PROVIDER='deterministic')
+    return config
+
+
+def selected_provider(settings, selector):
+    return settings.get(selector) or ('gemini' if settings.get('GEMINI_API_KEY') else 'deterministic')
+
+
+def reindex_demo(values, settings):
+    """An explicit, resumable source reprocessing event; never relabel stored vectors."""
+    from api import Client, wait_for
+    stamp = STATE / 'embedding-profile.json'
+    checkpoint = STATE / 'embedding-reprocessing.json'
+    if selected_provider(settings, 'AI_WORKER_EMBEDDING_PROVIDER') == 'deterministic' and not stamp.exists():
+        return
+    request = urllib.request.Request('http://127.0.0.1:28090/internal/embeddings/model',
+        headers={'Authorization': 'Bearer ' + values['AI_WORKER_SERVICE_TOKEN']})
+    with urllib.request.urlopen(request, timeout=10) as response:
+        profile = json.load(response)
+    if stamp.exists() and json.loads(stamp.read_text()) == profile:
+        return
+    manifest = json.loads((STATE / 'seed-manifest.json').read_text())
+    context = ssl.create_default_context(cafile=str(STATE / 'root.crt'))
+    wait_health(URL + '/actuator/health/readiness', context)
+    client = Client(URL, ssl_context=context)
+    client.login(json.loads((STATE / 'accounts.json').read_text())['accounts']['owner'])
+    route = '/api/workspaces/' + manifest['workspaceId'] + '/sources'
+    progress = json.loads(checkpoint.read_text()) if checkpoint.exists() else {}
+    if progress.get('profile') != profile:
+        progress = {'profile': profile, 'completed': {}}
+    print('Embedding model changed: reprocessing demo sources through the authorized API.', flush=True)
+    for source in client.get(route):
+        path = route + '/' + source['id']
+        if progress['completed'].get(source['id']) == source['activeVersionId'] and source['status'] == 'READY':
+            continue
+        if source['status'] in ('PROCESSING', 'UPLOADED'):
+            wait_for(lambda: client.get(path), lambda item: item['status'] in ('READY', 'FAILED'), timeout=300)
+        client.post(path + '/reprocess')
+        updated = wait_for(lambda: client.get(path), lambda item: item['status'] in ('READY', 'FAILED'), timeout=300)
+        if updated['status'] != 'READY':
+            raise RuntimeError('Embedding reprocessing failed for source ' + source['id'] + '; check the worker configuration and retry up.sh')
+        progress['completed'][source['id']] = updated['activeVersionId']
+        save_private(checkpoint, progress)
+    save_private(stamp, profile)
+    checkpoint.unlink(missing_ok=True)
+
+
 def build():
     groups = {
         "backend": ["backend/src", "backend/pom.xml", "backend/.mvn", "backend/mvnw"],
@@ -73,13 +154,13 @@ def build():
         if present and stamp.exists() and stamp.read_text() == value:
             continue
         if group == "backend":
-            run([str(ROOT / "backend/mvnw"), "-q", "-DskipTests", "package"], cwd=ROOT / "backend")
+            run([str(ROOT / "backend/mvnw"), "-q", "-DskipTests", "package"], cwd=ROOT / "backend", env=without_worker_settings(os.environ))
         elif group == "frontend":
-            run(["npm", "ci", "--prefix", "frontend", "--no-audit", "--no-fund"], umask=0o022)
-            env = {**os.environ, "RESEARCHHUB_API_BASE_URL": "", "RESEARCHHUB_COLLABORATION_ENABLED": "true", "RESEARCHHUB_CSP_CONNECT_ORIGINS": "wss://localhost:8443"}
+            run(["npm", "ci", "--prefix", "frontend", "--no-audit", "--no-fund"], env=without_worker_settings(os.environ), umask=0o022)
+            env = {**without_worker_settings(os.environ), "RESEARCHHUB_API_BASE_URL": "", "RESEARCHHUB_COLLABORATION_ENABLED": "true", "RESEARCHHUB_CSP_CONNECT_ORIGINS": "wss://localhost:8443"}
             run(["npm", "run", "build", "--prefix", "frontend"], env=env, umask=0o022)
         else:
-            run(compose() + ["build", "ai-worker", "collaboration", "caddy"])
+            run(compose() + ["build", "ai-worker", "collaboration", "caddy"], env=without_worker_settings(os.environ))
         stamp.write_text(value)
     # Caddy uses a different UID. Only the already-public bundle is world-readable;
     # credentials and process state retain the private parent umask.
@@ -120,7 +201,7 @@ def backend_env(values, seeding):
         ["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"], check=True, capture_output=True, text=True).stdout.strip()
     if not docker_host.startswith("unix://"):
         raise RuntimeError("The demo sandbox requires a local Unix Docker socket")
-    return {**os.environ, **values, "SPRING_PROFILES_ACTIVE": "local,demo", "SERVER_ADDRESS": "127.0.0.1", "SERVER_PORT": "28081",
+    return {**without_worker_settings(os.environ), **without_worker_settings(values), "SPRING_PROFILES_ACTIVE": "local,demo", "SERVER_ADDRESS": "127.0.0.1", "SERVER_PORT": "28081",
         "DB_HOST": "127.0.0.1", "DB_PORT": "25432", "DB_NAME": "researchhub", "DB_USER": "researchhub", "DB_PASSWORD": values["DEMO_DB_PASSWORD"],
         "AZURITE_BLOB_ENDPOINT": "http://127.0.0.1:21000/devstoreaccount1", "BLOB_CREATE_CONTAINER_ON_STARTUP": "true",
         "AI_WORKER_BASE_URL": "http://127.0.0.1:28090", "ANALYSIS_SANDBOX_ENABLED": "true", "ANALYSIS_SANDBOX_SOCKET_PATH": docker_host[7:],
@@ -158,12 +239,16 @@ def smoke():
     wait_health(URL + "/actuator/health/readiness", context)
     client = Client(URL, ssl_context=context)
     facts = client.get("/api/public/config")
-    if not facts["demo"] or facts["registrationMode"] != "disabled" or facts["ai"]["mode"] != "deterministic":
+    if not facts["demo"] or facts["registrationMode"] != "disabled" or facts["ai"]["mode"] not in ('deterministic', 'live'):
         raise RuntimeError("Demo runtime facts do not match the safe baseline")
     manifest = json.loads((STATE / "seed-manifest.json").read_text())
     account = json.loads((STATE / "accounts.json").read_text())["accounts"]["demo-editor"]
     client.login(account)
     base = "/api/workspaces/" + manifest["workspaceId"]
+    if facts['ai']['mode'] == 'live':
+        metadata = client.get(base + '/ai/model')
+        if metadata['provider'] == 'deterministic' or metadata['name'] != facts['ai']['modelName']:
+            raise RuntimeError('Live model runtime facts differ from the worker')
     client.get(base + "/documents/" + manifest["documentId"])
     record = client.get(base + "/analyses/" + manifest["analysisId"] + "/executions/" + manifest["executionId"] + "/record")
     if record["execution"]["status"] != "SUCCEEDED" or not record["charts"]:
@@ -179,9 +264,12 @@ def up():
             raise RuntimeError("Missing prerequisite: " + executable)
     run(["docker", "info"], stdout=subprocess.DEVNULL)
     values = credentials()
+    settings = worker_env(values)
     build()
-    run(compose() + ["up", "-d", "--wait", "--wait-timeout", "180", "postgres", "azurite", "ai-worker"])
-    if not (STATE / "seed-manifest.json").exists():
+    needs_seed = not (STATE / 'seed-manifest.json').exists()
+    run(compose() + ["up", "-d", "--wait", "--wait-timeout", "180", "postgres", "azurite", "ai-worker"],
+        env=worker_env(values, seeding=True) if needs_seed else settings)
+    if needs_seed:
         # A partial seed is resumed using its saved credentials; existing content is never overwritten.
         run(compose() + ["stop", "caddy", "collaboration"])
         stop_backend()
@@ -190,12 +278,18 @@ def up():
             run([sys.executable, "scripts/demo/seed.py", "--base-url", BACKEND, "--state", str(STATE / "accounts.json"), "--load-users", "0"])
         finally:
             stop_backend()
+        run(compose() + ['up', '-d', '--wait', '--wait-timeout', '180', 'ai-worker'], env=settings)
     stamp = STATE / "running.sha256"
     desired = fingerprint(["backend/src/main", "backend/pom.xml", "scripts/demo/stack.py"])
+    provider_identity = {key: value for key, value in settings.items() if worker_setting(key) and not key.endswith('_API_KEY')}
+    provider_identity.update(modelProvider=selected_provider(settings, 'AI_WORKER_MODEL_PROVIDER'),
+                             embeddingProvider=selected_provider(settings, 'AI_WORKER_EMBEDDING_PROVIDER'))
+    desired += hashlib.sha256(json.dumps(provider_identity, sort_keys=True).encode()).hexdigest()
     if managed_pid() is None or not stamp.exists() or stamp.read_text() != desired:
         stop_backend(); start_backend(values); stamp.write_text(desired)
     run(compose() + ["up", "-d", "--wait", "--wait-timeout", "180", "collaboration", "caddy"])
     run(compose() + ["cp", "caddy:/data/caddy/pki/authorities/local/root.crt", str(STATE / "root.crt")])
+    reindex_demo(values, settings)
     smoke()
     accounts = json.loads((STATE / "accounts.json").read_text())["accounts"]
     print(f"Demo: {URL} (ready in {time.monotonic() - started:.1f}s)")
@@ -210,7 +304,7 @@ def down(reset=False):
         return
     run(compose() + ["down"] + (["-v"] if reset else []))
     if reset:
-        for name in ("accounts.json", "seed-manifest.json", "k6.json", "running.sha256", "root.crt"):
+        for name in ("accounts.json", "seed-manifest.json", "k6.json", "running.sha256", "root.crt", 'embedding-profile.json', 'embedding-reprocessing.json'):
             (STATE / name).unlink(missing_ok=True)
 
 

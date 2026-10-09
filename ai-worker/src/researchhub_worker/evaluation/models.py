@@ -27,7 +27,7 @@ EnvName = Annotated[str, Field(pattern=r'^[A-Z][A-Z0-9_]{0,95}$')]
 
 class Candidate(ContractModel):
     id: Annotated[str, Field(pattern=r'^[a-z][a-z0-9-]{0,63}$')]
-    provider: Literal['deterministic', 'openai-compatible', 'foundry']
+    provider: Literal['deterministic', 'openai-compatible', 'foundry', 'gemini']
     model: str = Field(min_length=1, max_length=128)
     version: str = Field(min_length=1, max_length=128)
     base_url: str | None = None
@@ -45,6 +45,13 @@ class Candidate(ContractModel):
             if self.api_key_env is None or self.base_url is None:
                 raise ValueError('Compatible candidate requires URL/key environment name')
             api_base_url(self.base_url)
+        elif self.provider == 'gemini':
+            from ..ai.gemini_http import base_url, model_name
+            if self.api_key_env is None:
+                raise ValueError('Gemini candidate requires a worker key environment name')
+            model_name(self.model)
+            if self.base_url is not None:
+                base_url(self.base_url)
         elif self.provider == 'foundry' and not all((self.api_key_env, self.deployment_env,
                 self.endpoint_env, self.model_env, self.version_env)):
             raise ValueError('Foundry candidate requires deployment environment names')
@@ -92,6 +99,11 @@ def gateway(candidate):
         provider = FoundryModelProvider(os.environ[candidate.endpoint_env], os.environ[candidate.api_key_env],
             os.environ[candidate.deployment_env], ModelMetadata(provider='foundry', name=os.environ[candidate.model_env],
                 version=os.environ[candidate.version_env]))
+    elif candidate.provider == 'gemini':
+        from ..ai.gemini import GeminiModelProvider
+        from ..ai.gemini_http import DEFAULT_BASE_URL
+        provider = GeminiModelProvider(os.environ[candidate.api_key_env], model=candidate.model,
+            version=candidate.version, base_url=candidate.base_url or DEFAULT_BASE_URL)
     else:
         provider = OpenAiCompatibleModelProvider(candidate.base_url, os.environ[candidate.api_key_env], candidate.model,
             ModelMetadata(provider=candidate.provider, name=candidate.model, version=candidate.version))
@@ -220,21 +232,22 @@ def table(result):
     lines = ['# Demo model evaluation', '', 'Date: ' + result['date'], '',
         'Dataset SHA-256: `' + result['suiteHash'] + '`', 'Corpus SHA-256: `' + result['corpusHash'] + '`',
         'Security fixture SHA-256: `' + result['securityFixtureHash'] + '`', '',
-        '| Model / version | Status | Recall@K | Valid citations | Grounded answers | Correct refusal | Valid output | Injection pass | p50 / p95 ms | USD / observation |',
-        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |']
+        '| Model / version | Status | Recall@K | Valid citations | Grounded answers | Correct facts | Correct refusal | Valid output | Injection pass | p50 / p95 ms | USD / observation |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |']
     for row in result['results']:
         metrics = row['metrics']
         if metrics is None:
-            values = ['n/a'] * 8
+            values = ['n/a'] * 9
         else:
             values = [('n/a' if metrics[k] is None else f'{metrics[k]:.2%}') for k in
-                ('sourceRecallAtK', 'citationValidity', 'groundedAnswerRate', 'correctRefusalRate', 'schemaValidOutputRate', 'injectionPassRate')]
+                ('sourceRecallAtK', 'citationValidity', 'groundedAnswerRate', 'answerCorrectness', 'correctRefusalRate', 'schemaValidOutputRate', 'injectionPassRate')]
             values += [f"{metrics['p50LatencyMs']:.1f} / {metrics['p95LatencyMs']:.1f}",
                 'unknown' if metrics['meanCostUsd'] is None else f"{metrics['meanCostUsd']:.6f}"]
         label = row['status'] + ('; PASS' if row.get('accepted') else '; thresholds missed' if metrics else '')
         lines.append('| ' + ' | '.join([row['model'] + ' / ' + row['version'], label] + values) + ' |')
-    lines.extend(['', 'Preferred candidate: `' + result['preferredCandidate'] + '`. Adoption gate: '
-        + ('PASS.' if result['preferredAccepted'] else 'FAIL / not yet measured.'), '',
+    preferred = next(row for row in result['results'] if row['id'] == result['preferredCandidate'])
+    decision = 'PASS.' if result['preferredAccepted'] else 'FAIL.' if preferred['metrics'] is not None else 'NOT MEASURED.'
+    lines.extend(['', 'Preferred candidate: `' + result['preferredCandidate'] + '`. Adoption gate: ' + decision, '',
         'Citation validity checks membership. Grounded answers additionally require all curated support rules and correct facts. '
         'These rules are conservative, not a general entailment proof. Unknown costs never pass the cost threshold. '
         'Latency includes failed attempts and bounded repair. Zero USD for local inference excludes hardware and electricity.', '', '## Thresholds', ''])

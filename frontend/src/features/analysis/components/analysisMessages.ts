@@ -27,7 +27,7 @@ const guidance: Readonly<Record<string, string>> = {
   EXECUTION_INTERRUPTED:
     'The server stopped before this attempt finished. You can explicitly retry with the original inputs.',
   AI_UNAVAILABLE:
-    'The planning service is unavailable. Try the saved request later or ask the administrator to check the configured provider.',
+    'The planning service is unavailable or its request limit has been reached. Try the saved request later or ask the administrator to check the provider limits.',
   AI_OUTPUT_INVALID:
     'The planner could not produce a valid plan for the selected sheets and columns. Create a new analysis with a clearer request.',
   AI_PROVIDER_ERROR:

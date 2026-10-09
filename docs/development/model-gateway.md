@@ -42,13 +42,14 @@ prove traceability, not semantic entailment.
 
 Internal `GET /internal/ai/model` and `POST /internal/ai/generate` require the worker service Bearer
 token. Model input contains explicit bounded text, never DB access, blob URLs or tools. The generation
-adapter is separate from parser downloading and embeddings. Streaming and cost aggregation are deferred.
+adapter is separate from parser downloading and embeddings. Validated SSE delivery and economic recording
+are described in [research conversations](research-conversations.md) and [AI diagnostics](ai-diagnostics.md).
 
 ## Provider and feature configuration
 
-Spring uses the existing worker URL/token/30-second timeout. Feature settings live under
+Spring uses the existing worker URL/token/120-second timeout. Feature settings live under
 `researchhub.ai.features.grounded-response`: `template-id=grounded-response:2`, `temperature=0`,
-`max-output-tokens=1024`. Environment overrides are `AI_GROUNDED_RESPONSE_TEMPERATURE` (0–2 or `none`
+`max-output-tokens=4096`. Environment overrides are `AI_GROUNDED_RESPONSE_TEMPERATURE` (0–2 or `none`
 to omit) and `AI_GROUNDED_RESPONSE_MAX_OUTPUT_TOKENS` (16–8,192). Invalid settings/unknown templates
 fail startup. New template text requires a new version and fixtures. The template is a classpath resource
 in `backend/src/main/resources/ai/templates/` and its UTF-8 SHA-256 is recorded on every request.
@@ -128,23 +129,23 @@ and prompt-injection validation are unchanged. No database migration or package 
 
 | Worker environment variable | Contract |
 | --- | --- |
-| `AI_WORKER_MODEL_PROVIDER` | `deterministic` (default), `foundry`, `openai-compatible` |
+| `AI_WORKER_MODEL_PROVIDER` | Empty: Gemini when `GEMINI_API_KEY` exists, otherwise deterministic. Explicit `deterministic`, `foundry`, `openai-compatible`, `gemini` overrides auto-selection. |
 | `OPENAI_COMPAT_BASE_URL` | Required HTTPS API base. No userinfo, whitespace, query, fragment or path traversal. An origin gets `/v1`; an API prefix such as `/api/v1` or `/v1beta/openai` is preserved. |
 | `OPENAI_COMPAT_API_KEY` | Required nonblank, whitespace-free worker secret; sent only as `Authorization: Bearer …`. |
 | `OPENAI_COMPAT_MODEL` | Exact requested and returned model name; mismatch fails closed. |
 | `OPENAI_COMPAT_MODEL_VERSION` | Required operator-pinned snapshot/deployment revision, recorded in provenance. Re-evaluate vendor aliases after changes. |
-| `AI_WORKER_EMBEDDING_PROVIDER` | Independent selection: `deterministic` (default), `azure`, `openai-compatible`. |
+| `AI_WORKER_EMBEDDING_PROVIDER` | Independent selection: empty auto-selects Gemini with a key; explicit `deterministic`, `azure`, `openai-compatible`, `gemini` overrides it. |
 | `OPENAI_COMPAT_EMBEDDING_MODEL` | Exact embedding model requested/returned when compatible embeddings are enabled. |
 | `OPENAI_COMPAT_EMBEDDING_VERSION` | Required immutable vector-space/model revision. |
 | `OPENAI_COMPAT_EMBEDDING_DIMENSION` | Required integer 1–4,096. Sent as `dimensions` and locally checked for every vector. |
 
-Example for the user's preferred candidate (supply the secret through the worker environment):
+Example for an optional compatible endpoint (native Gemini is configured separately below):
 
 ```dotenv
 AI_WORKER_MODEL_PROVIDER=openai-compatible
-OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-OPENAI_COMPAT_MODEL=gemini-3.8-flash
-OPENAI_COMPAT_MODEL_VERSION=GA-2026-09-provider-alias
+OPENAI_COMPAT_BASE_URL=https://provider.example/api/v1
+OPENAI_COMPAT_MODEL=selected-model
+OPENAI_COMPAT_MODEL_VERSION=pinned-revision
 AI_WORKER_EMBEDDING_PROVIDER=deterministic
 ```
 
@@ -177,11 +178,40 @@ exact indices/count, configured dimension, finite and nonzero vectors are locall
 `retrieval_embedding_models` already stores `(provider, model, version, dimension)` under its hashed
 `index_id`. Changing any value selects a distinct vector space. Existing vectors remain invisible
 until sources are explicitly reprocessed; no silent mixing or automatic model swap occurs. If large
-vectors exceed the response cap, reduce document batch size at the adapter boundary rather than
-relaxing the cap. Supported endpoints must honor the requested model/dimension and security settings;
+vectors grow, the configured factory reduces batch size using the dimension (maximum 32 bytes per
+serialized float plus framing), preserving the response cap. Supported endpoints must honor the requested model/dimension and security settings;
 API-shape compatibility alone does not guarantee provider data-retention behavior.
 
 The local HTTP fake tests exercise success, schema negotiation, one repair, invalid JSON, usage,
 429/5xx, redirects, oversize responses and all feature contracts. Existing deterministic/Foundry
 fixtures remain unchanged. Reproduction, measured selection, terms and limits:
 [AI evaluation](ai-evaluation.md).
+
+## Native Gemini
+
+`GeminiModelProvider` uses `models/{model}:generateContent`, `x-goog-api-key` authentication,
+native `systemInstruction` / `contents`, JSON `generationConfig.responseFormat`, and explicit
+thinking levels. No OpenAI key, SDK, compatibility endpoint, tools, cached conversation or
+Google-hosted code execution is used. `store:false`, verified TLS, no redirects, 256 KiB responses,
+64,000-byte answer content and local evidence/schema validation remain mandatory. The shared decoder's
+internal normalized payload does not change the Java/Python public contracts.
+
+An explicit unsupported-schema 400/422, or Google's generic schema-rejection 400
+`INVALID_ARGUMENT`, permits one JSON-mode fallback with the trusted schema instruction.
+One bounded repair uses the original evidence. Invalid envelopes, tools, private thought text,
+incomplete output and wrong models fail closed. 408/429/5xx are transient; exhausted daily quotas
+do not trigger immediate gateway retries. Fallback/repair failures
+cannot restart their budget. The shared operation deadline covers gateway retries and each embedding
+batch operation. Token usage includes `thoughtsTokenCount` and both responses of a repair; refusals
+retain known usage through `record_payload`. Missing usage remains unknown.
+
+Native embedding requests use `models/gemini-embedding-001:batchEmbedContents`, with
+`RETRIEVAL_DOCUMENT` and `RETRIEVAL_QUERY`, explicit dimensions and L2 normalization. The live 001
+endpoint currently honors the native per-request `taskType` / `outputDimensionality` fields; the newer
+`embedContentConfig` returned default 3072-dimensional vectors in the 2026-10-09 probe. Dimension
+validation prevented publishing those results. Default batches hold ten 768-dimensional vectors;
+1536/3072-dimensional batches are reduced further. Model/version/dimension changes require reprocessing
+through the existing server-owned source jobs and existing `retrieval_embedding_models` namespace.
+
+Full variable list: [configuration](configuration.md#native-gemini-worker-provider).
+One-key startup, live smoke and measurements: [native Gemini](native-gemini.md).

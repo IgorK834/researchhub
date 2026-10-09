@@ -40,6 +40,10 @@ class PublicApiClientTest(unittest.TestCase):
                     self.send_response(429)
                     self.end_headers()
                     self.wfile.write(b'{"code":"RATE_LIMITED"}')
+                elif self.path == "/quota":
+                    self.send_response(429)
+                    self.end_headers()
+                    self.wfile.write(b'{"code":"RATE_LIMIT_EXCEEDED","retryAfterSeconds":12}')
                 elif self.path == "/upload":
                     self.send_response(201)
                     self.end_headers()
@@ -79,6 +83,15 @@ class PublicApiClientTest(unittest.TestCase):
         self.assertIn("multipart/form-data; boundary=researchhub-",headers["Content-Type"])
         self.assertIn(b'filename="fixture.unknown"',payload)
         self.assertIn(b"authored synthetic bytes",payload)
+
+    def test_application_quota_exposes_only_the_bounded_retry_window(self):
+        with self.assertRaises(ApiError) as failure:
+            self.client.post('/quota')
+        self.assertEqual('RATE_LIMIT_EXCEEDED', failure.exception.code)
+        self.assertEqual(12, failure.exception.retry_after_seconds)
+        with self.assertRaises(ApiError) as failure:
+            self.client.post('/failure')
+        self.assertIsNone(failure.exception.retry_after_seconds)
 
 
 if __name__ == "__main__":

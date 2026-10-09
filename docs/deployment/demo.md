@@ -20,6 +20,12 @@ It prints **https://localhost:8443** and two generated editor logins. Private pa
 service credentials, process state and logs stay in ignored `.demo/local/` (mode 0700/0600).
 This state is separate from the existing two-instance performance stack.
 
+For live AI, put `GEMINI_API_KEY=…` in the ignored root `.env` and run the same startup command.
+It seeds deterministically, switches the existing worker to native Gemini, and explicitly rebuilds
+the demo source index using Gemini embeddings. Subsequent starts preserve the index when its
+identity matches; interrupted reprocessing resumes. Provider settings and keys stay out of Spring
+and frontend build processes. [Native Gemini setup, account limits and live checks](../development/native-gemini.md).
+
 The HTTPS certificate comes from Caddy's local CA. On the first browser visit, trust the
 certificate or import `.demo/local/root.crt` into your browser/OS trust store. Caddy runs in
 Docker and cannot install host trust automatically; the script deliberately does not alter

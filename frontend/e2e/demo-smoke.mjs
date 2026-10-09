@@ -39,7 +39,9 @@ try {
     await page.getByRole('button', { name: 'Log in', exact: true }).click();
     await page.waitForURL('**/app');
     await page.goto(url + '/app/workspaces/' + manifest.workspaceId + '/ask');
-    await expect(page.getByText('Fixture AI (deterministic)')).toBeVisible();
+    await expect(
+      page.getByText(/Fixture AI \(deterministic\)|Live model: /),
+    ).toBeVisible();
     const socket = page.waitForEvent('websocket');
     await page.goto(
       url +

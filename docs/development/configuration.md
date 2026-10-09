@@ -236,7 +236,7 @@ The worker listens on `localhost:${AI_WORKER_PORT:-8090}`. Spring targets
 `AI_WORKER_BASE_URL` (default `http://127.0.0.1:8090`) and creates fresh internal requests without end-user
 credentials. It authenticates with `AI_WORKER_SERVICE_TOKEN`; Compose and the local Spring profile share an explicit
 localhost-only default, while deployments must inject a high-entropy value from secret configuration.
-`AI_WORKER_REQUEST_TIMEOUT` defaults to `PT30S`. Dispatcher variables and failure semantics are listed
+`AI_WORKER_REQUEST_TIMEOUT` defaults to `PT120S`. Dispatcher variables and failure semantics are listed
 in [processing.md](processing.md). If the published port changes, set the base URL to match. Stopping `ai-worker` is
 safe: committed jobs remain in PostgreSQL and are retried.
 
@@ -403,7 +403,7 @@ and report source contracts remain workspace-only. See [source-search-and-extern
 | Stale lease | `researchhub.processing.dispatcher.stale-timeout`; `PROCESSING_STALE_TIMEOUT`, default `PT5M`. |
 | Worker URL | `researchhub.processing.worker.base-url`; `AI_WORKER_BASE_URL`, local/demo default `http://127.0.0.1:8090`; required in Azure/cloud. |
 | Worker published port | Compose-only `AI_WORKER_PORT`, default `8090`; keep the worker URL in sync. |
-| Worker timeout | `researchhub.processing.worker.request-timeout`; `AI_WORKER_REQUEST_TIMEOUT`, default `PT30S`. |
+| Worker timeout | `researchhub.processing.worker.request-timeout`; `AI_WORKER_REQUEST_TIMEOUT`, default `PT120S`. |
 | Signed source lifetime | `researchhub.processing.worker.source-access-ttl`; `AI_WORKER_SOURCE_ACCESS_TTL`, default `PT5M`, maximum `PT15M`. |
 | Worker credential | `researchhub.processing.worker.service-token`; `AI_WORKER_SERVICE_TOKEN`, minimum 32 characters. |
 
@@ -412,8 +412,9 @@ Durations are ISO-8601 and must be positive. The full state, retry, and internal
 
 
 Retrieval now requires pgvector, enabled through Flyway V14. Local Compose/Testcontainers
-use `pgvector/pgvector:0.8.2-pg17-bookworm`. The default worker embedding provider is
-`AI_WORKER_EMBEDDING_PROVIDER=deterministic`; `azure` requires endpoint, API key,
+use `pgvector/pgvector:0.8.2-pg17-bookworm`. An empty `AI_WORKER_EMBEDDING_PROVIDER`
+auto-selects Gemini when `GEMINI_API_KEY` is present,
+otherwise deterministic; explicit `deterministic` overrides that choice. `azure` requires endpoint, API key,
 deployment, model name, immutable model version and dimension via `AZURE_EMBEDDING_*`.
 These are worker-only server secrets/configuration, never frontend values. Full bounds
 and migration/rebuild instructions: [source-retrieval.md](source-retrieval.md).
@@ -439,7 +440,8 @@ is `COST_QUOTA_RETENTION=P7D` (must cover the configured window), retries are bo
 ### OpenAI-compatible worker providers (RH-318)
 
 Chat and embeddings are independently selected with `AI_WORKER_MODEL_PROVIDER=openai-compatible`
-and `AI_WORKER_EMBEDDING_PROVIDER=openai-compatible`. Their default remains `deterministic`; production
+and `AI_WORKER_EMBEDDING_PROVIDER=openai-compatible`. Empty selectors auto-select Gemini with its key,
+otherwise deterministic; production
 may keep `foundry` chat and `azure` embeddings. Main/demo Compose pass credentials only to the worker.
 
 | Variable | Required when | Value |
@@ -460,3 +462,36 @@ CAs; never disable certificate verification. The optional evaluation helper uses
 as a temporary loopback-only test Bearer value and optional hosted keys inherited from the environment;
 it does not expose production credentials. [Demo evaluation](ai-evaluation.md) documents candidates,
 thresholds, pricing, current public-demo terms and the single rerun command.
+
+### Native Gemini worker provider
+
+An empty/unset generation or embedding provider selector chooses `gemini` when
+`GEMINI_API_KEY` is nonempty, otherwise `deterministic`. Explicit selectors take precedence.
+Foundry/Azure and optional compatible providers remain supported. Main/demo Compose deliver
+the following settings exclusively to the worker. The demo helper reads only provider settings
+from the ignored root `.env`; process environment overrides them. It excludes provider settings
+and credentials from Spring and frontend build processes.
+
+| Variable | Default | Contract |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | none | Only required setting; private worker secret sent in `x-goog-api-key`, never in a URL. |
+| `GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` | HTTPS API prefix without credentials/query/fragment/traversal; an origin gets `/v1beta`. |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Native model ID, without `models/`. |
+| `GEMINI_MODEL_VERSION` | `gemini-3.8-flash-ga-native-v2` | Provenance/profile revision. This GA alias and application policy are not an immutable vendor weight snapshot. Re-evaluate after changes. |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Native text embedding model with task-aware batch embedding support. |
+| `GEMINI_EMBEDDING_VERSION` | `gemini-embedding-001-retrieval-l2-v1` | Persisted vector-space revision, including task-aware retrieval and L2 normalization. |
+| `GEMINI_EMBEDDING_DIMENSION` | `768` | Integer 128–3072, validated per vector; recommend 768/1536/3072. Changes require reprocessing. |
+| `GEMINI_THINKING_LEVEL` | `low` | `low`, `medium`, `high`; private reasoning is not requested or exposed. |
+| `GEMINI_PLANNING_THINKING_LEVEL` | `medium` | Separate thinking level for generating scientific programs. |
+| `GEMINI_REQUEST_TIMEOUT_SECONDS` | `30` | Finite 1–60 seconds per transport request. |
+| `GEMINI_OPERATION_TIMEOUT_SECONDS` | `90` | Finite value at least the request timeout, at most 90; shared across retries/fallback/repair or an embedding batch operation. |
+
+Empty optional variables also use these defaults. Spring's worker read timeout is `PT120S`,
+SSE lifetime is `PT180S`, and workspace/grounded answer output reservation is 4096 tokens to
+accommodate thinking plus validated JSON. Existing feature-specific overrides remain supported.
+Standard `SSL_CERT_FILE` / `SSL_CERT_DIR` overrides retain certificate verification; a Python
+installation missing its default CA bundle can use the OS CA bundle automatically.
+
+The helper explicitly reprocesses demo sources via authenticated HTTPS when embedding identity
+changes. Checkpoints make it resumable; the old vector space is never relabeled. Other workspaces
+must use their existing authorized source **Reprocess** action. No schema migration is needed.

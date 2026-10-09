@@ -11,9 +11,11 @@ import urllib.request
 
 
 class ApiError(RuntimeError):
-    def __init__(self, status, path, code):
+    def __init__(self, status, path, code, retry_after_seconds=None):
         super().__init__(f"REST {status} {path}: {code}")
         self.status = status
+        self.code = code
+        self.retry_after_seconds = retry_after_seconds
 
 
 class Client:
@@ -38,14 +40,17 @@ class Client:
                 headers["X-XSRF-TOKEN"] = urllib.parse.unquote(token)
         request = urllib.request.Request(self.base_url + path, data=raw, headers=headers, method=method)
         try:
-            response = self.opener.open(request, timeout=60)
+            response = self.opener.open(request, timeout=120)
         except urllib.error.HTTPError as response_error:
             response = response_error
         with response:
             data = response.read()
             payload = json.loads(data) if data else None
             if response.status not in expected:
-                raise ApiError(response.status, path, payload.get("code", payload.get("title", "Unexpected response")) if isinstance(payload, dict) else "Unexpected response")
+                retry_after = payload.get('retryAfterSeconds') if isinstance(payload, dict) else None
+                if type(retry_after) is not int or not 1 <= retry_after <= 60:
+                    retry_after = None
+                raise ApiError(response.status, path, payload.get("code", payload.get("title", "Unexpected response")) if isinstance(payload, dict) else "Unexpected response", retry_after)
             return payload, dict(response.headers), response.status
 
     def get(self, path):

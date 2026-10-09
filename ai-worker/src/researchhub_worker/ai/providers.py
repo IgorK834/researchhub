@@ -6,6 +6,8 @@ import re
 import json
 import os
 import time
+from contextlib import nullcontext
+from functools import wraps
 from typing import Protocol
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -275,10 +277,21 @@ class OpenAiCompatibleModelProvider(StructuredChatProvider):
                 raise ProviderError('AI_OUTPUT_INVALID') from None
 
 
+def _bounded_operation(method):
+    @wraps(method)
+    def bounded(self, *args, **kwargs):
+        with self.operation_scope():
+            return method(self, *args, **kwargs)
+    return bounded
+
+
 class ModelGateway:
     """All model calls pass through bounded retry and output/identity validation."""
     def __init__(self, provider: ModelProvider, sleep=time.sleep):
         self._provider, self._sleep = provider, sleep
+
+    def operation_scope(self):
+        return self._provider.operation_scope() if callable(getattr(type(self._provider), 'operation_scope', None)) else nullcontext()
 
     def model_metadata(self):
         try:
@@ -290,10 +303,12 @@ class ModelGateway:
         except Exception:
             raise ProviderError('AI_PROVIDER_ERROR') from None
 
+    @_bounded_operation
     def plan_computation(self, request):
         from ..analysis.planner import generate_candidate
         return generate_candidate(self._provider, request)
 
+    @_bounded_operation
     def generate_structured(self, request):
         # Revalidate typed objects too, before the first provider call (including model_copy inputs).
         if isinstance(request, ContextualRequest):
@@ -317,6 +332,7 @@ class ModelGateway:
             except (ValueError, TypeError, AttributeError):
                 raise ProviderError('AI_OUTPUT_INVALID') from None
 
+    @_bounded_operation
     def generate_authoring(self, request):
         from .authoring import generate_authoring, AuthoringResult
         for attempt in range(3):
@@ -335,6 +351,7 @@ class ModelGateway:
                 raise ProviderError('AI_OUTPUT_INVALID') from None
 
 
+    @_bounded_operation
     def generate_analysis(self, request):
         from .source_analysis import generate_analysis, AnalysisResult
         for attempt in range(3):
@@ -354,7 +371,7 @@ class ModelGateway:
 
 
 def configured_gateway():
-    name = os.getenv('AI_WORKER_MODEL_PROVIDER', 'deterministic')
+    name = os.getenv('AI_WORKER_MODEL_PROVIDER') or ('gemini' if os.getenv('GEMINI_API_KEY') else 'deterministic')
     if name == 'deterministic':
         provider = FakeModelProvider()
     elif name == 'foundry':
@@ -365,6 +382,9 @@ def configured_gateway():
         provider = OpenAiCompatibleModelProvider(os.environ['OPENAI_COMPAT_BASE_URL'], os.environ['OPENAI_COMPAT_API_KEY'],
             os.environ['OPENAI_COMPAT_MODEL'], ModelMetadata(provider=name, name=os.environ['OPENAI_COMPAT_MODEL'],
                 version=os.environ['OPENAI_COMPAT_MODEL_VERSION']))
+    elif name == 'gemini':
+        from .gemini import configured_model
+        provider = configured_model()
     else:
         raise ValueError('Unknown model provider')
     return ModelGateway(provider)

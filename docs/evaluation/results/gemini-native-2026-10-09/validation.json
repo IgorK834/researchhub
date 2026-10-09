@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-09",
+  "backlog": [
+    "RH-318",
+    "RH-346"
+  ],
+  "model": {
+    "provider": "gemini",
+    "name": "gemini-3.8-flash",
+    "version": "gemini-3.8-flash-ga-native-v2",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "workerTests": {
+    "passed": 649,
+    "failed": 0,
+    "overallBranchAwareCoveragePercent": 97.62512266928361,
+    "nativeModuleBranchAwareCoveragePercent": 94.97041420118343,
+    "minimumCoveragePercent": 80
+  },
+  "backendVerify": {
+    "tests": 1183,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 11,
+    "result": "BUILD SUCCESS",
+    "note": "Optional browser/cluster checks skipped by their existing opt-in switches."
+  },
+  "additionalSpringNativeE2E": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "result": "BUILD SUCCESS",
+    "scope": "Authenticated Spring endpoints, native fake HTTP adapter, model-namespace reprocessing, actual Docker scientific executor, scoped provenance and safe failures."
+  },
+  "frontendCoverageRun": {
+    "tests": 1098,
+    "suites": 117,
+    "failures": 0,
+    "coverageGates": "passed"
+  },
+  "frontendBuild": "passed",
+  "frontendLint": "passed",
+  "frontendBrowserSmoke": "passed",
+  "demoOrchestrationTests": {
+    "tests": 36,
+    "failures": 0
+  },
+  "workerContainerBuild": "passed; frozen Python 3.13.3 / uv 0.12.20 dependencies",
+  "imageSecurityCheck": "passed; non-root, no credential image ENV, static hosting headers",
+  "liveFeatures": {
+    "passed": true,
+    "stages": 18,
+    "report": "live-features.json",
+    "datasetSha256": "00fa804562ed22b98266070ff0448c259a6ce1330e5ab0e2abbc0e1360d746c9",
+    "transport": "Public authenticated HTTPS API -> Spring -> native Google API + pgvector -> real isolated sandbox",
+    "temporaryQuotaWindow": "PT1M only during controlled local test; original demo PT1H restored"
+  },
+  "liveModelBenchmark": {
+    "suiteCases": 33,
+    "additionalInjectionProbes": 2,
+    "report": "models.json",
+    "preferredAccepted": false,
+    "missedThresholds": [
+      "groundedAnswerRate",
+      "answerCorrectness"
+    ],
+    "schemaValidOutputRate": 1,
+    "citationMembership": 1,
+    "correctRefusalRate": 1,
+    "injectionPassRate": 1,
+    "fixtureRetrieval": "Fixed offline hybrid index; recall does not establish production semantic embedding quality"
+  },
+  "availabilityHistory": "Initial free-tier project quota of 20/day was exhausted; user enabled billing before the complete native-v2 run.",
+  "credentials": "No API key, provider error body, account password or service token is included in these reports."
+}

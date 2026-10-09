@@ -58,11 +58,22 @@ def test_factory_requires_access_and_selects_real_adapters(monkeypatch):
     assert models.gateway(matrix().candidates[0]).model_metadata().provider == 'deterministic'
     assert models.gateway(matrix().candidates[1]) is None
     assert models.gateway(matrix().candidates[4]) is None
+    assert models.gateway(matrix().candidates[3]) is None
+    monkeypatch.setenv('GEMINI_API_KEY', 'private-key')
+    assert models.gateway(matrix().candidates[3]).model_metadata().provider == 'gemini'
     monkeypatch.setenv('RH_LOCAL_MODEL_KEY','private-key')
     assert models.gateway(matrix().candidates[1]).model_metadata().name.startswith('qwen3:')
     for suffix,value in dict(API_KEY='private-key',ENDPOINT='https://foundry.invalid',DEPLOYMENT='deployment',MODEL='real-model',MODEL_VERSION='revision').items():
         monkeypatch.setenv('FOUNDRY_'+suffix,value)
     assert models.gateway(matrix().candidates[4]).model_metadata().provider == 'foundry'
+
+
+@pytest.mark.parametrize('changes', [{'api_key_env': None}, {'model': '../model'}, {'base_url': 'http://host'}])
+def test_native_gemini_matrix_fails_closed(changes):
+    data = matrix().candidates[3].model_dump()
+    data.update(changes)
+    with pytest.raises(ValueError):
+        models.Candidate.model_validate(data)
 
 
 def test_security_fixture_is_same_reviewed_contract_and_maintains_scope(loaded, config):

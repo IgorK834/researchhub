@@ -134,12 +134,12 @@ def fake_answer(contextual):
 
 
 def generate_authoring(provider, contextual):
-    from .providers import FakeModelProvider, FoundryModelProvider, OpenAiCompatibleModelProvider, ProviderError
+    from .providers import FakeModelProvider, StructuredChatProvider, ProviderError
     instruction(contextual)
     if isinstance(provider, FakeModelProvider):
         answer = fake_answer(contextual)
         payload = None
-    elif isinstance(provider, (FoundryModelProvider, OpenAiCompatibleModelProvider)):
+    elif isinstance(provider, StructuredChatProvider):
         payload = provider.complete(contextual, AUTHORING_SCHEMA, 'researchhub_authoring_v1')
         answer = LocalAuthoringAnswer.model_validate_json(payload['choices'][0]['message']['content'])
     else:

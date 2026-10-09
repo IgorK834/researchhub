@@ -4,6 +4,11 @@ Local portfolio demo (Java 25, Node/npm, Python 3.13 and Docker installed):
 `scripts/demo/up.sh`. See [demo deployment](docs/deployment/demo.md) for generated logins,
 local HTTPS, reset and end-to-end checks.
 
+For real AI, put `GEMINI_API_KEY=…` in the private root `.env` and run
+`scripts/demo/up.sh`. Native **Gemini 3.8 Flash** and **gemini-embedding-001 (768 dimensions)**
+are selected automatically; existing demo sources are explicitly reprocessed. The key stays
+in the worker. [Gemini setup and live E2E verification](docs/development/native-gemini.md).
+
 Browser deployment and prompt-injection protection (RH-182/RH-183), including environment settings,
 CSP hosting requirements and evaluation commands: [browser and AI security](docs/development/browser-and-ai-security.md).
 Repository scans, blocking findings and warning policy: [repository security](docs/development/repository-security.md).
@@ -295,9 +300,11 @@ configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232/RH-233).
 - [Runtime profiles and Azure deployment contract](docs/development/configuration.md#azure-deployment-contract-rh-311--rh-312).
 - [Per-replica connection budget and Epic 21 validation](docs/development/persistence.md#connection-budget-and-autoscaling-rh-314).
 
-RH-318/RH-346 add OpenAI-compatible chat/embedding adapters alongside Foundry, with bounded schema
-fallback/repair and worker-only secrets. [AI evaluation](docs/development/ai-evaluation.md) documents
-the fixed-corpus comparison and one-command rerun. [Measured model results and acceptance thresholds](docs/evaluation/results/demo-models/models.md)
-include deterministic, local Qwen3 and Gemma3. Gemini 3.8 Flash is the preferred hosted candidate;
-its measurement and adoption remain pending a configured worker key. The current free local models
-miss documented thresholds, so the demo default remains the labeled deterministic fixture.
+RH-318/RH-346 provide native Gemini and OpenAI-compatible chat/embedding adapters alongside Foundry,
+with bounded schema fallback/repair and worker-only secrets. [AI evaluation](docs/development/ai-evaluation.md)
+documents the fixed-corpus comparison and one-command rerun. The user-selected Gemini 3.8 Flash
+is measured in the [native results and thresholds](docs/evaluation/results/gemini-native-2026-10-09/models.md).
+It passes citation membership, refusal, output validity, injection, latency and cost gates,
+but misses conservative curated grounding/correctness thresholds. [Historical local results](docs/evaluation/results/demo-models/models.md)
+include deterministic, Qwen3 and Gemma3. A configured Gemini key selects live AI automatically;
+without a key the demo uses the labeled deterministic fixture.

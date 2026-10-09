@@ -56,11 +56,11 @@
     },
     {
       "id": "gemini-3-8-flash",
-      "provider": "openai-compatible",
+      "provider": "gemini",
       "model": "gemini-3.8-flash",
-      "version": "GA-2026-09-provider-alias",
-      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-      "apiKeyEnv": "OPENAI_COMPAT_API_KEY",
+      "version": "gemini-3.8-flash-ga-native-v2",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "apiKeyEnv": "GEMINI_API_KEY",
       "pricing": {
         "currency": "USD",
         "inputPerMillion": 0.75,

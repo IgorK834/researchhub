@@ -13,7 +13,8 @@
           "enum": [
             "deterministic",
             "openai-compatible",
-            "foundry"
+            "foundry",
+            "gemini"
           ],
           "title": "Provider",
           "type": "string"

@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-09T19:56:12.728685+00:00",
+  "provider": "gemini",
+  "datasetSha256": "00fa804562ed22b98266070ff0448c259a6ce1330e5ab0e2abbc0e1360d746c9",
+  "stages": [
+    {
+      "name": "upload-and-native-embedding-index",
+      "passed": true,
+      "latencyMs": 73.64925008732826
+    },
+    {
+      "name": "source-scoped-grounded-question",
+      "passed": true,
+      "latencyMs": 3107.6825000345707
+    },
+    {
+      "name": "correct-refusal",
+      "passed": true,
+      "latencyMs": 2026.2172080110759
+    },
+    {
+      "name": "conversation-history-idempotency-and-sse",
+      "passed": true,
+      "latencyMs": 4486.468707909808
+    },
+    {
+      "name": "draft-accept-and-citation-provenance",
+      "passed": true,
+      "latencyMs": 2085.213750018738
+    },
+    {
+      "name": "rewrite-improve_academic_style",
+      "passed": true,
+      "latencyMs": 2493.225874961354
+    },
+    {
+      "name": "rewrite-shorten",
+      "passed": true,
+      "latencyMs": 3592.5265830010176
+    },
+    {
+      "name": "rewrite-expand",
+      "passed": true,
+      "latencyMs": 4990.585000021383
+    },
+    {
+      "name": "rewrite-clarify",
+      "passed": true,
+      "latencyMs": 1670.8459169603884
+    },
+    {
+      "name": "rewrite-fix_grammar",
+      "passed": true,
+      "latencyMs": 24979.994917055592
+    },
+    {
+      "name": "rewrite-explain",
+      "passed": true,
+      "latencyMs": 2663.1679169368
+    },
+    {
+      "name": "find-evidence-and-insert-citation",
+      "passed": true,
+      "latencyMs": 4943.543041008525
+    },
+    {
+      "name": "comment-ai-evidence-and-acceptance",
+      "passed": true,
+      "latencyMs": 3066.0402909852564
+    },
+    {
+      "name": "source-comparison-and-potential-disagreements",
+      "passed": true,
+      "latencyMs": 11037.289166939445
+    },
+    {
+      "name": "native-computation-plan",
+      "passed": true,
+      "latencyMs": 22279.2379159946
+    },
+    {
+      "name": "full-data-sandbox-table-and-chart",
+      "passed": true,
+      "latencyMs": 1684.4604169018567
+    },
+    {
+      "name": "reproduce-original-execution",
+      "passed": true,
+      "latencyMs": 2178.994874935597
+    },
+    {
+      "name": "question-on-persisted-computation",
+      "passed": true,
+      "latencyMs": 3759.7900830442086
+    }
+  ],
+  "model": {
+    "provider": "gemini",
+    "name": "gemini-3.8-flash",
+    "version": "gemini-3.8-flash-ga-native-v2",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "workspaceId": "01a12220-557b-7414-bab5-83ef4c606d58",
+  "passed": true
+}

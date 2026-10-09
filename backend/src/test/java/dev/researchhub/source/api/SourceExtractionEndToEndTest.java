@@ -133,6 +133,8 @@ class SourceExtractionEndToEndTest {
     dev.researchhub.ai.application.EmbeddingProvider embeddings;
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
     dev.researchhub.ai.application.ModelProvider models;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    dev.researchhub.analysis.application.AnalysisPlanner planner;
     private ApiBrowser owner;
     private String workspaceId;
 
@@ -943,6 +945,110 @@ class SourceExtractionEndToEndTest {
         assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
             jdbc.update("UPDATE source_chunk_embeddings SET embedding='[1,0,0]'::public.vector WHERE source_id=?",UUID.fromString(id)));
         assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings WHERE dimension=2",Integer.class));
+    }
+
+    @Test void nativeGeminiConnectsEveryAiFeatureToAuthorizedSourcesAndTheRealSandbox() throws Exception {
+        String a=upload("native-a.txt","Method: randomized\nMain result: 80%\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String b=upload("native-b.txt","Method: observational\nMain result: 60%\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        String csv=upload("native-measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        dispatch();
+        int nativePort;
+        try(var socket=new java.net.ServerSocket(0,0,InetAddress.getLoopbackAddress())) {nativePort=socket.getLocalPort();}
+        var log=Files.createTempFile("researchhub-native-gemini-worker-",".log");
+        var builder=new ProcessBuilder(workerDirectory.resolve(".venv/bin/python").toString(),"tests/gemini_worker.py")
+            .directory(workerDirectory.toFile()).redirectErrorStream(true).redirectOutput(log.toFile());
+        builder.environment().put("AI_WORKER_PORT",Integer.toString(nativePort));
+        builder.environment().put("AI_WORKER_SERVICE_TOKEN",TOKEN);
+        var process=builder.start();
+        var author=(dev.researchhub.ai.application.AuthoringModelProvider)models;
+        var analyzer=(dev.researchhub.ai.application.SourceAnalysisModelProvider)models;
+        try {
+            var url=URI.create("http://127.0.0.1:"+nativePort);
+            boolean ready=false;
+            for(int i=0;i<100;i++) {
+                try {ready=HttpClient.newHttpClient().send(HttpRequest.newBuilder(url.resolve("/health")).timeout(Duration.ofSeconds(1)).GET().build(),HttpResponse.BodyHandlers.discarding()).statusCode()==200;}
+                catch(java.io.IOException starting) { /* bounded startup */ }
+                if(ready) break;
+                Thread.sleep(100);
+            }
+            assertTrue(ready,"Native Gemini fixture worker must start");
+            var cloud=new dev.researchhub.ai.infrastructure.HttpModelProvider(mapper,url,TOKEN,Duration.ofSeconds(10));
+            var vector=new dev.researchhub.ai.infrastructure.HttpEmbeddingProvider(mapper,url,TOKEN,Duration.ofSeconds(10));
+            var plans=new dev.researchhub.analysis.infrastructure.HttpAnalysisPlanner(mapper,url,TOKEN,Duration.ofSeconds(10));
+            org.mockito.Mockito.doAnswer(call->cloud.modelMetadata()).when(models).modelMetadata();
+            org.mockito.Mockito.doAnswer(call->cloud.generateStructured((dev.researchhub.ai.application.ContextContracts.ContextualRequest)call.getArgument(0)))
+                .when(models).generateStructured(org.mockito.ArgumentMatchers.any(dev.researchhub.ai.application.ContextContracts.ContextualRequest.class));
+            org.mockito.Mockito.doAnswer(call->cloud.author(call.getArgument(0))).when(author).author(org.mockito.ArgumentMatchers.any());
+            org.mockito.Mockito.doAnswer(call->cloud.analyze(call.getArgument(0))).when(analyzer).analyze(org.mockito.ArgumentMatchers.any());
+            org.mockito.Mockito.doAnswer(call->plans.plan(call.getArgument(0))).when(planner).plan(org.mockito.ArgumentMatchers.any());
+            org.mockito.Mockito.doAnswer(call->vector.modelMetadata()).when(embeddings).modelMetadata();
+            org.mockito.Mockito.doAnswer(call->vector.embedQuery(call.getArgument(0))).when(embeddings).embedQuery(org.mockito.ArgumentMatchers.anyString());
+            org.mockito.Mockito.doAnswer(call->vector.embedDocuments(call.getArgument(0))).when(embeddings).embedDocuments(org.mockito.ArgumentMatchers.anyList());
+            assertEquals(0,owner.json(owner.get(searchPath(workspaceId))).size(),"A model change requires source reprocessing");
+            for(String id:List.of(a,b,csv)) assertEquals(202,owner.postJson(sourcePath(id)+"/reprocess","{}").statusCode());
+            dispatch();
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM retrieval_embedding_models WHERE provider='gemini' AND dimension=768",Integer.class));
+            assertEquals("gemini",ask(workspaceId,"Method",List.of(UUID.fromString(a))).generation().result().model().provider());
+            assertEquals("INSUFFICIENT_EVIDENCE",ask(workspaceId,"Unrecorded humidity",List.of(UUID.fromString(a))).status());
+            var conversation=createConversation("Native Gemini");
+            var message=owner.postJson(conversationPath()+"/"+conversation.id()+"/messages",mapper.writeValueAsString(new Send(UUID.randomUUID(),"Method",List.of(UUID.fromString(a)))));
+            assertEquals(200,message.statusCode(),message.body());
+            assertEquals("COMPLETED",owner.json(message).get("assistant").get("status").asString());
+            assertEquals(2,owner.json(owner.get(conversationPath()+"/"+conversation.id())).get("messages").size());
+            var streamed=streamEvents(owner.postStream(conversationPath()+"/"+conversation.id()+"/messages/stream",
+                mapper.writeValueAsString(new Send(UUID.randomUUID(),"Method",List.of(UUID.fromString(a))))));
+            assertEquals("completed",streamed.getLast().name());
+            String documents="/api/workspaces/"+workspaceId+"/documents";
+            var document=owner.postJson(documents,"{\"title\":\"Native report\",\"content\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Human claim.\"}]}]}}");
+            assertEquals(201,document.statusCode(),document.body());
+            String docPath=documents+"/"+owner.json(document).get("id").asString(), suggestions=docPath+"/ai/suggestions";
+            var draftCommand=new dev.researchhub.ai.application.AuthoringContracts.Command(dev.researchhub.ai.application.AuthoringContracts.Kind.DRAFT,1,1,null,null,null,"Explain method",List.of(UUID.fromString(a)),300,"ACADEMIC",true);
+            var draft=owner.postJson(suggestions,mapper.writeValueAsString(draftCommand));
+            assertEquals(200,draft.statusCode(),draft.body());
+            assertEquals("gemini",owner.json(draft).get("generation").get("model").get("provider").asString());
+            assertEquals(a,owner.json(draft).get("citations").get(0).get("sourceId").asString());
+            var accepted=owner.postJson(suggestions+"/"+owner.json(draft).get("id").asString()+"/accept","{\"expectedRevision\":1}");
+            assertEquals(200,accepted.statusCode(),accepted.body());
+            long revision=owner.json(owner.get(docPath)).get("revision").asLong();
+            for(var action:dev.researchhub.ai.application.AuthoringContracts.Action.values()) {
+                var rewrite=new dev.researchhub.ai.application.AuthoringContracts.Command(dev.researchhub.ai.application.AuthoringContracts.Kind.REWRITE,revision,null,1,13,action,"Improve selected text",List.of(),300,"ACADEMIC",false);
+                var response=owner.postJson(suggestions,mapper.writeValueAsString(rewrite));
+                assertEquals(200,response.statusCode(),response.body());
+            }
+            var evidence=new dev.researchhub.ai.application.AuthoringContracts.Command(dev.researchhub.ai.application.AuthoringContracts.Kind.EVIDENCE,revision,null,1,13,null,"Method",List.of(UUID.fromString(a)),300,"ACADEMIC",false);
+            var candidates=owner.postJson(suggestions,mapper.writeValueAsString(evidence));
+            assertEquals(200,candidates.statusCode(),candidates.body());
+            assertFalse(owner.json(candidates).get("candidates").isEmpty());
+            String sourceAnalyses="/api/workspaces/"+workspaceId+"/ai/source-analyses";
+            var comparison=owner.postJson(sourceAnalyses+"/comparisons",mapper.writeValueAsString(Map.of("selectedSourceIds",List.of(a,b),"criteria",List.of("method","main result"),"instruction","Compare methods")));
+            assertEquals(200,comparison.statusCode(),comparison.body());
+            var disagreements=owner.postJson(sourceAnalyses+"/"+owner.json(comparison).get("id").asString()+"/disagreements","{\"instruction\":\"Compare methods\"}");
+            assertEquals(200,disagreements.statusCode(),disagreements.body());
+            assertFalse(owner.json(disagreements).get("generation").get("answer").get("findings").isEmpty());
+            String analyses="/api/workspaces/"+workspaceId+"/analyses";
+            var created=owner.postJson(analyses,mapper.writeValueAsString(Map.of("userPrompt","Calculate impedance vs frequency","inputs",List.of(Map.of("sourceId",csv,"sourceVersionId",activeVersion(csv),"sheetName","CSV","columns",List.of(1,2,3))))));
+            assertEquals(201,created.statusCode(),created.body());
+            String analysisId=owner.json(created).get("id").asString();
+            var plan=owner.postJson(analyses+"/"+analysisId+"/plan","{}");
+            assertEquals(200,plan.statusCode(),plan.body());
+            var execution=executeAnalysis(analyses,analysisId);
+            assertEquals(4.81/0.12,execution.get("result").get("outputs").get(0).get("rows").get(0).get(3).asDouble(),1e-9);
+            var computed=owner.postJson(questionPath(workspaceId),mapper.writeValueAsString(Map.of("question","Explain impedance","selectedSourceIds",List.of(),"selectedAnalysisOutputs",List.of(Map.of("analysisId",analysisId,"executionId",execution.get("id").asString(),"outputId","impedance-table")))));
+            assertEquals(200,computed.statusCode(),computed.body());
+            assertEquals("gemini",owner.json(computed).get("generation").get("result").get("model").get("provider").asString());
+            assertFalse(owner.json(computed).get("analysisCitations").isEmpty());
+            var outsider=new ApiBrowser(port,mapper);outsider.signUp("native-outsider@example.com","Outsider");
+            assertEquals(404,outsider.postJson(questionPath(workspaceId),"{\"question\":\"Method\"}").statusCode());
+            var set=mapper.readValue(owner.get(sourcePath(a)+"/retrieval").body(),dev.researchhub.ai.application.RetrievalChunkSet.class);
+            var invalid=owner.postJson("/api/workspaces/"+workspaceId+"/ai/generations",mapper.writeValueAsString(new dev.researchhub.ai.application.GenerationContracts.Command("invalid-output-fixture",List.of(new dev.researchhub.ai.application.GenerationContracts.EvidenceReference(UUID.fromString(a),set.chunks().getFirst().chunkId(),set.processingVersion())))));
+            assertEquals(502,invalid.statusCode());
+            assertEquals("AI_OUTPUT_INVALID",owner.json(invalid).get("code").asString());
+            assertTrue(owner.json(invalid).get("detail").asString().contains("could not be validated"));
+        } finally {
+            org.mockito.Mockito.reset(models,embeddings,planner);
+            process.destroy();if(!process.waitFor(5,java.util.concurrent.TimeUnit.SECONDS))process.destroyForcibly();
+            Files.deleteIfExists(log);
+        }
     }
 
     @Test void compatibleAdaptersNegotiateSchemaPreserveProvenanceAndRequireEmbeddingReprocessing() throws Exception {
