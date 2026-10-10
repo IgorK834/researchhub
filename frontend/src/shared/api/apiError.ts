@@ -66,6 +66,7 @@ export interface ApiProblemDetail {
   /** Bounded delay for RATE_LIMIT_EXCEEDED; retries always require an explicit user action. */
   readonly retryAfterSeconds?: number;
   readonly quotaCategory?: 'LLM' | 'ANALYSIS' | 'RETRIEVAL';
+  readonly reason?: 'TARGET_STALE' | 'NOT_SYNCHRONIZED';
 }
 
 /**

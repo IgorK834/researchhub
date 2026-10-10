@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Editor } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { apiClient } from '../../../shared/api';
@@ -30,11 +30,19 @@ function editor(blockId: string | null = 'block'): Editor {
   editors.push(current);
   return current;
 }
-function setup(current: Editor | null) {
+function setup(
+  current: Editor | null,
+  onExplainOperation?: (id: string, versions: readonly string[]) => void,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <DocumentProvenance workspaceId="w" documentId="d" editor={current} />
+      <DocumentProvenance
+        workspaceId="w"
+        documentId="d"
+        editor={current}
+        onExplainOperation={onExplainOperation}
+      />
     </QueryClientProvider>,
   );
 }
@@ -194,4 +202,21 @@ it('inspects a selected analysis node without requiring editable prose', async (
   );
   setup(current);
   await screen.findByText('Analysis derived');
+});
+
+it('uses recorded accepted proposal identity and explicit versions when opening a follow-up', async () => {
+  jest.spyOn(apiClient, 'get').mockResolvedValue([
+    {
+      ...operation,
+      metadata: {
+        citations: [{ ...operation.metadata.citations![0]!, sourceVersionId: 'version' }],
+      },
+    },
+  ]);
+  const explain = jest.fn();
+  setup(editor(), explain);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Explain accepted text in chat' }),
+  );
+  expect(explain).toHaveBeenCalledWith('suggestion', ['version']);
 });

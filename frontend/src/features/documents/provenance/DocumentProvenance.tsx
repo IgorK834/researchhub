@@ -4,6 +4,7 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type { Editor } from '@tiptap/core';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, describeError } from '../../../shared/api';
+import { Button } from '../../../shared/components/Button';
 import { Icon } from '../../../shared/components/icons';
 import { citationPath, type Citation } from '../../ai/api/generationApi';
 import styles from './DocumentProvenance.module.css';
@@ -43,10 +44,12 @@ export function DocumentProvenance({
   workspaceId,
   documentId,
   editor,
+  onExplainOperation,
 }: {
   readonly workspaceId: string;
   readonly documentId: string;
   readonly editor: Editor | null;
+  readonly onExplainOperation?: (id: string, sourceVersionIds: readonly string[]) => void;
 }): ReactElement {
   const [block, setBlock] = useState<{
     id: string | null;
@@ -179,6 +182,26 @@ export function DocumentProvenance({
                       <p className={styles.identity}>
                         Source operation: {operation.sourceOperationId}
                       </p>
+                    ) : null}
+                    {operation.operationType === 'AI_ACCEPTED' &&
+                    operation.sourceOperationId &&
+                    onExplainOperation ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
+                          onExplainOperation(operation.sourceOperationId!, [
+                            ...new Set(
+                              operation.metadata.citations?.flatMap((citation) =>
+                                citation.sourceVersionId
+                                  ? [citation.sourceVersionId]
+                                  : [],
+                              ) ?? [],
+                            ),
+                          ])
+                        }
+                      >
+                        Explain accepted text in chat
+                      </Button>
                     ) : null}
                     {operation.metadata.citations?.length ? (
                       <ul aria-label="Operation sources">

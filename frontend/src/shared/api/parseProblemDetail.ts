@@ -87,6 +87,11 @@ export function decodeProblemDetail(
       ? retry
       : undefined;
   const category = value['quotaCategory'];
+  const reason =
+    code === 'CONFLICT' &&
+    (value['reason'] === 'TARGET_STALE' || value['reason'] === 'NOT_SYNCHRONIZED')
+      ? value['reason']
+      : undefined;
   const quotaCategory =
     category === 'LLM' || category === 'ANALYSIS' || category === 'RETRIEVAL'
       ? category
@@ -103,6 +108,7 @@ export function decodeProblemDetail(
     ...(currentRevision === undefined ? {} : { currentRevision }),
     ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
     ...(quotaCategory === undefined ? {} : { quotaCategory }),
+    ...(reason === undefined ? {} : { reason }),
   };
 }
 
