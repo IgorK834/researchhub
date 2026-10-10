@@ -27,6 +27,7 @@ Module placement and dependency rules: [backend-architecture.md](backend-archite
 | `code` | Stable machine code from the table below. |
 | `errors` | Present only for validation failures. |
 | `currentRevision` | Present only on the `CONFLICT` for a stale document revision. The stored revision, as a number. |
+| `reason` | Canvas target conflicts (`CONFLICT`): `NOT_SYNCHRONIZED` means the durable revision/epoch/sequence/state vector does not match; `TARGET_STALE` means the selected target changed or disappeared. Requires synchronization or explicit selection again; never appends elsewhere. |
 
 Validation adds field details:
 
@@ -108,8 +109,8 @@ The message becomes `detail` and must be safe for a client. Do not put secrets, 
 When a client needs a fact it should not have to parse out of `detail`, a module subclasses one of these and
 passes named properties to the protected constructor. `GlobalExceptionHandler` writes each one into the body next
 to `code`; the standard members and `code` and `errors` are reserved and refused. Every such property is part of
-the contract and is listed in the table above. Today there is one: `currentRevision`, from the `document`
-module's `StaleRevisionException`.
+the contract and is listed in the table above. Document revision conflicts use `currentRevision`;
+canvas target/synchronization conflicts use the bounded `reason` discriminant.
 
 `dev.researchhub.shared.api.GlobalExceptionHandler` maps those types, Bean Validation, unreadable bodies, upload size, and unsupported media types. Unexpected exceptions become `INTERNAL_ERROR`.
 

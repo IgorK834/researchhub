@@ -31,6 +31,13 @@ RH-120–RH-122 add source-grounded draft sections, selected-fragment rewrite su
 for human-written claims, with explicit approval, idempotent insertion and AI-origin provenance:
 [AI-assisted authoring](docs/development/ai-authoring.md).
 
+Remaining Canvas AI work, including intent routing, verified calculations and chart insertion:
+[Canvas AI architecture and technical backlog](docs/development/canvas-ai-backlog.md).
+
+Implemented CAI-01–06: [Canvas AI](docs/development/canvas-ai.md), including durable contextual
+conversations, a cursor chat, bounded follow-up memory, the context menu, stable targets and
+durable authorized snapshots.
+
 Public landing page, pricing copy and how its screenshots are regenerated: [docs/development/landing-page.md](docs/development/landing-page.md).
 
 Profiles, environment variables, and where secrets must not go: [docs/development/configuration.md](docs/development/configuration.md).
