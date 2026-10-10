@@ -1,3 +1,5 @@
+import { resolveCanvas, type ResolveRequest } from './canvas.js';
+import { timingSafeEqual } from 'node:crypto';
 import { PresenceGuard, PresenceError } from './presence.js';
 import { Server } from '@hocuspocus/server';
 import * as Y from 'yjs';
@@ -55,6 +57,26 @@ export function createService(config: Config, backend = new Backend(config), log
       }
     },
     async onRequest({request, response}) {
+      if (request.url === '/internal/canvas/resolve') {
+        const supplied = Buffer.from(String(request.headers['x-collaboration-service-token'] ?? ''));
+        const expected = Buffer.from(config.serviceToken);
+        if (request.method !== 'POST' || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
+          response.writeHead(403); response.end(); throw null;
+        }
+        try {
+          let size = 0; const chunks: Buffer[] = [];
+          for await (const chunk of request) {
+            size += chunk.length;
+            if (size > 5_500_000) throw new Error('Request too large');
+            chunks.push(Buffer.from(chunk));
+          }
+          const result = resolveCanvas(JSON.parse(Buffer.concat(chunks).toString()) as ResolveRequest);
+          response.setHeader('Content-Type','application/json');
+          response.setHeader('Cache-Control','no-store');
+          response.writeHead(200); response.end(JSON.stringify(result));
+        } catch { response.writeHead(409); response.end('{}'); }
+        throw null;
+      }
       response.setHeader('Content-Type', 'application/json');
       response.writeHead(request.url === '/health' ? 200 : 404);
       response.end(JSON.stringify({status: request.url === '/health' ? 'UP' : 'NOT_FOUND'}));
@@ -92,7 +114,7 @@ export function createService(config: Config, backend = new Backend(config), log
     async connected({connection, context, socketId, documentName}) {
       const session = context as Session;
       const saved = savedStates.get(documentName)!;
-      connection.sendStateless(JSON.stringify({event: 'persisted', revision: saved.revision, savedAt: saved.savedAt}));
+      connection.sendStateless(JSON.stringify({event: 'persisted', sequence: saved.sequence, revision: saved.revision, savedAt: saved.savedAt}));
       let checking = false;
       const check = async (): Promise<void> => {
         if (checking || session.closed) return;
@@ -143,7 +165,7 @@ export function createService(config: Config, backend = new Backend(config), log
           // Commit happened. Applying inside the room queue also prevents concurrent candidates losing changes.
           // Hocuspocus subsequently applies the same update idempotently and acknowledges it.
           Y.applyUpdate(document, delta, connection);
-          document.getConnections().forEach(peer => peer.sendStateless(JSON.stringify({event: 'persisted', revision: saved.revision, savedAt: saved.savedAt})));
+          document.getConnections().forEach(peer => peer.sendStateless(JSON.stringify({event: 'persisted', sequence: saved.sequence, revision: saved.revision, savedAt: saved.savedAt})));
           logger('document.persisted', {documentId: session.access.documentId, sequence: saved.sequence});
         } finally { candidate.destroy(); }
        }).catch(error => {
