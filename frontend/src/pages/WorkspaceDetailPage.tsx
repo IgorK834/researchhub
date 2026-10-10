@@ -185,6 +185,8 @@ function WorkspaceDetail({
       <AskAIPage
         workspaceId={workspace.id}
         initialQuestion={initialQuestion}
+        canEdit={canEditContent}
+        initialConversationId={search.get('conversation') ?? undefined}
         initialSourceId={search.get('askSource') ?? undefined}
         onInitialQuestionUsed={() => {
           void navigate(`${location.pathname}${location.search}${location.hash}`, {

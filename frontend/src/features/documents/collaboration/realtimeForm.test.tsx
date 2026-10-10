@@ -9,17 +9,67 @@ import { useDocumentAutosave } from '../autosave/useDocumentAutosave';
 import { queryKeys } from '../../../shared/api';
 import type { WorkspaceDocument } from '../api/documentApi';
 import type { ReactNode } from 'react';
+import type { Editor } from '@tiptap/core';
+import type { SelectionBookmark } from '@tiptap/pm/state';
+const mockCanvasEditor = {
+  state: { selection: { getBookmark: () => mockCanvasBookmark } },
+} as Editor;
+const mockCanvasBookmark = {} as SelectionBookmark;
+const mockContextPreview = jest.fn();
+const mockBodyEditor = jest.fn();
+jest.mock('../components/CanvasContextPreview', () => ({
+  CanvasContextPreview: (props: { onClose: () => void }) => {
+    mockContextPreview(props);
+    return <button onClick={props.onClose}>Close context</button>;
+  },
+}));
+jest.mock('../provenance/DocumentProvenance', () => ({
+  DocumentProvenance: ({
+    onExplainOperation,
+  }: {
+    onExplainOperation?: (id: string, versions: readonly string[]) => void;
+  }) => (
+    <button
+      disabled={!onExplainOperation}
+      onClick={() => onExplainOperation?.('accepted-proposal', ['v1'])}
+    >
+      Explain accepted
+    </button>
+  ),
+}));
 jest.mock('./useRealtimeDocument', () => ({ useRealtimeDocument: jest.fn() }));
 jest.mock('../components/DocumentHistory', () => ({ DocumentHistory: () => null }));
 jest.mock('../components/DocumentBodyEditor', () => ({
-  DocumentBodyEditor: ({ onChange }: { onChange: (content: unknown) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange({ type: 'doc', content: [{ type: 'paragraph' }] })}
-    >
-      Body change
-    </button>
-  ),
+  DocumentBodyEditor: ({
+    onChange,
+    onCanvasAi,
+    onEditorReady,
+    selectionActionsEnabled,
+  }: {
+    onChange: (content: unknown) => void;
+    onCanvasAi?: (editor: Editor, bookmark: SelectionBookmark) => void;
+    onEditorReady?: (editor: Editor | null) => void;
+    selectionActionsEnabled?: boolean;
+  }) => {
+    mockBodyEditor({ selectionActionsEnabled });
+    return (
+      <>
+        <button onClick={() => onEditorReady?.(mockCanvasEditor)}>Ready editor</button>
+        <button
+          type="button"
+          onClick={() => onChange({ type: 'doc', content: [{ type: 'paragraph' }] })}
+        >
+          Body change
+        </button>
+        <button
+          disabled={!onCanvasAi}
+          onClick={() => onCanvasAi?.(mockCanvasEditor, mockCanvasBookmark)}
+        >
+          Ask context
+        </button>
+      </>
+    );
+  },
 }));
 const mockSave = jest.fn();
 jest.mock('../api/useDocuments', () => ({
@@ -109,6 +159,24 @@ it('routes title and body authoring through Yjs and refreshes immutable history 
   expect(invalidate).toHaveBeenCalledWith({
     queryKey: queryKeys.documentVersions('workspace', 'doc'),
   });
+});
+it('passes the pinned canvas selection and durable room state into context capture and closes the review', () => {
+  form();
+  expect(mockContextPreview).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Ask context' }));
+  expect(mockContextPreview).toHaveBeenCalledWith(
+    expect.objectContaining({
+      editor: mockCanvasEditor,
+      bookmark: mockCanvasBookmark,
+      workspaceId: 'workspace',
+      documentId: 'doc',
+      realtime: expect.objectContaining({ connected: true }),
+      autosave: expect.objectContaining({ revision: 3, status: 'saved' }),
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Close context' }));
+  expect(screen.queryByRole('button', { name: 'Close context' })).toBeNull();
+  expect(mockSave).not.toHaveBeenCalled();
 });
 it('shows connection and durable failure recovery without presenting a title error', () => {
   const value = jest.mocked(useRealtimeDocument)('workspace', document, true);
@@ -230,4 +298,81 @@ it('activates when workspace permissions arrive later and never falls back to RE
   view.rerender(<DocumentEditorForm {...props} canEdit={false} />);
   expect(jest.mocked(useRealtimeDocument).mock.calls.at(-1)![2]).toBe(true);
   expect(mockSave).not.toHaveBeenCalled();
+});
+it('does not offer new canvas work in an archived workspace', () => {
+  render(
+    <DocumentEditorForm
+      workspaceId="workspace"
+      document={document}
+      canEdit={false}
+      isViewer
+      contextCaptureEnabled={false}
+      onDiscardLocalChanges={jest.fn()}
+      onReplaced={jest.fn()}
+    />,
+    { wrapper },
+  );
+  expect(
+    (screen.getByRole('button', { name: 'Ask context' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+});
+
+it('opens an explicit saved proposal or accepted operation with a bounded evidence scope', () => {
+  Reflect.set(process.env, 'RESEARCHHUB_COLLABORATION_ENABLED', 'false');
+  const provenanceHost = window.document.createElement('div');
+  window.document.body.append(provenanceHost);
+  render(
+    <DocumentEditorForm
+      workspaceId="workspace"
+      document={document}
+      canEdit
+      provenanceHost={provenanceHost}
+      onDiscardLocalChanges={jest.fn()}
+      onReplaced={jest.fn()}
+      renderAuthoring={({ onExplainSuggestion }) => (
+        <button
+          disabled={!onExplainSuggestion}
+          onClick={() =>
+            onExplainSuggestion?.({
+              id: 'saved-proposal',
+              citations: [
+                { sourceVersionId: 'v1' },
+                { sourceVersionId: null },
+                { sourceVersionId: 'v1' },
+              ],
+            } as never)
+          }
+        >
+          Explain saved proposal
+        </button>
+      )}
+    />,
+    { wrapper },
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Ready editor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Explain saved proposal' }));
+  expect(mockBodyEditor).toHaveBeenLastCalledWith({ selectionActionsEnabled: false });
+  expect(mockContextPreview).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      editor: mockCanvasEditor,
+      bookmark: mockCanvasBookmark,
+      proposal: {
+        id: 'saved-proposal',
+        title: 'Saved AI proposal',
+        sourceVersionIds: ['v1'],
+      },
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Close context' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Explain accepted' }));
+  expect(mockContextPreview).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      proposal: {
+        id: 'accepted-proposal',
+        title: 'Accepted AI text',
+        sourceVersionIds: ['v1'],
+      },
+    }),
+  );
+  provenanceHost.remove();
 });

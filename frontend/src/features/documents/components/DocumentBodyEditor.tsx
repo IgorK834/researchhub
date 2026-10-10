@@ -1,3 +1,6 @@
+import { NodeSelection, TextSelection, type SelectionBookmark } from '@tiptap/pm/state';
+import { CanvasContextMenu } from './CanvasContextMenu';
+import type { VirtualAnchor } from '../../../shared/components/overlays/Popover';
 import { TrackBlockIdentity } from '../provenance/blockIdentity';
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import {
@@ -43,6 +46,7 @@ export interface AuthoringSelection {
 }
 
 interface DocumentBodyEditorProps {
+  readonly onCanvasAi?: (editor: Editor, bookmark: SelectionBookmark) => void;
   readonly onEditorReady?: (editor: Editor | null) => void;
   readonly onComment?: (anchor: CommentAnchor) => void;
   readonly collaborationProvider?: HocuspocusProvider | null;
@@ -93,6 +97,7 @@ interface DocumentBodyEditorProps {
  * With a collaborationDocument, Yjs owns the live body and undo history. The server initializes it.
  */
 export function DocumentBodyEditor({
+  onCanvasAi,
   onEditorReady,
   onComment,
   workspaceId,
@@ -118,6 +123,12 @@ export function DocumentBodyEditor({
   reviewSelectionEnd,
   focusBlock,
 }: DocumentBodyEditorProps): ReactElement {
+  const [menu, setMenu] = useState<{
+    anchor: VirtualAnchor;
+    bookmark: SelectionBookmark;
+  } | null>(null);
+  const [menuNotice, setMenuNotice] = useState('');
+  const menuHandler = useRef<(event: MouseEvent | KeyboardEvent) => boolean>(() => false);
   const [citationPreview, setCitationPreview] = useState<{
     citation: EditorCitation;
     number: string;
@@ -146,8 +157,19 @@ export function DocumentBodyEditor({
   // editor is only told about a real change.
   const editorProps = useMemo(
     () => ({
+      handleDOMEvents: {
+        contextmenu: (_view: unknown, event: Event) =>
+          menuHandler.current(event as MouseEvent),
+        keydown: (_view: unknown, event: Event) => {
+          const key = event as KeyboardEvent;
+          return (key.key === 'F10' && key.shiftKey) || key.key === 'ContextMenu'
+            ? menuHandler.current(key)
+            : false;
+        },
+      },
       attributes: {
         role: 'textbox',
+        tabindex: '0',
         'aria-multiline': 'true',
         ...(labelId === undefined ? {} : { 'aria-labelledby': labelId }),
         ...(label === undefined ? {} : { 'aria-label': label }),
@@ -216,6 +238,56 @@ export function DocumentBodyEditor({
       onChangeRef.current(savedDocumentOf(changed));
     },
   });
+
+  useEffect(() => {
+    menuHandler.current = (event): boolean => {
+      const element = event.target;
+      if (
+        !(element instanceof Element) ||
+        element.closest('input, textarea, select, [data-rh-overlay]') ||
+        !editor.view.dom.contains(element)
+      )
+        return false;
+      const mouse = event instanceof MouseEvent;
+      let position = editor.state.selection.from;
+      if (mouse) {
+        const found = editor.view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY,
+        });
+        if (!found) return false;
+        position = found.pos;
+        const selection = editor.state.selection;
+        if (selection.empty || position < selection.from || position > selection.to) {
+          const node = found.inside >= 0 ? editor.state.doc.nodeAt(found.inside) : null;
+          const next =
+            node?.isAtom && NodeSelection.isSelectable(node)
+              ? NodeSelection.create(editor.state.doc, found.inside)
+              : TextSelection.near(editor.state.doc.resolve(position));
+          editor.view.dispatch(editor.state.tr.setSelection(next));
+        }
+      }
+      event.preventDefault();
+      setMenuNotice('');
+      const origin = editor.view.dom.getBoundingClientRect();
+      const coords = mouse
+        ? { left: event.clientX, top: event.clientY }
+        : editor.view.coordsAtPos(position);
+      const anchor = {
+        getBoundingClientRect: (): DOMRect => {
+          const current = editor.view.dom.getBoundingClientRect();
+          return new DOMRect(
+            coords.left + current.left - origin.left,
+            coords.top + current.top - origin.top,
+            0,
+            0,
+          );
+        },
+      };
+      setMenu({ anchor, bookmark: editor.state.selection.getBookmark() });
+      return true;
+    };
+  }, [editor]);
 
   useEffect(() => {
     onEditorReady?.(editor);
@@ -348,6 +420,16 @@ export function DocumentBodyEditor({
         )
       ) : null}
       <EditorContent editor={editor} />
+      {menu ? (
+        <CanvasContextMenu
+          editor={editor}
+          {...menu}
+          onClose={() => setMenu(null)}
+          onAskAi={onCanvasAi ? (bookmark) => onCanvasAi(editor, bookmark) : undefined}
+          onNotice={setMenuNotice}
+        />
+      ) : null}
+      {menuNotice ? <p role="status">{menuNotice}</p> : null}
       {editable &&
       ((selectionActionsEnabled && onSelectionAction !== undefined) ||
         onComment !== undefined) ? (

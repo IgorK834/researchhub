@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type ReactElement,
 } from 'react';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
   describeError,
@@ -17,13 +17,12 @@ import {
 } from '../../../shared/api';
 import {
   createConversation,
-  fetchConversationHistory,
   streamConversationQuestion,
   type ConversationQuestion,
   type ConversationTurn,
   type ConversationMessage,
 } from '../api/conversationApi';
-import { useConversationsQuery } from '../api/useConversations';
+import { useConversationsQuery, useConversationHistory } from '../api/useConversations';
 import { Button } from '../../../shared/components/Button';
 import { ScopeChip } from '../../../shared/components/ScopeChip';
 import { AnswerState } from './GroundedAnswer';
@@ -43,6 +42,7 @@ import {
 } from './ResearchNavigation';
 import type { WorkspaceQuestion } from '../api/questionApi';
 import styles from './Research.module.css';
+import { CanvasAiChat } from './CanvasAiChat';
 import { AiModeChip } from './AiModeChip';
 
 export interface ResearchSources {
@@ -57,6 +57,8 @@ export interface ResearchSources {
   readonly error: string | null;
 }
 export interface ResearchPanelProps {
+  readonly initialConversationId?: string;
+  readonly canEdit?: boolean;
   readonly workspaceId: string;
   readonly sources: ResearchSources;
   readonly variant?: 'panel' | 'page';
@@ -67,7 +69,12 @@ export interface ResearchPanelProps {
   readonly onInitialQuestionUsed?: () => void;
 }
 export function ResearchPanel(props: ResearchPanelProps): ReactElement {
-  return <Panel key={`${props.workspaceId}:${props.initialSourceId ?? ''}`} {...props} />;
+  return (
+    <Panel
+      key={`${props.workspaceId}:${props.initialSourceId ?? ''}:${props.initialConversationId ?? ''}`}
+      {...props}
+    />
+  );
 }
 interface Attempt {
   readonly conversationId: string | null;
@@ -82,10 +89,13 @@ function Panel({
   starterQuestion,
   onInitialQuestionUsed,
   actions,
+  initialConversationId,
+  canEdit,
 }: ResearchPanelProps): ReactElement {
   const cache = useQueryClient();
   const [chosen, setChosen] = useState<string | null | undefined>(
-    initialQuestion !== undefined || initialSourceId !== undefined ? null : undefined,
+    initialConversationId ??
+      (initialQuestion !== undefined || initialSourceId !== undefined ? null : undefined),
   );
   const [question, setQuestion] = useState(
     initialQuestion?.question ?? starterQuestion ?? '',
@@ -131,23 +141,8 @@ function Panel({
   const conversations = useConversationsQuery(workspaceId);
   const items = conversations.data?.pages.flatMap((page) => page.items) ?? [];
   const conversationId = chosen === undefined ? (items[0]?.id ?? null) : chosen;
-  const history = useInfiniteQuery({
-    queryKey: queryKeys.aiConversation(workspaceId, conversationId ?? ''),
-    enabled: conversationId !== null,
-    initialPageParam: null as number | null,
-    queryFn: ({ pageParam, signal }) =>
-      fetchConversationHistory(workspaceId, conversationId ?? '', pageParam, signal),
-    getNextPageParam: (page) => page.nextBeforeSequence ?? undefined,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchInterval: (query) =>
-      query.state.error === null &&
-      query.state.data?.pages.some((page) =>
-        page.messages.some((message) => message.status === 'PENDING'),
-      )
-        ? 2000
-        : false,
-  });
+  const history = useConversationHistory(workspaceId, conversationId);
+
   const messages = [...(history.data?.pages ?? [])]
     .reverse()
     .flatMap((page) => page.messages);
@@ -687,6 +682,17 @@ function Panel({
       ) : null}
     </section>
   );
+  const displayed =
+    history.data?.pages[0]?.conversation.origin && conversationId ? (
+      <CanvasAiChat
+        key={conversationId}
+        workspaceId={workspaceId}
+        conversationId={conversationId}
+        canEdit={canEdit}
+      />
+    ) : (
+      content
+    );
   return variant === 'page' ? (
     <ToolShell
       label="Ask AI"
@@ -702,10 +708,10 @@ function Panel({
         </div>
       }
     >
-      {content}
+      {displayed}
     </ToolShell>
   ) : (
-    content
+    displayed
   );
 }
 function MessageView({

@@ -1,3 +1,5 @@
+import { CanvasContextPreview } from './CanvasContextPreview';
+import type { SelectionBookmark } from '@tiptap/pm/state';
 import { DocumentProvenance } from '../provenance/DocumentProvenance';
 import { useEffect, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -25,11 +27,14 @@ import { SaveStatus } from './SaveStatus';
 import { DocumentViewerNotice } from './DocumentViewerNotice';
 import type { SelectionAuthoringRequest } from '../../ai/api/authoringActions';
 import type { Editor } from '@tiptap/core';
+import type { AuthoringSuggestion } from '../../ai/api/authoringApi';
+import type { CanvasProposalReference } from '../../ai/components/CanvasAiChat';
 import type { CommentAnchor } from '../comments/commentAnchor';
 import { DocumentComments } from '../comments/DocumentComments';
 import { ExportDocument } from '../../export/ExportDocument';
 
 export interface DocumentAuthoringContext {
+  readonly onExplainSuggestion?: (suggestion: AuthoringSuggestion) => void;
   readonly selectionRequest: SelectionAuthoringRequest | null;
   readonly draftHost: HTMLElement;
   /** View-only placement for draft and rewrite review cards. */
@@ -75,6 +80,7 @@ export interface DocumentEditorFormProps {
    */
   readonly canEdit: boolean;
   readonly isViewer?: boolean;
+  readonly contextCaptureEnabled?: boolean;
   readonly authors?: readonly { readonly userId: string; readonly name: string }[];
   /** Reloads the document and discards local edits. Offered only after a conflict. */
   readonly onDiscardLocalChanges: () => void;
@@ -105,7 +111,14 @@ export function DocumentEditorForm({
   navigationTarget,
   onOpenAuthoring,
   focusBlock,
+  contextCaptureEnabled = true,
 }: DocumentEditorFormProps): ReactElement {
+  const [canvasContext, setCanvasContext] = useState<{
+    id: string;
+    editor: Editor;
+    bookmark: SelectionBookmark;
+    proposal?: CanvasProposalReference;
+  } | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [commentEditor, setCommentEditor] = useState<Editor | null>(null);
@@ -211,6 +224,18 @@ export function DocumentEditorForm({
 
   return (
     <div className={styles.writingSurface}>
+      {canvasContext ? (
+        <CanvasContextPreview
+          key={canvasContext.id}
+          {...canvasContext}
+          workspaceId={workspaceId}
+          documentId={document.id}
+          documentTitle={document.title}
+          autosave={autosave}
+          realtime={realtimeEnabled ? realtime : undefined}
+          onClose={() => setCanvasContext(null)}
+        />
+      ) : null}
       {exportHost
         ? createPortal(
             <ExportDocument
@@ -235,6 +260,20 @@ export function DocumentEditorForm({
               workspaceId={workspaceId}
               documentId={document.id}
               editor={commentEditor}
+              onExplainOperation={
+                contextCaptureEnabled &&
+                !isArchived &&
+                !realtime.accessRevoked &&
+                commentEditor
+                  ? (id, sourceVersionIds) =>
+                      setCanvasContext({
+                        id: crypto.randomUUID(),
+                        editor: commentEditor,
+                        bookmark: commentEditor.state.selection.getBookmark(),
+                        proposal: { id, title: 'Accepted AI text', sourceVersionIds },
+                      })
+                  : undefined
+              }
             />,
             provenanceHost,
           )
@@ -390,9 +429,15 @@ export function DocumentEditorForm({
             </span>
             {storedBody === null || (realtimeEnabled && !realtime.ready) ? null : (
               <DocumentBodyEditor
-                onEditorReady={commentsHost ? setCommentEditor : undefined}
+                onCanvasAi={
+                  !contextCaptureEnabled || isArchived || realtime.accessRevoked
+                    ? undefined
+                    : (editor, bookmark) =>
+                        setCanvasContext({ id: crypto.randomUUID(), editor, bookmark })
+                }
+                onEditorReady={setCommentEditor}
                 onComment={
-                  commentsHost && authoringAvailable
+                  canvasContext === null && commentsHost && authoringAvailable
                     ? (anchor) => {
                         setPendingAnchor(anchor);
                         onOpenComments?.();
@@ -411,6 +456,7 @@ export function DocumentEditorForm({
                   settled &&
                   !previewing &&
                   !reviewing &&
+                  canvasContext === null &&
                   renderAuthoring !== undefined &&
                   !realtimeEnabled
                 }
@@ -475,6 +521,26 @@ export function DocumentEditorForm({
 
       {authoringAvailable && !realtimeEnabled
         ? renderAuthoring?.({
+            onExplainSuggestion:
+              contextCaptureEnabled && commentEditor
+                ? (suggestion) =>
+                    setCanvasContext({
+                      id: crypto.randomUUID(),
+                      editor: commentEditor,
+                      bookmark: commentEditor.state.selection.getBookmark(),
+                      proposal: {
+                        id: suggestion.id,
+                        title: 'Saved AI proposal',
+                        sourceVersionIds: [
+                          ...new Set(
+                            suggestion.citations.flatMap((citation) =>
+                              citation.sourceVersionId ? [citation.sourceVersionId] : [],
+                            ),
+                          ),
+                        ],
+                      },
+                    })
+                : undefined,
             selectionRequest,
             draftHost,
             onDraftPlacementChange: (placement, selectionEnd) => {

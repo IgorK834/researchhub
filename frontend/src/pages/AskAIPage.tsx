@@ -16,7 +16,11 @@ export function AskAIPage({
   initialQuestion,
   onInitialQuestionUsed,
   focus,
+  initialConversationId,
+  canEdit,
 }: {
+  readonly initialConversationId?: string;
+  readonly canEdit?: boolean;
   readonly workspaceId: string;
   readonly initialSourceId?: string;
   readonly initialQuestion?: WorkspaceQuestion;
@@ -34,6 +38,8 @@ export function AskAIPage({
       <ResearchPanel
         key={`${workspaceId}:${initialSourceId ?? focus?.sourceId ?? ''}:${focus?.sheetName ?? ''}`}
         workspaceId={workspaceId}
+        initialConversationId={initialConversationId}
+        canEdit={canEdit}
         variant="page"
         initialSourceId={initialSourceId ?? focus?.sourceId}
         starterQuestion={starter}

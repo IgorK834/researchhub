@@ -736,3 +736,14 @@ test('draft length, placement, tone and required citations stay within the exist
     citationRequired: true,
   });
 });
+
+test('passes the saved proposal to contextual chat while leaving acceptance separate', async () => {
+  const explain = jest.fn();
+  render(view({ onExplainSuggestion: explain }));
+  await draft();
+  fireEvent.click(screen.getByRole('button', { name: 'Explain this proposal in chat' }));
+  expect(explain).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 'proposal', state: 'PENDING' }),
+  );
+  expect(accept).not.toHaveBeenCalled();
+});

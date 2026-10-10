@@ -35,6 +35,7 @@ export interface EvidenceReference {
   readonly sourceId: string;
   readonly chunkId: string;
   readonly processingVersion: string;
+  readonly sourceVersionId?: string | null;
 }
 export interface GenerationCommand {
   readonly instruction: string;
@@ -57,7 +58,7 @@ export interface Citation extends EvidenceReference {
 export interface GeneratedResponse {
   /** Absent/null on historical RH-110 responses. Contains no prompt text. */
   readonly context?: {
-    readonly builderVersion: '1.0' | '2.0';
+    readonly builderVersion: '1.0' | '2.0' | '3.0';
     readonly tokenPolicy: 'utf8-conservative-v1';
     readonly budget: {
       readonly maxTokens: number;

@@ -297,6 +297,7 @@ function DocumentScreen({
             new Map(sources.data?.map((source) => [source.id, source.sourceType]))
           }
           canEdit={canEdit}
+          contextCaptureEnabled={workspace.data?.archivedAt === null}
           isViewer={authorized && workspace.data?.role === 'VIEWER'}
           authors={
             members.error === null
@@ -331,6 +332,7 @@ function DocumentScreen({
 }
 
 function EditorArea({
+  contextCaptureEnabled,
   exportHost,
   commentsHost,
   provenanceHost,
@@ -360,6 +362,7 @@ function EditorArea({
   readonly onOpenComments: () => void;
   readonly workspaceId: string;
   readonly document: ReturnType<typeof useDocumentQuery>;
+  readonly contextCaptureEnabled: boolean;
   readonly canEdit: boolean;
   readonly isViewer: boolean;
   readonly authors: readonly { readonly userId: string; readonly name: string }[];
@@ -408,6 +411,7 @@ function EditorArea({
         workspaceId={workspaceId}
         document={document.data}
         canEdit={canEdit}
+        contextCaptureEnabled={contextCaptureEnabled}
         isViewer={isViewer}
         authors={authors}
         sourceTypes={sourceTypes}

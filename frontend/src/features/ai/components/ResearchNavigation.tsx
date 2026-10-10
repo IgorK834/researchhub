@@ -89,9 +89,14 @@ export function Investigations({
                         </button>
                       }
                       meta={
-                        <time dateTime={item.updatedAt}>
-                          {new Date(item.updatedAt).toLocaleDateString()}
-                        </time>
+                        <>
+                          {item.origin ? (
+                            <span>Document: {item.origin.documentTitle} · </span>
+                          ) : null}
+                          <time dateTime={item.updatedAt}>
+                            {new Date(item.updatedAt).toLocaleDateString()}
+                          </time>
+                        </>
                       }
                     />
                   ))}

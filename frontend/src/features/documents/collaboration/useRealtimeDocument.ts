@@ -21,6 +21,8 @@ interface Checkpoint {
   content: string;
 }
 export interface RealtimeDocument {
+  epoch?: number;
+  sequence?: number;
   provider: HocuspocusProvider | null;
   user: Collaborator | undefined;
   participants: Collaborator[];
@@ -40,6 +42,8 @@ export function useRealtimeDocument(
   enabled: boolean,
   onCheckpoint?: (document: WorkspaceDocument) => void,
 ): RealtimeDocument {
+  const [epoch, setEpoch] = useState<number>();
+  const [sequence, setSequence] = useState<number>();
   const [doc] = useState(() => new Y.Doc());
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
   const [user, setUser] = useState<Collaborator>();
@@ -149,6 +153,7 @@ export function useRealtimeDocument(
       .then(async (first) => {
         if (disposed || revoked) return;
         const epoch = first.room.split(':')[2];
+        setEpoch(Number(epoch ?? 0));
         local = new IndexeddbPersistence(
           `researchhub:${workspaceId}:${document.id}${epoch ? `:epoch:${epoch}` : ''}`,
           doc,
@@ -257,6 +262,7 @@ export function useRealtimeDocument(
             let message: {
               event?: string;
               revision?: number;
+              sequence?: number;
               savedAt?: string;
               code?: string;
             };
@@ -271,6 +277,7 @@ export function useRealtimeDocument(
               typeof message.savedAt === 'string'
             ) {
               acknowledged = true;
+              if (typeof message.sequence === 'number') setSequence(message.sequence);
               setState((previous) => ({
                 ...previous,
                 revision: message.revision!,
@@ -322,6 +329,8 @@ export function useRealtimeDocument(
   }, [doc, enabled, path, workspaceId, document.id, attempt]);
   return {
     provider,
+    epoch,
+    sequence,
     user,
     accessRevoked,
     stateReplaced,

@@ -46,6 +46,7 @@ export function AuthoringPanel({
   draftHost,
   onDraftPlacementChange,
   onReviewing,
+  onExplainSuggestion,
 }: {
   readonly selectionRequest?: SelectionAuthoringRequest | null;
   readonly draftHost?: HTMLElement;
@@ -54,6 +55,7 @@ export function AuthoringPanel({
     selectionEnd?: number,
   ) => void;
   readonly onReviewing?: (reviewing: boolean) => void;
+  readonly onExplainSuggestion?: (suggestion: AuthoringSuggestion) => void;
   readonly workspaceId: string;
   readonly documentId: string;
   readonly revision: number;
@@ -512,6 +514,15 @@ export function AuthoringPanel({
       ) : (
         requestForm
       )}
+      {suggestion !== null && onExplainSuggestion ? (
+        <Button
+          variant="secondary"
+          disabled={busy || !settled}
+          onClick={() => onExplainSuggestion(suggestion)}
+        >
+          Explain this proposal in chat
+        </Button>
+      ) : null}
       {draftHost === undefined ? review : createPortal(review, draftHost)}
       {suggestion?.command.kind === 'REWRITE' ? (
         <div className={reviewStyles.claim}>
