@@ -69,3 +69,5 @@ sandbox/.coverage-sandbox
 collaboration/node_modules/
 collaboration/dist/
 collaboration/coverage/
+
+frontend/dist-canvas-legacy/

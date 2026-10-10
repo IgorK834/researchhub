@@ -19,7 +19,7 @@ import css from '@eslint/css';
  */
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
+    ignores: ['dist/**', 'dist-canvas-legacy/**', 'node_modules/**', 'coverage/**'],
   },
 
   { ...js.configs.recommended, files: ['**/*.{js,cjs,mjs,jsx,ts,tsx}'] },

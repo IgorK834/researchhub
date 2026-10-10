@@ -39,6 +39,42 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/ai/api/useCanvasConversation.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/ai/components/CanvasAiChat.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/documents/components/CanvasContextMenu.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/documents/components/CanvasContextPreview.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/documents/provenance/canvasTarget.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/shared/components/overlays/VirtualMenu.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/auth/components/RegistrationNotice.tsx': {
       lines: 80,
       branches: 80,
