@@ -79,6 +79,7 @@ class AnalysisApiIntegrationTest {
     @Autowired ExecutionStore executions;
     @Autowired org.flywaydb.core.Flyway flyway;
     @Autowired TestQuestionModel questionModel;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean java.time.Clock clock;
     ApiBrowser owner;
     UUID workspace,ownerId,source,version;
     String path;
@@ -111,6 +112,9 @@ class AnalysisApiIntegrationTest {
         return draft.get("id").asString();
     }
     @Test void excessiveAnalysisRequestsCannotEnqueueWorkOrCallThePlanner() throws Exception {
+        // The admission burst must share one quota window, even when wall time crosses a minute.
+        org.mockito.Mockito.doReturn(clock.instant()).when(clock).instant();
+        try {
         var policy = new dev.researchhub.security.application.QuotaPolicy(10,30,java.time.Duration.ofMinutes(1));
         for (int i=0;i<9;i++) costlyRequests.admit(ownerId,workspace,dev.researchhub.security.application.CostCategory.ANALYSIS,policy);
         String id=ready();
@@ -122,6 +126,7 @@ class AnalysisApiIntegrationTest {
         assertEquals(1,planner.calls); assertEquals(0,runner.calls);
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM analysis_executions",Integer.class));
         assertEquals(200,owner.get(path+"/"+id+"/executions").statusCode());
+        } finally {org.mockito.Mockito.reset(clock);}
     }
 
     @Test void createsListsPlansAndPreservesTheCompleteImmutableAudit() throws Exception {
@@ -326,6 +331,11 @@ class AnalysisApiIntegrationTest {
         var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
+        jdbc.execute("DROP TABLE canvas_turns");
+        jdbc.execute("ALTER TABLE ai_conversations DROP CONSTRAINT ck_contextual_origin,DROP COLUMN origin,DROP COLUMN origin_document_id,DROP COLUMN origin_context_id,DROP COLUMN client_conversation_id,DROP COLUMN first_request_hash");
+        jdbc.execute("ALTER TABLE ai_messages DROP CONSTRAINT uq_ai_messages_workspace,DROP CONSTRAINT uq_ai_messages_conversation");
+        jdbc.execute("ALTER TABLE analysis_executions DROP CONSTRAINT uq_canvas_execution_workspace");
+        jdbc.execute("DROP TABLE canvas_contexts");
         jdbc.execute("DROP TABLE report_exports");jdbc.execute("DROP FUNCTION preserve_report_export()");
         jdbc.execute("DROP TABLE ai_usage_events,ai_rag_traces");
         jdbc.execute("DROP TABLE analysis_execution_records");jdbc.execute("DROP FUNCTION validate_analysis_execution_record()");
@@ -352,7 +362,7 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP TABLE spring_session_attributes, spring_session");
         jdbc.execute("DROP TABLE cost_quota_bucket");
         jdbc.execute("DROP TABLE registration_rejections");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38')");flyway.migrate();
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40')");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());

@@ -26,6 +26,7 @@ class ConversationServiceTest {
     private final Message assistant=new Message(UUID.randomUUID(),send.clientRequestId(),2,"ASSISTANT","COMPLETED",null,response.answer(),null,response,null,Instant.now(),Instant.now());
     private final Claim claim=new Claim(UUID.randomUUID(),user,null);
     @BeforeEach void prepare() {
+        when(store.find(workspace,conversation)).thenReturn(new Conversation(conversation,workspace,caller,"Title",Instant.now(),Instant.now()));
         when(store.claim(workspace,conversation,caller,send)).thenReturn(claim);
         when(questions.answer(eq(workspace),eq(caller),eq(send.asQuestion()),any(QuestionExecution.class))).thenReturn(response);
         when(store.complete(workspace,conversation,claim,response)).thenReturn(new Completion(user,assistant));

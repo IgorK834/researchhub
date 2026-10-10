@@ -31,7 +31,7 @@ class ComputedContextContractsTest {
     }
     @Test void unsupportedPoliciesAndForgedLimitsCannotMakeOversizedComputedEvidenceAppearSafe() throws Exception {
         var s=fixture().context().summary();
-        assertThrows(IllegalArgumentException.class,() -> summary(s,"3.0",s.tokenPolicy(),s.budget(),s.contextBytes(),s.tokenUpperBound(),s.citations()));
+        assertThrows(IllegalArgumentException.class,() -> summary(s,"4.0",s.tokenPolicy(),s.budget(),s.contextBytes(),s.tokenUpperBound(),s.citations()));
         assertThrows(IllegalArgumentException.class,() -> summary(s,"2.0","guessed-words-policy",s.budget(),s.contextBytes(),s.tokenUpperBound(),s.citations()));
         assertThrows(IllegalArgumentException.class,() -> summary(s,"2.0",s.tokenPolicy(),null,s.contextBytes(),s.tokenUpperBound(),s.citations()));
         for(int bytes:List.of(-1,s.budget().maxBytes()+1))
