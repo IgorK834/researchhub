@@ -291,6 +291,54 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>canvas-application-coverage-report</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/ai/application/Canvas*</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-application</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>canvas-document-coverage-report</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/document/application/CanvasDocumentTarget*</include><include>dev/researchhub/document/application/CanvasTargets*</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-document</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>canvas-api-coverage-report</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/ai/api/Canvas*Controller*</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-api</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>canvas-infrastructure-coverage-report</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/ai/infrastructure/PostgresCanvas*Store*</include><include>dev/researchhub/collaboration/infrastructure/HttpCanvasPositionResolver*</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-infrastructure</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>collaboration-coverage-report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
