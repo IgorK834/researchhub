@@ -87,7 +87,7 @@ def create_app(
             return JSONResponse(status_code=401, content={"error": "Unauthorized"})
         try:
             payload = await _request_json(request, limit=512 * 1024)
-            command = (ContextualRequest if isinstance(payload, dict) and payload.get('schemaVersion') == '2.0'
+            command = (ContextualRequest if isinstance(payload, dict) and payload.get('schemaVersion') in {'2.0', '3.0'}
                 else GenerationRequest).model_validate(payload)
         except (ContractError, ValueError):
             return JSONResponse(status_code=400, content={"code": "AI_REQUEST_INVALID"})

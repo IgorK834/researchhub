@@ -28,7 +28,7 @@ class CitationBinding(ContractModel):
 
 
 class ContextSummary(ContractModel):
-    builder_version: Literal['1.0', '2.0']
+    builder_version: Literal['1.0', '2.0', '3.0']
     token_policy: Literal['utf8-conservative-v1']
     budget: ContextBudget
     context_hash: Hash
@@ -68,8 +68,43 @@ class AnalysisContextBlock(ContractModel):
     text_reference: None
 
 
+class MemoryEntry(ContractModel):
+    message_id: UUID
+    classification: Literal['USER_INPUT', 'MODEL_EXPLANATION']
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class ConversationMemory(ContractModel):
+    schema_version: Literal['1.0']
+    context_id: UUID
+    document_id: UUID
+    instruction: str = Field(min_length=1, max_length=8000)
+    selected_text: str = Field(max_length=4000)
+    before: str = Field(max_length=512)
+    after: str = Field(max_length=512)
+    target_proposal_id: UUID | None
+    proposal_text: str | None = Field(max_length=4000)
+    applied_block_ids: list[UUID] = Field(max_length=32)
+    history: list[MemoryEntry] = Field(max_length=6)
+    omitted_messages: StrictInt = Field(ge=0)
+
+    @model_validator(mode='after')
+    def bounded_memory(self):
+        # Match Spring's compact UTF-8 byte budget, including entry metadata and escaping.
+        size = sum(len(json.dumps(entry.model_dump(mode='json', by_alias=True), ensure_ascii=False,
+                                  separators=(',', ':')).encode()) for entry in self.history)
+        if size > 4096 or len({entry.message_id for entry in self.history}) != len(self.history):
+            raise ValueError('Invalid conversation memory budget')
+        for value, limit in [(self.instruction, 8000), (self.selected_text, 4000), (self.before, 512),
+                             (self.after, 512), (self.proposal_text or '', 4000)]:
+            if len(value.encode('utf-16-le')) // 2 > limit:
+                raise ValueError('Invalid UTF-16 memory limit')
+        return self
+
+
 class ContextualRequest(ContractModel):
-    schema_version: Literal['2.0']
+    schema_version: Literal['2.0', '3.0']
+    conversation_context: ConversationMemory | None = None
     request: GenerationRequest
     context: BuiltContext
 
@@ -86,11 +121,18 @@ class ContextualRequest(ContractModel):
         return result
 
     def user_message(self):
-        return json.dumps({'instruction': self.request.instruction, 'context': self.context.text}, ensure_ascii=False, separators=(',', ':'))
+        fields = {'instruction': self.request.instruction, 'context': self.context.text}
+        if self.conversation_context is not None:
+            fields['conversationContext'] = self.conversation_context.model_dump(mode='json', by_alias=True)
+        return json.dumps(fields, ensure_ascii=False, separators=(',', ':'))
 
     @model_validator(mode='after')
     def valid_context(self):
         summary = self.context.summary
+        if (self.schema_version == '3.0') != (self.conversation_context is not None):
+            raise ValueError('Memory requires envelope v3')
+        if (self.schema_version == '3.0') != (summary.builder_version == '3.0'):
+            raise ValueError('Memory requires context builder v3')
         raw = self.context.text.encode('utf-8')
         expected_tokens = len(self.request.system_instruction.encode('utf-8')) + len(self.user_message().encode('utf-8')) + FRAMING_RESERVE + self.request.parameters.max_output_tokens
         if (hashlib.sha256(raw).hexdigest() != summary.context_hash or len(raw) != summary.context_bytes
@@ -106,7 +148,7 @@ class ContextualRequest(ContractModel):
             if computed:
                 analysis_count += 1
                 expected_key = f'A{analysis_count}'
-                if summary.builder_version != '2.0' or binding.text_reference is not None:
+                if summary.builder_version not in {'2.0', '3.0'} or binding.text_reference is not None:
                     raise ValueError('Computed context requires an independent analysis citation')
             else:
                 source_count += 1

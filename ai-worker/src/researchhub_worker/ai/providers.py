@@ -44,7 +44,9 @@ class FakeModelProvider:
         if request.template_id in {'workspace-question:1', 'workspace-question:2'}:
             # Offline fixture only: quote lexically relevant evidence, never invent an answer.
             # This is intentionally not a semantic entailment classifier or production LLM.
-            terms = set(re.findall(r'\w+', request.instruction.casefold())) - {
+            query = (contextual.conversation_context.instruction + ' ' + contextual.conversation_context.selected_text
+                     if contextual is not None and contextual.conversation_context is not None else request.instruction)
+            terms = set(re.findall(r'\w+', query.casefold())) - {
                 'what', 'which', 'who', 'when', 'where', 'why', 'how', 'is', 'are', 'was',
                 'were', 'the', 'a', 'an', 'of', 'in', 'on', 'to', 'for', 'and', 'does',
                 'do', 'did', 'can', 'you', 'tell', 'me', 'about', 'this', 'that', 'source',
