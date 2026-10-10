@@ -23,6 +23,9 @@ public class PostgresDocumentProvenance {
                 row -> { result.put(row.getObject(1,UUID.class),row.getString(2)); },workspace,document);
         return result;
     }
+    public List<UUID> appliedBlocks(UUID workspace,UUID document,UUID operation) {
+        return jdbc.queryForList("SELECT DISTINCT block_id FROM document_content_operations WHERE workspace_id=? AND document_id=? AND source_operation_id=? AND operation_type='AI_ACCEPTED' LIMIT 33",UUID.class,workspace,document,operation);
+    }
     public List<Operation> history(UUID workspace,UUID document,UUID block,int limit) {
         return jdbc.query("SELECT * FROM document_content_operations WHERE workspace_id=? AND document_id=? AND block_id=? ORDER BY document_revision DESC,sequence DESC LIMIT ?",
             (r,i) -> new Operation(r.getObject("id",UUID.class),block,Category.valueOf(r.getString("category")),r.getObject("actor_user_id",UUID.class),r.getString("actor_name"),r.getString("operation_type"),

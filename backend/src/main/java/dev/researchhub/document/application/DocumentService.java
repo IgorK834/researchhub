@@ -201,6 +201,13 @@ public class DocumentService {
         return detailOf(saved);
     }
 
+    /** Viewer-safe read serialized with projection and CRDT snapshot commits. */
+    @Transactional
+    public DocumentDetail lockForContext(UUID workspaceId, UUID userId, UUID documentId) {
+        requireReader(workspaceId, userId);
+        return detailOf(requireDocumentForUpdate(workspaceId, documentId));
+    }
+
     /** Internal application boundary: locks the same row as legacy writers during activation/persistence. */
     @Transactional
     public DocumentDetail lockForCollaboration(UUID workspaceId, UUID userId, UUID documentId) {

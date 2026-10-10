@@ -74,6 +74,16 @@ public class DocumentProvenance {
             append(workspace,saved.summary().id(),block,category,caller,actorName(caller),category==Category.HUMAN ? "CITATION_ADDED" : "AI_ACCEPTED",sourceOperation,metadata,saved.summary().revision(),hash(node));
         }
     }
+    /** Current identities from a recorded acceptance, never an offset guessed from old proposal text. */
+    @Transactional(readOnly=true)
+    public Map<UUID,JsonNode> appliedBlocks(UUID workspace,UUID caller,UUID document,UUID operation) {
+        authorization.requireContentReader(workspace,caller);
+        var current=documents.findByWorkspaceIdAndId(workspace,document).orElseThrow(() -> new ResourceNotFoundException("Document was not found"));
+        var ids=store.appliedBlocks(workspace,document,operation);
+        var blocks=blocks(current.getContent());var result=new LinkedHashMap<UUID,JsonNode>();
+        if(ids.isEmpty() || ids.size()>32 || !blocks.keySet().containsAll(ids)) throw new ConflictException("The accepted blocks are no longer available; select the current text");
+        for(var entry:blocks.entrySet())if(ids.contains(entry.getKey()))result.put(entry.getKey(),entry.getValue());return result;
+    }
     public List<UUID> anchoredBlocks(String content, String anchor) {
         return blocks(content).entrySet().stream().filter(e -> hasAnchor(e.getValue(),anchor)).map(Map.Entry::getKey).toList();
     }

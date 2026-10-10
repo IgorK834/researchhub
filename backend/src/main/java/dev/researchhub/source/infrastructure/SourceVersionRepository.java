@@ -14,6 +14,7 @@ import java.util.UUID;
 public interface SourceVersionRepository extends Repository<SourceVersionEntity, UUID> {
     <S extends SourceVersionEntity> S saveAndFlush(S version);
     Optional<SourceVersionEntity> findByWorkspaceIdAndSourceIdAndId(UUID workspaceId, UUID sourceId, UUID id);
+    Optional<SourceVersionEntity> findByWorkspaceIdAndId(UUID workspaceId,UUID id);
     boolean existsByWorkspaceIdAndId(UUID workspaceId, UUID id);
     List<SourceVersionEntity> findByWorkspaceIdAndSourceIdOrderByVersionNumberDesc(UUID workspaceId, UUID sourceId);
 

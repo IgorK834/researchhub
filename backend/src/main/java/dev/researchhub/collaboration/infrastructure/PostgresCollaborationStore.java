@@ -63,6 +63,7 @@ public class PostgresCollaborationStore implements DocumentWriteGuard, dev.resea
         try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes)); }
         catch(java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
+    @Override public boolean requiresRealtime(UUID documentId) { return state(documentId).isPresent(); }
     @Override
     public void requireLegacyWrite(UUID documentId) {
         if (state(documentId).isPresent()) throw new ConflictException("This document requires the realtime editor");

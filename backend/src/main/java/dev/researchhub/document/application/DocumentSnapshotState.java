@@ -7,6 +7,7 @@ import java.util.UUID;
 public interface DocumentSnapshotState {
     record State(byte[] bytes, String sha256, long epoch, long sequence) {}
     Optional<State> snapshotState(UUID documentId);
+    default boolean requiresRealtime(UUID documentId) { return snapshotState(documentId).isPresent(); }
     /** Retire existing replicas before exposing restored editor content. */
     void restoreState(UUID documentId);
 }

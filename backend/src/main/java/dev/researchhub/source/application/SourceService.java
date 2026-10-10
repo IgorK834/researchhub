@@ -329,6 +329,13 @@ public class SourceService {
         }
     }
 
+    /** Resolve an explicitly selected immutable version within an authorized workspace. */
+    @Transactional(readOnly = true)
+    public SourceVersionSummary versionById(UUID workspaceId,UUID callerId,UUID versionId) {
+        authorization.requireContentReader(workspaceId,callerId);
+        var version=versions.findByWorkspaceIdAndId(workspaceId,versionId).orElseThrow(() -> new ResourceNotFoundException(SOURCE_NOT_FOUND)).toDomain();
+        return findVersion(workspaceId,callerId,version.sourceId(),versionId);
+    }
     /** Active version snapshot used by analysis provenance after workspace authorization. */
     @Transactional(readOnly = true)
     public SourceVersionSummary activeVersion(UUID workspaceId, UUID callerId, UUID sourceId) {
