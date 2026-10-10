@@ -1,0 +1,72 @@
+.surface {
+  inline-size: 440px;
+  max-inline-size: var(--overlay-viewport-width);
+}
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+.context {
+  border-block-end: var(--border-width) solid var(--color-border);
+  padding-block-end: var(--space-3);
+}
+.context blockquote {
+  margin: var(--space-2) 0;
+  max-block-size: 90px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+}
+.messages {
+  max-block-size: 32dvh;
+  overflow-y: auto;
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.messages article {
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.messages p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-block: var(--space-2);
+}
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.scope {
+  max-block-size: 180px;
+  overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .surface {
+    inline-size: calc(100vw - 16px);
+    block-size: calc(100dvh - 16px);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+  }
+  .surface .messages {
+    flex: 1;
+    max-block-size: none;
+  }
+  .surface .chat {
+    flex: 1;
+    min-block-size: 0;
+  }
+}

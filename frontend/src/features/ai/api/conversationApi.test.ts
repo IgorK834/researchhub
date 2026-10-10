@@ -175,3 +175,27 @@ it('treats EOF without completion as an abandoned connection rather than a saved
     ),
   ).rejects.toBeInstanceOf(ApiTransportError);
 });
+
+it('uses typed reservation, status and cancellation endpoints with CSRF', async () => {
+  const api = await import('./conversationApi');
+  const first = require('../../../../../contracts/ai/conversations/v2/firstturn.json');
+  const state = require('../../../../../contracts/ai/conversations/v2/state.json');
+  globalThis.fetch = jest.fn().mockResolvedValue(json(state));
+  expect(await api.startCanvasConversation('w', first)).toEqual(state);
+  expect(await api.sendCanvasTurn('w', 'c', first.turn)).toEqual(state);
+  expect(await api.fetchCanvasTurn('w', 'c', 't')).toEqual(state);
+  expect(await api.fetchCanvasTurn('w', 'c', 't', new AbortController().signal)).toEqual(
+    state,
+  );
+  expect(await api.cancelCanvasTurn('w', 'c', 't')).toEqual(state);
+  expect(jest.mocked(fetch).mock.calls.map((call) => call[0])).toEqual([
+    '/api/auth/csrf',
+    '/api/workspaces/w/ai/conversations/contextual',
+    '/api/auth/csrf',
+    '/api/workspaces/w/ai/conversations/c/turns',
+    '/api/workspaces/w/ai/conversations/c/turns/t',
+    '/api/workspaces/w/ai/conversations/c/turns/t',
+    '/api/auth/csrf',
+    '/api/workspaces/w/ai/conversations/c/turns/t/cancel',
+  ]);
+});

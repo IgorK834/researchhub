@@ -18,6 +18,11 @@ export interface Conversation {
   readonly title: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly origin?: {
+    readonly documentId: string;
+    readonly contextId: string;
+    readonly documentTitle: string;
+  };
 }
 export interface ConversationPage {
   readonly items: readonly Conversation[];
@@ -42,6 +47,7 @@ export interface ConversationHistory {
   readonly conversation: Conversation;
   readonly messages: readonly ConversationMessage[];
   readonly nextBeforeSequence: number | null;
+  readonly turns?: readonly CanvasTurnState[];
 }
 export interface ConversationTurn {
   readonly user: ConversationMessage;
@@ -197,4 +203,86 @@ export async function streamConversationQuestion(
       'The research stream ended before completion. Reload history before retrying.',
     );
   return completion;
+}
+
+/** Typed canvas requests have durable server status and do not depend on an open stream. */
+export interface CanvasScope {
+  readonly sourceVersionIds: readonly string[];
+  readonly analysisOutputs: readonly AnalysisEvidenceReference[];
+}
+export interface CanvasTurnRequest {
+  readonly schemaVersion: '1.0';
+  readonly clientRequestId: string;
+  readonly contextId: string;
+  readonly intent: 'ANSWER' | 'EDIT' | 'ANALYZE' | 'SOLVE' | 'CLARIFY';
+  readonly instruction: string;
+  readonly replyToMessageId: string | null;
+  readonly targetProposalId: string | null;
+  readonly scope: CanvasScope;
+}
+export interface CanvasFirstTurn {
+  readonly schemaVersion: '1.0';
+  readonly clientConversationId: string;
+  readonly contextId: string;
+  readonly turn: CanvasTurnRequest;
+}
+export interface CanvasTurnState {
+  readonly schemaVersion: '1.0';
+  readonly turnId: string;
+  readonly conversationId: string;
+  readonly contextId: string;
+  readonly intent: CanvasTurnRequest['intent'];
+  readonly scope: CanvasScope;
+  readonly status:
+    'ACCEPTED' | 'PLANNING' | 'WAITING_FOR_INPUT' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  readonly messageId: string | null;
+  readonly proposalId: string | null;
+  readonly executionId: string | null;
+  readonly failureCode: ApiErrorCode | null;
+  readonly resultKind: 'ANSWER' | 'CLARIFICATION' | null;
+  readonly memory: {
+    readonly includedMessages: number;
+    readonly omittedMessages: number;
+    readonly memoryHash: string;
+  } | null;
+}
+export async function startCanvasConversation(
+  workspaceId: string,
+  body: CanvasFirstTurn,
+): Promise<CanvasTurnState> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<CanvasTurnState>(`${path(workspaceId)}/contextual`, { body });
+}
+export async function sendCanvasTurn(
+  workspaceId: string,
+  conversationId: string,
+  body: CanvasTurnRequest,
+): Promise<CanvasTurnState> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<CanvasTurnState>(
+    `${path(workspaceId)}/${encodeURIComponent(conversationId)}/turns`,
+    { body },
+  );
+}
+export async function cancelCanvasTurn(
+  workspaceId: string,
+  conversationId: string,
+  turnId: string,
+): Promise<CanvasTurnState> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post<CanvasTurnState>(
+    `${path(workspaceId)}/${encodeURIComponent(conversationId)}/turns/${encodeURIComponent(turnId)}/cancel`,
+    { body: {} },
+  );
+}
+export function fetchCanvasTurn(
+  workspaceId: string,
+  conversationId: string,
+  turnId: string,
+  signal?: AbortSignal,
+): Promise<CanvasTurnState> {
+  return apiClient.get<CanvasTurnState>(
+    `${path(workspaceId)}/${encodeURIComponent(conversationId)}/turns/${encodeURIComponent(turnId)}`,
+    signal === undefined ? {} : { signal },
+  );
 }
