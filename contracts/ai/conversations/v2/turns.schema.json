@@ -1,0 +1,1010 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://researchhub.dev/contracts/ai/conversations/v2/turns.schema.json",
+  "title": "Contextual conversation operations (Canvas v1, history v2)",
+  "$defs": {
+    "Endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "blockId",
+        "path",
+        "offset"
+      ]
+    },
+    "Target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "CARET",
+            "TEXT",
+            "SOURCE",
+            "ANALYSIS"
+          ]
+        },
+        "start": {
+          "$ref": "#/$defs/Endpoint"
+        },
+        "end": {
+          "$ref": "#/$defs/Endpoint"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "kind",
+        "start",
+        "end",
+        "hash"
+      ]
+    },
+    "Relative": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "contentEncoding": "base64"
+        },
+        "end": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "contentEncoding": "base64"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "SourceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "sourceVersionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "chunkId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "processingVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 200,
+              "x-maxUtf16": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "sourceId",
+        "sourceVersionId",
+        "chunkId",
+        "processingVersion"
+      ]
+    },
+    "AnalysisReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "executionId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "outputId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "analysisId",
+        "executionId",
+        "outputId"
+      ]
+    },
+    "Scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceVersionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "maxItems": 12
+        },
+        "analysisOutputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnalysisReference"
+          },
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "sourceVersionIds",
+        "analysisOutputs"
+      ]
+    },
+    "Capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "clientRequestId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "epoch": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stateVector": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "contentEncoding": "base64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relative": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Relative"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "clientRequestId",
+        "revision",
+        "epoch",
+        "sequence",
+        "stateVector",
+        "relative",
+        "target"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "epoch": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "sequence": {
+                "type": "null"
+              },
+              "relative": {
+                "type": "null"
+              },
+              "stateVector": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "relative": {
+                "$ref": "#/$defs/Relative"
+              },
+              "stateVector": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536,
+                "contentEncoding": "base64"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 4000,
+          "x-maxUtf16": 4000
+        },
+        "before": {
+          "type": "string",
+          "maxLength": 512,
+          "x-maxUtf16": 512
+        },
+        "after": {
+          "type": "string",
+          "maxLength": 512,
+          "x-maxUtf16": 512
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceReference"
+          },
+          "maxItems": 4000
+        },
+        "analyses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnalysisReference"
+          },
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "target",
+        "text",
+        "before",
+        "after",
+        "sources",
+        "analyses"
+      ]
+    },
+    "Context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "documentId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "epoch": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "contextId",
+        "workspaceId",
+        "documentId",
+        "revision",
+        "epoch",
+        "sequence",
+        "snapshot",
+        "createdAt"
+      ]
+    },
+    "Intent": {
+      "enum": [
+        "ANSWER",
+        "EDIT",
+        "ANALYZE",
+        "SOLVE",
+        "CLARIFY"
+      ]
+    },
+    "Turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "clientRequestId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "intent": {
+          "$ref": "#/$defs/Intent"
+        },
+        "instruction": {
+          "type": "string",
+          "maxLength": 8000,
+          "x-maxUtf16": 8000
+        },
+        "replyToMessageId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetProposalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "clientRequestId",
+        "contextId",
+        "intent",
+        "instruction",
+        "replyToMessageId",
+        "targetProposalId",
+        "scope"
+      ]
+    },
+    "FirstTurn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "clientConversationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "turn": {
+          "$ref": "#/$defs/Turn"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "clientConversationId",
+        "contextId",
+        "turn"
+      ],
+      "description": "contextId must equal turn.contextId; server checks the relationship."
+    },
+    "TurnState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "turnId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "conversationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "status": {
+          "enum": [
+            "ACCEPTED",
+            "PLANNING",
+            "WAITING_FOR_INPUT",
+            "EXECUTING",
+            "PROPOSAL_READY",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED"
+          ]
+        },
+        "messageId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proposalId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failureCode": {
+          "anyOf": [
+            {
+              "enum": [
+                "VALIDATION_FAILED",
+                "FORBIDDEN",
+                "CONFLICT",
+                "AI_UNAVAILABLE",
+                "AI_OUTPUT_INVALID",
+                "AI_CONTEXT_TOO_LARGE",
+                "AI_PROVIDER_ERROR",
+                "AI_REFUSED",
+                "INTERNAL_ERROR",
+                "RESOURCE_NOT_FOUND"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "intent": {
+          "$ref": "#/$defs/Intent"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "resultKind": {
+          "enum": [
+            "ANSWER",
+            "CLARIFICATION",
+            null
+          ]
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "schemaVersion": {
+                  "const": "1.0"
+                },
+                "includedMessages": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "omittedMessages": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "memoryHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "schemaVersion",
+                "includedMessages",
+                "omittedMessages",
+                "memoryHash"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "turnId",
+        "conversationId",
+        "status",
+        "messageId",
+        "proposalId",
+        "executionId",
+        "failureCode",
+        "contextId",
+        "intent",
+        "scope",
+        "resultKind",
+        "memory"
+      ]
+    },
+    "Proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "proposalId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "messageId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "versionHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "enum": [
+            "PENDING",
+            "ACCEPTED",
+            "REJECTED",
+            "STALE",
+            "SUPERSEDED"
+          ]
+        },
+        "action": {
+          "enum": [
+            "INSERT",
+            "REPLACE"
+          ]
+        },
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "blockId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+              },
+              "kind": {
+                "const": "PARAGRAPH"
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 8000,
+                "x-maxUtf16": 8000
+              },
+              "sourceReferences": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/SourceReference"
+                },
+                "maxItems": 12
+              },
+              "analysisReferences": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/AnalysisReference"
+                },
+                "maxItems": 6
+              }
+            },
+            "required": [
+              "blockId",
+              "kind",
+              "text",
+              "sourceReferences",
+              "analysisReferences"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "proposalId",
+        "contextId",
+        "messageId",
+        "versionHash",
+        "status",
+        "action",
+        "blocks"
+      ]
+    },
+    "Execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "analysisId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "executionId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "workload": {
+          "enum": [
+            "DATASET",
+            "PROBLEM"
+          ]
+        },
+        "inputHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED"
+          ]
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnalysisReference"
+          },
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "analysisId",
+        "executionId",
+        "workload",
+        "inputHash",
+        "status",
+        "outputs"
+      ]
+    },
+    "Accept": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "clientOperationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "proposalVersionHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "expectedTarget": {
+          "$ref": "#/$defs/Target"
+        },
+        "expectedEpoch": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "clientOperationId",
+        "proposalVersionHash",
+        "contextId",
+        "expectedTarget",
+        "expectedEpoch"
+      ]
+    },
+    "Receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "operationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "proposalId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "proposalVersionHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "acceptedRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "insertedBlockIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "maxItems": 32
+        },
+        "undoStatus": {
+          "enum": [
+            "AVAILABLE",
+            "STALE",
+            "UNDONE"
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "operationId",
+        "contextId",
+        "proposalId",
+        "proposalVersionHash",
+        "acceptedRevision",
+        "insertedBlockIds",
+        "undoStatus"
+      ]
+    },
+    "TrustEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "USER_INPUT",
+            "SOURCE_EVIDENCE",
+            "COMPUTED_RESULT",
+            "MODEL_EXPLANATION"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 8000,
+          "x-maxUtf16": 8000
+        },
+        "sourceReference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "analysisReference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisReference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "content",
+        "sourceReference",
+        "analysisReference"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/FirstTurn"
+    },
+    {
+      "$ref": "#/$defs/Turn"
+    },
+    {
+      "$ref": "#/$defs/TurnState"
+    }
+  ]
+}

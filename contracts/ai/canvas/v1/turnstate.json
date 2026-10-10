@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "turnId": "00000008-0000-4000-8000-000000000001",
+  "conversationId": "00000007-0000-4000-8000-000000000001",
+  "status": "PROPOSAL_READY",
+  "messageId": "00000009-0000-4000-8000-000000000001",
+  "proposalId": "0000000a-0000-4000-8000-000000000001",
+  "executionId": null,
+  "failureCode": null
+}

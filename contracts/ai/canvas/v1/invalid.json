@@ -1,0 +1,158 @@
+[
+  {
+    "schema": "capture",
+    "payload": {
+      "schemaVersion": "2.0",
+      "clientRequestId": "00000002-0000-4000-8000-000000000001",
+      "revision": 3,
+      "epoch": null,
+      "sequence": null,
+      "stateVector": null,
+      "relative": null,
+      "target": {
+        "kind": "TEXT",
+        "start": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 3
+        },
+        "end": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 7
+        },
+        "hash": "aacfb6637bd0df2238641c5b15898d1a61df3157b1d0b4099f590fc0b0b6fbbd"
+      }
+    }
+  },
+  {
+    "schema": "capture",
+    "payload": {
+      "schemaVersion": "1.0",
+      "clientRequestId": "00000002-0000-4000-8000-000000000001",
+      "revision": 3,
+      "epoch": 1,
+      "sequence": null,
+      "stateVector": null,
+      "relative": null,
+      "target": {
+        "kind": "TEXT",
+        "start": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 3
+        },
+        "end": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 7
+        },
+        "hash": "aacfb6637bd0df2238641c5b15898d1a61df3157b1d0b4099f590fc0b0b6fbbd"
+      }
+    }
+  },
+  {
+    "schema": "capture",
+    "payload": {
+      "schemaVersion": "1.0",
+      "clientRequestId": "00000002-0000-4000-8000-000000000001",
+      "revision": 3,
+      "epoch": null,
+      "sequence": null,
+      "stateVector": null,
+      "relative": null,
+      "target": {
+        "kind": "TEXT",
+        "start": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": -1
+        },
+        "end": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 7
+        },
+        "hash": "aacfb6637bd0df2238641c5b15898d1a61df3157b1d0b4099f590fc0b0b6fbbd"
+      }
+    }
+  },
+  {
+    "schema": "turn",
+    "payload": {
+      "schemaVersion": "1.0",
+      "clientRequestId": "00000006-0000-4000-8000-000000000001",
+      "contextId": "00000003-0000-4000-8000-000000000001",
+      "intent": "RUN_ARBITRARY_TOOL",
+      "instruction": "Explain the selected passage.",
+      "replyToMessageId": null,
+      "targetProposalId": null,
+      "scope": {
+        "sourceVersionIds": [],
+        "analysisOutputs": []
+      }
+    }
+  },
+  {
+    "schema": "proposal",
+    "payload": {
+      "schemaVersion": "1.0",
+      "proposalId": "0000000a-0000-4000-8000-000000000001",
+      "contextId": "00000003-0000-4000-8000-000000000001",
+      "messageId": "00000009-0000-4000-8000-000000000001",
+      "versionHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": "PENDING",
+      "action": "REPLACE",
+      "blocks": [
+        {
+          "blockId": "0000000b-0000-4000-8000-000000000001",
+          "kind": "PARAGRAPH",
+          "text": "Suggested text to review.",
+          "sourceReferences": [],
+          "analysisReferences": []
+        }
+      ],
+      "html": "<script>bad</script>"
+    }
+  },
+  {
+    "schema": "accept",
+    "payload": {
+      "schemaVersion": "1.0",
+      "clientOperationId": "0000000b-0000-4000-8000-000000000001",
+      "proposalVersionHash": "invalid",
+      "contextId": "00000003-0000-4000-8000-000000000001",
+      "expectedTarget": {
+        "kind": "TEXT",
+        "start": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 3
+        },
+        "end": {
+          "blockId": "00000001-0000-4000-8000-000000000001",
+          "path": [
+            0
+          ],
+          "offset": 7
+        },
+        "hash": "aacfb6637bd0df2238641c5b15898d1a61df3157b1d0b4099f590fc0b0b6fbbd"
+      },
+      "expectedEpoch": null
+    }
+  }
+]

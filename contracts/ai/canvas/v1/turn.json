@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "clientRequestId": "00000006-0000-4000-8000-000000000001",
+  "contextId": "00000003-0000-4000-8000-000000000001",
+  "intent": "ANSWER",
+  "instruction": "Explain the selected passage.",
+  "replyToMessageId": null,
+  "targetProposalId": null,
+  "scope": {
+    "sourceVersionIds": [],
+    "analysisOutputs": []
+  }
+}

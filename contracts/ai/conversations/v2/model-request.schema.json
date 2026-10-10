@@ -1,0 +1,386 @@
+{
+  "$defs": {
+    "BuiltContext": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "$ref": "#/$defs/ContextSummary"
+        },
+        "text": {
+          "maxLength": 131072,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": ["summary", "text"],
+      "title": "BuiltContext",
+      "type": "object"
+    },
+    "CitationBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "citationKey": {
+          "pattern": "^[SA](?:[1-9]|1[0-2])$",
+          "title": "Citationkey",
+          "type": "string"
+        },
+        "chunkId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chunkid",
+          "type": "string"
+        },
+        "textReference": {
+          "anyOf": [
+            {
+              "pattern": "^[SA](?:[1-9]|1[0-2])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Textreference"
+        }
+      },
+      "required": ["citationKey", "chunkId", "textReference"],
+      "title": "CitationBinding",
+      "type": "object"
+    },
+    "ContextBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "maxTokens": {
+          "maximum": 131072,
+          "minimum": 64,
+          "title": "Maxtokens",
+          "type": "integer"
+        },
+        "maxBytes": {
+          "maximum": 131072,
+          "minimum": 64,
+          "title": "Maxbytes",
+          "type": "integer"
+        },
+        "collapseExactDuplicates": {
+          "title": "Collapseexactduplicates",
+          "type": "boolean"
+        }
+      },
+      "required": ["maxTokens", "maxBytes", "collapseExactDuplicates"],
+      "title": "ContextBudget",
+      "type": "object"
+    },
+    "ContextSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "builderVersion": {
+          "const": "3.0",
+          "type": "string"
+        },
+        "tokenPolicy": {
+          "const": "utf8-conservative-v1",
+          "title": "Tokenpolicy",
+          "type": "string"
+        },
+        "budget": {
+          "$ref": "#/$defs/ContextBudget"
+        },
+        "contextHash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Contexthash",
+          "type": "string"
+        },
+        "contextBytes": {
+          "minimum": 0,
+          "title": "Contextbytes",
+          "type": "integer"
+        },
+        "tokenUpperBound": {
+          "minimum": 0,
+          "title": "Tokenupperbound",
+          "type": "integer"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/CitationBinding"
+          },
+          "maxItems": 12,
+          "title": "Citations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "builderVersion",
+        "tokenPolicy",
+        "budget",
+        "contextHash",
+        "contextBytes",
+        "tokenUpperBound",
+        "citations"
+      ],
+      "title": "ContextSummary",
+      "type": "object"
+    },
+    "ConversationMemory": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "contextId": {
+          "format": "uuid",
+          "title": "Contextid",
+          "type": "string"
+        },
+        "documentId": {
+          "format": "uuid",
+          "title": "Documentid",
+          "type": "string"
+        },
+        "instruction": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "selectedText": {
+          "maxLength": 4000,
+          "title": "Selectedtext",
+          "type": "string"
+        },
+        "before": {
+          "maxLength": 512,
+          "title": "Before",
+          "type": "string"
+        },
+        "after": {
+          "maxLength": 512,
+          "title": "After",
+          "type": "string"
+        },
+        "targetProposalId": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Targetproposalid"
+        },
+        "proposalText": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Proposaltext"
+        },
+        "appliedBlockIds": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Appliedblockids",
+          "type": "array"
+        },
+        "history": {
+          "items": {
+            "$ref": "#/$defs/MemoryEntry"
+          },
+          "maxItems": 6,
+          "title": "History",
+          "type": "array"
+        },
+        "omittedMessages": {
+          "minimum": 0,
+          "title": "Omittedmessages",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "contextId",
+        "documentId",
+        "instruction",
+        "selectedText",
+        "before",
+        "after",
+        "targetProposalId",
+        "proposalText",
+        "appliedBlockIds",
+        "history",
+        "omittedMessages"
+      ],
+      "title": "ConversationMemory",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "chunkId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chunkid",
+          "type": "string"
+        },
+        "contentHash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Contenthash",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": ["chunkId", "contentHash", "content"],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "GenerationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "templateId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Templateid",
+          "type": "string"
+        },
+        "templateHash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Templatehash",
+          "type": "string"
+        },
+        "systemInstruction": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Systeminstruction",
+          "type": "string"
+        },
+        "instruction": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "parameters": {
+          "$ref": "#/$defs/ModelParameters"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 12,
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "templateId",
+        "templateHash",
+        "systemInstruction",
+        "instruction",
+        "parameters",
+        "evidence"
+      ],
+      "title": "GenerationRequest",
+      "type": "object"
+    },
+    "MemoryEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "format": "uuid",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "classification": {
+          "enum": ["USER_INPUT", "MODEL_EXPLANATION"],
+          "title": "Classification",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": ["messageId", "classification", "content"],
+      "title": "MemoryEntry",
+      "type": "object"
+    },
+    "ModelParameters": {
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature"
+        },
+        "maxOutputTokens": {
+          "maximum": 8192,
+          "minimum": 16,
+          "title": "Maxoutputtokens",
+          "type": "integer"
+        }
+      },
+      "required": ["maxOutputTokens"],
+      "title": "ModelParameters",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0",
+      "type": "string"
+    },
+    "conversationContext": {
+      "$ref": "#/$defs/ConversationMemory"
+    },
+    "request": {
+      "$ref": "#/$defs/GenerationRequest"
+    },
+    "context": {
+      "$ref": "#/$defs/BuiltContext"
+    }
+  },
+  "required": ["schemaVersion", "request", "context", "conversationContext"],
+  "title": "ContextualRequest",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:researchhub:contextual-conversation-model:3.0"
+}
