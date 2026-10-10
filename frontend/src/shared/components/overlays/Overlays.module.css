@@ -77,6 +77,8 @@
   padding-block-start: var(--space-5);
 }
 .popoverLayer {
+  --overlay-viewport-width: calc(100vw - 16px);
+  --overlay-viewport-height: calc(100dvh - 16px);
   position: relative;
   z-index: var(--layer-popover);
 }
@@ -88,8 +90,8 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--elevation-e2);
-  max-inline-size: calc(100vw - 16px);
-  max-block-size: calc(100dvh - 16px);
+  max-inline-size: var(--overlay-viewport-width, calc(100vw - 16px));
+  max-block-size: var(--overlay-viewport-height, calc(100dvh - 16px));
   overflow-y: auto;
 }
 .popover {
@@ -104,7 +106,7 @@
   margin-block-end: var(--space-2);
 }
 .menu {
-  min-inline-size: 190px;
+  min-inline-size: min(190px, var(--overlay-viewport-width, calc(100vw - 16px)));
   padding: var(--space-1);
 }
 .menuItem {

@@ -15,9 +15,12 @@ import { Icon, type IconName } from '../icons';
 import { useOverlay } from './useOverlay';
 import styles from './Overlays.module.css';
 
-function usePosition(
+export interface VirtualAnchor {
+  getBoundingClientRect(): DOMRect;
+}
+export function usePosition(
   open: boolean,
-  trigger: RefObject<HTMLElement | null>,
+  trigger: RefObject<VirtualAnchor | null>,
   surface: RefObject<HTMLDivElement | null>,
 ): void {
   useLayoutEffect(() => {
@@ -25,27 +28,48 @@ function usePosition(
     const position = (): void => {
       if (!trigger.current || !surface.current) return;
       const anchor = trigger.current.getBoundingClientRect();
-      const popup = surface.current.getBoundingClientRect();
       const gap = 8;
-      const left = Math.max(
-        gap,
-        Math.min(anchor.left, window.innerWidth - popup.width - gap),
+      const viewport = window.visualViewport;
+      const minLeft = (viewport?.offsetLeft ?? 0) + gap;
+      const minTop = (viewport?.offsetTop ?? 0) + gap;
+      const width = viewport?.width ?? window.innerWidth;
+      const height = viewport?.height ?? window.innerHeight;
+      surface.current.style.setProperty(
+        '--overlay-viewport-width',
+        `${Math.max(0, width - 2 * gap)}px`,
       );
-      const top =
-        anchor.bottom + gap + popup.height <= window.innerHeight
+      surface.current.style.setProperty(
+        '--overlay-viewport-height',
+        `${Math.max(0, height - 2 * gap)}px`,
+      );
+      const popup = surface.current.getBoundingClientRect();
+      const left = Math.max(
+        minLeft,
+        Math.min(anchor.left, minLeft + width - popup.width - 2 * gap),
+      );
+      const desiredTop =
+        anchor.bottom + gap + popup.height <= minTop + height - 2 * gap
           ? anchor.bottom + gap
-          : Math.max(gap, anchor.top - popup.height - gap);
+          : anchor.top - popup.height - gap;
+      const top = Math.max(
+        minTop,
+        Math.min(desiredTop, minTop + height - popup.height - 2 * gap),
+      );
       surface.current.style.setProperty('left', `${left}px`);
       surface.current.style.setProperty('top', `${top}px`);
     };
     position();
     const resize = new ResizeObserver(position);
     if (surface.current) resize.observe(surface.current);
-    if (trigger.current) resize.observe(trigger.current);
+    if (trigger.current instanceof Element) resize.observe(trigger.current);
+    window.visualViewport?.addEventListener('resize', position);
+    window.visualViewport?.addEventListener('scroll', position);
     window.addEventListener('resize', position);
     window.addEventListener('scroll', position, true);
     return () => {
       resize.disconnect();
+      window.visualViewport?.removeEventListener('resize', position);
+      window.visualViewport?.removeEventListener('scroll', position);
       window.removeEventListener('resize', position);
       window.removeEventListener('scroll', position, true);
     };
@@ -64,12 +88,14 @@ export function AnchoredPopover({
   children,
   onClose,
   className,
+  virtualAnchor,
 }: {
   readonly anchor: HTMLElement;
   readonly title: string;
   readonly children: ReactNode;
   readonly onClose: () => void;
   readonly className?: string;
+  readonly virtualAnchor?: VirtualAnchor;
 }): ReactElement {
   const id = useId();
   const trigger = useMemo(() => ({ current: anchor }), [anchor]);
@@ -90,7 +116,11 @@ export function AnchoredPopover({
     hostRef: host,
     surfaceRef: surface,
   });
-  usePosition(true, trigger, surface);
+  const positioned = useMemo(
+    () => ({ current: virtualAnchor ?? anchor }),
+    [virtualAnchor, anchor],
+  );
+  usePosition(true, positioned, surface);
   return createPortal(
     <div ref={host} className={styles.popoverLayer} data-rh-overlay="">
       <div
