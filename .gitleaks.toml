@@ -10,3 +10,11 @@ id = "generic-api-key"
 description = "Public context-packing policy identifiers, not access tokens"
 regexTarget = "match"
 regexes = ['''tokenPolicy["']?\s*:\s*["']utf8-conservative-v[12]["']''']
+
+[[rules.allowlists]]
+description = "Public Azurite emulator default key in the Azure startup integration fixture"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''(^|/)backend/src/test/java/dev/researchhub/AzureProfileStartupIntegrationTest\.java$''']
+# https://github.com/Azure/Azurite#default-storage-account
+regexes = ['''^Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==$''']

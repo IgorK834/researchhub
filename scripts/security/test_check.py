@@ -3,6 +3,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -177,6 +178,52 @@ class SecurityChecksTest(unittest.TestCase):
             (root / '.env').write_text('LOCAL_SETTING=example\n')
             git('add', '-f', '.env')
             self.assertIn('.env', check.forbidden_files(check.tracked_files(root)))
+
+    @unittest.skipUnless(os.environ.get('GITLEAKS_EXECUTABLE'), 'Install pinned Gitleaks for integration test')
+    def test_azurite_exception_requires_exact_public_key_and_fixture_path_including_history(self):
+        executable = os.environ['GITLEAKS_EXECUTABLE']
+        repository = Path(__file__).resolve().parents[2]
+        configuration = repository / '.gitleaks.toml'
+        fixture = 'backend/src/test/java/dev/researchhub/AzureProfileStartupIntegrationTest.java'
+        public_key = re.search(r'\bKEY\s*=\s*"([^"]+)"', (repository / fixture).read_text()).group(1)
+        synthetic = ''.join(('ghp_', 'ABcd12Ef34Gh56Ij78Kl90Mn12Op34Qr56St'))
+        for name, value, expected in [(fixture, public_key, 0), (fixture, public_key[::-1], 1),
+                                      (fixture, synthetic, 1), ('other.java', public_key, 1)]:
+            with self.subTest(name=name, expected=expected), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text('private static final String KEY="' + value + '";\n')
+                report_path = root / 'findings.json'
+                result = subprocess.run([executable, '--config', str(configuration), '--redact=100',
+                                         '--no-banner', '--report-format', 'json', '--report-path',
+                                         str(report_path), 'dir', str(root)], capture_output=True)
+                self.assertEqual(result.returncode, expected)
+                findings = json.loads(report_path.read_text())
+                self.assertEqual(bool(findings), bool(expected))
+                self.assertTrue(all(finding['Secret'] == 'REDACTED' for finding in findings))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            def git(*args):
+                subprocess.run(['git', *args], cwd=root, check=True, capture_output=True)
+            git('init', '-q')
+            git('config', 'user.name', 'Security fixture')
+            git('config', 'user.email', 'fixture@example.invalid')
+            (root / '.gitleaks.toml').write_bytes(configuration.read_bytes())
+            target = root / fixture
+            target.parent.mkdir(parents=True)
+            target.write_text('private static final String KEY="' + public_key + '";\n')
+            git('add', '.')
+            git('commit', '-qm', 'Public emulator fixture')
+            target.write_text('Fixture removed\n')
+            git('add', '.')
+            git('commit', '-qm', 'Remove fixture')
+            output = root / 'reports'
+            output.mkdir()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(check.secrets(root, [fixture], executable, output), 0)
+            for label in ('history', 'tracked'):
+                self.assertEqual(json.loads((output / f'secrets-{label}.json').read_text()), [])
 
 
 if __name__ == '__main__':
