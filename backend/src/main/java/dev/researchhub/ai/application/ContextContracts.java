@@ -19,7 +19,7 @@ public final class ContextContracts {
     public record Summary(String builderVersion, String tokenPolicy, Budget budget, String contextHash,
                           int contextBytes, long tokenUpperBound, List<Binding> citations) {
         public Summary {
-            require(Set.of("1.0","2.0").contains(builderVersion) && "utf8-conservative-v1".equals(tokenPolicy) && budget != null);
+            require(Set.of("1.0","2.0","3.0").contains(builderVersion) && "utf8-conservative-v1".equals(tokenPolicy) && budget != null);
             hash(contextHash); require(contextBytes >= 0 && contextBytes <= budget.maxBytes() && tokenUpperBound >= 0 && tokenUpperBound <= budget.maxTokens());
             citations = bounded(citations, 12);
             var keys = new HashSet<String>(); var chunks = new HashSet<String>();
@@ -28,7 +28,7 @@ public final class ContextContracts {
                 var binding = citations.get(index);
                 boolean computed=binding.citationKey().startsWith("A");
                 require(binding.citationKey().equals(computed ? "A"+(++analysis) : "S"+(++source)) && chunks.add(binding.chunkId()));
-                require(!computed || "2.0".equals(builderVersion) && binding.textReference()==null);
+                require(!computed || Set.of("2.0","3.0").contains(builderVersion) && binding.textReference()==null);
                 require(binding.textReference() == null || keys.contains(binding.textReference()));
                 keys.add(binding.citationKey());
             }
@@ -42,9 +42,13 @@ public final class ContextContracts {
         }
     }
     /** v2 wraps the unchanged v1 model contract; old stored responses remain readable. */
-    public record ContextualRequest(String schemaVersion, GenerationContracts.Request request, BuiltContext context) {
+    public record ContextualRequest(String schemaVersion, GenerationContracts.Request request, BuiltContext context,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        CanvasConversationContracts.Memory conversationContext) {
+        public ContextualRequest(String schemaVersion,GenerationContracts.Request request,BuiltContext context) {this(schemaVersion,request,context,null);}
         public ContextualRequest {
-            require("2.0".equals(schemaVersion) && request != null && context != null);
+            require(("2.0".equals(schemaVersion) && conversationContext==null || "3.0".equals(schemaVersion) && conversationContext!=null) && request != null && context != null);
+            require("3.0".equals(schemaVersion) == "3.0".equals(context.summary().builderVersion()));
             require(context.summary().citations().stream().map(Binding::chunkId).toList()
                 .equals(request.evidence().stream().map(Evidence::chunkId).toList()));
         }

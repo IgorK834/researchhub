@@ -23,7 +23,9 @@ public class PostgresConversationStore implements ConversationStore {
     public PostgresConversationStore(JdbcTemplate jdbc,ObjectMapper json) { this.jdbc=jdbc; this.json=json; }
     private final RowMapper<Conversation> conversationMapper=(row,index) -> new Conversation(row.getObject("id",UUID.class),
         row.getObject("workspace_id",UUID.class),row.getObject("created_by",UUID.class),row.getString("title"),
-        row.getTimestamp("created_at").toInstant(),row.getTimestamp("updated_at").toInstant());
+        row.getTimestamp("created_at").toInstant(),row.getTimestamp("updated_at").toInstant(),
+        origin(row.getString("origin")));
+    private CanvasConversationContracts.Origin origin(String value) {return value==null?null:json.readValue(value,CanvasConversationContracts.Origin.class);}
     private Message message(ResultSet row) throws SQLException {
         String selected=row.getString("selected_source_ids"), response=row.getString("response");
         var completed=row.getTimestamp("completed_at");
@@ -75,7 +77,7 @@ public class PostgresConversationStore implements ConversationStore {
         jdbc.update("""
             UPDATE ai_messages SET status='ABANDONED',error_code='CONFLICT',completed_at=now()
             WHERE workspace_id=? AND conversation_id=? AND role='USER' AND status='PENDING'
-                AND started_at < now()-interval '5 minutes'
+                AND started_at < now()-interval '5 minutes' AND NOT EXISTS (SELECT 1 FROM canvas_turns t WHERE t.user_message_id=ai_messages.id)
             """,workspaceId,conversationId);
     }
     private record Stored(Message message,UUID attemptId,Instant startedAt) {}

@@ -21,6 +21,8 @@ public class ConversationService {
         this.store=store; this.authorization=authorization; this.sources=sources; this.questions=questions;
         this.computed=computed;
     }
+    @org.springframework.beans.factory.annotation.Autowired private CanvasTurnStore canvasTurns;
+    @org.springframework.beans.factory.annotation.Autowired private CanvasContextService canvasContexts;
     public Conversation create(UUID workspaceId, UUID callerId, Create command) {
         authorize(workspaceId,callerId);
         return store.create(workspaceId,callerId,command.title());
@@ -36,12 +38,18 @@ public class ConversationService {
         authorize(workspaceId,callerId);
         if (limit < 1 || limit > 25 || beforeSequence != null && beforeSequence < 1) throw limits();
         var history=store.history(workspaceId,conversationId,beforeSequence,limit);
+        if(history.conversation().origin()!=null) {
+            var origin=history.conversation().origin();canvasContexts.find(workspaceId,origin.documentId(),callerId,origin.contextId());
+            var states=canvasTurns.history(workspaceId,conversationId,history.messages().stream().filter(m->"USER".equals(m.role())).map(Message::id).toList());
+            for(var turn:states) {sources.requireSourceVersions(workspaceId,callerId,turn.scope().sourceVersionIds());computed.resolve(workspaceId,callerId,turn.scope().analysisOutputs());}
+            history=new History(history.conversation(),history.messages(),history.nextBeforeSequence(),states);
+        }
         authorize(workspaceId,callerId);
         return history;
     }
     public void requireSend(UUID workspaceId, UUID callerId, UUID conversationId, Send send) {
         authorize(workspaceId,callerId);
-        store.find(workspaceId,conversationId);
+        if(store.find(workspaceId,conversationId).origin()!=null)throw new ConflictException("Use the typed turn endpoint for contextual conversations");
         if (send.selectedSourceIds() != null) sources.requireSources(workspaceId,callerId,send.selectedSourceIds());
         if (!send.selectedAnalysisOutputs().isEmpty()) computed.resolve(workspaceId,callerId,send.selectedAnalysisOutputs());
     }

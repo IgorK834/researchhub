@@ -22,7 +22,13 @@ public final class ConversationContracts {
         public Send(UUID clientRequestId,String question,List<UUID> selectedSourceIds) { this(clientRequestId,question,selectedSourceIds,List.of()); }
         public QuestionContracts.Question asQuestion() { return new QuestionContracts.Question(question,selectedSourceIds,selectedAnalysisOutputs); }
     }
-    public record Conversation(UUID id, UUID workspaceId, UUID createdBy, String title, Instant createdAt, Instant updatedAt) {}
+    public record Conversation(UUID id, UUID workspaceId, UUID createdBy, String title, Instant createdAt, Instant updatedAt,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        CanvasConversationContracts.Origin origin) {
+        public Conversation(UUID id, UUID workspaceId, UUID createdBy, String title, Instant createdAt, Instant updatedAt) {
+            this(id,workspaceId,createdBy,title,createdAt,updatedAt,null);
+        }
+    }
     public record ConversationPage(List<Conversation> items, Integer nextOffset) {
         public ConversationPage { items = List.copyOf(items); }
     }
@@ -35,8 +41,11 @@ public final class ConversationContracts {
         public Message(UUID id,UUID clientRequestId,long sequence,String role,String status,UUID authorId,String content,List<UUID> selectedSourceIds,QuestionContracts.Response response,
             String errorCode,Instant createdAt,Instant completedAt) { this(id,clientRequestId,sequence,role,status,authorId,content,selectedSourceIds,response,errorCode,createdAt,completedAt,List.of()); }
     }
-    public record History(Conversation conversation, List<Message> messages, Long nextBeforeSequence) {
-        public History { messages = List.copyOf(messages); }
+    public record History(Conversation conversation, List<Message> messages, Long nextBeforeSequence,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)
+        List<CanvasConversationContracts.TurnState> turns) {
+        public History(Conversation conversation,List<Message> messages,Long nextBeforeSequence) { this(conversation,messages,nextBeforeSequence,List.of()); }
+        public History { messages = List.copyOf(messages); turns=turns==null?List.of():List.copyOf(turns); }
     }
     public record Completion(Message user, Message assistant) {}
     /** Internal lease identity prevents a cancelled/expired attempt from overwriting a later retry. */

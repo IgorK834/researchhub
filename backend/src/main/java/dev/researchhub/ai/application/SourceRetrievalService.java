@@ -32,6 +32,11 @@ public class SourceRetrievalService {
                 .orElseThrow(() -> new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND));
     }
 
+    @Transactional(readOnly=true)
+    public RetrievalChunkSet version(UUID workspace,UUID source,UUID version,UUID caller) {
+        extractions.findVersion(workspace,source,version,caller);
+        return retrieval.findVersion(workspace,source,version).orElseThrow(() -> new ResourceNotFoundException(SourceService.SOURCE_NOT_FOUND));
+    }
     /** Resolves immutable historical evidence for an analysis that explicitly keeps its original inputs. */
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public RetrievalChunk chunk(UUID workspaceId, UUID sourceId, UUID sourceVersionId, UUID callerId,

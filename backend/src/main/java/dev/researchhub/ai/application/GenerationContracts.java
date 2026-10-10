@@ -84,7 +84,9 @@ public final class GenerationContracts {
         public GeneratedResponse(Result result, List<Citation> evidence, ContextContracts.Summary context) { this(result,evidence,context,List.of()); }
         public GeneratedResponse(Result result, List<Citation> evidence) { this(result, evidence, null,List.of()); }
     }
-    public record EvidenceReference(UUID sourceId, String chunkId, String processingVersion) {
+    public record EvidenceReference(UUID sourceId, String chunkId, String processingVersion,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) UUID sourceVersionId) {
+        public EvidenceReference(UUID sourceId,String chunkId,String processingVersion) {this(sourceId,chunkId,processingVersion,null);}
         public EvidenceReference { require(sourceId != null); hash(chunkId); identifier(processingVersion); }
     }
     public record Command(String instruction, List<EvidenceReference> evidence) {

@@ -19,6 +19,10 @@ public class GroundedContextBuilder {
     }
     public ContextualRequest build(Request request,List<Citation> provenance,
         List<dev.researchhub.analysis.application.AnalysisEvidenceService.Citation> computed,Budget budget) {
+        return build(request,provenance,computed,budget,null);
+    }
+    public ContextualRequest build(Request request,List<Citation> provenance,
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Citation> computed,Budget budget,CanvasConversationContracts.Memory memory) {
         GenerationContracts.require(provenance != null && provenance.size()+computed.size() == request.evidence().size());
         var text = new StringBuilder();
         var bindings = new ArrayList<Binding>();
@@ -59,10 +63,11 @@ public class GroundedContextBuilder {
         // Byte-based upper bound avoids a guessed words/4 tokenizer. Include the exact user JSON,
         // system text, schema/message framing reserve and completion-token reservation.
         var user = new LinkedHashMap<String, Object>(); user.put("instruction", request.instruction()); user.put("context", packed);
+        if(memory!=null) user.put("conversationContext",memory);
         long tokens = (long) bytes(request.systemInstruction()) + bytes(JSON.writeValueAsString(user)) + FRAMING_RESERVE + request.parameters().maxOutputTokens();
         if (contextBytes > budget.maxBytes() || tokens > budget.maxTokens()) throw overflow();
-        var summary = new Summary(computed.isEmpty() ? "1.0" : "2.0", "utf8-conservative-v1", budget, RetrievalIdentity.hash(packed), contextBytes, tokens, bindings);
-        var result = new ContextualRequest("2.0", request, new BuiltContext(summary, packed));
+        var summary = new Summary(memory!=null ? "3.0" : computed.isEmpty() ? "1.0" : "2.0", "utf8-conservative-v1", budget, RetrievalIdentity.hash(packed), contextBytes, tokens, bindings);
+        var result = new ContextualRequest(memory==null?"2.0":"3.0", request, new BuiltContext(summary, packed),memory);
         if (JSON.writeValueAsBytes(result).length > 512 * 1024) throw overflow();
         return result;
     }

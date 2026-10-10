@@ -40,6 +40,10 @@ public class ModelGateway {
     }
     GeneratedResponse generate(UUID workspaceId, UUID callerId, Command command, GenerationPolicy policy,
         List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> analysisReferences) {
+        return generate(workspaceId,callerId,command,policy,analysisReferences,null);
+    }
+    GeneratedResponse generate(UUID workspaceId,UUID callerId,Command command,GenerationPolicy policy,
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> analysisReferences,CanvasConversationContracts.Memory memory) {
         authorization.requireContentReader(workspaceId, callerId);
         var chunks = resolve(workspaceId, callerId, command);
         var resolved=analysisReferences.isEmpty() ? List.<dev.researchhub.analysis.application.AnalysisEvidenceService.Resolved>of() : computed.resolve(workspaceId,callerId,analysisReferences);
@@ -49,13 +53,13 @@ public class ModelGateway {
             command.instruction(), policy.parameters(), evidence);
         var titles = new HashMap<UUID, String>();
         chunks.forEach(c -> titles.computeIfAbsent(c.sourceId(), id -> sources.findOne(workspaceId, callerId, id).displayName()));
-        var citations = chunks.stream().map(c -> Citation.from(c, titles.get(c.sourceId()))).toList();
+        var citations = chunks.stream().map(c -> Citation.from(c, command.evidence().stream().noneMatch(ref->ref.chunkId().equals(c.chunkId()) && ref.sourceVersionId()!=null) ? titles.get(c.sourceId()) : sources.findVersion(workspaceId,callerId,c.sourceId(),c.sourceVersionId()).originalFilename())).toList();
         if (citations.stream().mapToInt(c -> c.spans().size()).sum() > 1024)
             throw new ApiException(ApiErrorCode.VALIDATION_FAILED, "Selected evidence exceeds the provenance limit; select fewer chunks");
         var analysisCitations=resolved.stream().map(dev.researchhub.analysis.application.AnalysisEvidenceService.Resolved::citation).toList();
         if (new tools.jackson.databind.ObjectMapper().writeValueAsBytes(analysisCitations).length>131072)
             throw new ApiException(ApiErrorCode.AI_CONTEXT_TOO_LARGE,"Selected computation provenance exceeds the evidence budget; choose fewer outputs");
-        var contextual = contexts.build(request, citations,analysisCitations, contextProperties.budget());
+        var contextual = contexts.build(request, citations,analysisCitations, contextProperties.budget(),memory);
         if (analysisReferences.isEmpty()) store.begin(workspaceId, callerId, contextual, citations);
         else store.beginComputed(workspaceId,callerId,contextual,citations,analysisCitations);
         try (var call=observation.call(workspaceId,contextual)) {
@@ -121,9 +125,11 @@ public class ModelGateway {
     }
     private List<RetrievalChunk> resolve(UUID workspaceId, UUID callerId, Command command) {
         return command.evidence().stream().map(ref -> {
-            var chunk = retrieval.chunk(workspaceId, ref.sourceId(), callerId, ref.chunkId(), ref.processingVersion());
+            var chunk = ref.sourceVersionId()==null ? retrieval.chunk(workspaceId, ref.sourceId(), callerId, ref.chunkId(), ref.processingVersion())
+                : retrieval.chunk(workspaceId,ref.sourceId(),ref.sourceVersionId(),callerId,ref.chunkId(),ref.processingVersion());
             // Keep scope fixed even if a retrieval adapter accidentally returns an unrelated row.
             if (!workspaceId.equals(chunk.workspaceId()) || !ref.sourceId().equals(chunk.sourceId())
+                    || ref.sourceVersionId()!=null && !ref.sourceVersionId().equals(chunk.sourceVersionId())
                     || !ref.chunkId().equals(chunk.chunkId()) || !ref.processingVersion().equals(chunk.processingVersion())) {
                 throw new ResourceNotFoundException("The requested source evidence was not found");
             }
