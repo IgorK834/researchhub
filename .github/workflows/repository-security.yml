@@ -57,11 +57,13 @@ jobs:
       # Trivy resolves BOMs/parents of pom.xml from ~/.m2 first; without it a shared runner IP
       # gets throttled by Maven Central (HTTP 429) and the scan aborts.
       - name: Populate local Maven cache for the dependency scan
-        if: inputs.scan_dependencies
+        id: maven
+        # Keep independent dependency checks running after a secret/hygiene finding.
+        if: ${{ !cancelled() && inputs.scan_dependencies }}
         working-directory: backend
         run: ./mvnw --batch-mode --no-transfer-progress dependency:resolve
       - name: Scan Maven, npm and Python dependency inventories
-        if: ${{ !cancelled() && inputs.scan_dependencies && steps.tools.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.scan_dependencies && steps.tools.outcome == 'success' && steps.maven.outcome == 'success' }}
         run: python3 scripts/security/check.py dependencies --trivy "$RUNNER_TEMP/security-tools/trivy"
       - name: Preserve redacted findings even on failed checks
         if: ${{ !cancelled() }}

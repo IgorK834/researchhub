@@ -12,7 +12,7 @@ scanners application credentials. Required branch checks and path selection are 
 | Check | Fails CI | Warnings / reporting |
 | --- | --- | --- |
 | Tracked file hygiene | `.env`, `.env.*` other than `.env.example`; private-key/credential containers, common credential filenames and Terraform state | No filename exceptions for credential material; use synthetic fixtures or public `.crt` certificates |
-| Gitleaks | Any secret finding in full fetched Git history or tracked working files; shallow history; scanner errors | Redacted logs/JSON only; the exact public `tokenPolicy` identifiers `utf8-conservative-v1` and `utf8-conservative-v2` are excluded from the generic-key rule |
+| Gitleaks | Any secret finding in full fetched Git history or tracked working files; shallow history; scanner errors | Redacted logs/JSON only; exact public `tokenPolicy` identifiers and the public Azurite default key in its single integration fixture are excluded from the generic-key rule |
 | Runtime dependency scan | Every HIGH/CRITICAL finding, including findings with no available fix | LOW/MEDIUM/UNKNOWN findings remain visible warnings |
 | Development dependency scan | Scanner failures or incomplete inventories still fail | All dev-only findings, including HIGH/CRITICAL, are warnings and must be reviewed; this is not an assertion that CI tooling is safe |
 | Optional container scan | HIGH/CRITICAL OS or language-package findings, including unfixed findings; scanner/build failures | Opt-in manual security job; not run during ordinary PR checks |
@@ -75,8 +75,18 @@ for explicitly requested reproduction; they are not cleared by this change.
 also catches files added with `git add -f` or committed before an ignore rule existed. `.env.example`
 is allowed by filename but is still scanned for secrets. Local ignored `.env` files are not read,
 copied or uploaded. Gitleaks scans all fetched refs and the current tracked working files. Its
-configuration extends upstream rules and has only the exact policy-identifier exception; genuine
-tokens in a `tokenPolicy` field still fail the real-scanner integration test.
+configuration extends upstream rules. The generic-key rule excludes only the exact policy
+identifiers `utf8-conservative-v1` / `utf8-conservative-v2` and the
+[public Azurite default key](https://github.com/Azure/Azurite#default-storage-account) in
+`backend/src/test/java/dev/researchhub/AzureProfileStartupIntegrationTest.java`. The emulator
+exception requires both the exact value and the exact fixture path, including in historical
+commits. Real-scanner integration tests verify that other keys in that file, the same emulator
+key in other files, and genuine tokens in a `tokenPolicy` field remain findings.
+
+The Maven cache warm-up runs even after a secret or hygiene finding, so independent dependency
+checks still receive cached parent/BOM POMs instead of hitting Maven Central's shared-IP rate
+limit. Trivy runs only after successful cache preparation; Maven resolution errors still fail
+the job. The final required-check gate continues to reject any failed security job.
 
 Use GitHub Secret Scanning and Push Protection wherever the repository plan supports them. In
 repository Settings → Security / Advanced Security, enable those controls, generic patterns where
