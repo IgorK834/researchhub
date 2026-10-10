@@ -39,7 +39,7 @@ jobs:
 
   backend:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -68,13 +68,27 @@ jobs:
           uv sync --project ai-worker --frozen
           npm ci --prefix collaboration
           npm run build --prefix collaboration
+      - name: Prepare the real canvas frontend and Chromium for E2E
+        run: |
+          npm ci --prefix frontend
+          npm run build:realtime --prefix frontend
+          RESEARCHHUB_COLLABORATION_ENABLED=false npm run build --prefix frontend -- --output-path dist-canvas-legacy
+          cd frontend && npx playwright install --with-deps chromium
       - name: Prepare Docker for Testcontainers and sandbox E2E
         run: |
           docker info
           docker build -t researchhub-sandbox:1.1.1 sandbox
       - name: Verify the backend and its existing coverage gates
         working-directory: backend
+        env:
+          CANVAS_BROWSER_TESTS: 'true'
         run: ./mvnw --batch-mode --no-transfer-progress verify
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: canvas-e2e-evidence
+          path: backend/target/canvas-*.png
+          retention-days: 14
 
   frontend:
     needs: changes
