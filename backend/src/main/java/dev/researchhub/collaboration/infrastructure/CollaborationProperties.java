@@ -9,6 +9,9 @@ import java.time.Duration;
 @ConfigurationProperties("researchhub.collaboration")
 public class CollaborationProperties {
     private boolean enabled;
+    private String internalUrl = "http://127.0.0.1:8091";
+    public String getInternalUrl() { return internalUrl; }
+    public void setInternalUrl(String value) { internalUrl = value; }
     private String serviceToken = "";
     private String websocketUrl = "ws://localhost:8091";
     private Duration tokenTtl = Duration.ofSeconds(120);
@@ -22,6 +25,10 @@ public class CollaborationProperties {
     public void setTokenTtl(Duration value) { tokenTtl = value; }
     public void validate() {
         if (!enabled) return;
+        URI internal = URI.create(internalUrl);
+        if (!java.util.Set.of("http", "https").contains(internal.getScheme()) || internal.getHost()==null
+                || internal.getUserInfo()!=null || internal.getQuery()!=null || internal.getFragment()!=null)
+            throw new IllegalStateException("Invalid collaboration internal URL");
         URI url = URI.create(websocketUrl);
         if (serviceToken.length() < 32 || tokenTtl.toSeconds() < 10 || tokenTtl.toSeconds() > 120
                 || !("ws".equals(url.getScheme()) || "wss".equals(url.getScheme())) || url.getHost() == null

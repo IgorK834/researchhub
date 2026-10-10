@@ -3,6 +3,7 @@ researchhub:
   observability:
     scrape-token: ${METRICS_SCRAPE_TOKEN:}
   collaboration:
+    internal-url: ${COLLABORATION_INTERNAL_URL:http://127.0.0.1:8091}
     enabled: ${COLLABORATION_ENABLED:false}
     service-token: ${COLLABORATION_SERVICE_TOKEN:}
     websocket-url: ${COLLABORATION_WEBSOCKET_URL:ws://localhost:8091}

@@ -206,7 +206,7 @@ def backend_env(values, seeding):
         "AZURITE_BLOB_ENDPOINT": "http://127.0.0.1:21000/devstoreaccount1", "BLOB_CREATE_CONTAINER_ON_STARTUP": "true",
         "AI_WORKER_BASE_URL": "http://127.0.0.1:28090", "ANALYSIS_SANDBOX_ENABLED": "true", "ANALYSIS_SANDBOX_SOCKET_PATH": docker_host[7:],
         "COLLABORATION_WEBSOCKET_URL": URL.replace("https:", "wss:") + "/collaboration", "INSTANCE_ID": "local-demo",
-        "REGISTRATION_MODE": "open" if seeding else "disabled", "COLLABORATION_ENABLED": "false" if seeding else "true"}
+        "REGISTRATION_MODE": "open" if seeding else "disabled", "COLLABORATION_ENABLED": "false" if seeding else "true", "COLLABORATION_INTERNAL_URL": "http://127.0.0.1:28091"}
 
 
 def wait_health(url, context=None):
