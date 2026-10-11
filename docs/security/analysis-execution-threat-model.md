@@ -94,3 +94,18 @@ network/log cases, cleanup and a healthy fresh attempt after failures. Require >
 worker analysis and sandbox runtime coverage. Results belong in
 [analysis-security-validation.md](../development/analysis-security-validation.md), separately from the
 reviewed normative policy, so test runs do not silently change accepted policy bytes.
+
+## PROBLEM/CAS extension (CAI-11/12, reviewed 2026-10-11)
+
+All T1–T12 controls apply independently to computation and verification. No data/service/socket or environment capability was added. The pinned image's new native/transitive attack surface is SymPy 1.14.0 / mpmath 1.3.0; it remains confined to disposable containers. Unit tests use only the fixed AST runtime; they do not execute generated code on the host.
+
+| Threat | Additional enforcement | Concrete evidence |
+| --- | --- | --- |
+| CAS expression / parsing injection | Closed shared AST, explicit constructors, no text evaluation, fixed entrypoints, REAL and SI validation | `MathDocumentValidatorTest`, `ProblemPlanValidatorTest`, worker `test_problem_planning.py`, sandbox `test_problem.py` hostile operators/symbols/decimals, manifest path/hash/phase cases |
+| Small AST with huge symbolic growth | Weighted cost <=2048, depth/count/power limits, one rational polynomial degree <=4, coefficients <=10^80, no matrices/general solve, <=201 points; container CPU/memory/PID/deadline for both phases | Plan/runtime complexity and high-degree rejection tests; unchanged real runner resource/cleanup and acceptance harness |
+| Self-declared verification / forged steps | Fresh separate controlled verifier recomputes complete candidate; host binds phase/receipt to all frozen hashes, exact runtime, counts and 10^-10 tolerances | `ProblemServiceTest.forgedVerificationReceiptNeverPublishes`, tampered candidate tests in `test_problem.py`, `ProblemApiIntegrationTest` real two-container execution |
+| Chart/table laundering | Host binds transported table rows and chart series to candidate plot points; fresh verifier checks finite coordinates against frozen range and units | Real numeric plot API/browser E2E, candidate point tampering tests, host transport validation |
+| Provenance or workspace laundering | No fake dataset IDs, scoped origin context/message, exact document revision/formulas, immutable snapshot/plan/model audit/finished attempts/artifacts, hash checked reads, reauthorization before publication | Problem API idempotence, role/scope, origin staleness, input changes/lineage, immutable DB and frozen reproduction tests; math references require a scoped CHECKED result with exact step AST |
+| Restart / duplicate costly work | Durable queue, partial unique active attempt, advisory create lock, one planning reservation, stale attempts fail without replay | Problem interrupted planning/execution integration tests, provider call count and reproduction tests |
+
+Default combined phase budget is 110 seconds including cleanup, maximum 260 seconds. Resource ceilings apply separately, sequentially; this does not approve aggregate multi-replica/cloud concurrency. The verifier shares the reviewed algorithm/library with computation, so arithmetic checks do not establish independent scientific interpretation or freedom from a shared algorithm bug. The model's choice of formula/assumptions remains explicit and inspectable. Native-library/kernel, image administrator, compressed-image and crash-orphan residual risks above remain accepted only for local development. A runtime image or controlled entrypoint change requires technical review and a new recorded runtime identity.

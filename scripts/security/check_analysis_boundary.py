@@ -16,7 +16,12 @@ import sys
 ADR = 'docs/adr/ADR-008-analysis-execution-boundary.md'
 THREAT_MODEL = 'docs/security/analysis-execution-threat-model.md'
 REVIEW = 'docs/security/analysis-execution-review.json'
-POLICY_PATHS = (ADR, THREAT_MODEL, REVIEW)
+CAPABILITIES = ('contracts/analysis/execution/v3/README.md',
+                'contracts/analysis/execution/v3/manifest.schema.json',
+                'contracts/analysis/execution/v3/receipt.schema.json',
+                'sandbox/requirements.lock', 'sandbox/Dockerfile')
+DOCUMENTS = (ADR, THREAT_MODEL, *CAPABILITIES)
+POLICY_PATHS = (*DOCUMENTS, REVIEW)
 
 
 class BoundaryError(ValueError):
@@ -48,14 +53,18 @@ def check_boundary(root):
         if not isinstance(review, dict):
             raise ValueError('Review must be an object')
         date.fromisoformat(review['reviewedAt'])
-        accepted = (review['schemaVersion'] == '1.0' and review['decision'] == 'ACCEPTED_LOCAL'
+        accepted = (review['schemaVersion'] == '2.0' and review['decision'] == 'ACCEPTED_LOCAL'
                     and isinstance(review['reviewer'], str) and bool(review['reviewer'].strip())
                     and review['reviewKind'] in {'TECHNICAL_SELF_REVIEW', 'TECHNICAL_PEER_REVIEW', 'HUMAN_REVIEW'}
                     and review['cloudDecision'] == 'DEFERRED_PENDING_DEPLOYMENT_PARITY_REVIEW')
+        if review['runtime'] != {'version': '1.2.0', 'sympy': '1.14.0', 'mpmath': '1.3.0'}:
+            raise ValueError('Unreviewed scientific runtime')
+        if b'sympy==1.14.0\n' not in committed['sandbox/requirements.lock'] or b'mpmath==1.3.0\n' not in committed['sandbox/requirements.lock'] or b'org.opencontainers.image.version="1.2.0"' not in committed['sandbox/Dockerfile']:
+            raise ValueError('Runtime capabilities differ from the review')
         baseline = review['auditedBaseline']
         if not accepted or not isinstance(baseline, str) or not re.fullmatch(r'[a-f0-9]{40}|[a-f0-9]{64}', baseline):
             raise ValueError('Review is not accepted')
-        expected = {path: hashlib.sha256(committed[path]).hexdigest() for path in (ADR, THREAT_MODEL)}
+        expected = {path: hashlib.sha256(committed[path]).hexdigest() for path in DOCUMENTS}
         if review['documents'] != expected:
             raise ValueError('Document hashes do not match the review')
         if b'- Status: Accepted for the local execution contract; cloud execution deferred\n' not in committed[ADR]:

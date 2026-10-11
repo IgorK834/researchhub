@@ -23,15 +23,17 @@ class AnalysisBoundaryTest(unittest.TestCase):
         (self.root / 'baseline.txt').write_text('audited implementation fixture')
         self.commit()
         self.baseline = self.git('rev-parse', 'HEAD').strip()
-        for relative in (boundary.ADR, boundary.THREAT_MODEL):
+        for relative in boundary.DOCUMENTS:
             path = self.root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('- Status: Accepted for the local execution contract; cloud execution deferred\n')
+        (self.root / 'sandbox/requirements.lock').write_text('sympy==1.14.0\nmpmath==1.3.0\n')
+        (self.root / 'sandbox/Dockerfile').write_text('LABEL org.opencontainers.image.version="1.2.0"\n')
         self.review = {
-            'schemaVersion': '1.0', 'decision': 'ACCEPTED_LOCAL', 'reviewedAt': '2026-10-07',
+            'schemaVersion': '2.0', 'decision': 'ACCEPTED_LOCAL', 'reviewedAt': '2026-10-07',
             'reviewer': 'Technical fixture reviewer', 'reviewKind': 'TECHNICAL_SELF_REVIEW',
             'auditedBaseline': self.baseline, 'cloudDecision': 'DEFERRED_PENDING_DEPLOYMENT_PARITY_REVIEW',
-            'documents': self.hashes(),
+            'documents': self.hashes(), 'runtime': {'version':'1.2.0','sympy':'1.14.0','mpmath':'1.3.0'},
         }
         self.write_review()
         self.commit()
@@ -46,7 +48,7 @@ class AnalysisBoundaryTest(unittest.TestCase):
 
     def hashes(self):
         return {path: hashlib.sha256((self.root / path).read_bytes()).hexdigest()
-                for path in (boundary.ADR, boundary.THREAT_MODEL)}
+                for path in boundary.DOCUMENTS}
 
     def write_review(self):
         (self.root / boundary.REVIEW).write_text(json.dumps(self.review))
@@ -93,11 +95,11 @@ class AnalysisBoundaryTest(unittest.TestCase):
     def test_rejected_or_malformed_review_blocks(self):
         original = self.review.copy()
         invalid = [None, [], 'invalid', {}, dict(original, decision='PROPOSED'),
-                   dict(original, schemaVersion='2.0'), dict(original, reviewer=' '),
+                   dict(original, schemaVersion='1.0'), dict(original, reviewer=' '),
                    dict(original, reviewer=42), dict(original, reviewedAt='not-a-date'),
                    dict(original, reviewKind='UNREVIEWED'), dict(original, cloudDecision='APPROVED'),
                    dict(original, auditedBaseline=None), dict(original, auditedBaseline='main'),
-                   dict(original, documents={})]
+                   dict(original, documents={}), dict(original, runtime={}), dict(original, runtime={'version':'1.2.0','sympy':'latest','mpmath':'1.3.0'})]
         for review in invalid:
             with self.subTest(review=review):
                 self.review = review
@@ -124,6 +126,14 @@ class AnalysisBoundaryTest(unittest.TestCase):
         self.commit()
         with self.assertRaises(boundary.BoundaryError):
             boundary.check_boundary(self.root)
+
+    def test_unreviewed_runtime_capabilities_block_even_with_matching_hashes(self):
+        for relative,content in [('sandbox/requirements.lock','sympy==latest\n'),('sandbox/Dockerfile','LABEL org.opencontainers.image.version="1.1.1"\n')]:
+            original=(self.root / relative).read_text()
+            (self.root / relative).write_text(content)
+            self.review['documents']=self.hashes();self.write_review();self.commit()
+            with self.assertRaises(boundary.BoundaryError):boundary.check_boundary(self.root)
+            (self.root / relative).write_text(original)
 
     def test_git_errors_and_timeouts_fail_closed(self):
         for error in (OSError('unavailable'), subprocess.TimeoutExpired('git', 10)):

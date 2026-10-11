@@ -1,22 +1,32 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "2.0",
   "decision": "ACCEPTED_LOCAL",
-  "reviewedAt": "2026-10-07",
-  "reviewer": "Codex: technical repository review under the RH-142 implementation request",
+  "reviewedAt": "2026-10-11",
+  "reviewer": "Codex: technical repository self-review under the CAI-10/11/12 implementation request",
   "reviewKind": "TECHNICAL_SELF_REVIEW",
-  "auditedBaseline": "188a041ee37877105966c5359a3661e09a26e505",
+  "auditedBaseline": "34188ef90f7b5583be522ae3a1b03a5b085607e4",
   "cloudDecision": "DEFERRED_PENDING_DEPLOYMENT_PARITY_REVIEW",
-  "documents": {
-    "docs/adr/ADR-008-analysis-execution-boundary.md": "9f6af5888a3ad2b444311af7f1edc73667fe7e3817f7a9966308f6cb4f7bd00d",
-    "docs/security/analysis-execution-threat-model.md": "c52f1b471a44d29769fd42cffe3ab8ecbcf6a93af2c583bbfdcea10d57c05426"
+  "runtime": {
+    "version": "1.2.0",
+    "sympy": "1.14.0",
+    "mpmath": "1.3.0"
   },
-  "scope": "Local execution security contract; code/contract/configuration/test audit. Runtime test evidence is separate and required before enabling the target daemon.",
+  "documents": {
+    "docs/adr/ADR-008-analysis-execution-boundary.md": "fd09c40c97f1cbcc762810578e7f3423b31d061f74eae7ee2cd18bb8fb404bb4",
+    "docs/security/analysis-execution-threat-model.md": "15e8981597d134dfc230e904922ed6d15928ee933035886b8744e0f340215887",
+    "contracts/analysis/execution/v3/README.md": "7a23407900313c56731129946080ebcf348c596625c44d168e7baa645171c861",
+    "contracts/analysis/execution/v3/manifest.schema.json": "ed15a2ac7532e2565ec66f3c32164d36318f05c098b0999d15f13c7735c76302",
+    "contracts/analysis/execution/v3/receipt.schema.json": "7486f8af2b96826e39395f558da280763e46f769b6f7aa830e4b40dd20ef9f17",
+    "sandbox/requirements.lock": "6eac2b4f71d1af1b10fda602fc1e4c0b115917ce28c7349cde6b87e53b67a3a9",
+    "sandbox/Dockerfile": "96849a979d2dfcdcff1b3962e52367130dc1e0739d551006c2b3306590634907"
+  },
+  "scope": "Existing local DATASET boundary and additive controlled PROBLEM compute/fresh-verifier protocol. Runtime tests are separate evidence; no independent human or cloud approval is claimed.",
   "findings": [
-    "RH-141 / Task 14.2 planning prerequisite exists.",
-    "Inherited RH-143\u2013145 code predates this ADR; historical sequencing is not claimed compliant.",
-    "All required threats have controls and concrete tests; local shared-kernel and artifact-decoding residual risks are explicit.",
-    "No generated code executed and no executor implementation changed during this review before committing the policy.",
-    "Cloud deployment is not approved; platform parity, identity isolation, egress, PID/storage and reconciliation require proof.",
-    "This record is an actual Codex technical self-review, not independent human security approval."
+    "Reviewed fixed AST constructors, SI/domain/polynomial/complexity budgets, server-owned readonly paths, isolated imports, container launch/cleanup and independent host receipt validation.",
+    "No network, mount, secrets, resource ceiling, dynamic installation or application service capability was expanded.",
+    "The inherited DATASET runtime remains available; SymPy and mpmath are confined to the pinned sandbox image.",
+    "Current implementation and initial runtime evidence were inspected before this updated policy commit; historical sequencing compliance is not claimed.",
+    "Shared CAS algorithms do not prove physical interpretation, scientific assumptions or freedom from a shared implementation bug. Existing shared-kernel, artifact decoding, abrupt-crash cleanup and aggregate-capacity residual risks remain explicit.",
+    "Technical self-review is accepted for local development only; maintainers retain normal PR review and cloud parity remains deferred."
   ]
 }

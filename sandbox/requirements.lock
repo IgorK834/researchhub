@@ -16,3 +16,5 @@ pytz==2025.2
 six==1.17.0
 tzdata==2025.2
 et-xmlfile==2.0.0
+sympy==1.14.0
+mpmath==1.3.0

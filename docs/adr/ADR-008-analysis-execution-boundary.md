@@ -61,7 +61,7 @@ and existing analysis quotas remain mandatory. A plan names outputs and selects 
 
 | Control | Required policy / inherited default |
 | --- | --- |
-| Image | `researchhub-sandbox:1.1.1`, resolved to a local SHA-256 image ID; `--pull never`; saved reruns use their exact recorded ID/version without fallback |
+| Image | `researchhub-sandbox:1.2.0`, resolved to a local SHA-256 image ID; `--pull never`; saved reruns use their exact recorded ID/version without fallback |
 | Identity | UID/GID `65532:65532`; all capabilities dropped; `no-new-privileges`; Docker default seccomp enabled; no privileged mode, devices or host namespaces |
 | Network | `--network none`, no published ports, no application network or host socket mounts; loopback inside the container conveys no application access |
 | Root filesystem | Read-only; fixed `/execution` working directory; IPC disabled |
@@ -193,3 +193,17 @@ acceptance suite and `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify`. Keep independe
 coverage gates. A skipped/unavailable container check provides no evidence of runtime isolation.
 Current verification evidence and limitations live in
 [analysis security validation](../development/analysis-security-validation.md).
+
+## CAI-11/12: controlled problem computation and fresh verification
+
+Reviewed 2026-10-11. The additive PROBLEM v2 workload uses immutable, workspace-owned JSON rather than fabricated dataset/source identifiers. The worker plans bounded AST outputs; it never calculates or imports SymPy. The approved image 1.2.0 adds exactly SymPy **1.14.0** and mpmath **1.3.0** to the existing pinned distribution allowlist. Old DATASET v1 source/manifest/output validation and runtime reproduction remain unchanged.
+
+The trusted runner stages only `problem.json`, `plan.json` and, for verification, `candidate.json` under readonly `/inputs`. Every file is bounded to 128 KiB and SHA-256 checked. Logical snapshots are bounded to 64 KiB by Spring. The PROBLEM manifest is schema 2.0; file names/paths and entrypoints are server owned. The inert request code placeholder is neither staged nor imported. The fixed compute entrypoint constructs SymPy expressions using explicit Rational, Symbol, Add, Mul, Pow and sin/cos constructors; no `eval`, `sympify`, `parse_expr` or generated module is used.
+
+Accepted scope: REAL arithmetic, explicit SI conversions, sqrt and sin/cos with explicit angular units, and one polynomial unknown of degree 1–4 with rational coefficients bounded to 10^80. Matrices and general CAS transforms are rejected. Independent budgets are 128 AST nodes, depth 12, 8 operands, integer powers ±8, weighted numerical complexity 2048, 8 outputs and 201 plot points. Output values must be finite and at most 10^100 in magnitude. Root residuals are bounded to 10^-7 in SI; the fresh comparison uses absolute/relative 10^-10 tolerance. Unsupported domains, missing input, invalid dimensions and pathological expressions never publish a guessed value.
+
+Verification starts a **second fresh container** with the exact trusted image ID/runtime recorded by computation, controlled `verify_problem.py`, readonly frozen JSON, a new execution identity, and no generated code imports. It recomputes the restricted result and steps and compares the complete candidate structure. The trusted host independently validates the receipt's phase, status, hashes, tolerance and output/point counts. A CHECKED string from computation has no authority. Table rows and chart series must bind to the candidate's verified points. No computation or verification result is published after a failed phase, validation, authorization or cleanup.
+
+Both phases separately inherit all original network, mount, identity, thread, PID, memory, output and log restrictions. Each has a startup-inclusive 45 s default / 120 s maximum and separately bounded 10 s cleanup: total 110 s default / 260 s maximum. The existing interrupted-work threshold of 10 minutes exceeds the maximum two-phase budget; interrupted attempts fail without automatic model or sandbox retries. No expanded network, secret mount, install capability or new application service is approved. Saved reproduction selects frozen inputs/plan and the original image ID; it does not contact the model.
+
+Execution outcome, computation outcome and arithmetic verification are separate stored fields. Model prose, assumptions and the choice of a physical model are interpretation, not mathematical proof. This is a local technical self-review; cloud execution and the existing residual risks remain deferred. The committed review now also binds the PROBLEM protocol, dependency lock and image configuration. Runtime test evidence remains separate from these normative policy bytes.

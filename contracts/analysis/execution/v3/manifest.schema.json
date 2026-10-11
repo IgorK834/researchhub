@@ -1,0 +1,90 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "workload",
+    "phase",
+    "files",
+    "outputs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0"
+    },
+    "workload": {
+      "const": "PROBLEM"
+    },
+    "phase": {
+      "enum": [
+        "COMPUTE",
+        "VERIFY"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "file",
+          "sha256"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "problem.json",
+              "plan.json",
+              "candidate.json"
+            ]
+          },
+          "file": {
+            "enum": [
+              "/inputs/problem.json",
+              "/inputs/plan.json",
+              "/inputs/candidate.json"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "kind"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "calculation",
+              "verification",
+              "plot-data",
+              "plot"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "TEXT",
+              "TABLE",
+              "CHART"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
