@@ -18,5 +18,8 @@ def validate_output(content, name, request):
     elif name == 'researchhub_computation_plan_v1':
         from ..analysis.contracts import Plan
         Plan.model_validate_json(content).validate_for(request)
+    elif name == 'researchhub_problem_plan_v2':
+        from ..analysis.problem import Plan
+        Plan.model_validate_json(content).validate_for(request)
     else:
         raise ValueError('Unknown application output contract')

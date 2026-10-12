@@ -125,7 +125,8 @@ class FoundryModelProvider(StructuredChatProvider):
 
     def complete(self, input_request, schema, schema_name):
         from ..analysis.contracts import PlanningRequest
-        contextual = input_request if isinstance(input_request, (ContextualRequest, PlanningRequest)) else None
+        from ..analysis.problem import PlanningRequest as ProblemPlanningRequest
+        contextual = input_request if isinstance(input_request, (ContextualRequest, PlanningRequest, ProblemPlanningRequest)) else None
         request = contextual.request if contextual is not None else input_request
         body = {'model': self._deployment, 'stream': False, 'store': False,
             'messages': model_messages(request.system_instruction,
@@ -140,6 +141,8 @@ class FoundryModelProvider(StructuredChatProvider):
         http_request = Request(self._url, data=json.dumps(body).encode(), method='POST',
             headers={'Content-Type': 'application/json', 'api-key': self._api_key})
         try:
+            from .call_budget import admit
+            admit()
             with self._opener.open(http_request, timeout=8) as response:
                 raw = response.read(256 * 1024 + 1)
             if len(raw) > 256 * 1024:
@@ -206,10 +209,11 @@ class OpenAiCompatibleModelProvider(StructuredChatProvider):
 
     def complete(self, input_request, schema, schema_name):
         from ..analysis.contracts import PlanningRequest
+        from ..analysis.problem import PlanningRequest as ProblemPlanningRequest
         from .compatible_http import RESPONSE_LIMIT, transient_status
         from .compatible_schema import validate_output
         from .telemetry import record_payload
-        contextual = isinstance(input_request, (ContextualRequest, PlanningRequest))
+        contextual = isinstance(input_request, (ContextualRequest, PlanningRequest, ProblemPlanningRequest))
         request = input_request.request if contextual else input_request
         body = {'model': self._deployment, 'stream': False, 'store': False,
             'messages': model_messages(request.system_instruction,
@@ -225,6 +229,8 @@ class OpenAiCompatibleModelProvider(StructuredChatProvider):
                 outbound = Request(self._url, data=json.dumps(body).encode(), method='POST',
                     headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + self._api_key})
                 try:
+                    from .call_budget import admit
+                    admit()
                     with self._opener.open(outbound, timeout=8) as response:
                         raw = response.read(RESPONSE_LIMIT + 1)
                 except HTTPError as failure:
@@ -282,7 +288,11 @@ class OpenAiCompatibleModelProvider(StructuredChatProvider):
 def _bounded_operation(method):
     @wraps(method)
     def bounded(self, *args, **kwargs):
-        with self.operation_scope():
+        from .call_budget import scope
+        request = args[0] if args else None
+        core = getattr(request, 'request', request)
+        contextual = getattr(request, 'conversation_context', None) is not None or getattr(core, 'template_id', None) == 'canvas-edit:2' or method.__name__ in {'plan_problem', 'plan_computation'}
+        with self.operation_scope(), scope(3 if contextual else 6):
             return method(self, *args, **kwargs)
     return bounded
 
@@ -304,6 +314,11 @@ class ModelGateway:
             raise ProviderError('AI_OUTPUT_INVALID') from None
         except Exception:
             raise ProviderError('AI_PROVIDER_ERROR') from None
+
+    @_bounded_operation
+    def plan_problem(self, request):
+        from ..analysis.problem import generate_candidate
+        return generate_candidate(self._provider, request)
 
     @_bounded_operation
     def plan_computation(self, request):
@@ -337,7 +352,8 @@ class ModelGateway:
     @_bounded_operation
     def generate_authoring(self, request):
         from .authoring import generate_authoring, AuthoringResult
-        for attempt in range(3):
+        attempts = 1 if request.request.template_id == 'canvas-edit:2' else 3
+        for attempt in range(attempts):
             try:
                 request = ContextualRequest.model_validate(request.model_dump())
                 result = AuthoringResult.model_validate(generate_authoring(self._provider, request).model_dump())
@@ -346,7 +362,7 @@ class ModelGateway:
                     raise ValueError('Model metadata changed')
                 return result
             except ProviderError as failure:
-                if not failure.retryable or attempt == 2:
+                if not failure.retryable or attempt == attempts - 1:
                     raise
                 self._sleep(0.2 * 2 ** attempt)
             except (ValueError, KeyError, TypeError, AttributeError, IndexError):

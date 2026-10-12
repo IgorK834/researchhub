@@ -50,6 +50,7 @@ def test_native_success_context_boundary_and_thinking_usage(endpoint):
 
 @pytest.mark.parametrize('rejection', [
     {'message': 'responseFormat schema keyword not supported'},
+    {'message': 'oneOf required properties differ', 'status': 'INVALID_ARGUMENT'},
     {'message': 'Request contains an invalid argument.', 'status': 'INVALID_ARGUMENT'},
 ])
 def test_schema_fallback_and_exactly_one_repair_use_original_evidence(endpoint, rejection):

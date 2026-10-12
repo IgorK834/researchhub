@@ -70,6 +70,23 @@ def create_app(
         except Exception:
             return JSONResponse(status_code=502, content={"code": "AI_PROVIDER_ERROR"})
 
+    @app.post("/internal/analysis/problem/plan", include_in_schema=False)
+    async def plan_problem(request: Request):
+        if not _authorized(request, expected_token):
+            return JSONResponse(status_code=401, content={"error":"Unauthorized"})
+        try:
+            from .analysis.problem import PlanningRequest
+            command=PlanningRequest.model_validate(await _request_json(request,limit=128*1024))
+        except (ContractError,ValueError):
+            return JSONResponse(status_code=400,content={"code":"AI_REQUEST_INVALID"})
+        try:
+            result=await run_in_threadpool(metrics.ai_call,invoke,models,models.plan_problem,command)
+            return result.model_dump(mode='json',by_alias=True)
+        except ProviderError as error:
+            return JSONResponse(status_code=503 if error.retryable else 502,content=error_content(error))
+        except Exception:
+            return JSONResponse(status_code=502,content={"code":"AI_PROVIDER_ERROR"})
+
     @app.get("/internal/ai/model", include_in_schema=False)
     async def model_metadata(request: Request):
         if not _authorized(request, expected_token):

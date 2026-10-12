@@ -43,6 +43,10 @@ class GeminiModelProvider(StructuredChatProvider):
             # the original complete application schema still validates locally.
             if failure.code == 400 and error.get('status') == 'INVALID_ARGUMENT' and message == 'request contains an invalid argument.':
                 return True
+            # Gemini rejects heterogeneous AST oneOf branches before inference.
+            # Admit one JSON-mode fallback for this explicit schema-validation envelope.
+            if error.get('status') == 'INVALID_ARGUMENT' and any(word in message for word in ('oneof', 'anyof', '$ref')) and 'required' in message:
+                return True
             return ('schema' in message or 'responseformat' in message) and any(
                 word in message for word in ('unsupported', 'not supported', 'does not support'))
         except (ValueError, KeyError, TypeError, AttributeError, OSError):
@@ -113,7 +117,8 @@ class GeminiModelProvider(StructuredChatProvider):
 
     def _complete(self, input_request, schema, schema_name):
         from ..analysis.contracts import PlanningRequest
-        contextual = isinstance(input_request, (ContextualRequest, PlanningRequest))
+        from ..analysis.problem import PlanningRequest as ProblemPlanningRequest
+        contextual = isinstance(input_request, (ContextualRequest, PlanningRequest, ProblemPlanningRequest))
         request = input_request.request if contextual else input_request
         messages = model_messages(request.system_instruction, input_request.user_message() if contextual else
             json.dumps({'instruction': request.instruction,
@@ -134,7 +139,7 @@ class GeminiModelProvider(StructuredChatProvider):
             'contents': [{'role': 'user', 'parts': [{'text': messages[1]['content']}]}],
             'generationConfig': {'candidateCount': 1, 'maxOutputTokens': request.parameters.max_output_tokens,
                 'thinkingConfig': {'includeThoughts': False, 'thinkingLevel':
-                    self._planning_thinking if isinstance(input_request, PlanningRequest) else self._thinking},
+                    self._planning_thinking if isinstance(input_request, (PlanningRequest, ProblemPlanningRequest)) else self._thinking},
                 'responseFormat': {'text': {'mimeType': 'APPLICATION_JSON', 'schema': schema}}}}
         if request.parameters.temperature is not None:
             body['generationConfig']['temperature'] = request.parameters.temperature
@@ -145,6 +150,8 @@ class GeminiModelProvider(StructuredChatProvider):
                 outbound = Request(self._url, data=json.dumps(body).encode(), method='POST', headers={
                     'Content-Type': 'application/json', 'x-goog-api-key': self._api_key})
                 try:
+                    from .call_budget import admit
+                    admit()
                     with self._opener.open(outbound, timeout=http.remaining_timeout(self._timeout)) as response:
                         raw = http.read_bounded(response, self._timeout)
                 except HTTPError as failure:

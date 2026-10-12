@@ -117,5 +117,5 @@ def test_exposes_only_health_and_internal_job_routes() -> None:
 
     assert paths == {"/health", "/metrics", "/internal/jobs/source-ingest", "/internal/embeddings/model", "/internal/embeddings/{operation}",
                      "/internal/ai/model", "/internal/ai/generate", "/internal/ai/author", "/internal/ai/analyze",
-                     "/internal/analysis/plan"}
+                     "/internal/analysis/plan", "/internal/analysis/problem/plan"}
     assert all(not path.startswith("/api/") for path in paths)

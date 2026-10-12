@@ -75,7 +75,7 @@ class AuthoringResult(ContractModel):
 def instruction(contextual):
     fields = json.loads(contextual.request.instruction)
     if (not isinstance(fields, dict) or fields.get('kind') not in {'DRAFT', 'REWRITE', 'EVIDENCE'}
-            or contextual.request.template_id != f"authoring-{fields['kind'].lower()}:1"
+            or contextual.request.template_id not in {f"authoring-{fields['kind'].lower()}:1", 'canvas-edit:2'}
             or not isinstance(fields.get('selectedText'), str) or len(fields['selectedText']) > 2000
             or not isinstance(fields.get('surroundingContext'), str) or len(fields['surroundingContext']) > 401
             or not isinstance(fields.get('instruction'), str) or not 1 <= len(fields['instruction']) <= 1000
@@ -121,6 +121,9 @@ def fake_answer(contextual):
             return LocalAuthoringAnswer(status='INSUFFICIENT_EVIDENCE', text='', citation_keys=[], matches=[])
         return LocalAuthoringAnswer(status='READY', text='\n\n'.join(e.content[:1500] for e in evidence[:4]), citation_keys=keys[:4], matches=[])
     text = fields['selectedText']
+    if contextual.request.template_id == 'canvas-edit:2' and not text:
+        # The offline fixture only uses the explicit user instruction; it invents no evidence.
+        text = fields['instruction']
     action = fields['action']
     if action == 'SHORTEN':
         words = text.split(); text = ' '.join(words[:max(1, len(words) // 2)])
