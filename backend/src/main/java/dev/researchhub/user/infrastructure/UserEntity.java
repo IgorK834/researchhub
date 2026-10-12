@@ -130,6 +130,13 @@ public class UserEntity {
         return createdAt;
     }
 
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
+    public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+    public void verifyEmail(Instant now) { emailVerifiedAt = now; updatedAt = now; }
+    public void changePassword(String hash, Instant now) { passwordHash = hash; updatedAt = now; }
+
     public Instant getUpdatedAt() {
         return updatedAt;
     }

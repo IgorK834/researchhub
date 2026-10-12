@@ -16,6 +16,10 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     Optional<UserEntity> findByNormalizedEmail(String normalizedEmail);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select u from UserEntity u where u.id = :id")
+    Optional<UserEntity> findByIdForUpdate(UUID id);
+
     boolean existsByNormalizedEmail(String normalizedEmail);
 
 }
