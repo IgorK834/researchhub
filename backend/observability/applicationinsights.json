@@ -1,10 +1,54 @@
 {
-  "role": { "name": "researchhub-backend" },
-  "sampling": { "percentage": 100 },
+  "role": {
+    "name": "researchhub-backend"
+  },
+  "sampling": {
+    "percentage": 100
+  },
   "metricIntervalSeconds": 60,
   "instrumentation": {
-    "micrometer": { "enabled": true },
-    "logging": { "level": "OFF" }
+    "micrometer": {
+      "enabled": true
+    },
+    "logging": {
+      "level": "OFF"
+    }
   },
-  "selfDiagnostics": { "destination": "console", "level": "WARN" }
+  "selfDiagnostics": {
+    "destination": "console",
+    "level": "WARN"
+  },
+  "preview": {
+    "processors": [
+      {
+        "type": "attribute",
+        "actions": [
+          {
+            "key": "url.path",
+            "pattern": "/api/invitations/[^/?#]+/accept",
+            "replace": "/api/invitations/REDACTED/accept",
+            "action": "mask"
+          },
+          {
+            "key": "url.full",
+            "pattern": "/api/invitations/[^/?#]+/accept",
+            "replace": "/api/invitations/REDACTED/accept",
+            "action": "mask"
+          },
+          {
+            "key": "http.url",
+            "pattern": "/api/invitations/[^/?#]+/accept",
+            "replace": "/api/invitations/REDACTED/accept",
+            "action": "mask"
+          },
+          {
+            "key": "http.target",
+            "pattern": "/api/invitations/[^/?#]+/accept",
+            "replace": "/api/invitations/REDACTED/accept",
+            "action": "mask"
+          }
+        ]
+      }
+    ]
+  }
 }
