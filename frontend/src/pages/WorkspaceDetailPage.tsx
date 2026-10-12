@@ -17,6 +17,7 @@ import {
   useWorkspaceMembersQuery,
   useWorkspaceQuery,
 } from '../features/workspaces/api/useWorkspaces';
+import { InvitationPanel } from '../features/workspaces/components/InvitationPanel';
 import { AddMemberForm } from '../features/workspaces/components/AddMemberForm';
 import { ArchiveWorkspaceButton } from '../features/workspaces/components/ArchiveWorkspaceButton';
 import { EditWorkspaceForm } from '../features/workspaces/components/EditWorkspaceForm';
@@ -245,7 +246,13 @@ function WorkspaceDetail({
           />
           <div className={styles.adminColumn}>
             {canManage ? (
-              <AddMemberForm key={workspace.id} workspaceId={workspace.id} />
+              <>
+                <InvitationPanel
+                  key={`invites-${workspace.id}`}
+                  workspaceId={workspace.id}
+                />
+                <AddMemberForm key={workspace.id} workspaceId={workspace.id} />
+              </>
             ) : null}
             <RoleInformation />
           </div>

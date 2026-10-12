@@ -26,6 +26,10 @@ module.exports = {
     'src/pages/{AppLayoutPage,WorkspaceDetailPage,WorkspaceOverview,AskAIPage,AnalysisPage,WorkspaceListPage,SourceRoutePage,SourceDetailPage,DocumentDetailPage,LoginPage,RegisterPage}.tsx',
     'src/features/workspaces/components/{WorkspaceCard,WorkspaceList,CreateWorkspaceForm,CreateWorkspaceDialog,MemberList,AddMemberForm,RoleInformation,EditWorkspaceForm,ArchiveWorkspaceButton}.tsx',
     'src/features/auth/components/AuthLayout.tsx',
+    'src/features/auth/api/accountApi.ts',
+    'src/features/auth/components/{AccountSettings,AccountLink,PasswordRecovery}.tsx',
+    'src/features/workspaces/api/invitationApi.ts',
+    'src/features/workspaces/components/InvitationPanel.tsx',
     'src/features/auth/components/RegistrationNotice.tsx',
     'src/app/{AppRouter,workspaceRoutes,PublicConfig,DemoBanner}.{ts,tsx}',
     '!src/**/index.ts',
@@ -39,6 +43,43 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/auth/api/accountApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/auth/components/AccountSettings.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/auth/components/AccountLink.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/auth/components/PasswordRecovery.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/workspaces/api/invitationApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/workspaces/components/InvitationPanel.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+
     'src/features/ai/api/canvasFailures.ts': {
       lines: 80,
       branches: 80,

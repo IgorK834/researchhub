@@ -174,6 +174,8 @@ function stubWorkspaceApi(options: {
     const path = String(url);
     const method = init?.method ?? 'GET';
 
+    if (path === `/api/workspaces/${WORKSPACE_ID}/invitations` && method === 'GET')
+      return Promise.resolve(jsonResponse([], 200, 'application/json'));
     if (path === '/api/auth/csrf') {
       return Promise.resolve(emptyNoContent());
     }
@@ -1057,7 +1059,7 @@ describe('WorkspaceDetailPage', () => {
     });
   });
 
-  it('shows an address with no account as one message and offers no invitation', async () => {
+  it('keeps the existing-member error and offers a separate invitation form', async () => {
     stubWorkspaceApi({
       addMemberResponse: problem(
         404,
@@ -1074,7 +1076,7 @@ describe('WorkspaceDetailPage', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe('No registered user has that email');
-    expect(screen.queryByText(/invite/i)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Create invitation' })).not.toBeNull();
   });
 
   it('shows an already-a-member response as a conflict message', async () => {

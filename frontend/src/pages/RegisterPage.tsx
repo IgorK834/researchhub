@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactElement } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useRegister } from '../features/auth/api/useAuth';
 import { AuthLayout } from '../features/auth/components/AuthLayout';
@@ -19,6 +19,10 @@ import { RegistrationNotice } from '../features/auth/components/RegistrationNoti
 export function RegisterPage(): ReactElement {
   const { config } = usePublicConfig();
   const navigate = useNavigate();
+  const invitationToken = useLocation().hash.slice(1);
+  const registrationAllowed =
+    config?.registrationMode === 'open' ||
+    (config?.registrationMode === 'invite-only' && invitationToken.length > 0);
   const { mutate, isPending, error } = useRegister();
 
   const [email, setEmail] = useState('');
@@ -51,25 +55,25 @@ export function RegisterPage(): ReactElement {
       : null;
 
   const submit = (): void => {
-    if (isPending || config?.registrationMode !== 'open') return;
+    if (isPending || !registrationAllowed) return;
     if (password !== confirmPassword) {
       setConfirmTouched(true);
       confirmRef.current?.focus();
       return;
     }
     mutate(
-      { email, password, displayName },
+      { email, password, displayName, ...(invitationToken ? { invitationToken } : {}) },
       {
         onSuccess: () => {
           setPassword('');
           setConfirmPassword('');
-          void navigate('/login');
+          void navigate(invitationToken ? `/login#invite:${invitationToken}` : '/login');
         },
       },
     );
   };
 
-  if (config?.registrationMode !== 'open') return <RegistrationNotice />;
+  if (!registrationAllowed) return <RegistrationNotice />;
 
   return (
     <AuthLayout

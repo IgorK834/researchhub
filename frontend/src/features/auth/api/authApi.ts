@@ -14,6 +14,7 @@ export interface AuthenticatedUser {
 }
 
 export interface RegisterInput {
+  readonly invitationToken?: string;
   readonly email: string;
   readonly password: string;
   readonly displayName: string;
