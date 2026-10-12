@@ -43,6 +43,11 @@ public class BrowserSession {
             request.changeSessionId();
         }
 
+        var session = request.getSession(true);
+        session.setAttribute(dev.researchhub.auth.application.AccountSessionService.HANDLE_ATTRIBUTE,
+                dev.researchhub.security.application.SecureTokens.create());
+        session.setAttribute(dev.researchhub.auth.application.AccountSessionService.AGENT_ATTRIBUTE,
+                dev.researchhub.auth.application.AccountSessionService.agentSummary(request.getHeader("User-Agent")));
         Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
                 userId.toString(),
                 // No credentials are retained. The password was needed to verify and nothing more.

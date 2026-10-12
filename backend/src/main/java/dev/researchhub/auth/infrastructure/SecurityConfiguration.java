@@ -152,7 +152,7 @@ public class SecurityConfiguration {
                             .requestMatchers(PUBLIC_HEALTH_PATHS).permitAll()
                             // Reaching these is how a caller becomes authenticated, so they cannot
                             // themselves require authentication.
-                            .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login")
+                            .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/password-reset/request", "/api/auth/password-reset/complete")
                             .permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/public/config").permitAll()
@@ -169,6 +169,8 @@ public class SecurityConfiguration {
                     // our own page. The CSRF cookie is readable by JavaScript because the SPA has to
                     // echo it back; it is not a credential, and the session cookie stays HttpOnly.
                     .csrf(csrf -> csrf
+                            .requireCsrfProtectionMatcher(request -> org.springframework.security.web.csrf.CsrfFilter.DEFAULT_CSRF_MATCHER.matches(request)
+                                || ("GET".equals(request.getMethod()) && "/api/auth/sessions".equals(request.getServletPath())))
                             .csrfTokenRepository(csrfCookies)
                             .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
 

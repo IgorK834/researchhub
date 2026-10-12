@@ -58,7 +58,7 @@ class AzureProfileStartupIntegrationTest {
     static String blobEndpoint() { return "https://"+AZURITE.getHost()+":"+AZURITE.getMappedPort(10000)+"/devstoreaccount1"; }
     @org.junit.jupiter.api.BeforeEach void startApplication() {
         application=new org.springframework.boot.builder.SpringApplicationBuilder(BackendApplication.class,TrustedTestCertificate.class)
-            .profiles("azure").run("--server.port=0", "--DB_URL="+POSTGRES.getJdbcUrl(), "--DB_USER="+POSTGRES.getUsername(),
+            .profiles("azure").run("--server.port=0", "--SMTP_HOST=localhost", "--management.health.mail.enabled=false", "--SMTP_FROM=researchhub@example.test", "--PUBLIC_BASE_URL=https://researchhub.example.test", "--DB_URL="+POSTGRES.getJdbcUrl(), "--DB_USER="+POSTGRES.getUsername(),
                 "--DB_PASSWORD="+POSTGRES.getPassword(), "--BLOB_ENDPOINT="+blobEndpoint(),
                 "--BLOB_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey="+KEY+";BlobEndpoint="+blobEndpoint(),
                 "--AI_WORKER_BASE_URL=http://worker.test:8090", "--AI_WORKER_SERVICE_TOKEN=azure-test-worker-token-at-least-32-characters",

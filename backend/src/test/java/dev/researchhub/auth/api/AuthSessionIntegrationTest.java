@@ -237,13 +237,17 @@ class AuthSessionIntegrationTest {
 
         assertEquals(200, browser.get("/api/me").statusCode(), "signed in before logout");
 
+        String capturedSession = browser.cookies.getCookieStore().getCookies().stream().filter(cookie -> cookie.getName().equals("JSESSIONID")).findFirst().orElseThrow().getValue();
         HttpResponse<String> loggedOut = browser.logout();
         assertEquals(204, loggedOut.statusCode(), loggedOut.body());
         assertTrue(loggedOut.body().isEmpty(), "A logout response says nothing about the user");
 
         // The browser still holds the cookie. It simply no longer resolves to a session, which is the
         // point of keeping session state on the server.
-        assertTrue(browser.hasCookie("JSESSIONID"), "The browser still has the cookie it was given");
+        try (var replay = HttpClient.newHttpClient()) {
+            assertEquals(401, replay.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/me"))
+                .header("Cookie", "JSESSIONID=" + capturedSession).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        }
 
         HttpResponse<String> afterLogout = browser.get("/api/me");
         assertEquals(401, afterLogout.statusCode(),

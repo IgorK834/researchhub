@@ -24,6 +24,10 @@ public final class SessionBrowser implements AutoCloseable {
         return send(HttpRequest.newBuilder(url(port, path)).GET());
     }
 
+    public HttpResponse<String> getWithCsrf(int port, String path) throws Exception {
+        return send(HttpRequest.newBuilder(url(port, path)).header("X-XSRF-TOKEN", csrf(port)).GET());
+    }
+
     public HttpResponse<String> getWithCookie(int port, String path, String cookie) throws Exception {
         // A separate client replays a captured credential even after the browser received an expiry cookie.
         try (var replay = HttpClient.newHttpClient()) {
