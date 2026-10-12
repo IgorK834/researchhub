@@ -58,6 +58,12 @@ public interface SourceStorage {
      */
     void delete(StorageKey key) throws IOException;
 
+    /** Erasure must reconcile retained versions/snapshots as well as the current object. */
+    default void erase(StorageKey key) throws IOException {
+        delete(key);
+        if (exists(key)) throw new IOException("Source erasure could not be reconciled");
+    }
+
     /**
      * A short-lived, pre-authorized way to read the object directly from storage, when the adapter has one — a
      * SAS URL for Azure Blob, for example.

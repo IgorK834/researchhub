@@ -115,6 +115,30 @@ public final class AzureBlobSourceStorage implements SourceStorage {
     }
 
     @Override
+    public void erase(StorageKey key) throws IOException {
+        ensureContainer();
+        try {
+            var details = new com.azure.storage.blob.models.BlobListDetails().setRetrieveVersions(true)
+                    .setRetrieveSnapshots(true).setRetrieveDeletedBlobs(true);
+            var options = new com.azure.storage.blob.models.ListBlobsOptions().setPrefix(key.value()).setDetails(details);
+            var copies = container.listBlobs(options, Duration.ofSeconds(30)).stream()
+                    .filter(item -> key.value().equals(item.getName())).toList();
+            container.getBlobClient(key.value()).deleteIfExistsWithResponse(com.azure.storage.blob.models.DeleteSnapshotsOptionType.INCLUDE,
+                    null, Duration.ofSeconds(30), com.azure.core.util.Context.NONE);
+            for (var copy : copies) {
+                var blob = container.getBlobClient(key.value());
+                if (copy.getVersionId() != null) blob = blob.getVersionClient(copy.getVersionId());
+                else if (copy.getSnapshot() != null) blob = blob.getSnapshotClient(copy.getSnapshot());
+                blob.deleteIfExistsWithResponse(copy.getVersionId() != null || copy.getSnapshot() != null ? null : com.azure.storage.blob.models.DeleteSnapshotsOptionType.INCLUDE,
+                        null, Duration.ofSeconds(30), com.azure.core.util.Context.NONE);
+            }
+            if (container.listBlobs(options, Duration.ofSeconds(30)).stream().anyMatch(item -> key.value().equals(item.getName())))
+                throw new IOException("Source erasure is awaiting storage retention or reconciliation");
+        } catch (IOException failure) { throw failure; }
+        catch (RuntimeException failure) { throw new IOException("Source erasure could not be reconciled"); }
+    }
+
+    @Override
     public Optional<TemporaryReadAccess> createTemporaryReadAccess(StorageKey key, Duration ttl) throws IOException {
         if (ttl == null || ttl.isZero() || ttl.isNegative()) {
             throw new IllegalArgumentException("temporary read access TTL must be positive");

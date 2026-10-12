@@ -130,4 +130,13 @@ class AzureBlobSourceStorageIntegrationTest extends SourceStorageContract {
         assertTrue(access.uri().getQuery().contains("sp=r"), "SAS grants read only");
     }
 
+    @Test void terminalErasureRemovesCurrentBytesAndEverySnapshot() throws Exception {
+        StorageKey key=StorageKey.generate();storage.store(key,new ByteArrayInputStream("private email and name".getBytes(StandardCharsets.UTF_8)),"text/plain");
+        var snapshot=container.getBlobClient(key.value()).createSnapshot();
+        assertTrue(snapshot.exists());
+        storage.erase(key);
+        org.junit.jupiter.api.Assertions.assertFalse(storage.exists(key));
+        org.junit.jupiter.api.Assertions.assertFalse(snapshot.exists());
+        storage.erase(key);
+    }
 }

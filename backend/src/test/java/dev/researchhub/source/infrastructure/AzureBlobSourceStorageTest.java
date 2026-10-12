@@ -29,6 +29,27 @@ class AzureBlobSourceStorageTest {
         verify(blob, never()).generateSas(any());
     }
 
+    @Test void erasureDeletesEveryVersionAndSnapshotAndReconcilesStorage() throws Exception {
+        when(container.getBlobClient(key.value())).thenReturn(blob);
+        var version=mock(BlobClient.class);var snapshot=mock(BlobClient.class);
+        when(blob.getVersionClient("v1")).thenReturn(version);when(blob.getSnapshotClient("snapshot")).thenReturn(snapshot);
+        @SuppressWarnings("unchecked") var first=(com.azure.core.http.rest.PagedIterable<com.azure.storage.blob.models.BlobItem>)mock(com.azure.core.http.rest.PagedIterable.class);
+        @SuppressWarnings("unchecked") var empty=(com.azure.core.http.rest.PagedIterable<com.azure.storage.blob.models.BlobItem>)mock(com.azure.core.http.rest.PagedIterable.class);
+        when(first.stream()).thenAnswer(call->java.util.stream.Stream.of(new com.azure.storage.blob.models.BlobItem().setName(key.value()).setVersionId("v1"),new com.azure.storage.blob.models.BlobItem().setName(key.value()).setSnapshot("snapshot"),new com.azure.storage.blob.models.BlobItem().setName("different")));
+        when(empty.stream()).thenAnswer(call->java.util.stream.Stream.empty());when(container.listBlobs(any(),any())).thenReturn(first,empty);
+        new AzureBlobSourceStorage(container,false,false).erase(key);
+        verify(blob).deleteIfExistsWithResponse(eq(com.azure.storage.blob.models.DeleteSnapshotsOptionType.INCLUDE),isNull(),any(),any());
+        for(var copy:java.util.List.of(version,snapshot))verify(copy).deleteIfExistsWithResponse(isNull(),isNull(),any(),any());
+    }
+    @Test void retainedSoftDeletedCopiesAndSdkFailuresRemainPendingAndSanitized() {
+        when(container.getBlobClient(key.value())).thenReturn(blob);
+        @SuppressWarnings("unchecked") var copies=(com.azure.core.http.rest.PagedIterable<com.azure.storage.blob.models.BlobItem>)mock(com.azure.core.http.rest.PagedIterable.class);
+        when(copies.stream()).thenAnswer(call->java.util.stream.Stream.of(new com.azure.storage.blob.models.BlobItem().setName(key.value()).setDeleted(true)));
+        when(container.listBlobs(any(),any())).thenReturn(copies);var storage=new AzureBlobSourceStorage(container,false,false);
+        assertThrows(IOException.class,()->storage.erase(key));
+        doThrow(new IllegalStateException(SECRET)).when(blob).deleteIfExistsWithResponse(any(),any(),any(),any());safe(assertThrows(IOException.class,()->storage.erase(key)));
+    }
+
     @Test void invalidSasTtlFailsBeforeAnyStorageCall() {
         var storage = new AzureBlobSourceStorage(container);
         for (Duration ttl : new Duration[]{null, Duration.ZERO, Duration.ofSeconds(-1)})
