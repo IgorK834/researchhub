@@ -157,8 +157,14 @@ Once activated, legacy PATCH, revision-based AI acceptance and restore are rejec
 open or the feature flag is turned off. `revision` still describes a committed materialization/history checkpoint;
 it no longer resolves concurrent changes. `Save version` creates an idempotent immutable checkpoint of the committed
 projection. Realtime UI disables revision-based AI insertion/restore, avoiding an incompatible replacement route;
-research reads, provenance inspection, manual writing and history inspection remain available. CRDT transactions
-for historical restore and AI acceptance are separate follow-up workflows, outside RH-160–164.
+research reads, provenance inspection, manual writing and history inspection remain available. Historical restore remains a separate workflow. CAI-09 now adds AI acceptance through a
+service-authenticated frozen operation: a room queue builds a temporary Yjs candidate; Spring commits
+binary state, projection, proposal state, operation receipt and provenance in one transaction; only
+then does Node broadcast the canonical committed binary. Replays recover a saved receipt without a
+second insertion, including an idle room or a crash before broadcast. Role, evidence scope and epoch
+are checked again at commit. AI undo is a conditional inverse splice with its own immutable receipt,
+preserving later collaborator edits outside that splice. This does not enable legacy PATCH or the
+older revision-based writing-panel acceptance in a realtime document.
 
 The existing read API obtains **one committed document row**, whose JSON/title were written atomically with the
 binary Yjs snapshot. Export consumers must use that read/materialization and its revision, not an in-memory
