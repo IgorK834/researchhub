@@ -71,3 +71,6 @@ collaboration/dist/
 collaboration/coverage/
 
 frontend/dist-canvas-legacy/
+
+# Browser E2E output
+/frontend/test-results/
