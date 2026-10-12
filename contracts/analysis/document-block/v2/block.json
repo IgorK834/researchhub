@@ -1,0 +1,17 @@
+{
+  "type": "analysisResult",
+  "attrs": {
+    "blockId": "00000000-0000-4000-8000-000000000011",
+    "caption": "Human annotation",
+    "reference": {
+      "schemaVersion": "2.0",
+      "workload": "PROBLEM",
+      "analysisId": "00000000-0000-4000-8000-000000000011",
+      "executionId": "00000000-0000-4000-8000-000000000012",
+      "outputId": "solution",
+      "renderMode": "STEP",
+      "stepId": "00000000-0000-4000-8000-000000000013",
+      "conversationId": null
+    }
+  }
+}

@@ -1,0 +1,3 @@
+# PROBLEM computed evidence v2
+
+Computed A citations retain the exact successful PROBLEM execution, immutable input/plan/candidate/image/code hashes, verification version and CHECKED arithmetic. The `problem` member follows `problem.schema.json`. `inputSources` is empty; there is no synthetic sourceVersionId. Interpretation/physical assumptions remain NOT_CHECKED. Numeric plot evidence is bounded to 50 saved points with explicit truncation; solution context has an 8,000-character budget. Theory B still uses independent ordinary source citations. Citation reads never execute or call the planner.

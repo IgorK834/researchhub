@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "const": "analysisResult"
+    },
+    "attrs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "2.0"
+            },
+            "workload": {
+              "enum": [
+                "DATASET",
+                "PROBLEM"
+              ]
+            },
+            "analysisId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "executionId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "outputId": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "renderMode": {
+              "enum": [
+                "TABLE",
+                "CHART",
+                "SUMMARY",
+                "SOLUTION",
+                "STEP",
+                "INPUTS",
+                "ASSUMPTIONS"
+              ]
+            },
+            "stepId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "conversationId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "workload",
+            "analysisId",
+            "executionId",
+            "outputId",
+            "renderMode",
+            "stepId",
+            "conversationId"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "renderMode": {
+                    "const": "STEP"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "workload": {
+                    "const": "PROBLEM"
+                  },
+                  "outputId": {
+                    "const": "solution"
+                  },
+                  "stepId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "stepId": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "workload": {
+                    "const": "DATASET"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "renderMode": {
+                    "enum": [
+                      "TABLE",
+                      "CHART",
+                      "SUMMARY"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "renderMode": {
+                    "enum": [
+                      "SOLUTION",
+                      "INPUTS",
+                      "ASSUMPTIONS"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "workload": {
+                    "const": "PROBLEM"
+                  },
+                  "outputId": {
+                    "const": "solution"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "blockId",
+        "reference",
+        "caption"
+      ]
+    }
+  },
+  "required": [
+    "type",
+    "attrs"
+  ]
+}

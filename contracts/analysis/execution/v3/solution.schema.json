@@ -1,0 +1,780 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "3.0"
+    },
+    "kind": {
+      "const": "SOLUTION"
+    },
+    "workload": {
+      "const": "PROBLEM"
+    },
+    "analysisId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "executionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "inputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "planHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidateHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imageId": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "runtimeVersion": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "codeHashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "problem.py": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "verify_problem.py": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "problem.py",
+        "verify_problem.py"
+      ]
+    },
+    "verificationVersion": {
+      "const": "2.0"
+    },
+    "precision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "absolute",
+        "relative"
+      ],
+      "properties": {
+        "absolute": {
+          "const": 1e-10
+        },
+        "relative": {
+          "const": 1e-10
+        }
+      }
+    },
+    "domain": {
+      "const": "REAL"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 24
+          }
+        },
+        "required": [
+          "symbol",
+          "value",
+          "unit"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 24
+          }
+        },
+        "required": [
+          "symbol",
+          "unit"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 1
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outputId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "operation": {
+            "enum": [
+              "EVALUATE",
+              "SOLVE"
+            ]
+          },
+          "expression": {
+            "$ref": "#/$defs/MathAst"
+          },
+          "substitution": {
+            "type": "object",
+            "maxProperties": 16,
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 24
+                },
+                "siValue": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "value",
+                "unit",
+                "siValue"
+              ]
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -1e+100,
+              "maximum": 1e+100
+            },
+            "minItems": 1,
+            "maxItems": 4
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 24
+          },
+          "check": {
+            "const": "CHECKED"
+          }
+        },
+        "required": [
+          "id",
+          "outputId",
+          "index",
+          "operation",
+          "expression",
+          "substitution",
+          "values",
+          "unit",
+          "check"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 32
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "kind": {
+            "enum": [
+              "EVALUATE",
+              "SOLVE"
+            ]
+          },
+          "expression": {
+            "$ref": "#/$defs/MathAst"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 24
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": -1e+100,
+              "maximum": 1e+100
+            },
+            "minItems": 1,
+            "maxItems": 4
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "operation": {
+                  "enum": [
+                    "EVALUATE",
+                    "SOLVE"
+                  ]
+                },
+                "expression": {
+                  "$ref": "#/$defs/MathAst"
+                },
+                "substitution": {
+                  "type": "object",
+                  "maxProperties": 16,
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 24
+                      },
+                      "siValue": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "unit",
+                      "siValue"
+                    ]
+                  }
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -1e+100,
+                    "maximum": 1e+100
+                  },
+                  "minItems": 1,
+                  "maxItems": 4
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 24
+                }
+              },
+              "required": [
+                "operation",
+                "expression",
+                "substitution",
+                "values",
+                "unit"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "expression",
+          "unit",
+          "values",
+          "steps"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "plot": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "parameter": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "output": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "xUnit": {
+              "type": "string",
+              "maxLength": 24
+            },
+            "yUnit": {
+              "type": "string",
+              "maxLength": 24
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "minItems": 2,
+              "maxItems": 201
+            }
+          },
+          "required": [
+            "parameter",
+            "output",
+            "xUnit",
+            "yUnit",
+            "points"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "phase",
+        "status",
+        "inputHash",
+        "problemSha256",
+        "planSha256",
+        "candidateSha256",
+        "tolerance",
+        "checkedOutputs",
+        "checkedPoints"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "2.0"
+        },
+        "phase": {
+          "const": "VERIFY"
+        },
+        "status": {
+          "const": "CHECKED"
+        },
+        "inputHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "problemSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "planSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "candidateSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tolerance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "absolute",
+            "relative"
+          ],
+          "properties": {
+            "absolute": {
+              "const": 1e-10
+            },
+            "relative": {
+              "const": 1e-10
+            }
+          }
+        },
+        "checkedOutputs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "checkedPoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 201
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "NOT_CHECKED"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "status",
+        "summary",
+        "assumptions",
+        "warnings"
+      ]
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "workload",
+    "analysisId",
+    "executionId",
+    "inputHash",
+    "planHash",
+    "candidateHash",
+    "imageId",
+    "runtimeVersion",
+    "codeHashes",
+    "verificationVersion",
+    "precision",
+    "domain",
+    "inputs",
+    "unknowns",
+    "steps",
+    "outputs",
+    "plot",
+    "receipt",
+    "interpretation",
+    "origin",
+    "statement"
+  ],
+  "$defs": {
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9-]{0,79}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "EVALUATE",
+            "SOLVE"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "expression": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MathAst"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "expression",
+        "unit"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "MathAst": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "const": "number"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "name"
+          ],
+          "properties": {
+            "op": {
+              "const": "symbol"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "add"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/MathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "mul"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/MathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "div"
+            },
+            "left": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "eq"
+            },
+            "left": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "base",
+            "exponent"
+          ],
+          "properties": {
+            "op": {
+              "const": "pow"
+            },
+            "base": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "exponent": {
+              "type": "integer",
+              "minimum": -8,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sqrt"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sin"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "cos"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        }
+      ],
+      "description": "Maximum 128 nodes and depth 12, enforced by all runtimes. Canonical decimals exclude negative zero and trailing fractional zeros."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "2.0",
+  "workload": "PROBLEM",
+  "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "planHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "verificationVersion": "2.0",
+  "arithmeticStatus": "CHECKED",
+  "interpretationStatus": "NOT_CHECKED",
+  "domain": "REAL",
+  "assumptions": [
+    "Constant average speed."
+  ]
+}

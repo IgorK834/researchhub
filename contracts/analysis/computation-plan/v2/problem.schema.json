@@ -1,0 +1,423 @@
+{
+  "$defs": {
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9-]{0,79}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "EVALUATE",
+            "SOLVE"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "expression": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MathAst"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "expression",
+        "unit"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "symbol",
+        "value",
+        "unit"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "Plot": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$",
+          "title": "Parameter",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        },
+        "points": {
+          "maximum": 201,
+          "minimum": 2,
+          "title": "Points",
+          "type": "integer"
+        },
+        "output": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Output",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameter",
+        "start",
+        "end",
+        "points",
+        "output"
+      ],
+      "title": "Plot",
+      "type": "object"
+    },
+    "Unknown": {
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "symbol",
+        "unit"
+      ],
+      "title": "Unknown",
+      "type": "object"
+    },
+    "MathAst": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "const": "number"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "name"
+          ],
+          "properties": {
+            "op": {
+              "const": "symbol"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "add"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/MathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "mul"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/MathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "div"
+            },
+            "left": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "eq"
+            },
+            "left": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "base",
+            "exponent"
+          ],
+          "properties": {
+            "op": {
+              "const": "pow"
+            },
+            "base": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "exponent": {
+              "type": "integer",
+              "minimum": -8,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sqrt"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sin"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "cos"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        }
+      ],
+      "description": "Maximum 128 nodes and depth 12, enforced by all runtimes. Canonical decimals exclude negative zero and trailing fractional zeros."
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "statement": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Statement",
+      "type": "string"
+    },
+    "parameters": {
+      "items": {
+        "$ref": "#/$defs/Parameter"
+      },
+      "maxItems": 20,
+      "title": "Parameters",
+      "type": "array"
+    },
+    "unknowns": {
+      "items": {
+        "$ref": "#/$defs/Unknown"
+      },
+      "maxItems": 1,
+      "title": "Unknowns",
+      "type": "array"
+    },
+    "domain": {
+      "anyOf": [
+        {
+          "const": "REAL",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Domain"
+    },
+    "expectedOutputs": {
+      "items": {
+        "$ref": "#/$defs/Output"
+      },
+      "maxItems": 8,
+      "title": "Expectedoutputs",
+      "type": "array"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 12,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "plot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Plot"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "statement",
+    "parameters",
+    "unknowns",
+    "domain",
+    "expectedOutputs",
+    "assumptions",
+    "plot"
+  ],
+  "title": "Problem",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

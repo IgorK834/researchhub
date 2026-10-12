@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "2.0",
+  "workload": "PROBLEM",
+  "problemHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "summary": "Evaluate average speed from the frozen inputs.",
+  "outputs": [
+    {
+      "name": "result",
+      "kind": "EVALUATE",
+      "expression": {
+        "op": "div",
+        "left": {
+          "op": "symbol",
+          "name": "distance"
+        },
+        "right": {
+          "op": "symbol",
+          "name": "time"
+        }
+      },
+      "unit": "m/s"
+    }
+  ],
+  "assumptions": [
+    "Constant average speed."
+  ],
+  "warnings": [],
+  "clarifications": []
+}

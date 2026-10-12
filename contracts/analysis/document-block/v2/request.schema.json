@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "clientProposalId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contextId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "analysisId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "executionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "selection": {
+      "enum": [
+        "FULL",
+        "TABLE",
+        "CHART"
+      ]
+    },
+    "outputId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "conversationId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "turnId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "clientProposalId",
+    "contextId",
+    "analysisId",
+    "executionId",
+    "selection",
+    "outputId",
+    "conversationId",
+    "turnId"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "selection": {
+            "const": "FULL"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outputId": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "outputId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "turnId": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "conversationId": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      }
+    }
+  ]
+}

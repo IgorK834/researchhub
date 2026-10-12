@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "SOLUTION",
+  "workload": "PROBLEM",
+  "analysisId": "00000000-0000-4000-8000-000000000011",
+  "executionId": "00000000-0000-4000-8000-000000000012",
+  "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "planHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "candidateHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "imageId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "runtimeVersion": "1.2.0",
+  "codeHashes": {
+    "problem.py": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "verify_problem.py": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "verificationVersion": "2.0",
+  "precision": {
+    "absolute": 1e-10,
+    "relative": 1e-10
+  },
+  "domain": "REAL",
+  "inputs": [
+    {
+      "symbol": "distance",
+      "value": "100",
+      "unit": "cm"
+    },
+    {
+      "symbol": "time",
+      "value": "2",
+      "unit": "s"
+    }
+  ],
+  "unknowns": [],
+  "steps": [
+    {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "outputId": "result",
+      "index": 0,
+      "operation": "EVALUATE",
+      "expression": {
+        "op": "div",
+        "left": {
+          "op": "symbol",
+          "name": "distance"
+        },
+        "right": {
+          "op": "symbol",
+          "name": "time"
+        }
+      },
+      "substitution": {
+        "distance": {
+          "value": "100",
+          "unit": "cm",
+          "siValue": "1"
+        },
+        "time": {
+          "value": "2",
+          "unit": "s",
+          "siValue": "2"
+        }
+      },
+      "values": [
+        0.5
+      ],
+      "unit": "m/s",
+      "check": "CHECKED"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "kind": "EVALUATE",
+      "expression": {
+        "op": "div",
+        "left": {
+          "op": "symbol",
+          "name": "distance"
+        },
+        "right": {
+          "op": "symbol",
+          "name": "time"
+        }
+      },
+      "unit": "m/s",
+      "values": [
+        0.5
+      ],
+      "steps": [
+        {
+          "operation": "EVALUATE",
+          "expression": {
+            "op": "div",
+            "left": {
+              "op": "symbol",
+              "name": "distance"
+            },
+            "right": {
+              "op": "symbol",
+              "name": "time"
+            }
+          },
+          "substitution": {
+            "distance": {
+              "value": "100",
+              "unit": "cm",
+              "siValue": "1"
+            },
+            "time": {
+              "value": "2",
+              "unit": "s",
+              "siValue": "2"
+            }
+          },
+          "values": [
+            0.5
+          ],
+          "unit": "m/s"
+        }
+      ]
+    }
+  ],
+  "plot": null,
+  "receipt": {
+    "schemaVersion": "2.0",
+    "phase": "VERIFY",
+    "status": "CHECKED",
+    "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "problemSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "planSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "candidateSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "tolerance": {
+      "absolute": 1e-10,
+      "relative": 1e-10
+    },
+    "checkedOutputs": 1,
+    "checkedPoints": 0
+  },
+  "interpretation": {
+    "status": "NOT_CHECKED",
+    "summary": "Evaluate average speed from the frozen inputs.",
+    "assumptions": [
+      "Constant average speed."
+    ],
+    "warnings": []
+  },
+  "origin": null,
+  "statement": "Calculate speed from distance and elapsed time."
+}

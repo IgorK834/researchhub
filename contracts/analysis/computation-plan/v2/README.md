@@ -1,0 +1,9 @@
+# Computation plans v2
+
+The public POST /analyses accepts the original v1 `{userPrompt,inputs}` or an explicit v2 workload. DATASET v2 has exactly schemaVersion, workload, userPrompt, inputs and retains the full v1 input minimum. PROBLEM v2 uses the create fixture, immutable statement/parameters/unknowns/units/REAL domain/outputs/assumptions/optional plot, a client request UUID and optional authorized origin and parent lineage. It never fabricates a sourceVersionId. Decimal commas, inferred angular units, NaN and unsupported units are rejected. Missing values/units/domain or undeclared formula symbols produce WAITING_FOR_INPUT without provider or execution.
+
+A problem snapshot binds canonical input, exact server-owned context/message when present and template. The immutable audit binds the actual model/usage/request/response. Planning preserves output ASTs and assumptions; Spring validates references and dimensions. The worker produces no numerical results. Parameters changed in a follow-up create a new analysis with parentAnalysisId.
+
+The shared fixtures are validated by Java/Python tests. The math schema supplies recursive AST shape; Java/Python impose depth, count and canonical-number bounds in addition to JSON Schema. Dataset v1 contracts remain valid.
+
+`create.schema.json` discriminates the closed public v2 payloads; `problem.schema.json`, `plan.schema.json` and `request.schema.json` match the Python model schema with a recursive closed MathAst. Runtime validators additionally enforce canonical decimal/units, AST count/depth, symbol references, unique outputs, exact frozen output/assumption equality, SI dimensions and polynomial/weighted complexity budgets. Shared DATASET v1 and PROBLEM v2 fixtures are tested together in Java and Python. Copying a v1 plan into v2, or v2 into v1, is rejected.

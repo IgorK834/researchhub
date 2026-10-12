@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "2.0",
+  "workload": "DATASET",
+  "userPrompt": "Compute mean",
+  "inputs": [
+    {
+      "sourceId": "00000000-0000-4000-8000-000000000001",
+      "sourceVersionId": "00000000-0000-4000-8000-000000000002",
+      "sheetName": null,
+      "columns": null
+    }
+  ]
+}

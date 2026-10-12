@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "2.0",
+  "workload": "PROBLEM",
+  "clientRequestId": "00000000-0000-4000-8000-000000000010",
+  "userPrompt": "Calculate speed from distance and elapsed time.",
+  "problem": {
+    "statement": "Calculate speed from distance and elapsed time.",
+    "parameters": [
+      {
+        "symbol": "distance",
+        "value": "100",
+        "unit": "cm"
+      },
+      {
+        "symbol": "time",
+        "value": "2",
+        "unit": "s"
+      }
+    ],
+    "unknowns": [],
+    "domain": "REAL",
+    "expectedOutputs": [
+      {
+        "name": "result",
+        "kind": "EVALUATE",
+        "expression": {
+          "op": "div",
+          "left": {
+            "op": "symbol",
+            "name": "distance"
+          },
+          "right": {
+            "op": "symbol",
+            "name": "time"
+          }
+        },
+        "unit": "m/s"
+      }
+    ],
+    "assumptions": [
+      "Constant average speed."
+    ],
+    "plot": {
+      "parameter": "distance",
+      "start": "0",
+      "end": "100",
+      "points": 11,
+      "output": "result"
+    }
+  },
+  "origin": null,
+  "parentAnalysisId": null
+}

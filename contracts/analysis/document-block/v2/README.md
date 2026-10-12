@@ -1,0 +1,5 @@
+# Calculation package references v2
+
+Each atom retains the exact workload/analysis/execution/output/step/conversation capability. No dynamic latest result or client/model image URL is stored. Legacy four-field DATASET references remain supported. PROBLEM STEP requires an existing saved checked step UUID; SOLUTION/INPUTS/ASSUMPTIONS refer to output `solution`, TABLE to `plot-data`, CHART to `plot`. Captions are human annotations and never inherit CHECKED.
+
+POST document `/ai/proposals/calculation` accepts only the closed request in `request.schema.json`. It reads authorized immutable results and prepares FULL, TABLE or CHART preview blocks at the captured canvas target. The ordinary proposal version hash and CAI-09 operation/receipt/conditional undo apply. Every reference is reauthorized at acceptance; the splice and provenance publish atomically or nothing is inserted. Saved package proposals may exist without an AI turn; those linked to a turn appear in its durable history. A new execution never retargets an inserted atom. Explicit Update reference changes its capability and is recorded as a human edit.

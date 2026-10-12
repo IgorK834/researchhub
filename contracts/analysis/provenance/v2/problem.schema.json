@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0"
+    },
+    "workload": {
+      "const": "PROBLEM"
+    },
+    "inputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "planHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "verificationVersion": {
+      "const": "2.0"
+    },
+    "arithmeticStatus": {
+      "const": "CHECKED"
+    },
+    "interpretationStatus": {
+      "const": "NOT_CHECKED"
+    },
+    "domain": {
+      "const": "REAL"
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 1000
+      },
+      "minItems": 0,
+      "maxItems": 16
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "workload",
+    "inputHash",
+    "planHash",
+    "verificationVersion",
+    "arithmeticStatus",
+    "interpretationStatus",
+    "domain",
+    "assumptions"
+  ]
+}
