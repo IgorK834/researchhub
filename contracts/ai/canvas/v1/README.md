@@ -1,8 +1,10 @@
 # Canvas AI v1
 
 `canvas.schema.json` is JSON Schema 2020-12; individual schemas select its named definitions.
-`capture`/`context` are implemented by CAI-03. First turn, continuation, turn state, proposal,
-execution, acceptance and receipt are normative contracts for CAI-04–09/11–15, not live endpoints.
+`capture`/`context` are implemented by CAI-03. Live contextual turns use [conversations v2](../../conversations/v2/README.md); live text
+proposals, acceptance and receipts use [authoring v2](../../authoring/v2/README.md). The original
+proposal/execution examples in this directory describe the future calculation packages (CAI-11–15),
+not the deployed authoring endpoints.
 Examples are synthetic and contain no secrets. `invalid.json` contains intentionally rejected
 payloads. `unicode.json` is shared by Java, TypeScript and Python checks.
 
@@ -39,3 +41,5 @@ Compatibility: no existing question, authoring, execution or conversations v1 sc
 reinterpreted. No legacy `sourceVersionId` represents a problem. Existing analysisResult continues
 to reference its exact execution/output. Existing SSE deltas are provisional; completed messages
 remain immutable. Native Gemini adapter and sandbox boundary remain unchanged.
+
+CAI-13 optionally adds `datasetInputs` to ANALYZE turns (1–5 explicit immutable versions, sheet and physical columns). Its sourceVersionId set must equal scope.sourceVersionIds. EXECUTING observations retain saved analysis/execution IDs; ANALYSIS_RESULT identifies the completed orchestration even when the exact execution failed. Old requests without the field retain their DRAFT handoff behavior. CAI-15 turn history optionally includes up to 32 `calculationProposalIds`, resolved through the existing reviewed-proposal API.

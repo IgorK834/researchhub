@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "2.0",
+  "id": "20000000-0000-4000-8000-000000000001",
+  "workspaceId": "20000000-0000-4000-8000-000000000002",
+  "documentId": "20000000-0000-4000-8000-000000000003",
+  "contextId": "20000000-0000-4000-8000-000000000004",
+  "turnId": "10000000-0000-0000-0000-000000000001",
+  "supersedes": null,
+  "mode": "INSERT_AT_ANCHOR",
+  "state": "PENDING",
+  "versionHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "originalText": "",
+  "paragraphs": [
+    "Dodaj treść"
+  ],
+  "citations": [],
+  "warnings": [
+    "No source evidence; review factual claims."
+  ],
+  "generation": {
+    "schemaVersion": "1.0",
+    "requestId": "10000000-0000-0000-0000-000000000001",
+    "templateId": "canvas-edit:2",
+    "templateHash": "0cf51920fb858eb4021a321a9b95cd203de899821ccefb57fde81ad912b35a16",
+    "model": {
+      "provider": "deterministic",
+      "name": "extractive-fixture",
+      "version": "1",
+      "structuredOutput": true,
+      "streaming": false
+    },
+    "usage": {
+      "inputTokens": 115,
+      "outputTokens": 2,
+      "totalTokens": 117,
+      "estimated": true
+    },
+    "providerRequestId": "572ffbeff58ed968880fce34f1d1aaf5837598a7300a2fe3db54db84892a3a72",
+    "answer": {
+      "status": "READY",
+      "text": "Dodaj treść",
+      "citationIds": [],
+      "matches": []
+    }
+  },
+  "modelContext": {
+    "builderVersion": "1.0",
+    "tokenPolicy": "utf8-conservative-v1",
+    "budget": {
+      "maxTokens": 32768,
+      "maxBytes": 24576,
+      "collapseExactDuplicates": true
+    },
+    "contextHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "contextBytes": 0,
+    "tokenUpperBound": 4182,
+    "citations": []
+  },
+  "createdAt": "2026-10-10T20:00:00Z",
+  "operationId": null
+}

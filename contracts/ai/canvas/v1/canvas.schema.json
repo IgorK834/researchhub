@@ -353,6 +353,13 @@
             "$ref": "#/$defs/AnalysisReference"
           },
           "maxItems": 6
+        },
+        "formulas": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/MathValue"
+          }
         }
       },
       "required": [
@@ -495,6 +502,59 @@
         },
         "scope": {
           "$ref": "#/$defs/Scope"
+        },
+        "datasetInputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sourceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "sourceVersionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "sheetName": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 96
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "columns": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    "minItems": 1,
+                    "maxItems": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "sourceId",
+              "sourceVersionId",
+              "sheetName",
+              "columns"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 5
         }
       },
       "required": [
@@ -506,6 +566,22 @@
         "replyToMessageId",
         "targetProposalId",
         "scope"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "datasetInputs"
+            ]
+          },
+          "then": {
+            "properties": {
+              "intent": {
+                "const": "ANALYZE"
+              }
+            }
+          }
+        }
       ]
     },
     "FirstTurn": {
@@ -611,8 +687,89 @@
                 "CONFLICT",
                 "AI_UNAVAILABLE",
                 "AI_OUTPUT_INVALID",
-                "AI_CONTEXT_TOO_LARGE"
+                "AI_CONTEXT_TOO_LARGE",
+                "AI_PROVIDER_ERROR",
+                "AI_REFUSED",
+                "INTERNAL_ERROR",
+                "RESOURCE_NOT_FOUND"
               ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calculationProposalIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "intent": {
+          "$ref": "#/$defs/Intent"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "resultKind": {
+          "enum": [
+            "ANSWER",
+            "CLARIFICATION",
+            null,
+            "EDIT_PROPOSAL",
+            "ANALYSIS_HANDOFF",
+            "PROBLEM_HANDOFF",
+            "ANALYSIS_RESULT"
+          ]
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "schemaVersion": {
+                  "const": "1.0"
+                },
+                "includedMessages": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "omittedMessages": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "memoryHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "schemaVersion",
+                "includedMessages",
+                "omittedMessages",
+                "memoryHash"
+              ]
+            }
+          ]
+        },
+        "analysisId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
             },
             {
               "type": "null"
@@ -932,6 +1089,266 @@
         "sourceReference",
         "analysisReference"
       ]
+    },
+    "MathAst": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "const": "number"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "name"
+          ],
+          "properties": {
+            "op": {
+              "const": "symbol"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "add"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/MathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "mul"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/MathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "div"
+            },
+            "left": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "eq"
+            },
+            "left": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "base",
+            "exponent"
+          ],
+          "properties": {
+            "op": {
+              "const": "pow"
+            },
+            "base": {
+              "$ref": "#/$defs/MathAst"
+            },
+            "exponent": {
+              "type": "integer",
+              "minimum": -8,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sqrt"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sin"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "cos"
+            },
+            "arg": {
+              "$ref": "#/$defs/MathAst"
+            }
+          }
+        }
+      ],
+      "description": "Maximum 128 nodes and depth 12, enforced by all runtimes. Canonical decimals exclude negative zero and trailing fractional zeros."
+    },
+    "MathValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "ast",
+        "notation",
+        "accessibleText",
+        "verification"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0"
+        },
+        "ast": {
+          "$ref": "#/$defs/MathAst"
+        },
+        "notation": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "accessibleText": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "analysisId",
+                "executionId",
+                "outputName",
+                "stepIndex",
+                "inputHash"
+              ],
+              "properties": {
+                "analysisId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "executionId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outputName": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9-]{0,79}$"
+                },
+                "stepIndex": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 31
+                },
+                "inputHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          ]
+        }
+      }
     }
   },
   "oneOf": [

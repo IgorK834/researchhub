@@ -1,0 +1,1071 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://researchhub.dev/contracts/ai/authoring/v2/authoring.schema.json",
+  "$defs": {
+    "Proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "contextId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "turnId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schemaVersion": {
+          "const": "2.0"
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "enum": [
+            "INSERT_AT_ANCHOR",
+            "REPLACE_RANGE"
+          ]
+        },
+        "state": {
+          "enum": [
+            "PENDING",
+            "ACCEPTED",
+            "REJECTED",
+            "SUPERSEDED"
+          ]
+        },
+        "versionHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "originalText": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "paragraphs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12000
+          },
+          "x-maxUtf16Total": 12000
+        },
+        "citations": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/Citation"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "generation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AuthoringGeneration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modelContext": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContextSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "operationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "compensationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calculation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schemaVersion": {
+              "const": "2.0"
+            },
+            "workload": {
+              "enum": [
+                "PROBLEM",
+                "DATASET"
+              ]
+            },
+            "analysisId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "executionId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "selection": {
+              "enum": [
+                "FULL",
+                "TABLE",
+                "CHART"
+              ]
+            },
+            "outputId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "conversationId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "const": "analysisResult"
+                  },
+                  "attrs": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "blockId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "reference": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "schemaVersion": {
+                            "const": "2.0"
+                          },
+                          "workload": {
+                            "enum": [
+                              "DATASET",
+                              "PROBLEM"
+                            ]
+                          },
+                          "analysisId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "executionId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "outputId": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "renderMode": {
+                            "enum": [
+                              "TABLE",
+                              "CHART",
+                              "SUMMARY",
+                              "SOLUTION",
+                              "STEP",
+                              "INPUTS",
+                              "ASSUMPTIONS"
+                            ]
+                          },
+                          "stepId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "conversationId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "schemaVersion",
+                          "workload",
+                          "analysisId",
+                          "executionId",
+                          "outputId",
+                          "renderMode",
+                          "stepId",
+                          "conversationId"
+                        ],
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "renderMode": {
+                                  "const": "STEP"
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "workload": {
+                                  "const": "PROBLEM"
+                                },
+                                "outputId": {
+                                  "const": "solution"
+                                },
+                                "stepId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                }
+                              }
+                            },
+                            "else": {
+                              "properties": {
+                                "stepId": {
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "workload": {
+                                  "const": "DATASET"
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "renderMode": {
+                                  "enum": [
+                                    "TABLE",
+                                    "CHART",
+                                    "SUMMARY"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "if": {
+                              "properties": {
+                                "renderMode": {
+                                  "enum": [
+                                    "SOLUTION",
+                                    "INPUTS",
+                                    "ASSUMPTIONS"
+                                  ]
+                                }
+                              }
+                            },
+                            "then": {
+                              "properties": {
+                                "workload": {
+                                  "const": "PROBLEM"
+                                },
+                                "outputId": {
+                                  "const": "solution"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "caption": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "blockId",
+                      "reference",
+                      "caption"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "attrs"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 32
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "workload",
+            "analysisId",
+            "executionId",
+            "selection",
+            "outputId",
+            "conversationId",
+            "blocks"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "workspaceId",
+        "documentId",
+        "contextId",
+        "turnId",
+        "schemaVersion",
+        "supersedes",
+        "mode",
+        "state",
+        "versionHash",
+        "originalText",
+        "paragraphs",
+        "citations",
+        "warnings",
+        "generation",
+        "modelContext",
+        "createdAt",
+        "operationId"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "required": [
+                "calculation"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "turnId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "generation": {
+                "$ref": "#/$defs/AuthoringGeneration"
+              },
+              "modelContext": {
+                "$ref": "#/$defs/ContextSummary"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Accept": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientOperationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "clientOperationId",
+        "versionHash"
+      ]
+    },
+    "Undo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clientOperationId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "clientOperationId"
+      ]
+    },
+    "Receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "proposalId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "enum": [
+            "ACCEPT",
+            "UNDO"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 2
+        }
+      },
+      "required": [
+        "operationId",
+        "proposalId",
+        "kind",
+        "revision"
+      ]
+    },
+    "CanvasResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "EDIT_PROPOSAL"
+            },
+            "proposalId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "analysisId": {
+              "type": "null"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 25000
+            }
+          },
+          "required": [
+            "kind",
+            "proposalId",
+            "analysisId",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ANALYSIS_HANDOFF"
+            },
+            "proposalId": {
+              "type": "null"
+            },
+            "analysisId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 25000
+            }
+          },
+          "required": [
+            "kind",
+            "proposalId",
+            "analysisId",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "PROBLEM_HANDOFF"
+            },
+            "proposalId": {
+              "type": "null"
+            },
+            "analysisId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 25000
+            }
+          },
+          "required": [
+            "kind",
+            "proposalId",
+            "analysisId",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ANALYSIS_RESULT"
+            },
+            "proposalId": {
+              "type": "null"
+            },
+            "analysisId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 25000
+            }
+          },
+          "required": [
+            "kind",
+            "proposalId",
+            "analysisId",
+            "text"
+          ]
+        }
+      ]
+    },
+    "AuthoringAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "READY",
+            "INSUFFICIENT_EVIDENCE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 12000,
+          "title": "Text",
+          "type": "string"
+        },
+        "citationIds": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Citationids",
+          "type": "array"
+        },
+        "matches": {
+          "items": {
+            "$ref": "#/$defs/Match"
+          },
+          "maxItems": 12,
+          "title": "Matches",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "text",
+        "citationIds",
+        "matches"
+      ],
+      "title": "AuthoringAnswer",
+      "type": "object"
+    },
+    "Match": {
+      "additionalProperties": false,
+      "properties": {
+        "chunkId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chunkid",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "supporting",
+            "related",
+            "insufficient"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "relevance": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Relevance",
+          "type": "number"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chunkId",
+        "category",
+        "relevance",
+        "reason"
+      ],
+      "title": "Match",
+      "type": "object"
+    },
+    "ModelMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "structuredOutput": {
+          "const": true,
+          "default": true,
+          "title": "Structuredoutput",
+          "type": "boolean"
+        },
+        "streaming": {
+          "const": false,
+          "default": false,
+          "title": "Streaming",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "provider",
+        "name",
+        "version"
+      ],
+      "title": "ModelMetadata",
+      "type": "object"
+    },
+    "UsageMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": {
+          "maximum": 20000000,
+          "minimum": 0,
+          "title": "Inputtokens",
+          "type": "integer"
+        },
+        "outputTokens": {
+          "maximum": 20000000,
+          "minimum": 0,
+          "title": "Outputtokens",
+          "type": "integer"
+        },
+        "totalTokens": {
+          "maximum": 40000000,
+          "minimum": 0,
+          "title": "Totaltokens",
+          "type": "integer"
+        },
+        "estimated": {
+          "title": "Estimated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "totalTokens",
+        "estimated"
+      ],
+      "title": "UsageMetadata",
+      "type": "object"
+    },
+    "AuthoringGeneration": {
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "requestId": {
+          "format": "uuid",
+          "title": "Requestid",
+          "type": "string"
+        },
+        "templateId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Templateid",
+          "type": "string"
+        },
+        "templateHash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Templatehash",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelMetadata"
+        },
+        "usage": {
+          "$ref": "#/$defs/UsageMetadata"
+        },
+        "providerRequestId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Providerrequestid",
+          "type": "string"
+        },
+        "answer": {
+          "$ref": "#/$defs/AuthoringAnswer"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "templateId",
+        "templateHash",
+        "model",
+        "usage",
+        "providerRequestId",
+        "answer"
+      ],
+      "title": "AuthoringResult",
+      "type": "object"
+    },
+    "CitationBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "citationKey": {
+          "pattern": "^[SA](?:[1-9]|1[0-2])$",
+          "title": "Citationkey",
+          "type": "string"
+        },
+        "chunkId": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Chunkid",
+          "type": "string"
+        },
+        "textReference": {
+          "anyOf": [
+            {
+              "pattern": "^[SA](?:[1-9]|1[0-2])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Textreference"
+        }
+      },
+      "required": [
+        "citationKey",
+        "chunkId",
+        "textReference"
+      ],
+      "title": "CitationBinding",
+      "type": "object"
+    },
+    "ContextBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "maxTokens": {
+          "maximum": 131072,
+          "minimum": 64,
+          "title": "Maxtokens",
+          "type": "integer"
+        },
+        "maxBytes": {
+          "maximum": 131072,
+          "minimum": 64,
+          "title": "Maxbytes",
+          "type": "integer"
+        },
+        "collapseExactDuplicates": {
+          "title": "Collapseexactduplicates",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "maxTokens",
+        "maxBytes",
+        "collapseExactDuplicates"
+      ],
+      "title": "ContextBudget",
+      "type": "object"
+    },
+    "ContextSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "builderVersion": {
+          "enum": [
+            "1.0",
+            "2.0",
+            "3.0"
+          ],
+          "title": "Builderversion",
+          "type": "string"
+        },
+        "tokenPolicy": {
+          "const": "utf8-conservative-v1",
+          "title": "Tokenpolicy",
+          "type": "string"
+        },
+        "budget": {
+          "$ref": "#/$defs/ContextBudget"
+        },
+        "contextHash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Contexthash",
+          "type": "string"
+        },
+        "contextBytes": {
+          "minimum": 0,
+          "title": "Contextbytes",
+          "type": "integer"
+        },
+        "tokenUpperBound": {
+          "minimum": 0,
+          "title": "Tokenupperbound",
+          "type": "integer"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/CitationBinding"
+          },
+          "maxItems": 12,
+          "title": "Citations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "builderVersion",
+        "tokenPolicy",
+        "budget",
+        "contextHash",
+        "contextBytes",
+        "tokenUpperBound",
+        "citations"
+      ],
+      "title": "ContextSummary",
+      "type": "object"
+    },
+    "Citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chunkId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sourceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sourceVersionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "processingVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "pageStart": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pageEnd": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sectionTitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceSpan"
+          }
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "chunkId",
+        "workspaceId",
+        "sourceId",
+        "sourceVersionId",
+        "processingVersion",
+        "contentHash",
+        "pageStart",
+        "pageEnd",
+        "sectionTitle",
+        "spans",
+        "title"
+      ]
+    },
+    "SourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unitId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "characterStart": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "characterEnd": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "unitId",
+        "characterStart",
+        "characterEnd"
+      ]
+    }
+  }
+}

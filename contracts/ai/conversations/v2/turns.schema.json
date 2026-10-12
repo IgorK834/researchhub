@@ -495,6 +495,59 @@
         },
         "scope": {
           "$ref": "#/$defs/Scope"
+        },
+        "datasetInputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sourceId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "sourceVersionId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "sheetName": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 96
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "columns": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    "minItems": 1,
+                    "maxItems": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "sourceId",
+              "sourceVersionId",
+              "sheetName",
+              "columns"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 5
         }
       },
       "required": [
@@ -506,6 +559,22 @@
         "replyToMessageId",
         "targetProposalId",
         "scope"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "datasetInputs"
+            ]
+          },
+          "then": {
+            "properties": {
+              "intent": {
+                "const": "ANALYZE"
+              }
+            }
+          }
+        }
       ]
     },
     "FirstTurn": {
@@ -638,7 +707,11 @@
           "enum": [
             "ANSWER",
             "CLARIFICATION",
-            null
+            null,
+            "EDIT_PROPOSAL",
+            "ANALYSIS_HANDOFF",
+            "PROBLEM_HANDOFF",
+            "ANALYSIS_RESULT"
           ]
         },
         "memory": {
@@ -675,6 +748,26 @@
               ]
             }
           ]
+        },
+        "analysisId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calculationProposalIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "maxItems": 32
         }
       },
       "required": [

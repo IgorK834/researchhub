@@ -1,0 +1,4 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "https://researchhub.dev/contracts/ai/authoring/v2/authoring.schema.json#/$defs/Receipt"
+}

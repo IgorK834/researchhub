@@ -11,7 +11,9 @@ Idempotency hashes include version, instruction, context, intent, explicit sourc
 analysis references and reply/proposal IDs. Concurrent first sends use a caller/workspace-scoped
 clientConversationId. Replays return the existing operation and do not consume inference quota.
 Mismatched payloads return 409. A failed operation is preserved; a new deliberate attempt uses a new ID.
-Pending leases are reclaimed after five minutes with a new fence; a late response cannot publish.
+Pending leases before inference are reclaimed after five minutes with a new fence. Once the paid
+model stage has started, expiry fails the turn explicitly; restart cannot repeat that call. A late
+response cannot publish.
 
 History contains safe complete message text, origin document/title/context, immutable model/citation
 metadata and typed turn links. Operation state is separate from saved answer text. Pagination remains
@@ -31,3 +33,12 @@ the existing suggestion API; accepted IDs use recorded block identities and curr
 EDIT/ANALYZE/SOLVE require editor permission and currently save a clarification directing the user to
 existing tools. Routing and proposal application belong to CAI-07–09; this release does not fabricate
 proposal/execution IDs. Unavailable/ambiguous follow-ups save WAITING_FOR_INPUT + CLARIFICATION.
+
+
+CAI-07–09 add `PROPOSAL_READY` / `EDIT_PROPOSAL`, saved `canvasResult` assistant messages, and
+`ANALYSIS_HANDOFF` / `PROBLEM_HANDOFF`. A non-null `analysisId` identifies a prepared immutable dataset
+analysis. EDIT uses [authoring v2](../../authoring/v2/README.md) and a real saved proposal ID.
+These messages keep `response` null; the existing question response still requires grounded evidence.
+A handoff never implies completed execution. Unknown intent/result discriminators are rejected.
+
+Dataset turns optionally carry explicit datasetInputs; EXECUTING observers and ANALYSIS_RESULT persist exact analysis/execution identities before polling and never replay paid planning or enqueue because of reload. History can retain calculationProposalIds (maximum 32 per turn) for CAI-15 saved package previews/acceptance/undo. These proposals use authoring v2 plus calculation content, without fabricated model-generation metadata. Old JSON without these optional members remains readable.

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "10000000-0000-0000-0000-000000000001",
+  "templateId": "canvas-edit:2",
+  "templateHash": "0cf51920fb858eb4021a321a9b95cd203de899821ccefb57fde81ad912b35a16",
+  "model": {
+    "provider": "deterministic",
+    "name": "extractive-fixture",
+    "version": "1",
+    "structuredOutput": true,
+    "streaming": false
+  },
+  "usage": {
+    "inputTokens": 115,
+    "outputTokens": 2,
+    "totalTokens": 117,
+    "estimated": true
+  },
+  "providerRequestId": "572ffbeff58ed968880fce34f1d1aaf5837598a7300a2fe3db54db84892a3a72",
+  "answer": {
+    "status": "READY",
+    "text": "Dodaj treść",
+    "citationIds": [],
+    "matches": []
+  }
+}
