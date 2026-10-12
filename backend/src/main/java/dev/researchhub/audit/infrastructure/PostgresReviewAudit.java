@@ -24,8 +24,10 @@ public class PostgresReviewAudit {
 
     public List<Event> history(UUID workspaceId, UUID documentId, UUID commentId) {
         return jdbc.query("""
-                SELECT * FROM comment_audit_events WHERE workspace_id = ? AND document_id = ? AND comment_id = ?
-                ORDER BY created_at, id
+                SELECT * FROM (
+                  SELECT id,workspace_id,document_id,comment_id,reply_id,actor_id,actor_name,action,previous_status,status,created_at FROM comment_audit_events
+                  UNION ALL SELECT id,workspace_id,document_id,comment_id,reply_id,actor_id,'Deleted account',action,previous_status,status,created_at FROM erased_review_audit_events
+                ) events WHERE workspace_id = ? AND document_id = ? AND comment_id = ? ORDER BY created_at, id
                 """, (rs, row) -> new Event(rs.getObject("id", UUID.class), rs.getObject("comment_id", UUID.class),
                 rs.getObject("reply_id", UUID.class), rs.getObject("actor_id", UUID.class), rs.getString("actor_name"),
                 rs.getString("action"), rs.getString("previous_status"), rs.getString("status"),

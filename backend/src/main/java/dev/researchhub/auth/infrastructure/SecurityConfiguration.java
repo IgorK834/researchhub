@@ -107,7 +107,7 @@ public class SecurityConfiguration {
             configuration.setAllowedOrigins(policy.allowedOrigins());
             configuration.setAllowedMethods(
                     List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-            configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN", "X-Request-ID"));
+            configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN", "X-Request-ID", "X-Erasure-Receipt"));
             configuration.setExposedHeaders(List.of("Retry-After", "X-Request-ID"));
             // Without this the browser would strip the session and CSRF cookies from a cross-origin call.
             configuration.setAllowCredentials(true);
@@ -156,6 +156,7 @@ public class SecurityConfiguration {
                             .permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                             .requestMatchers(HttpMethod.GET, "/api/public/config").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/api/account/deletions/*").permitAll()
                             // Everything else is closed by default: the identity reads, logout, and
                             // every future product route. A new endpoint is private until someone opens
                             // it here on purpose.

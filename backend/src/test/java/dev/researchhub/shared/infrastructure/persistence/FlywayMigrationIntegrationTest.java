@@ -111,8 +111,8 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(45, appliedVersions,
-                "A fresh database should have exactly versions 1 through 45 applied");
+        assertEquals(47, appliedVersions,
+                "A fresh database should have exactly versions 1 through 47 applied");
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'report_exports'", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
@@ -396,7 +396,7 @@ class FlywayMigrationIntegrationTest {
                 SELECT count(*) FROM information_schema.triggers
                 WHERE event_object_table IN ('workspaces', 'workspace_members')
                 """, Integer.class);
-        assertEquals(0, triggers, "and nothing runs behind the application's back");
+        assertEquals(4, triggers, "Only the explicit erasure guards may run on workspace identity and membership writes");
     }
 
     @Test

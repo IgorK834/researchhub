@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
 @TestPropertySource(properties = {"researchhub.sources.storage.adapter=in-memory", "researchhub.processing.dispatcher.enabled=false", "researchhub.ai.canvas.dispatcher.enabled=false",
-    "researchhub.analysis.execution.dispatcher.enabled=false", "researchhub.analysis.sandbox.enabled=true",
+    "researchhub.analysis.execution.dispatcher.enabled=false", "researchhub.analysis.sandbox.enabled=true", "researchhub.account.erasure.dispatcher.enabled=false",
     "researchhub.security.quotas.llm.user=100",
     "researchhub.ai.conversations.stream.heartbeat=PT0.1S","researchhub.ai.conversations.stream.timeout=PT5S","researchhub.ai.conversations.stream.max-concurrent=1"})
 @Import({PostgresTestcontainersConfiguration.class, SourceExtractionEndToEndTest.Configuration.class})
@@ -92,6 +92,7 @@ class SourceExtractionEndToEndTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class Configuration {
         @Bean SourceStorage sourceStorage() { return new InMemorySourceStorage(); }
+        @Bean dev.researchhub.user.application.ErasureLedger erasureLedger() { return org.mockito.Mockito.mock(dev.researchhub.user.application.ErasureLedger.class); }
         @Bean @Primary ExternalSearchProvider externalSearchProvider() {
             return new ExternalSearchProvider() {
                 public boolean available() { return true; }
@@ -2103,4 +2104,64 @@ class SourceExtractionEndToEndTest {
         assertEquals(200,accepted.statusCode(),accepted.body());assertTrue(owner.get(path).body().contains("researchCitation"));
     }
 
+
+    @Autowired dev.researchhub.user.application.AccountErasureService accountErasure;
+    @Autowired dev.researchhub.export.application.ExportService accountExports;
+    @Autowired dev.researchhub.export.application.ExportDispatcher accountExportDispatcher;
+    @Test void completeAccountErasureIncludesWorkerPayloadsReviewAndFrozenBinaryExports() throws Exception {
+        var seeded=seedGovernanceDocument(); String doc=seeded.document();
+        UUID actor=operator(),workspace=UUID.fromString(workspaceId),document=UUID.fromString(doc);
+        UUID comment=UUID.randomUUID(),reply=UUID.randomUUID();
+        jdbc.update("INSERT INTO document_comments(id,workspace_id,document_id,author_id,author_name,body,status,anchor_id,anchor_quote,created_at,updated_at) VALUES (?,?,?,?,'Parser Owner','parser-owner@example.com','OPEN',?,'Parser Owner',now(),now())",comment,workspace,document,actor,UUID.randomUUID());
+        jdbc.update("INSERT INTO comment_replies VALUES (?,?,?, ?,?,'Parser Owner','parser-owner@example.com',now())",reply,workspace,document,comment,actor);
+        jdbc.update("INSERT INTO comment_audit_events VALUES (?,?,?,?,?,?,'Parser Owner','REPLIED','OPEN','OPEN',now())",UUID.randomUUID(),workspace,document,comment,reply,actor);
+        var job=accountExports.enqueue(workspace,actor,document,dev.researchhub.export.domain.ExportFormat.DOCX,seeded.revision());accountExportDispatcher.dispatchAvailable();
+        assertEquals("SUCCEEDED",accountExports.find(workspace,actor,document,job.id()).status().name());
+        assertTrue(jdbc.queryForObject("SELECT count(*) FROM source_chunk_embeddings",Integer.class)>0);
+        assertTrue(jdbc.queryForObject("SELECT count(*) FROM analysis_execution_artifacts",Integer.class)>0);
+        assertTrue(jdbc.queryForObject("SELECT count(*) FROM ai_generation_runs",Integer.class)>0);
+        String hash=jdbc.queryForObject("SELECT password_hash FROM users WHERE id=?",String.class,actor);
+        var accepted=accountErasure.request(actor,"correct-horse-battery-staple");assertTrue(accountErasure.processNext());
+        assertEquals("SUCCEEDED",accountErasure.status(accepted.jobId(),accepted.receipt()).status());
+        assertEquals(0,((InMemorySourceStorage)storage).objectCount());
+        for(String table:dev.researchhub.user.infrastructure.PersonalDataInventory.TABLES)
+            for(String row:jdbc.queryForList("SELECT to_jsonb(t)::text FROM "+table+" t",String.class))
+                for(String personal:List.of("Parser Owner","parser-owner@example.com",hash))assertFalse(row.contains(personal),table+" retains erased identity");
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM erased_review_audit_events",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM erased_source_versions WHERE source_type='CSV' AND content_sha256 IS NOT NULL",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM erased_source_versions WHERE source_type='PDF' AND content_sha256 IS NULL",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM report_exports",Integer.class));
+    }
+    private record GovernanceDocument(String document,String aiBlock,long revision) {}
+    private GovernanceDocument seedGovernanceDocument() throws Exception {
+        String pdf=upload("lecture.pdf",fixture("lecture.pdf"));dispatch();
+        var question=ask(workspaceId,"Lecture 2",List.of(UUID.fromString(pdf)));
+        var evidence=question.citations().getFirst();
+        var command=new dev.researchhub.ai.application.GenerationContracts.Command("Explain Lecture 2",List.of(new dev.researchhub.ai.application.GenerationContracts.EvidenceReference(evidence.sourceId(),evidence.chunkId(),evidence.processingVersion(),evidence.sourceVersionId())));
+        var generation=owner.postJson("/api/workspaces/"+workspaceId+"/ai/generations",mapper.writeValueAsString(command));assertEquals(200,generation.statusCode(),generation.body());
+        String csv=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        String ap="/api/workspaces/"+workspaceId+"/analyses";
+        var created=owner.postJson(ap,mapper.writeValueAsString(Map.of("userPrompt","Calculate impedance vs frequency","inputs",List.of(Map.of("sourceId",csv,"sourceVersionId",activeVersion(csv),"sheetName","CSV","columns",List.of(1,2,3))))));assertEquals(201,created.statusCode(),created.body());
+        String analysis=owner.json(created).path("id").asString();assertEquals(200,owner.postJson(ap+"/"+analysis+"/plan","{}").statusCode());var execution=executeAnalysis(ap,analysis);
+        String documents="/api/workspaces/"+workspaceId+"/documents";
+        var createdDoc=owner.postJson(documents,"{\"title\":\"Governance report\",\"content\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}}");assertEquals(201,createdDoc.statusCode(),createdDoc.body());String doc=owner.json(createdDoc).path("id").asString(),dp=documents+"/"+doc;
+        var suggestion=owner.postJson(dp+"/ai/suggestions",mapper.writeValueAsString(new dev.researchhub.ai.application.AuthoringContracts.Command(dev.researchhub.ai.application.AuthoringContracts.Kind.DRAFT,1,0,null,null,null,"Explain Lecture 2",List.of(UUID.fromString(pdf)),300,"ACADEMIC",true)));assertEquals(200,suggestion.statusCode(),suggestion.body());
+        String suggestionId=owner.json(suggestion).path("id").asString();var accepted=owner.postJson(dp+"/ai/suggestions/"+suggestionId+"/accept","{\"expectedRevision\":1}");assertEquals(200,accepted.statusCode(),accepted.body());
+        var content=(tools.jackson.databind.node.ObjectNode)owner.json(accepted).path("document").path("content");
+        UUID block=jdbc.queryForList("SELECT block_id FROM document_content_operations WHERE source_operation_id=? AND operation_type='AI_ACCEPTED'",UUID.class,UUID.fromString(suggestionId)).getFirst();
+        content.withArray("content").add(mapper.valueToTree(Map.of("type","analysisResult","attrs",Map.of("blockId",UUID.randomUUID(),"reference",Map.of("analysisId",analysis,"executionId",execution.path("id").asString(),"outputId","impedance-table","renderMode","TABLE"),"caption","Saved computed values"))));
+        long revision=owner.json(accepted).path("document").path("revision").asLong();
+        var updated=owner.patchJson(dp,mapper.writeValueAsString(Map.of("title","Governance report","content",content,"revision",revision)));assertEquals(200,updated.statusCode(),updated.body());
+        return new GovernanceDocument(doc,block.toString(),owner.json(updated).path("revision").asLong());
+    }
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="GOVERNANCE_BROWSER_TESTS",matches="true")
+    void productionBrowserCoversProvenanceGovernanceAndDurableAccountErasureWithAxe() throws Exception {
+        var seeded=seedGovernanceDocument();
+        var builder=new ProcessBuilder("node","e2e/governance.cjs").directory(Path.of("../frontend").toFile());
+        builder.environment().putAll(Map.of("E2E_BACKEND_URL","http://127.0.0.1:"+port,"E2E_WORKSPACE_ID",workspaceId,"E2E_DOCUMENT_ID",seeded.document(),"E2E_AI_BLOCK",seeded.aiBlock()));
+        var log=Path.of("target/governance-browser.log");var process=builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        try {long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(55);while(process.isAlive() && System.nanoTime()<deadline){accountErasure.processNext();Thread.sleep(100);}if(process.isAlive())fail("Governance browser exceeded deadline");assertEquals(0,process.exitValue(),Files.readString(log));}
+        finally {if(process.isAlive())process.destroyForcibly();}
+    }
 }

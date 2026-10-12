@@ -82,10 +82,11 @@ public class UserLookupService {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
-        return users.findAllById(ids).stream()
-                .map(UserEntity::toDomain)
-                .map(UserAccount::from)
-                .toList();
+        return users.findAllById(ids).stream().map(entity -> {
+            if (entity.getStatus() == UserStatus.ERASURE_PENDING || entity.getStatus() == UserStatus.ERASED)
+                return new UserAccount(entity.getId(), "erased-" + entity.getId() + "@users.invalid", "Deleted account", entity.getStatus().name());
+            return UserAccount.from(entity.toDomain());
+        }).toList();
     }
 
 }

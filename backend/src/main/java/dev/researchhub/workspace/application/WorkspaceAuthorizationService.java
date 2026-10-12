@@ -68,13 +68,16 @@ public class WorkspaceAuthorizationService {
      */
     @Transactional(readOnly = true)
     public WorkspaceRole requireMember(UUID workspaceId, UUID userId) {
-        return members.findByWorkspaceIdAndUserId(workspaceId, userId)
+        WorkspaceRole role = members.findByWorkspaceIdAndUserId(workspaceId, userId)
                 .map(WorkspaceMemberEntity::getRole)
                 .orElseThrow(() -> {
                     log.debug("event=workspace.access.denied reason=not_a_member workspaceId={} userId={}",
                             workspaceId, userId);
                     return new ResourceNotFoundException(WORKSPACE_NOT_FOUND);
                 });
+        if (workspaces.findById(workspaceId).map(row -> row.isPendingErasure()).orElse(false))
+            throw new ResourceNotFoundException(WORKSPACE_NOT_FOUND);
+        return role;
     }
 
     /**
@@ -144,7 +147,7 @@ public class WorkspaceAuthorizationService {
     /** Internal maintenance only: no membership or artificial user account is created. */
     @Transactional(readOnly=true)
     public boolean permitsSystemContentMaintenance(UUID workspaceId) {
-        return workspaces.findById(workspaceId).map(row -> !row.toDomain().isArchived()).orElse(false);
+        return workspaces.findById(workspaceId).map(row -> !row.isPendingErasure() && !row.toDomain().isArchived()).orElse(false);
     }
 
     /** Separate capability for explicit AI contributions; also enforces the active workspace rule. */

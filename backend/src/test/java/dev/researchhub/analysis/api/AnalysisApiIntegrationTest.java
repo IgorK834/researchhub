@@ -331,6 +331,10 @@ class AnalysisApiIntegrationTest {
         var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
+        jdbc.execute("DROP INDEX ix_ai_generation_workspace_time");
+        jdbc.execute("DROP FUNCTION replay_account_erasure(uuid,uuid,uuid[],timestamptz), finish_account_erasure(uuid), reject_erased_workspace_publication(), preserve_workspace_erasure_tombstone() CASCADE");
+        jdbc.execute("DROP TABLE account_erasure_objects,account_erasure_jobs,erased_source_versions,erased_review_audit_events");
+        jdbc.execute("ALTER TABLE workspaces DROP COLUMN erasure_requested_at,DROP COLUMN erased_at");
         jdbc.execute("DROP TABLE problem_artifacts,problem_executions,analysis_problems CASCADE");
         jdbc.execute("DROP FUNCTION protect_problem_intent(),protect_problem_execution()");
         jdbc.execute("ALTER TABLE analyses DROP CONSTRAINT analyses_inputs_check,DROP COLUMN workload");
