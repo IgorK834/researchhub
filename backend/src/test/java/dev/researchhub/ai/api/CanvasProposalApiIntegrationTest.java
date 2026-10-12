@@ -700,10 +700,11 @@ class CanvasProposalApiIntegrationTest {
                     const loaded=JSON.parse(readFileSync(process.argv[1],'utf8'));const doc=reconstruct(loaded.state);
                     const content=applyCanvasPatch(doc,loaded.patch);console.log(JSON.stringify({state:Buffer.from(Y.encodeStateAsUpdate(doc)).toString('base64'),content:JSON.stringify(content)}));doc.destroy();
                     """;
+            // Node warnings must not enter the JSON protocol on stdout.
             var run =
                     new ProcessBuilder("node", "--input-type=module", "-e", code, file.toString())
                             .directory(Path.of("../collaboration").toFile())
-                            .redirectErrorStream(true)
+                            .redirectError(ProcessBuilder.Redirect.INHERIT)
                             .start();
             assertTrue(run.waitFor(10, TimeUnit.SECONDS));
             String out = new String(run.getInputStream().readAllBytes());
