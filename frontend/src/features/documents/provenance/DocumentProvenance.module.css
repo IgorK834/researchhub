@@ -50,3 +50,18 @@
   overflow-wrap: anywhere;
   color: var(--color-text-subtle);
 }
+
+.inspector dt {
+  font-weight: 600;
+}
+.inspector dd {
+  margin: 0 0 0.75rem;
+  overflow-wrap: anywhere;
+}
+.inspector code {
+  overflow-wrap: anywhere;
+}
+.inspector pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

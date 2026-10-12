@@ -82,7 +82,7 @@ test('chart block displays exact saved output and source version, and opens prov
     expect.any(AbortSignal),
   );
   fireEvent.click(screen.getByRole('button', { name: 'View provenance' }));
-  expect(await screen.findByRole('dialog', { name: 'Analysis provenance' })).toBeTruthy();
+  expect(await screen.findByRole('dialog', { name: 'Provenance' })).toBeTruthy();
   fireEvent.keyDown(document, { key: 'Escape' });
   fireEvent.click(screen.getByRole('button', { name: 'Update reference' }));
   expect(update).toHaveBeenCalledTimes(1);

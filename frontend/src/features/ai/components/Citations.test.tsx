@@ -80,7 +80,7 @@ it.each(['document', 'dataset', 'analysis'] as const)(
     expect(document.querySelector('img, script')).toBeNull();
     for (const name of ['Open source', 'View context'])
       expect(within(popup).getByRole('link', { name }).getAttribute('href')).toBe(
-        '/app/workspaces/w/sources/s?processingVersion=v1&unit=page-7&page=7',
+        '/app/workspaces/w/sources/s?processingVersion=v1&version=original-version&unit=page-7&page=7',
       );
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -130,7 +130,7 @@ it('uses the same popover for a saved editor citation, keeping its tree and firs
   expect(onNavigate).not.toHaveBeenCalled();
   fireEvent.click(within(popup).getByRole('link', { name: 'View context' }));
   expect(onNavigate).toHaveBeenCalledWith(
-    '/app/workspaces/w/sources/s?processingVersion=v1&unit=page-7&page=7',
+    '/app/workspaces/w/sources/s?processingVersion=v1&version=original-version&unit=page-7&page=7',
   );
   expect(onChange).not.toHaveBeenCalled();
   expect(trigger.textContent).toBe(' [1]');

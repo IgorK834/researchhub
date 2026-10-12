@@ -1,4 +1,7 @@
+import { usePosition } from '../../../shared/components/overlays/Popover';
 import { MathAuthoring } from './MathAuthoring';
+import { ProvenanceProvider, useOpenProvenance } from '../provenance/ProvenancePanel';
+import { Button } from '../../../shared/components/Button';
 import { NodeSelection, TextSelection, type SelectionBookmark } from '@tiptap/pm/state';
 import { CanvasContextMenu } from './CanvasContextMenu';
 import type { VirtualAnchor } from '../../../shared/components/overlays/Popover';
@@ -54,6 +57,7 @@ interface DocumentBodyEditorProps {
   readonly collaborationUser?: Collaborator;
   readonly collaborationDocument?: Y.Doc;
   readonly workspaceId?: string;
+  readonly documentId?: string;
   readonly selectionActionsEnabled?: boolean;
   readonly onSelectionAction?: (
     action: SelectionAction,
@@ -102,6 +106,7 @@ export function DocumentBodyEditor({
   onEditorReady,
   onComment,
   workspaceId,
+  documentId,
   collaborationDocument,
   collaborationProvider,
   collaborationUser,
@@ -387,75 +392,157 @@ export function DocumentBodyEditor({
   }, [editor, sourceTypes]);
 
   return (
-    <div
-      className={styles.editor}
-      onKeyDown={(event) => {
-        if (event.key !== ' ' && event.key !== 'Enter') return;
-        const target = event.target;
-        const anchor =
-          target instanceof Element
-            ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
-            : null;
-        if (anchor !== null) {
-          event.preventDefault();
-          openCitation(anchor);
-        }
-      }}
-      onClick={(event) => {
-        const target = event.target;
-        const anchor =
-          target instanceof Element
-            ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
-            : null;
-        if (anchor !== null) {
-          event.preventDefault();
-          openCitation(anchor);
-        }
-      }}
-    >
-      {editable ? (
-        toolbarHost === undefined ? (
-          <DocumentToolbar editor={editor} />
-        ) : (
-          createPortal(<DocumentToolbar editor={editor} />, toolbarHost)
-        )
-      ) : null}
-      <EditorContent editor={editor} />
-      {menu ? (
-        <CanvasContextMenu
-          editor={editor}
-          {...menu}
-          onClose={() => setMenu(null)}
-          onAskAi={onCanvasAi ? (bookmark) => onCanvasAi(editor, bookmark) : undefined}
-          onNotice={setMenuNotice}
-        />
-      ) : null}
-      {menuNotice ? <p role="status">{menuNotice}</p> : null}
-      {editable &&
-      ((selectionActionsEnabled && onSelectionAction !== undefined) ||
-        onComment !== undefined) ? (
-        <SelectionToolbar
-          editor={editor}
-          onAction={selectionActionsEnabled ? onSelectionAction : undefined}
-          onComment={
-            onComment
-              ? () => {
-                  const anchor = attachCommentAnchor(editor);
-                  if (anchor) onComment(anchor);
-                }
-              : undefined
+    <ProvenanceProvider>
+      <div
+        className={styles.editor}
+        onKeyDown={(event) => {
+          if (event.key !== ' ' && event.key !== 'Enter') return;
+          const target = event.target;
+          const anchor =
+            target instanceof Element
+              ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
+              : null;
+          if (anchor !== null) {
+            event.preventDefault();
+            openCitation(anchor);
           }
-        />
-      ) : null}
-      {citationPreview === null ? null : (
-        <CitationPopover
-          {...citationPreview}
-          onClose={() => setCitationPreview(null)}
-          onNavigate={onOpenCitation}
-        />
-      )}
-    </div>
+        }}
+        onClick={(event) => {
+          const target = event.target;
+          const anchor =
+            target instanceof Element
+              ? target.closest<HTMLAnchorElement>('a[data-research-citation]')
+              : null;
+          if (anchor !== null) {
+            event.preventDefault();
+            openCitation(anchor);
+          }
+        }}
+      >
+        {editable ? (
+          toolbarHost === undefined ? (
+            <DocumentToolbar editor={editor} />
+          ) : (
+            createPortal(<DocumentToolbar editor={editor} />, toolbarHost)
+          )
+        ) : null}
+        <EditorContent editor={editor} />
+        {workspaceId && documentId && citationPreview === null ? (
+          <BlockProvenanceAction
+            editor={editor}
+            workspaceId={workspaceId}
+            documentId={documentId}
+          />
+        ) : null}
+        {menu ? (
+          <CanvasContextMenu
+            editor={editor}
+            {...menu}
+            onClose={() => setMenu(null)}
+            onAskAi={onCanvasAi ? (bookmark) => onCanvasAi(editor, bookmark) : undefined}
+            onNotice={setMenuNotice}
+          />
+        ) : null}
+        {menuNotice ? <p role="status">{menuNotice}</p> : null}
+        {editable &&
+        ((selectionActionsEnabled && onSelectionAction !== undefined) ||
+          onComment !== undefined) ? (
+          <SelectionToolbar
+            editor={editor}
+            onAction={selectionActionsEnabled ? onSelectionAction : undefined}
+            onComment={
+              onComment
+                ? () => {
+                    const anchor = attachCommentAnchor(editor);
+                    if (anchor) onComment(anchor);
+                  }
+                : undefined
+            }
+          />
+        ) : null}
+        {citationPreview === null ? null : (
+          <CitationPopover
+            {...citationPreview}
+            onClose={() => setCitationPreview(null)}
+            onNavigate={onOpenCitation}
+          />
+        )}
+      </div>
+    </ProvenanceProvider>
   );
+}
+
+function BlockProvenanceAction({
+  editor,
+  workspaceId,
+  documentId,
+}: {
+  readonly editor: Editor;
+  readonly workspaceId: string;
+  readonly documentId: string;
+}): ReactElement | null {
+  const open = useOpenProvenance();
+  const surface = useRef<HTMLDivElement>(null);
+  const block = useEditorState({
+    editor,
+    selector: ({ editor: current }) => {
+      const selection = current.state.selection;
+      for (let depth = selection.$from.depth; depth > 0; depth--) {
+        const node = selection.$from.node(depth);
+        if (
+          ['paragraph', 'heading', 'codeBlock', 'figure', 'blockMath'].includes(
+            node.type.name,
+          )
+        )
+          return {
+            id: (node.attrs['blockId'] as string | null) ?? null,
+            position: selection.$from.before(depth),
+          };
+      }
+      return null;
+    },
+  });
+  const anchor = useMemo(
+    () => ({
+      current: block ? (editor.view.nodeDOM(block.position) as HTMLElement | null) : null,
+    }),
+    [editor, block],
+  );
+  usePosition(block !== null, anchor, surface);
+  useEffect(() => {
+    const element = editor.view.dom;
+    const focus = (event: KeyboardEvent): void => {
+      if (block && event.altKey && event.key.toLowerCase() === 'p') {
+        event.preventDefault();
+        surface.current?.querySelector('button')?.focus();
+      }
+    };
+    element.addEventListener('keydown', focus);
+    return () => element.removeEventListener('keydown', focus);
+  }, [editor, block]);
+  return block
+    ? createPortal(
+        <div
+          ref={surface}
+          className={styles.provenanceAction}
+          role="group"
+          aria-label="Selected block provenance"
+          aria-keyshortcuts="Alt+P"
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <Button
+            variant="secondary"
+            title="Show provenance (Alt+P)"
+            onClick={() =>
+              open?.({ kind: 'block', workspaceId, documentId, blockId: block.id })
+            }
+          >
+            Show provenance
+          </Button>
+        </div>,
+        document.body,
+      )
+    : null;
 }
 
 /**

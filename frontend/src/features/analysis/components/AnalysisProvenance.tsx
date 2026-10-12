@@ -18,6 +18,18 @@ export function AnalysisProvenance({
       </p>
       <ol className={styles.chain}>
         <li>
+          <strong>Re-run origin</strong>
+          {snapshot.lineage ? (
+            <Link
+              to={`/app/workspaces/${run.workspaceId}/analyses/${snapshot.lineage.originAnalysisId}?execution=${encodeURIComponent(snapshot.lineage.originExecutionId)}`}
+            >
+              Original execution {snapshot.lineage.originExecutionId}
+            </Link>
+          ) : (
+            <p>Original execution</p>
+          )}
+        </li>
+        <li>
           <strong>Source versions</strong>
           {snapshot.inputs.map((input) => (
             <div key={input.sourceVersionId}>

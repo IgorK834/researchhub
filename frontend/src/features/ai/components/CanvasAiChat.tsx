@@ -277,10 +277,7 @@ export function CanvasAiChat({
               </p>
             ) : null}
             {message.response?.citations.map((citation) => (
-              <a
-                key={citation.chunkId}
-                href={`${citationPath(citation)}${citation.sourceVersionId ? `&version=${encodeURIComponent(citation.sourceVersionId)}` : ''}`}
-              >
+              <a key={citation.chunkId} href={citationPath(citation)}>
                 {citation.title ?? 'Source'}{' '}
               </a>
             ))}

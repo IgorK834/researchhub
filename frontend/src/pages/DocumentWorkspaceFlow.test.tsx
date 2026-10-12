@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Editor } from '@tiptap/core';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
+import { installResizeObserver } from '../shared/testing/resizeObserver';
 import { DocumentDetailPage } from './DocumentDetailPage';
 import { WorkspaceDetailPage } from './WorkspaceDetailPage';
 
@@ -171,7 +172,12 @@ function bodyEditor(): Editor {
 
 const originalFetch = globalThis.fetch;
 
+let restoreResize: () => void;
+beforeEach(() => {
+  restoreResize = installResizeObserver();
+});
 afterEach(() => {
+  restoreResize();
   globalThis.fetch = originalFetch;
 });
 

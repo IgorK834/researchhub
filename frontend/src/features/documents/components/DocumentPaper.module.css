@@ -262,3 +262,14 @@
 .editor [data-comment-active='true'] {
   background: var(--color-brand-yellow-mid);
 }
+
+.provenanceAction {
+  position: fixed;
+  z-index: var(--layer-popover);
+  display: flex;
+  max-width: calc(100vw - 16px);
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-e2);
+}

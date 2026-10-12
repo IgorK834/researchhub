@@ -2,8 +2,6 @@ import { useState, type ReactElement } from 'react';
 import { NodeViewWrapper, useEditorState, type NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Dialog } from '../../../shared/components/overlays';
-import { AnalysisProvenance } from '../../analysis/components/AnalysisProvenance';
 import { fetchExecutionRecord } from '../../analysis/api/analysisApi';
 import { AnalysisChart } from '../../analysis/components/AnalysisChart';
 import { ResultTable } from '../../analysis/components/AnalysisResult';
@@ -15,6 +13,7 @@ import { Button } from '../../../shared/components/Button';
 import { isAnalysisBlockAttrs, type AnalysisReference } from '../api/analysisReference';
 import styles from './DocumentAnalysisBlock.module.css';
 import { ProblemReferencedOutput } from './ProblemReferencedOutput';
+import { ProvenancePanel, useOpenProvenance } from '../provenance/ProvenancePanel';
 
 export function DocumentAnalysisBlock({
   node,
@@ -92,6 +91,11 @@ export function ReferencedOutput({
   readonly onUpdate: () => void;
 }): ReactElement {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const openProvenance = useOpenProvenance();
+  const showProvenance = (): void => {
+    if (openProvenance) openProvenance({ kind: 'analysis', workspaceId, reference });
+    else setDetailsOpen(true);
+  };
   const record = useQuery({
     queryKey: queryKeys.executionRecord(
       workspaceId,
@@ -149,7 +153,7 @@ export function ReferencedOutput({
         <AnalysisChart
           workspaceId={workspaceId}
           chart={chart}
-          onDetails={() => setDetailsOpen(true)}
+          onDetails={showProvenance}
         />
       ) : null}
       {output?.kind === 'TABLE' && reference.renderMode === 'TABLE' ? (
@@ -168,6 +172,9 @@ export function ReferencedOutput({
         </p>
       ) : null}
       <div className={styles.footer}>
+        <Button variant="secondary" onClick={showProvenance}>
+          Show provenance
+        </Button>
         <span>
           Analysis {reference.analysisId.slice(0, 8)} · Execution{' '}
           {reference.executionId.slice(0, 8)}
@@ -202,15 +209,10 @@ export function ReferencedOutput({
           unchanged.
         </p>
       ) : null}
-      {saved ? (
-        <Dialog
-          open={detailsOpen}
-          onClose={() => setDetailsOpen(false)}
-          title="Analysis provenance"
-        >
-          <AnalysisProvenance record={saved} />
-        </Dialog>
-      ) : null}
+      <ProvenancePanel
+        target={detailsOpen ? { kind: 'analysis', workspaceId, reference } : null}
+        onClose={() => setDetailsOpen(false)}
+      />
     </>
   );
 }

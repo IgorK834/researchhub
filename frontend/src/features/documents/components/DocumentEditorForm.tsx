@@ -457,6 +457,7 @@ export function DocumentEditorForm({
             </span>
             {storedBody === null || (realtimeEnabled && !realtime.ready) ? null : (
               <DocumentBodyEditor
+                documentId={document.id}
                 onCanvasAi={
                   !contextCaptureEnabled || isArchived || realtime.accessRevoked
                     ? undefined

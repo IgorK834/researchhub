@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SolutionView, StepDetailsLink } from './SolutionView';
+import { ProvenanceProvider } from '../../documents/provenance/ProvenancePanel';
 import { ProblemReferencedOutput } from '../../documents/components/ProblemReferencedOutput';
 import { AnalysisOutputPicker } from './AnalysisOutputPicker';
 import * as api from '../api/solutionApi';
@@ -196,3 +197,20 @@ test('saved output picker explicitly chooses PROBLEM solution, table and chart',
   expect(screen.queryByRole('option', { name: /failed/ })).toBeNull();
   await waitFor(() => expect(api.fetchSolution).toHaveBeenCalledTimes(1));
 });
+
+test.each([false, true])(
+  'opens saved scientific provenance from a block (shared panel: %s)',
+  async (shared) => {
+    jest.spyOn(api, 'fetchSolution').mockResolvedValue(bundle);
+    const block = (
+      <ProblemReferencedOutput workspaceId="w" reference={ref} caption="Saved solution" />
+    );
+    mount(shared ? <ProvenanceProvider>{block}</ProvenanceProvider> : block);
+    fireEvent.click(screen.getByRole('button', { name: 'Show provenance' }));
+    const panel = await screen.findByRole('dialog', { name: 'Provenance' });
+    expect(panel).toBeTruthy();
+    expect(await screen.findByText('Scientific analysis provenance')).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  },
+);

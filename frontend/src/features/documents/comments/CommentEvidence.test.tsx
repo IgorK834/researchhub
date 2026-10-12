@@ -164,7 +164,7 @@ it('visually identifies AI, invoker, model, evidence category and an inspectable
   expect(screen.getByText('deterministic · fixture')).toBeTruthy();
   expect(screen.getByText('Supporting evidence')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Lecture · p. 7' }).getAttribute('href')).toBe(
-    '/app/workspaces/w/sources/s?processingVersion=p&unit=page-7&page=7',
+    '/app/workspaces/w/sources/s?processingVersion=p&version=v&unit=page-7&page=7',
   );
   expect(screen.getByText('Supports this claim.')).toBeTruthy();
   expect(screen.getByText('Extracted source text')).toBeTruthy();

@@ -1,4 +1,5 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
+import { ProvenancePanel, useOpenProvenance } from '../provenance/ProvenancePanel';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchSolution } from '../../analysis/api/solutionApi';
@@ -21,6 +22,8 @@ export function ProblemReferencedOutput({
   readonly canEdit?: boolean;
   readonly onUpdate?: () => void;
 }): ReactElement {
+  const openProvenance = useOpenProvenance();
+  const [open, setOpen] = useState(false);
   const saved = useQuery({
     queryKey: ['solution', workspaceId, reference.analysisId, reference.executionId],
     queryFn: ({ signal }) =>
@@ -86,6 +89,20 @@ export function ProblemReferencedOutput({
         This block keeps its saved execution. Editing prose does not change checked
         values.
       </p>
+      <Button
+        variant="secondary"
+        onClick={() => {
+          if (openProvenance)
+            openProvenance({ kind: 'analysis', workspaceId, reference });
+          else setOpen(true);
+        }}
+      >
+        Show provenance
+      </Button>
+      <ProvenancePanel
+        target={open ? { kind: 'analysis', workspaceId, reference } : null}
+        onClose={() => setOpen(false)}
+      />
       {canEdit ? (
         <Button variant="ghost" onClick={onUpdate}>
           Update reference

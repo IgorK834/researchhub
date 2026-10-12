@@ -10,6 +10,10 @@ import { AnchoredPopover } from '../../../shared/components/overlays/Popover';
 import { citationPath, type Citation } from '../api/generationApi';
 import { fetchCitationFragment } from '../api/citationEvidence';
 import styles from './Citations.module.css';
+import {
+  ProvenancePanel,
+  useOpenProvenance,
+} from '../../documents/provenance/ProvenancePanel';
 
 /** Same shape as a source citation, with legacy source-level citations explicitly supported. */
 export type PreviewCitation = Omit<Citation, 'chunkId'> & {
@@ -76,40 +80,59 @@ export function CitationPopover({
   readonly quote?: string;
 }): ReactElement {
   const path = citationPath({ ...citation, chunkId: citation.chunkId ?? '' });
+  const openProvenance = useOpenProvenance();
+  const [provenanceOpen, setProvenanceOpen] = useState(false);
   return (
-    <AnchoredPopover
-      anchor={anchor}
-      title={`Citation ${String(number)}`}
-      onClose={onClose}
-      className={styles.popover}
-    >
-      <strong>
-        {citation.label ?? citation.title ?? citation.sectionTitle ?? 'Source'}
-      </strong>
-      <p className={styles.location}>
-        {citation.title ?? 'Source'} · {citationLocation(citation)}
-      </p>
-      <CitationQuote citation={citation} quote={quote} />
-      <div className={styles.actions}>
-        {(['Open source', 'View context'] as const).map((label) => (
+    <>
+      <AnchoredPopover
+        anchor={anchor}
+        title={`Citation ${String(number)}`}
+        onClose={onClose}
+        className={styles.popover}
+      >
+        <strong>
+          {citation.label ?? citation.title ?? citation.sectionTitle ?? 'Source'}
+        </strong>
+        <p className={styles.location}>
+          {citation.title ?? 'Source'} · {citationLocation(citation)}
+        </p>
+        <CitationQuote citation={citation} quote={quote} />
+        <div className={styles.actions}>
           <Button
-            key={label}
-            href={path}
             variant="secondary"
-            size="compact"
-            onClick={(event) => {
-              if (onNavigate !== undefined) {
-                event.preventDefault();
-                onNavigate(path);
-              }
-              onClose();
+            onClick={() => {
+              if (openProvenance) {
+                openProvenance({ kind: 'citation', citation, trigger: anchor });
+                onClose();
+              } else setProvenanceOpen(true);
             }}
           >
-            {label}
+            Show provenance
           </Button>
-        ))}
-      </div>
-    </AnchoredPopover>
+          {(['Open source', 'View context'] as const).map((label) => (
+            <Button
+              key={label}
+              href={path}
+              variant="secondary"
+              size="compact"
+              onClick={(event) => {
+                if (onNavigate !== undefined) {
+                  event.preventDefault();
+                  onNavigate(path);
+                }
+                onClose();
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </AnchoredPopover>
+      <ProvenancePanel
+        target={provenanceOpen ? { kind: 'citation', citation } : null}
+        onClose={() => setProvenanceOpen(false)}
+      />
+    </>
   );
 }
 export function CitationReference({

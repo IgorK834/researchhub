@@ -140,6 +140,7 @@ export function fetchModelMetadata(workspaceId: string): Promise<ModelMetadata> 
 
 export function citationPath(citation: Citation): string {
   const query = new URLSearchParams({ processingVersion: citation.processingVersion });
+  if (citation.sourceVersionId) query.set('version', citation.sourceVersionId);
   const unit = citation.spans[0];
   if (unit !== undefined) query.set('unit', unit.unitId);
   if (citation.pageStart !== null) query.set('page', String(citation.pageStart));

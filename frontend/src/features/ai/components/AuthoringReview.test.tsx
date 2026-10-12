@@ -207,7 +207,7 @@ test('evidence cards use only returned metadata, keep the exact claim and open s
   expect(first.getByText('Direct support.')).toBeTruthy();
   const open = first.getByRole('link', { name: 'Open' });
   expect(open.getAttribute('href')).toBe(
-    '/app/workspaces/w/sources/s?processingVersion=v1&unit=p3&page=3',
+    '/app/workspaces/w/sources/s?processingVersion=v1&version=source-v1&unit=p3&page=3',
   );
   expect(open.getAttribute('target')).toBe('_blank');
   expect(open.getAttribute('rel')).toBe('noopener noreferrer');

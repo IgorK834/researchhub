@@ -23,7 +23,9 @@ export interface OriginOperation {
   createdAt: string;
   metadata: {
     citations?: Citation[];
-    model?: { provider?: string; name?: string };
+    model?: { provider?: string; name?: string; version?: string };
+    templateId?: string;
+    templateHash?: string;
     editedBeforeAcceptance?: boolean;
     analysis?: {
       analysisId: string;
