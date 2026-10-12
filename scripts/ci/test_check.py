@@ -38,6 +38,27 @@ class CiChecksTest(unittest.TestCase):
         selected = check.select_jobs(["docs/images/screenshot.png"], self.root)
         self.assertEqual({job for job, enabled in selected.items() if enabled}, {"docs"})
 
+    def test_infrastructure_directory_enables_the_required_infra_job(self):
+        self.file("infrastructure/main.bicep")
+        for path in ("infrastructure/main.bicep", "infrastructure/environments/dev.json", "infrastructure/test/contracts.test.mjs"):
+            self.assertTrue(check.select_jobs([path], self.root)["infra"])
+        self.assertTrue(check.select_jobs([], self.root, full=True)["infra"])
+
+    def test_new_infrastructure_checks_fail_closed_and_enforce_coverage(self):
+        self.file("infrastructure/main.bicep")
+        test = self.file("infrastructure/test/deployment.test.mjs")
+        with patch.object(check.subprocess, "run") as run:
+            check.validate(self.root, "infra")
+        self.assertEqual(len(run.call_args_list), 3)
+        self.assertEqual(run.call_args_list[0].args[0], ["node", "infrastructure/scripts/check.mjs"])
+        self.assertIn("--test-coverage-lines=80", run.call_args_list[2].args[0])
+        self.assertIn(str(test), run.call_args_list[2].args[0])
+        self.assertTrue(all(call.kwargs["check"] and call.kwargs["cwd"] == self.root for call in run.call_args_list))
+        for stage in range(3):
+            with patch.object(check.subprocess, "run", side_effect=[None] * stage + [subprocess.CalledProcessError(1, "node")]):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    check.validate(self.root, "infra")
+
     def test_component_and_cross_component_dependencies(self):
         expected = {
             "backend/src/example.java": {"backend", "regression"},

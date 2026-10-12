@@ -168,9 +168,12 @@ def build():
     bundle.chmod(0o755)
     for file in bundle.rglob("*"):
         file.chmod(0o755 if file.is_dir() else 0o644)
-    sandbox = subprocess.run(["docker", "image", "inspect", "researchhub-sandbox:1.1.1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if sandbox.returncode != 0:
-        run(["docker", "build", "-t", "researchhub-sandbox:1.1.1", "sandbox"])
+    sandbox = subprocess.run(["docker", "image", "inspect", "researchhub-sandbox:1.2.0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    sandbox_hash=fingerprint(["sandbox/Dockerfile","sandbox/requirements.lock","sandbox/runtime"])
+    sandbox_stamp=STATE / "sandbox.sha256"
+    if sandbox.returncode != 0 or not sandbox_stamp.exists() or sandbox_stamp.read_text()!=sandbox_hash:
+        run(["docker", "build", "-t", "researchhub-sandbox:1.2.0", "sandbox"])
+        sandbox_stamp.write_text(sandbox_hash)
 
 
 def managed_pid():

@@ -76,6 +76,15 @@ class DemoStackTest(unittest.TestCase):
              patch.object(stack.subprocess, "run", return_value=Mock(returncode=0)):
             stack.build(); run.assert_not_called()
 
+    def test_runtime_content_change_rebuilds_even_when_tag_exists(self):
+        (self.root / "frontend/dist").mkdir(parents=True)
+        with patch.object(stack, "fingerprint", return_value="old"), patch.object(stack, "run"), patch.object(stack.subprocess, "run", return_value=Mock(returncode=0)):
+            stack.build()
+        with patch.object(stack, "fingerprint", return_value="new"), patch.object(stack, "run") as run, patch.object(stack.subprocess, "run", return_value=Mock(returncode=0)):
+            stack.build()
+            self.assertIn(["docker", "build", "-t", "researchhub-sandbox:1.2.0", "sandbox"], [call.args[0] for call in run.call_args_list])
+            self.assertEqual("new", (self.state / "sandbox.sha256").read_text())
+
     def test_pid_reuse_does_not_kill_an_unrelated_process(self):
         self.assertIsNone(stack.managed_pid())
         (self.state / "backend.pid").write_text("123")

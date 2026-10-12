@@ -67,10 +67,14 @@ jobs:
           npm ci
           npm run build
       - name: Build the reviewed scientific image
-        run: docker build -t researchhub-sandbox:1.1.1 sandbox
+        run: docker build -t researchhub-sandbox:1.2.0 sandbox
+      - name: Prepare pinned scientific runtime test dependencies
+        run: |
+          uv venv sandbox/.venv --python 3.13.3
+          uv pip install --python sandbox/.venv/bin/python -r sandbox/requirements-test.lock
       - name: Verify sandbox protocol with at least 80% coverage
         working-directory: sandbox
-        run: ../ai-worker/.venv/bin/python -m pytest
+        run: .venv/bin/python -m pytest
       - name: Verify hostile-code isolation on the real Docker daemon
         run: ai-worker/.venv/bin/python sandbox/scripts/acceptance.py
       - name: Verify Spring build, module coverage and real computation E2E

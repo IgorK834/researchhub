@@ -32,7 +32,7 @@ Prerequisites: Docker, host Java 25, Python 3.13.3 and a built backend JAR. Norm
 remains host-based; containers are required here for shared dependencies and isolation only.
 
 ```bash
-docker build -t researchhub-sandbox:1.1.1 sandbox
+docker build -t researchhub-sandbox:1.2.0 sandbox
 (cd backend && ./mvnw verify)
 scripts/demo/scale-up.sh --dependencies-only
 python3 scripts/demo/seed-server.py > .demo/seed-server.log 2>&1 &
@@ -47,7 +47,7 @@ python3 scripts/demo/consistency.py
 ```
 
 The seed server is the existing Spring backend **on the host**, with the already reviewed local
-Docker adapter and sandbox image 1.1.1. Its Docker socket is never granted to a service container
+Docker adapter and sandbox image 1.2.0. Its Docker socket is never granted to a service container
 or generated program. Stop it before scaling: the load topology has exactly two replicas and
 `ANALYSIS_SANDBOX_ENABLED=false`. Previously completed computations and their provenance remain
 readable. Trying a new execution records the existing explicit sandbox-disabled failure.
@@ -117,3 +117,35 @@ The run must remain in one aligned minute window. Repeat after the shared user w
 
 See [performance execution](../../performance/README.md) and
 [scalability evidence](../../docs/architecture/scalability.md).
+
+
+## Canvas AI verification (CAI-16–18)
+
+From the repository root, with Java 25, Node/npm, Python 3.13.3, the project `.venv`s,
+installed npm dependencies, Docker Desktop/Engine and Chromium:
+
+```bash
+python3 scripts/demo/canvas-suite.py --output .demo/canvas-suite
+# Explicit paid native Gemini measurement after the required suite succeeds:
+python3 scripts/demo/canvas-suite.py --live --output .demo/canvas-suite-live
+```
+
+The entrypoint builds both production editor modes and the sandbox, runs all layer coverage
+gates, then real Spring/PostgreSQL/browser/worker/Docker tests and a fixed 43-case benchmark.
+All 24 interaction requirements need successful JUnit evidence; a skipped or missing required
+test fails the runner. Old opt-in tests outside this matrix are counted separately.
+`--live` reads the private root `.env` through `stack.worker_env()` and provides the key only
+to the worker benchmark. All ordinary stages use an environment with worker settings removed.
+The benchmark checks both isolated compute and verifier containers before any paid request.
+It holds an owned image reference so rebuilding the demo's mutable tag cannot replace its runtime.
+
+`up.sh` also fingerprints the sandbox Dockerfile, pinned lock and runtime sources, rebuilding
+version `1.2.0` on drift even when an old tag exists. No additional provider secret is needed.
+Saved prompts can be restored after failure; restoration does not submit a new paid request.
+Supported unit conversion includes V, A/mA, ohm/kohm and W/mW. The two-variable matrix case
+uses explicitly supplied elimination expressions; this does not add a general multivariable solver.
+
+See [recorded Canvas verification](../../docs/development/canvas-export-recovery-evaluation.md) for measured results and the current Gemini
+quality gates. Offline/fake-provider results measure contracts and product behavior and are not
+claims about native Gemini quality. Local `.demo` logs remain private; published reports contain
+only committed synthetic fixtures, normalized validated results, hashes and measurements.

@@ -15,7 +15,7 @@ FILTERS = {
     "ai-worker": ("ai-worker/", "contracts/"),
     "collaboration": ("collaboration/", "contracts/"),
     "sandbox": ("sandbox/", "ai-worker/pyproject.toml", "ai-worker/uv.lock"),
-    "infra": ("infra/azure/",),
+    "infra": ("infrastructure/", "infra/azure/"),
     "performance": ("performance/k6/", "performance/test/", "infra/demo/", "scripts/demo/"),
     "scripts": ("scripts/", "ai-worker/scripts/"),
     "regression": ("backend/", "frontend/", "ai-worker/", "collaboration/", "sandbox/", "contracts/", "compose.yaml", ".env.example"),
@@ -43,7 +43,7 @@ def select_jobs(paths, root, full=False):
         # Discover new dependency inventories rather than enumerating current projects only.
         if Path(path).name in {"pom.xml", "package.json", "package-lock.json", "pyproject.toml", "uv.lock", "requirements.lock", "requirements.txt"}:
             selected["dependencies"] = True
-    selected["infra"] &= (root / "infra/azure").is_dir()
+    selected["infra"] &= any((root / path).is_dir() for path in ("infrastructure", "infra/azure"))
     selected["performance"] &= any((root / "performance/k6").glob("*.js"))
     return selected
 
@@ -75,6 +75,15 @@ def changes(root):
 
 def validate(root, kind):
     if kind == "infra":
+        if (root / "infrastructure").is_dir():
+            subprocess.run(["node", "infrastructure/scripts/check.mjs"], cwd=root, check=True)
+            subprocess.run(["node", "infrastructure/scripts/deploy.mjs", "validate"], cwd=root, check=True)
+            subprocess.run([
+                "node", "--test", "--experimental-test-coverage",
+                "--test-coverage-include=infrastructure/scripts/deployment.mjs",
+                "--test-coverage-lines=80", "--test-coverage-branches=80", "--test-coverage-functions=80",
+                *[str(source) for source in sorted((root / "infrastructure/test").glob("*.test.mjs"))],
+            ], cwd=root, check=True)
         for source in sorted((root / "infra/azure").rglob("*.bicep")):
             subprocess.run(["az", "bicep", "build", "--file", str(source), "--stdout"], check=True, stdout=subprocess.DEVNULL)
             subprocess.run(["az", "bicep", "lint", "--file", str(source)], check=True)
