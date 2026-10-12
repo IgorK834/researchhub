@@ -56,7 +56,7 @@ public class DocumentProvenance {
     @Transactional(propagation=Propagation.MANDATORY)
     public void aiAccepted(UUID workspace, UUID caller, DocumentDetail saved, UUID sourceOperation, Category category,
             List<UUID> blockIds, JsonNode citations, JsonNode model, boolean editedByHuman) {
-        if (!Set.of(Category.AI_GENERATED,Category.AI_REWRITTEN,Category.HUMAN).contains(category)) throw new IllegalArgumentException("Invalid AI origin category");
+        if (!Set.of(Category.AI_GENERATED,Category.AI_REWRITTEN,Category.HUMAN,Category.ANALYSIS_DERIVED).contains(category)) throw new IllegalArgumentException("Invalid AI origin category");
         var metadata=json.createObjectNode(); var evidence=metadata.putArray("citations");
         for (var citation:citations) {
             var reference=json.createObjectNode();
@@ -71,6 +71,7 @@ public class DocumentProvenance {
         for (UUID block:blockIds) {
             var node=blocks.get(block);
             if (node==null) throw new ConflictException("The approved block is missing");
+            if(category==Category.ANALYSIS_DERIVED) {metadata.set("analysis",node.path("attrs").path("reference"));if(model!=null)metadata.set("calculation",model);}
             append(workspace,saved.summary().id(),block,category,caller,actorName(caller),category==Category.HUMAN ? "CITATION_ADDED" : "AI_ACCEPTED",sourceOperation,metadata,saved.summary().revision(),hash(node));
         }
     }
@@ -83,6 +84,14 @@ public class DocumentProvenance {
         var blocks=blocks(current.getContent());var result=new LinkedHashMap<UUID,JsonNode>();
         if(ids.isEmpty() || ids.size()>32 || !blocks.keySet().containsAll(ids)) throw new ConflictException("The accepted blocks are no longer available; select the current text");
         for(var entry:blocks.entrySet())if(ids.contains(entry.getKey()))result.put(entry.getKey(),entry.getValue());return result;
+    }
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void canvasUndone(UUID workspace,UUID caller,DocumentDetail saved,UUID operation,UUID acceptedOperation,List<UUID> restored) {
+        var current=blocks(saved.content());var metadata=json.createObjectNode().put("compensationId",operation.toString());
+        for(UUID id:restored) {
+            var node=current.get(id);if(node==null)throw new ConflictException("The restored block is missing");
+            append(workspace,saved.summary().id(),id,Category.HUMAN,caller,actorName(caller),"AI_UNDONE",acceptedOperation,metadata,saved.summary().revision(),hash(node));
+        }
     }
     public List<UUID> anchoredBlocks(String content, String anchor) {
         return blocks(content).entrySet().stream().filter(e -> hasAnchor(e.getValue(),anchor)).map(Map.Entry::getKey).toList();
@@ -101,7 +110,7 @@ public class DocumentProvenance {
         if (depth>64) throw invalid();
         var id=node.path("attrs").path("blockId");
         if (!id.isMissingNode() && !id.isNull()) {
-            if (!Set.of("paragraph","heading","codeBlock","analysisResult","figure").contains(node.path("type").asString())) throw invalid();
+            if (!Set.of("paragraph","heading","codeBlock","analysisResult","figure","blockMath").contains(node.path("type").asString())) throw invalid();
             UUID identity;
             try { identity=UUID.fromString(id.asString()); if (!identity.toString().equals(id.asString().toLowerCase(Locale.ROOT))) throw invalid(); }
             catch (IllegalArgumentException bad) { throw invalid(); }

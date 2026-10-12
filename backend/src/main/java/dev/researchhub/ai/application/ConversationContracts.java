@@ -36,10 +36,14 @@ public final class ConversationContracts {
                           String content, List<UUID> selectedSourceIds, QuestionContracts.Response response,
                           String errorCode, Instant createdAt, Instant completedAt,
                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)
-                          List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs) {
+                          List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs,
+                          @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                          CanvasConversationContracts.CanvasResult canvasResult) {
         public Message { selectedAnalysisOutputs=selectedAnalysisOutputs==null ? List.of() : List.copyOf(selectedAnalysisOutputs); }
         public Message(UUID id,UUID clientRequestId,long sequence,String role,String status,UUID authorId,String content,List<UUID> selectedSourceIds,QuestionContracts.Response response,
-            String errorCode,Instant createdAt,Instant completedAt) { this(id,clientRequestId,sequence,role,status,authorId,content,selectedSourceIds,response,errorCode,createdAt,completedAt,List.of()); }
+            String errorCode,Instant createdAt,Instant completedAt) { this(id,clientRequestId,sequence,role,status,authorId,content,selectedSourceIds,response,errorCode,createdAt,completedAt,List.of(),null); }
+        public Message(UUID id,UUID clientRequestId,long sequence,String role,String status,UUID authorId,String content,List<UUID> selectedSourceIds,QuestionContracts.Response response,
+            String errorCode,Instant createdAt,Instant completedAt,List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> outputs) {this(id,clientRequestId,sequence,role,status,authorId,content,selectedSourceIds,response,errorCode,createdAt,completedAt,outputs,null);}
     }
     public record History(Conversation conversation, List<Message> messages, Long nextBeforeSequence,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)

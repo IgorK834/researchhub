@@ -24,7 +24,7 @@ public final class CanvasDocumentTarget {
         int a = blocks.indexOf(first), b = blocks.indexOf(last);
         if (a > b || (a == b && target.start().offset() > target.end().offset())) throw invalid();
         String text, before = "", after = "";
-        var sources = new ArrayList<SourceReference>(); var analyses = new ArrayList<AnalysisReference>();
+        var formulas=new ArrayList<JsonNode>();var sources = new ArrayList<SourceReference>(); var analyses = new ArrayList<AnalysisReference>();
         if (target.kind() == Kind.ANALYSIS) {
             if (first != last || !"analysisResult".equals(first.node().path("type").asString())
                     || target.start().offset() != 0 || target.end().offset() != 1) throw invalid();
@@ -42,6 +42,7 @@ public final class CanvasDocumentTarget {
                 int low=i==a ? from : 0, high=i==b ? to : block.text().length();
                 if (i>a) selected.append('\n');
                 selected.append(block.text(),low,high);
+                if("blockMath".equals(block.node().path("type").asString())&&low==0&&high==1)formulas.add(block.node().path("attrs").path("math").deepCopy());
                 int offset=0;
                 for (var child:block.node().path("content")) {
                     int size=inline(child).length();
@@ -50,6 +51,7 @@ public final class CanvasDocumentTarget {
                         sources.add(new SourceReference(uuid(ref.path("sourceId")), nullableUuid(ref.path("sourceVersionId")),
                             ref.path("chunkId").asString(null),ref.path("processingVersion").asString(null)));
                     }
+                    if(offset<high&&offset+size>low&&"inlineMath".equals(child.path("type").asString()))formulas.add(child.path("attrs").path("math").deepCopy());
                     offset+=size;
                 }
             }
@@ -58,21 +60,22 @@ public final class CanvasDocumentTarget {
             after=head(last.text().substring(to),SURROUNDING_MAX);
             if (target.kind()==Kind.SOURCE && (first!=last || to-from!=1 || sources.size()!=1)) throw invalid();
         }
+        if(formulas.size()>8)throw new ApiException(ApiErrorCode.AI_CONTEXT_TOO_LARGE,"Select at most eight formulas");
         if (text.length()>SELECTED_MAX) throw new ApiException(ApiErrorCode.AI_CONTEXT_TOO_LARGE,"Select at most 4000 UTF-16 units");
         String fingerprint=target.kind()==Kind.CARET ? tail(before,32)+"\u0000"+head(after,32) : text;
         if (!hash(fingerprint).equals(target.hash())) throw stale("TARGET_STALE");
         var canonical=new Target(target.kind(),new Endpoint(first.id(),first.path(),target.start().offset()),new Endpoint(last.id(),last.path(),target.end().offset()),target.hash());
-        var snapshot=new Snapshot(canonical,text,before,after,List.copyOf(sources),List.copyOf(analyses));
+        var snapshot=new Snapshot(canonical,text,before,after,List.copyOf(sources),List.copyOf(analyses),formulas);
         if (json.writeValueAsBytes(snapshot).length>SNAPSHOT_MAX_BYTES) throw new ApiException(ApiErrorCode.AI_CONTEXT_TOO_LARGE,"The selected context exceeds the byte budget");
         return snapshot;
     }
     private void walk(JsonNode node,List<Integer> path,List<Block> blocks,int depth) {
         if (depth>64) throw invalid();
         String type=node.path("type").asString();
-        if (Set.of("paragraph","heading","codeBlock","figureCaption","analysisResult").contains(type)) {
+        if (Set.of("paragraph","heading","codeBlock","figureCaption","analysisResult","blockMath").contains(type)) {
             String id=node.path("attrs").path("blockId").asString(null);
             var text=new StringBuilder(); node.path("content").forEach(child -> text.append(inline(child)));
-            blocks.add(new Block(node,path,id,"analysisResult".equals(type) ? "\uFFFC" : text.toString())); return;
+            blocks.add(new Block(node,path,id,Set.of("analysisResult","blockMath").contains(type) ? "\uFFFC" : text.toString())); return;
         }
         int index=0; for (var child:node.path("content")) {
             var next=new ArrayList<>(path);next.add(index++);walk(child,List.copyOf(next),blocks,depth+1);

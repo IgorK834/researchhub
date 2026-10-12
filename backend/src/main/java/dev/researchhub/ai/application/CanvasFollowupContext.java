@@ -17,6 +17,7 @@ public class CanvasFollowupContext {
     private final ConversationStore conversations;private final CanvasTurnStore turns;private final CanvasContextService contexts;
     private final AuthoringStore proposals;private final DocumentProvenance provenance;private final SourceReadScope sources;
     private final AnalysisEvidenceService analyses;private final ObjectMapper json;
+    @org.springframework.beans.factory.annotation.Autowired private dev.researchhub.ai.infrastructure.PostgresCanvasProposalStore canvasProposals;
     public CanvasFollowupContext(ConversationStore conversations,CanvasTurnStore turns,CanvasContextService contexts,
         AuthoringStore proposals,DocumentProvenance provenance,SourceReadScope sources,AnalysisEvidenceService analyses,ObjectMapper json) {
         this.conversations=conversations;this.turns=turns;this.contexts=contexts;this.proposals=proposals;this.provenance=provenance;this.sources=sources;this.analyses=analyses;this.json=json;
@@ -44,6 +45,17 @@ public class CanvasFollowupContext {
             clarification="Select the saved result you mean before continuing.";
         String proposalText=null;List<UUID> applied=List.of();String selected=context.snapshot().text();
         if(request.targetProposalId()!=null) {
+            var canvas=canvasProposals==null ? Optional.<CanvasProposalContracts.Proposal>empty() : canvasProposals.reference(work.workspaceId(),work.documentId(),request.targetProposalId());
+            if(canvas.isPresent()) {
+                var proposal=canvas.get();
+                if(!Set.of("PENDING","ACCEPTED").contains(proposal.state()))throw new ConflictException("The referenced proposal is no longer available");
+                if(proposal.citations().stream().anyMatch(c->!request.scope().sourceVersionIds().contains(c.sourceVersionId())))
+                    clarification="The proposal uses sources outside the current scope. Select those sources explicitly or change context.";
+                else if("ACCEPTED".equals(proposal.state())) {
+                    var blocks=provenance.appliedBlocks(work.workspaceId(),work.callerId(),work.documentId(),proposal.operationId());
+                    applied=List.copyOf(blocks.keySet());selected=head(blocks.values().stream().map(CanvasFollowupContext::plain).collect(java.util.stream.Collectors.joining("\n")),4000);
+                } else proposalText=head(proposal.text(),4000);
+            } else {
             var proposal=proposals.find(work.workspaceId(),work.documentId(),request.targetProposalId(),false);
             if(!Set.of("PENDING","ACCEPTED").contains(proposal.state()))throw new ConflictException("The referenced proposal is no longer available");
             if(proposal.citations().stream().anyMatch(c->!request.scope().sourceVersionIds().contains(c.sourceVersionId())))
@@ -52,6 +64,7 @@ public class CanvasFollowupContext {
                 var blocks=provenance.appliedBlocks(work.workspaceId(),work.callerId(),work.documentId(),proposal.id());
                 applied=List.copyOf(blocks.keySet());selected=head(blocks.values().stream().map(CanvasFollowupContext::plain).collect(java.util.stream.Collectors.joining("\n")),4000);
             } else proposalText=head(proposal.generatedText(),4000);
+            }
         }
         var history=new ArrayList<MemoryEntry>();int bytes=2; // JSON array brackets count toward the worker boundary.
         // Never copy old citation objects, snippets, or output payloads. Scope narrowing drops the whole pair.
@@ -66,6 +79,10 @@ public class CanvasFollowupContext {
         // An explicitly referenced older message must be included, otherwise ask rather than guess.
         if(request.replyToMessageId()!=null && history.stream().noneMatch(m->m.messageId().equals(request.replyToMessageId())))
             clarification="The referenced message is outside the bounded conversation memory. Restate the request or choose a recent message.";
+        if(request.targetProposalId()==null&&!context.snapshot().formulas().isEmpty()){
+            String formulas=context.snapshot().formulas().stream().map(f->f.path("accessibleText").asString()).collect(java.util.stream.Collectors.joining("\n"));
+            selected=head(head(selected,2000)+"\nFormulas (untrusted user input):\n"+formulas,4000);
+        }
         var memory=new Memory("1.0",request.contextId(),work.documentId(),request.instruction(),selected,context.snapshot().before(),context.snapshot().after(),
             request.targetProposalId(),proposalText,applied,history,prior.size()-history.size());
         return new Built(memory,clarification);

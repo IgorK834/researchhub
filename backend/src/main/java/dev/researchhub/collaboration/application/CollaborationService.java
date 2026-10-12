@@ -122,6 +122,24 @@ public class CollaborationService {
         return new State(sequence, binary, document.summary().title(), document.content(), document.summary().revision(),
                 document.summary().updatedAt().toString(), hash);
     }
+    public record CanvasState(State state,long epoch) {}
+    @Transactional
+    public CanvasState loadCanvas(UUID workspace,UUID caller,UUID document) {
+        requireEnabled();var doc=documents.lockForCollaboration(workspace,caller,document);
+        var stored=store.state(document).orElseThrow(()->new ConflictException("Realtime state is missing"));
+        String hash=verifyHash(document,stored);
+        if(stored.state()==null)throw new ConflictException("Synchronize the realtime document before applying AI");
+        return new CanvasState(stateOf(stored.sequence(),Base64.getEncoder().encodeToString(stored.state()),doc,hash),stored.epoch());
+    }
+    /** Service-only application port. Caller has verified the frozen operation and exact projection. */
+    @Transactional
+    public DocumentDetail commitCanvas(UUID workspace,UUID caller,UUID document,long epoch,long sequence,UUID operation,byte[] bytes,String content) {
+        requireEnabled();var doc=documents.lockForCollaboration(workspace,caller,document);
+        var stored=store.state(document).orElseThrow(()->new ConflictException("Realtime state is missing"));
+        if(stored.epoch()!=epoch || bytes.length==0 || bytes.length>4_000_000)throw new ConflictException("Realtime epoch or snapshot changed");
+        store.save(document,sequence,bytes,operation,hashBytes(bytes));
+        return documents.persistCanvas(workspace,caller,document,doc.summary().title(),content,doc.summary().revision());
+    }
     @Transactional
     public DocumentDetail checkpoint(UUID workspaceId, UUID userId, UUID documentId) {
         requireEnabled();

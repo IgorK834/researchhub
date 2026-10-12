@@ -11,5 +11,6 @@ public interface ConversationStore {
     History history(UUID workspaceId, UUID conversationId, Long beforeSequence, int limit);
     Claim claim(UUID workspaceId, UUID conversationId, UUID callerId, Send send);
     Completion complete(UUID workspaceId, UUID conversationId, Claim claim, QuestionContracts.Response response) throws java.util.concurrent.CancellationException;
+    Completion completeCanvas(UUID workspaceId,UUID conversationId,Claim claim,CanvasConversationContracts.CanvasResult result);
     void fail(UUID workspaceId, UUID conversationId, Claim claim, ApiErrorCode code, boolean abandoned);
 }

@@ -12,10 +12,15 @@ import java.util.*;
 
 @Service
 public class CanvasConversationService {
+    @org.springframework.beans.factory.annotation.Autowired private dev.researchhub.ai.observability.CanvasWorkflowObservation observation=dev.researchhub.ai.observability.CanvasWorkflowObservation.none();
     private final CanvasTurnStore turns;private final ConversationStore conversations;private final CanvasContextService contexts;
     private final CanvasContextStore snapshots;private final WorkspaceAuthorizationService access;private final DocumentService documents;
     private final SourceReadScope scope;private final SourceService sources;private final SourceRetrievalService retrieval;
     private final AnalysisEvidenceService analyses;private final CanvasFollowupContext memory;private final ModelGateway gateway;private final QuestionFeature policy;
+    @org.springframework.beans.factory.annotation.Autowired private CanvasProposalService proposals;
+    @org.springframework.beans.factory.annotation.Autowired private CanvasIntentRouter router;
+    @org.springframework.beans.factory.annotation.Autowired private dev.researchhub.analysis.application.AnalysisService datasetAnalyses;
+    @org.springframework.beans.factory.annotation.Autowired private dev.researchhub.analysis.application.ExecutionService datasetExecutions;
     public CanvasConversationService(CanvasTurnStore turns,ConversationStore conversations,CanvasContextService contexts,CanvasContextStore snapshots,
         WorkspaceAuthorizationService access,DocumentService documents,SourceReadScope scope,SourceService sources,SourceRetrievalService retrieval,
         AnalysisEvidenceService analyses,CanvasFollowupContext memory,ModelGateway gateway,QuestionFeature policy) {
@@ -52,11 +57,56 @@ public class CanvasConversationService {
     public void execute(Work work) {
         try {
             authorize(work.workspaceId(),work.callerId(),work.request());
+            var current=turns.find(work.workspaceId(),work.conversationId(),work.turnId());
+            if(current.executionId()!=null) {
+                var e=datasetExecutions.find(work.workspaceId(),work.callerId(),current.analysisId(),current.executionId());
+                if(Set.of(dev.researchhub.analysis.application.ExecutionContracts.Status.QUEUED,dev.researchhub.analysis.application.ExecutionContracts.Status.RUNNING).contains(e.status()))turns.deferExecution(work);
+                else {
+                    if(e.diagnostics()!=null)observation.record(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.SANDBOX,e.diagnostics().durationMillis(),e.status()==dev.researchhub.analysis.application.ExecutionContracts.Status.SUCCEEDED);
+                    turns.finishExecution(work,e.status()==dev.researchhub.analysis.application.ExecutionContracts.Status.SUCCEEDED
+                    ? "The selected immutable dataset was calculated in the isolated sandbox. Review its saved tables, charts and provenance."
+                    : "The saved dataset execution failed ("+e.failureCode()+"). Open Analysis Studio to inspect the failure; no result was published.");
+                }
+                return;
+            }
             var built=memory.build(work);String kind="ANSWER";QuestionContracts.Response response;
-            if(built.clarification()!=null) {kind="CLARIFICATION";response=clarify(built.clarification());}
-            else if(!Set.of(Intent.ANSWER,Intent.CLARIFY).contains(work.request().intent())) {
-                kind="CLARIFICATION";response=clarify("This chat currently answers and explains saved evidence. Document proposals and new calculations require the authoring or analysis tools.");
+            var route=observation.measure(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.ROUTING,()->router.route(work.request().intent(),built.clarification()));
+            if(route instanceof CanvasIntentRouter.Clarify clarification) {kind="CLARIFICATION";response=clarify(clarification.message());}
+            else if(route instanceof CanvasIntentRouter.Edit) {
+                var proposal=proposals.generate(work,built.memory());
+                authorize(work.workspaceId(),work.callerId(),work.request());
+                contexts.resolve(work.workspaceId(),work.documentId(),work.callerId(),proposal==null ? work.request().contextId() : proposal.contextId());
+                active(work.workspaceId(),documents.findOne(work.workspaceId(),work.callerId(),work.documentId()).summary().archivedAt());
+                if(proposal!=null) {turns.proposal(work,proposal,memory.summary(built.memory()));return;}
+                kind="CLARIFICATION";response=clarify("Select source evidence that supports the requested draft.");
+            } else if(route instanceof CanvasIntentRouter.Dataset) {
+                if(work.request().datasetInputs()!=null) {
+                    if(work.request().datasetInputs().stream().anyMatch(i -> i.sheetName()==null || i.columns()==null || i.columns().isEmpty())) {
+                        turns.complete(work,clarify("Choose the exact immutable version, sheet and columns before calculation."),"CLARIFICATION",memory.summary(built.memory()));return;
+                    }
+                    var id=turns.prepareDataset(work,work.request().datasetInputs(),memory.summary(built.memory()));
+                    var a=datasetAnalyses.find(work.workspaceId(),work.callerId(),id);
+                    if(a.plan()==null) {
+                        if(!turns.beginModel(work))throw new ConflictException("Planning is no longer active");
+                        observation.measure(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.MODEL,()->datasetAnalyses.plan(work.workspaceId(),work.callerId(),id));
+                    }
+                    authorize(work.workspaceId(),work.callerId(),work.request());
+                    turns.startDatasetExecution(work);return;
+                }
+                var ids=work.request().scope().sourceVersionIds();
+                var inputs=new ArrayList<dev.researchhub.analysis.application.AnalysisContracts.Input>();
+                for(var id:ids) {
+                    var version=sources.versionById(work.workspaceId(),work.callerId(),id);
+                    if(!Set.of("CSV","XLSX").contains(version.sourceType()))continue;
+                    inputs.add(new dev.researchhub.analysis.application.AnalysisContracts.Input(version.sourceId(),id,null,null));
+                }
+                if(!inputs.isEmpty() && inputs.size()<=5 && inputs.size()==ids.size()) {turns.analysis(work,inputs,memory.summary(built.memory()));return;}
+                kind="ANALYSIS_HANDOFF";response=clarify("Select a CSV or XLSX dataset, or open Analysis Studio to choose data, inspect a plan and run it.");
+            } else if(route instanceof CanvasIntentRouter.Problem) {
+                turns.problem(work,built.memory().selectedText()+"\n"+work.request().instruction(),memory.summary(built.memory()));return;
             } else {
+                if(!work.request().scope().sourceVersionIds().isEmpty())turns.admitRetrieval(work);
+                long retrievalStart=System.nanoTime();
                 var selectedChunks=new ArrayList<RetrievalChunk>();
                 for(var id:work.request().scope().sourceVersionIds()) {
                     var version=sources.versionById(work.workspaceId(),work.callerId(),id);
@@ -65,11 +115,13 @@ public class CanvasConversationService {
                     // Deterministic bounded lexical ranking over explicit immutable versions; no global search.
                     selectedChunks.addAll(set.chunks().stream().sorted(Comparator.comparingInt((RetrievalChunk c)->score(c.content(),work.request().instruction(),built.memory().selectedText())).reversed().thenComparing(RetrievalChunk::chunkId)).limit(6).toList());
                 }
+                observation.record(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.RETRIEVAL,dev.researchhub.ai.observability.CanvasWorkflowObservation.elapsed(retrievalStart),true);
                 var boundedRefs= selectedChunks.stream().sorted(Comparator.comparingInt((RetrievalChunk c)->score(c.content(),work.request().instruction(),built.memory().selectedText())).reversed().thenComparing(RetrievalChunk::chunkId))
                     .limit(Math.min(policy.topK(),12-work.request().scope().analysisOutputs().size())).map(c->new EvidenceReference(c.sourceId(),c.chunkId(),c.processingVersion(),c.sourceVersionId())).toList();
                 if(boundedRefs.isEmpty() && work.request().scope().analysisOutputs().isEmpty())response=new QuestionContracts.Response("INSUFFICIENT_EVIDENCE","NO_RETRIEVED_EVIDENCE",WorkspaceQuestionService.NO_EVIDENCE,List.of(),null);
                 else {
-                    var generated=gateway.generate(work.workspaceId(),work.callerId(),new Command("Answer the user instruction in conversationContext using only the current S/A evidence.",boundedRefs),policy,work.request().scope().analysisOutputs(),built.memory());
+                    if(!turns.beginModel(work))throw new ConflictException("The turn is no longer active");
+                    var generated=observation.measure(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.MODEL,()->gateway.generate(work.workspaceId(),work.callerId(),new Command("Answer the user instruction in conversationContext using only the current S/A evidence.",boundedRefs),policy,work.request().scope().analysisOutputs(),built.memory()));
                     var answer=generated.result().answer();var ids=answer.claims().stream().flatMap(c->c.evidenceIds().stream()).collect(java.util.stream.Collectors.toSet());
                     response="INSUFFICIENT_EVIDENCE".equals(answer.status()) ? new QuestionContracts.Response(answer.status(),"INSUFFICIENT_RETRIEVED_EVIDENCE",WorkspaceQuestionService.INSUFFICIENT,List.of(),generated)
                         : new QuestionContracts.Response(answer.status(),null,answer.claims().stream().map(Claim::text).collect(java.util.stream.Collectors.joining("\n\n")),generated.evidence().stream().filter(c->ids.contains(c.chunkId())).toList(),generated,generated.analysisEvidence().stream().filter(c->ids.contains(c.evidenceId())).toList());

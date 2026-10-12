@@ -96,6 +96,7 @@ public class CanvasContextService {
             if(error.code()==ApiErrorCode.VALIDATION_FAILED)throw CanvasDocumentTarget.stale("TARGET_STALE");
             throw error;
         }
+        if(!snapshot.formulas().equals(context.snapshot().formulas()))throw CanvasDocumentTarget.stale("TARGET_STALE");
         authorize(workspace,caller,snapshot);return snapshot;
     }
     private static boolean sameBlock(Endpoint old,Endpoint current) {

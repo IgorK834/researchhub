@@ -69,7 +69,11 @@ public class HttpModelProvider implements ModelProvider, AuthoringModelProvider,
         } catch (RuntimeException invalid) { return null; }
     }
     private <T> T call(RestClient.RequestHeadersSpec<?> request, Class<T> type) {
-        return metrics.ai(() -> callUnobserved(request, type));
+        try { return metrics.ai(() -> callUnobserved(request, type)); }
+        catch (ModelFailure failure) {
+            if (failure.code() == ApiErrorCode.AI_UNAVAILABLE) metrics.providerUnavailable();
+            throw failure;
+        }
     }
     private <T> T callUnobserved(RestClient.RequestHeadersSpec<?> request, Class<T> type) {
         try {

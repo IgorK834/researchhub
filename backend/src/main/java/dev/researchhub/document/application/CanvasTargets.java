@@ -13,7 +13,10 @@ public final class CanvasTargets {
     public record SourceReference(UUID sourceId, UUID sourceVersionId, String chunkId, String processingVersion) {}
     public record AnalysisReference(UUID analysisId, UUID executionId, String outputId) {}
     public record Snapshot(Target target, String text, String before, String after,
-                           List<SourceReference> sources, List<AnalysisReference> analyses) {}
+                           List<SourceReference> sources, List<AnalysisReference> analyses,@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY) List<tools.jackson.databind.JsonNode> formulas) {
+        public Snapshot {formulas=formulas==null?List.of():formulas.stream().map(tools.jackson.databind.JsonNode::deepCopy).toList();}
+        public Snapshot(Target target,String text,String before,String after,List<SourceReference> sources,List<AnalysisReference> analyses){this(target,text,before,after,sources,analyses,List.of());}
+    }
     public record Resolution(Endpoint start, Endpoint end, Relative relative) {
         public Resolution(Endpoint start, Endpoint end) { this(start,end,null); }
     }

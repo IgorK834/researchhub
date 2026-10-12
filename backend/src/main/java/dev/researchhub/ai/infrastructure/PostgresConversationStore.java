@@ -34,7 +34,8 @@ public class PostgresConversationStore implements ConversationStore {
             selected == null ? null : List.of(json.readValue(selected,UUID[].class)),
             response == null ? null : json.readValue(response,QuestionContracts.Response.class),row.getString("error_code"),
             row.getTimestamp("created_at").toInstant(),completed == null ? null : completed.toInstant(),
-            List.of(json.readValue(row.getString("selected_analysis_outputs"),dev.researchhub.analysis.application.AnalysisEvidenceService.Reference[].class)));
+            List.of(json.readValue(row.getString("selected_analysis_outputs"),dev.researchhub.analysis.application.AnalysisEvidenceService.Reference[].class)),
+            row.getString("canvas_result")==null ? null : json.readValue(row.getString("canvas_result"),CanvasConversationContracts.CanvasResult.class));
     }
     @Override @Transactional
     public Conversation create(UUID workspaceId,UUID callerId,String title) {
@@ -136,6 +137,17 @@ public class PostgresConversationStore implements ConversationStore {
             result == null ? null : result.templateHash(),result == null ? null : result.requestId(),json.writeValueAsString(response));
         jdbc.update("UPDATE ai_conversations SET updated_at=now() WHERE workspace_id=? AND id=?",workspaceId,conversationId);
         var assistant=jdbc.query("SELECT * FROM ai_messages WHERE workspace_id=? AND conversation_id=? AND id=?",(row,index)->message(row),workspaceId,conversationId,assistantId).getFirst();
+        return new Completion(user(workspaceId,conversationId,claim.user().clientRequestId()),assistant);
+    }
+    @Override @Transactional
+    public Completion completeCanvas(UUID workspaceId,UUID conversationId,Claim claim,CanvasConversationContracts.CanvasResult result) {
+        conversation(workspaceId,conversationId,true);
+        if(jdbc.update("UPDATE ai_messages SET status='COMPLETED',completed_at=now() WHERE workspace_id=? AND conversation_id=? AND id=? AND status='PENDING' AND attempt_id=?",workspaceId,conversationId,claim.user().id(),claim.attemptId())!=1)
+            throw new CancellationException("The conversation attempt is no longer active");
+        UUID id=UUID.randomUUID();
+        jdbc.update("INSERT INTO ai_messages(id,workspace_id,conversation_id,client_request_id,sequence,role,status,content,canvas_result,completed_at) VALUES(?,?,?,?,?,'ASSISTANT','COMPLETED',?,?::jsonb,now())",id,workspaceId,conversationId,claim.user().clientRequestId(),claim.user().sequence()+1,result.text(),json.writeValueAsString(result));
+        jdbc.update("UPDATE ai_conversations SET updated_at=now() WHERE workspace_id=? AND id=?",workspaceId,conversationId);
+        var assistant=jdbc.query("SELECT * FROM ai_messages WHERE id=?",(row,index)->message(row),id).getFirst();
         return new Completion(user(workspaceId,conversationId,claim.user().clientRequestId()),assistant);
     }
     @Override @Transactional

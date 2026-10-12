@@ -18,7 +18,7 @@ public class ProductAudit {
     public enum Type {
         WORKSPACE_CREATED, MEMBER_ADDED, MEMBER_ROLE_CHANGED, MEMBER_REMOVED,
         SOURCE_UPLOADED, SOURCE_REPROCESSED, DOCUMENT_CREATED, AI_EVIDENCE_REQUESTED,
-        AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED
+        AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED, CANVAS_STAGE_COMPLETED
     }
     public record Event(UUID id, UUID workspaceId, UUID actorUserId, Type eventType,
                         String resourceType, UUID resourceId, Map<String, Object> metadata, Instant createdAt) {}
@@ -27,6 +27,13 @@ public class ProductAudit {
     private final ObjectMapper json;
     public ProductAudit(PostgresProductAudit store, Clock clock, ObjectMapper json) {
         this.store = store; this.clock = clock; this.json = json;
+    }
+    public enum CanvasStage { QUEUE, ROUTING, RETRIEVAL, MODEL, SANDBOX, INSERTION }
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void canvasStage(UUID workspace,UUID actor,UUID document,UUID operation,CanvasStage stage,long millis,boolean success) {
+        if(millis<0)throw new IllegalArgumentException("Invalid stage latency");
+        append(workspace,actor,Type.CANVAS_STAGE_COMPLETED,"DOCUMENT",document,
+            Map.of("operationId",operation,"stage",stage.name(),"durationMs",millis,"outcome",success ? "SUCCESS" : "FAILURE"));
     }
     public void workspaceCreated(UUID workspace, UUID actor) {
         append(workspace, actor, Type.WORKSPACE_CREATED, "WORKSPACE", workspace, Map.of());

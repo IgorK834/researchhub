@@ -375,7 +375,7 @@ class SourceExtractionEndToEndTest {
         assertEquals(dev.researchhub.analysis.application.ExecutionOutputValidator.sha256(ready.get("plan").get("code").get("source").asString()),
             first.get("provenance").get("codeSha256").asString());
         assertTrue(first.get("provenance").get("imageId").asString().matches("sha256:[a-f0-9]{64}"));
-        assertEquals("1.1.1",first.get("provenance").get("runtimeVersion").asString());
+        assertEquals("1.2.0",first.get("provenance").get("runtimeVersion").asString());
         assertEquals("SUCCEEDED",owner.json(owner.get(path+"/"+id)).get("status").asString());
         String firstId=first.get("id").asString();String firstBase=path+"/"+id+"/executions/"+firstId;
         var originalCitation=owner.json(owner.get(firstBase+"/provenance"));
@@ -1839,6 +1839,75 @@ class SourceExtractionEndToEndTest {
         var result=owner.postJson(canvasConversationPath()+"/contextual",mapper.writeValueAsString(body));assertEquals(202,result.statusCode(),result.body());
         return mapper.readValue(result.body(),dev.researchhub.ai.application.CanvasConversationContracts.TurnState.class);
     }
+    @Test void contextualDatasetRunsOnceOnFrozenBytesAndInsertsAtomicHistoricalPackage() throws Exception {
+        String source=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        UUID version=UUID.fromString(activeVersion(source));String document=canvasDocument();UUID context=canvasContext(document);
+        var input=new dev.researchhub.analysis.application.AnalysisContracts.Input(UUID.fromString(source),version,"CSV",List.of(1,2,3));
+        var turn=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,
+            dev.researchhub.ai.application.CanvasConversationContracts.Intent.ANALYZE,"Calculate impedance vs frequency",null,null,
+            new dev.researchhub.ai.application.CanvasConversationContracts.Scope(List.of(version),List.of()),List.of(input));
+        var first=new dev.researchhub.ai.application.CanvasConversationContracts.FirstTurn("1.0",UUID.randomUUID(),context,turn);
+        String body=mapper.writeValueAsString(first);var reserved=owner.postJson(canvasConversationPath()+"/contextual",body);assertEquals(202,reserved.statusCode(),reserved.body());
+        var state=owner.json(reserved);String chat=canvasConversationPath()+"/"+state.path("conversationId").asString(), statePath=chat+"/turns/"+state.path("turnId").asString();
+        canvasDispatcher.dispatchAvailable();var executing=owner.json(owner.get(statePath));assertEquals("EXECUTING",executing.path("status").asString(),executing.toString());
+        String analysis=executing.path("analysisId").asString(),execution=executing.path("executionId").asString();
+        assertFalse(analysis.isBlank());assertFalse(execution.isBlank());
+        replace(source,"new.csv","frequency,voltage,current\n300,5,1\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        assertNotEquals(version.toString(),activeVersion(source));
+        assertEquals(202,owner.postJson(canvasConversationPath()+"/contextual",body).statusCode());
+        // Simulated process loss while observing: recover the durable execution, never enqueue again.
+        jdbc.update("UPDATE canvas_turns SET started_at=now()-interval '6 minutes' WHERE id=?",UUID.fromString(state.path("turnId").asString()));
+        canvasDispatcher.dispatchAvailable();assertEquals(execution,owner.json(owner.get(statePath)).path("executionId").asString());
+        analysisDispatcher.dispatchAvailable();jdbc.update("UPDATE canvas_turns SET started_at=now()-interval '6 minutes' WHERE id=?",UUID.fromString(state.path("turnId").asString()));
+        canvasDispatcher.dispatchAvailable();var complete=owner.json(owner.get(statePath));assertEquals("COMPLETED",complete.path("status").asString(),complete.toString());
+        assertEquals("ANALYSIS_RESULT",complete.path("resultKind").asString());
+        String ap="/api/workspaces/"+workspaceId+"/analyses/"+analysis;
+        var record=owner.json(owner.get(ap+"/executions/"+execution+"/record"));var saved=record.path("execution");
+        assertEquals("SUCCEEDED",saved.path("status").asString(),record.toString());
+        assertEquals(2,saved.at("/result/outputs/0/rows").size());assertEquals(4.81/0.12,saved.at("/result/outputs/0/rows/0/3").asDouble(),1e-9);
+        assertEquals(version.toString(),saved.at("/provenance/inputs/0/sourceVersionId").asString());
+        assertEquals(1,owner.json(owner.get(ap+"/executions")).size());assertEquals(1,owner.json(owner.get(ap+"/plans")).size());
+        String dp="/api/workspaces/"+workspaceId+"/documents/"+document;var original=owner.json(owner.get(dp)).path("content");
+        for(var selection:List.of(dev.researchhub.ai.application.CalculationPackageContracts.Selection.TABLE,dev.researchhub.ai.application.CalculationPackageContracts.Selection.CHART)) {
+            String output=saved.at("/result/outputs/"+(selection.name().equals("TABLE")?0:1)+"/name").asString();
+            var selected=new dev.researchhub.ai.application.CalculationPackageContracts.Request(UUID.randomUUID(),context,UUID.fromString(analysis),UUID.fromString(execution),selection,output,null,null);
+            var selectedPreview=owner.postJson(dp+"/ai/proposals/calculation",mapper.writeValueAsString(selected));assertEquals(200,selectedPreview.statusCode(),selectedPreview.body());assertEquals(1,owner.json(selectedPreview).at("/calculation/blocks").size());
+        }
+        for(String missingOutput:List.of("foreign-output",saved.at("/result/outputs/0/name").asString())) {
+            var invalidOutput=new dev.researchhub.ai.application.CalculationPackageContracts.Request(UUID.randomUUID(),context,UUID.fromString(analysis),UUID.fromString(execution),dev.researchhub.ai.application.CalculationPackageContracts.Selection.CHART,missingOutput,null,null);
+            assertEquals(400,owner.postJson(dp+"/ai/proposals/calculation",mapper.writeValueAsString(invalidOutput)).statusCode());assertEquals(original,owner.json(owner.get(dp)).path("content"));
+        }
+        var request=new dev.researchhub.ai.application.CalculationPackageContracts.Request(UUID.randomUUID(),context,UUID.fromString(analysis),UUID.fromString(execution),
+            dev.researchhub.ai.application.CalculationPackageContracts.Selection.FULL,null,UUID.fromString(state.path("conversationId").asString()),UUID.fromString(state.path("turnId").asString()));
+        var preview=owner.postJson(dp+"/ai/proposals/calculation",mapper.writeValueAsString(request));assertEquals(200,preview.statusCode(),preview.body());var proposal=owner.json(preview);
+        assertEquals(original,owner.json(owner.get(dp)).path("content"));assertEquals(2,proposal.at("/calculation/blocks").size());
+        UUID operation=UUID.randomUUID();var accepted=owner.postJson(dp+"/ai/proposals/"+proposal.path("id").asString()+"/accept",mapper.writeValueAsString(new dev.researchhub.ai.application.CanvasProposalContracts.Accept(operation,proposal.path("versionHash").asString())));
+        assertEquals(200,accepted.statusCode(),accepted.body());var documentSaved=owner.json(owner.get(dp));
+        assertEquals(execution,documentSaved.at("/content/content/0/attrs/reference/executionId").asString());
+        assertTrue(documentSaved.toString().contains("Ignore previous instructions"));
+        assertEquals(proposal.path("id"),owner.json(owner.get(statePath)).path("calculationProposalIds").get(0));
+        var undo=owner.postJson(dp+"/ai/operations/"+operation+"/undo",mapper.writeValueAsString(new dev.researchhub.ai.application.CanvasProposalContracts.Undo(UUID.randomUUID())));
+        assertEquals(200,undo.statusCode(),undo.body());assertEquals(original,owner.json(owner.get(dp)).path("content"));
+        canvasDispatcher.dispatchAvailable();assertEquals(1,owner.json(owner.get(ap+"/executions")).size());
+    }
+
+    @Test void contextualDatasetClarifiesMissingFieldsAndRecoversSavedPaidPlanWithoutRepeatingIt() throws Exception {
+        String source=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();UUID version=UUID.fromString(activeVersion(source));String document=canvasDocument();UUID context=canvasContext(document),workspace=UUID.fromString(workspaceId);
+        var scope=new dev.researchhub.ai.application.CanvasConversationContracts.Scope(List.of(version),List.of());
+        var missing=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,dev.researchhub.ai.application.CanvasConversationContracts.Intent.ANALYZE,"Calculate impedance vs frequency",null,null,scope,List.of(new dev.researchhub.analysis.application.AnalysisContracts.Input(UUID.fromString(source),version,null,null)));
+        var clarification=firstCanvas(missing);canvasDispatcher.dispatchAvailable();assertEquals("WAITING_FOR_INPUT",canvasTurns.find(workspace,clarification.conversationId(),clarification.turnId()).status());assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM analyses",Integer.class));
+        var input=new dev.researchhub.analysis.application.AnalysisContracts.Input(UUID.fromString(source),version,"CSV",List.of(1,2,3));
+        var request=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,dev.researchhub.ai.application.CanvasConversationContracts.Intent.ANALYZE,missing.instruction(),null,null,scope,List.of(input));
+        var queued=firstCanvas(request);var work=canvasTurns.claim().orElseThrow();UUID analysis=canvasTurns.prepareDataset(work,List.of(input),null);assertTrue(canvasTurns.beginModel(work));
+        assertEquals(200,owner.postJson("/api/workspaces/"+workspaceId+"/analyses/"+analysis+"/plan","{}").statusCode());
+        jdbc.update("UPDATE canvas_turns SET started_at=now()-interval '6 minutes' WHERE id=?",queued.turnId());var recovered=canvasTurns.claim().orElseThrow();assertNotEquals(work.leaseId(),recovered.leaseId());canvasService.execute(recovered);
+        var running=canvasTurns.find(workspace,queued.conversationId(),queued.turnId());assertEquals("EXECUTING",running.status());assertEquals(analysis,running.analysisId());assertEquals(1,owner.json(owner.get("/api/workspaces/"+workspaceId+"/analyses/"+analysis+"/plans")).size());
+        canvasTurns.startDatasetExecution(work);assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM analysis_executions",Integer.class));
+        var cancelled=owner.postJson(canvasConversationPath()+"/"+queued.conversationId()+"/turns/"+queued.turnId()+"/cancel","{}");assertEquals(200,cancelled.statusCode(),cancelled.body());analysisDispatcher.dispatchAvailable();canvasDispatcher.dispatchAvailable();
+        assertEquals("CANCELLED",canvasTurns.find(workspace,queued.conversationId(),queued.turnId()).status());assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM analysis_executions",Integer.class));
+        var saved=owner.json(owner.get("/api/workspaces/"+workspaceId+"/analyses/"+analysis+"/executions/"+running.executionId()+"/record"));assertEquals("SUCCEEDED",saved.at("/execution/status").asString());
+    }
+
     @Test void contextualTurnsAreAtomicDurableBoundedAndNeverReuseNarrowedEvidence() throws Exception {
         String source=upload("lecture.pdf",fixture("lecture.pdf"));dispatch();
         UUID version=UUID.fromString(owner.json(owner.get(sourcePath(source))).path("activeVersionId").asString());
@@ -1902,7 +1971,7 @@ class SourceExtractionEndToEndTest {
         var edit=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,dev.researchhub.ai.application.CanvasConversationContracts.Intent.EDIT,"Edit",null,null,next.scope());
         assertEquals(403,viewer.postJson(path+"/turns",mapper.writeValueAsString(edit)).statusCode());
         assertEquals(202,owner.postJson(path+"/turns",mapper.writeValueAsString(edit)).statusCode());canvasDispatcher.dispatchAvailable();
-        assertEquals("WAITING_FOR_INPUT",owner.json(owner.get(path)).at("/turns/2/status").asString());
+        assertEquals("PROPOSAL_READY",owner.json(owner.get(path)).at("/turns/2/status").asString());
         var ambiguous=canvasRequest(context,List.of(),"Rozwiń tę propozycję",null,null);
         assertEquals(202,owner.postJson(path+"/turns",mapper.writeValueAsString(ambiguous)).statusCode());canvasDispatcher.dispatchAvailable();
         assertEquals("CLARIFICATION",owner.json(owner.get(path)).at("/turns/3/resultKind").asString());
@@ -1929,6 +1998,22 @@ class SourceExtractionEndToEndTest {
             assertEquals(3,jdbc.queryForObject("SELECT count(*) FROM ai_generation_runs WHERE feature_id='workspace-question'",Integer.class));
             assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM ai_conversations",Integer.class));
         } finally {if(process.isAlive())process.destroyForcibly();}
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="CANVAS_BROWSER_TESTS",matches="true")
+    void contextualDatasetBrowserCalculatesFrozenInputAndInsertsSavedPackage() throws Exception {
+        String source=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();String version=activeVersion(source),document=canvasDocument();
+        var builder=new ProcessBuilder("node","e2e/canvas-dataset.cjs").directory(Path.of("../frontend").toFile());
+        builder.environment().putAll(Map.of("E2E_BACKEND_URL","http://127.0.0.1:"+port,"E2E_WORKSPACE_ID",workspaceId,"E2E_DOCUMENT_ID",document,"E2E_DATASET_VERSION",version));
+        var log=Path.of("target/canvas-dataset-browser.log");var process=builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();boolean replaced=false;
+        try {long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
+            while(process.isAlive() && System.nanoTime()<deadline) {canvasDispatcher.dispatchAvailable();
+                if(!replaced && jdbc.queryForObject("SELECT count(*) FROM canvas_turns WHERE status='EXECUTING'",Integer.class)>0){replace(source,"new.csv","frequency,voltage,current\n300,5,1\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();replaced=true;}
+                analysisDispatcher.dispatchAvailable();Thread.sleep(100);}
+            assertFalse(process.isAlive(),"Dataset browser exceeded its deadline");assertEquals(0,process.exitValue(),Files.readString(log));assertTrue(replaced);assertNotEquals(version,activeVersion(source));
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM analysis_executions",Integer.class));
+        }finally{if(process.isAlive())process.destroyForcibly();}
     }
 
     @Test void contextualProposalReferencesUseAuthorizedIdsAndCurrentAcceptedBlocks() throws Exception {
@@ -1983,6 +2068,39 @@ class SourceExtractionEndToEndTest {
         var history=owner.get(canvasConversationPath()+"/"+failed.conversationId());assertEquals(200,history.statusCode());assertEquals("AI_UNAVAILABLE",owner.json(history).at("/turns/0/failureCode").asString());
         assertFalse(history.body().contains("systemInstruction"));assertFalse(history.body().contains("thought"));
         UUID missing=UUID.randomUUID();assertEquals(404,owner.postJson(canvasConversationPath()+"/contextual",mapper.writeValueAsString(new dev.researchhub.ai.application.CanvasConversationContracts.FirstTurn("1.0",UUID.randomUUID(),missing,canvasRequest(missing,List.of(),"Explain",null,null)))).statusCode());
+    }
+
+    @Test void canvasDatasetRoutePreparesExactlyOneImmutableAnalysisAndNeverExecutesIt() throws Exception {
+        String source=upload("measurements.csv","frequency,voltage,current\n100,4.81,0.12\n200,4.63,0.19\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
+        UUID version=UUID.fromString(activeVersion(source));UUID context=canvasContext(canvasDocument());
+        var request=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,
+            dev.researchhub.ai.application.CanvasConversationContracts.Intent.ANALYZE,"Wykres napięcia z datasetu",null,null,
+            new dev.researchhub.ai.application.CanvasConversationContracts.Scope(List.of(version),List.of()));
+        var first=firstCanvas(request);canvasDispatcher.dispatchAvailable();canvasDispatcher.dispatchAvailable();
+        var ready=canvasTurns.find(UUID.fromString(workspaceId),first.conversationId(),first.turnId());assertEquals("COMPLETED",ready.status(),ready.toString());
+        assertEquals("ANALYSIS_HANDOFF",ready.resultKind());assertNotNull(ready.analysisId());
+        var analysis=owner.get("/api/workspaces/"+workspaceId+"/analyses/"+ready.analysisId());assertEquals(200,analysis.statusCode(),analysis.body());
+        assertTrue(analysis.body().contains(version.toString()));assertEquals("DRAFT",owner.json(analysis).path("status").asString());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM analyses",Integer.class));assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM analysis_executions",Integer.class));
+        var history=owner.json(owner.get(canvasConversationPath()+"/"+first.conversationId()));assertEquals(ready.analysisId().toString(),history.at("/messages/1/canvasResult/analysisId").asString());
+    }
+    @Test void canvasDraftUsesOnlyPinnedSourceEvidenceAndRejectsScopeNarrowing() throws Exception {
+        String source=upload("lecture.pdf",fixture("lecture.pdf"));dispatch();UUID version=UUID.fromString(activeVersion(source));
+        String document=canvasDocument();UUID context=canvasContext(document);String path="/api/workspaces/"+workspaceId+"/documents/"+document;
+        var request=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,
+            dev.researchhub.ai.application.CanvasConversationContracts.Intent.EDIT,"Dodaj treść o Lecture 2",null,null,
+            new dev.researchhub.ai.application.CanvasConversationContracts.Scope(List.of(version),List.of()));
+        var first=firstCanvas(request);canvasDispatcher.dispatchAvailable();var ready=canvasTurns.find(UUID.fromString(workspaceId),first.conversationId(),first.turnId());
+        assertEquals("PROPOSAL_READY",ready.status(),ready.toString());var response=owner.get(path+"/ai/proposals/"+ready.proposalId());assertEquals(200,response.statusCode(),response.body());
+        var proposal=mapper.readValue(response.body(),dev.researchhub.ai.application.CanvasProposalContracts.Proposal.class);
+        assertFalse(proposal.citations().isEmpty());assertTrue(proposal.citations().stream().allMatch(c->c.sourceVersionId().equals(version)));
+        var narrow=new dev.researchhub.ai.application.CanvasConversationContracts.Turn("1.0",UUID.randomUUID(),context,
+            dev.researchhub.ai.application.CanvasConversationContracts.Intent.EDIT,"Rozwiń propozycję",null,proposal.id(),
+            new dev.researchhub.ai.application.CanvasConversationContracts.Scope(List.of(),List.of()));
+        var reserved=owner.postJson(canvasConversationPath()+"/"+first.conversationId()+"/turns",mapper.writeValueAsString(narrow));assertEquals(202,reserved.statusCode());canvasDispatcher.dispatchAvailable();
+        assertEquals("WAITING_FOR_INPUT",owner.json(owner.get(canvasConversationPath()+"/"+first.conversationId())).at("/turns/1/status").asString());
+        var accepted=owner.postJson(path+"/ai/proposals/"+proposal.id()+"/accept",mapper.writeValueAsString(new dev.researchhub.ai.application.CanvasProposalContracts.Accept(UUID.randomUUID(),proposal.versionHash())));
+        assertEquals(200,accepted.statusCode(),accepted.body());assertTrue(owner.get(path).body().contains("researchCitation"));
     }
 
 }

@@ -28,4 +28,8 @@ public class CollaborationController {
     public State load(@RequestBody AuthorizationRequest request) { return service.load(request.token(), request.room()); }
     @PostMapping("/internal/collaboration/rooms/{room}/snapshot")
     public State snapshot(@PathVariable String room, @RequestBody Snapshot snapshot) { return service.save(room, snapshot); }
+    @org.springframework.beans.factory.annotation.Autowired private dev.researchhub.ai.application.CanvasOperationService canvas;
+    public record CanvasLoad(UUID operationId) {}
+    @PostMapping("/internal/collaboration/ai/load") public dev.researchhub.ai.application.CanvasOperationService.Loaded canvasLoad(@RequestBody CanvasLoad request) {return canvas.load(request.operationId());}
+    @PostMapping("/internal/collaboration/ai/commit") public dev.researchhub.ai.application.CanvasOperationService.Committed canvasCommit(@RequestBody dev.researchhub.ai.application.CanvasOperationService.Commit request) {return canvas.commit(request);}
 }

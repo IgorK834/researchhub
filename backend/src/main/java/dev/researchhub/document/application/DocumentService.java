@@ -230,6 +230,11 @@ public class DocumentService {
         return reviseWithReason(workspaceId, userId, documentId,
                 new ReviseDocumentCommand(title, content, revision, SaveKind.AUTOSAVE), null, true);
     }
+    /** AI approval is a milestone in both storage modes. Only a frozen server operation may call this. */
+    @Transactional
+    public DocumentDetail persistCanvas(UUID workspaceId,UUID userId,UUID documentId,String title,String content,long revision) {
+        return reviseWithReason(workspaceId,userId,documentId,new ReviseDocumentCommand(title,content,revision,SaveKind.MANUAL),DocumentVersionReason.AI_ACCEPTANCE,true);
+    }
 
     /** A manual milestone without replacing CRDT content. */
     @Transactional
