@@ -119,6 +119,9 @@ public class GlobalExceptionHandler {
     private static ProblemDetail problem(ApiErrorCode code, String detail) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status(code), detail);
         problem.setType(PROBLEM_TYPE);
+        if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes() instanceof org.springframework.web.context.request.ServletRequestAttributes attributes) {
+            problem.setInstance(SafeProblemInstance.from(attributes.getRequest()));
+        }
         problem.setTitle(title(code));
         problem.setProperty("code", code.name());
         return problem;

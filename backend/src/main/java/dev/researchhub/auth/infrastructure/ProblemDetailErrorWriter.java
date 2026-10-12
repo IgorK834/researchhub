@@ -41,7 +41,7 @@ public class ProblemDetailErrorWriter {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(PROBLEM_TYPE);
         problem.setTitle(title);
-        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setInstance(dev.researchhub.shared.api.SafeProblemInstance.from(request));
         problem.setProperty("code", code.name());
 
         response.setStatus(status.value());
