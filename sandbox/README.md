@@ -13,14 +13,14 @@ its code is safe. The trusted Java runner independently enforces the execution b
 ## Build and enable
 
 ```bash
-docker build -t researchhub-sandbox:1.1.1 sandbox
+docker build -t researchhub-sandbox:1.2.0 sandbox
 ```
 
 The base is Python **3.13.3**, pinned to an image digest in `Dockerfile`. Initial libraries are pandas **2.2.3**,
 NumPy **2.2.4**, SciPy **1.15.2**, matplotlib **3.10.1** and openpyxl **3.1.5**; every transitive dependency is pinned
 in `requirements.lock`. Installation happens only during image build, from binary wheels, and pip is removed.
 Add packages through a reviewed lock/image change. There is no runtime install endpoint or prompt-controlled package
-list. The image declares runtime version **1.1.1**.
+list. The image declares runtime version **1.2.0**.
 
 After building, enable the backend's local adapter with `ANALYSIS_SANDBOX_ENABLED=true`. The fixed image tag cannot
 be supplied by a request. The adapter resolves it to a `sha256:` image ID and launches that exact ID with automatic
@@ -77,11 +77,13 @@ silently re-executed. Full orchestration: [analysis-execution.md](../docs/develo
 
 ## Reproducible checks
 
-After the existing AI worker's pinned development environment is installed (`uv sync --frozen` in `ai-worker`):
+Install the existing worker environment (`uv sync --frozen --project ai-worker`) and the dedicated pinned scientific test environment:
 
 ```bash
+uv venv sandbox/.venv --python 3.13.3
+uv pip install --python sandbox/.venv/bin/python -r sandbox/requirements-test.lock
 cd sandbox
-../ai-worker/.venv/bin/python -m pytest
+.venv/bin/python -m pytest
 cd ..
 ai-worker/.venv/bin/python sandbox/scripts/acceptance.py
 cd backend
@@ -99,3 +101,9 @@ tests additionally verify independent log caps and a healthy subsequent executio
 sandbox → PostgreSQL result/attempt persistence → authorized chart download. It verifies original-version execution
 after a source replacement, explicit repeat attempts, and all XLSX rows beyond the limited inspection. These E2E
 tests require the fixed image to be built first. Container tests that cannot run do not establish isolation.
+
+## PROBLEM v2 and independent verification
+
+Image 1.2.0 also exposes fixed `problem.py` and `verify_problem.py` entrypoints to the trusted Java runner. The PROBLEM path does not stage or execute request code. It mounts server-owned frozen problem/plan JSON, and candidate JSON only in the second fresh phase. SymPy 1.14.0 and mpmath 1.3.0 remain sandbox dependencies; the AI worker does not import a CAS. All original isolation/collector/cleanup restrictions apply independently to both phases. See the [versioned protocol](../contracts/analysis/execution/v3/README.md) for SI, polynomial, AST, complexity, point/value and combined time budgets.
+
+`test_problem.py` covers constructors, units, domain/zero/nonfinite failures, numeric explosion, forbidden CAS, phase/path/hash/candidate tampering, safe diagnostics and controlled verifier entrypoint. Real Java runner tests prove request code is ignored and a fresh verifier rejects forged values/steps before a healthy run. `ProblemApiIntegrationTest` exercises authenticated creation, real worker planning, queue, actual compute/verifier containers, persistence, PNG download, immutable scope, clarification, input changes, frozen reproduction and production-browser workflow.

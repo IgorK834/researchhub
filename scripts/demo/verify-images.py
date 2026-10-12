@@ -5,13 +5,13 @@ import subprocess
 import urllib.request
 import time
 
-IMAGES = ("researchhub-backend:demo", "researchhub-frontend:demo", "researchhub-ai-worker:demo", "researchhub-sandbox:1.1.1")
+IMAGES = ("researchhub-backend:demo", "researchhub-frontend:demo", "researchhub-ai-worker:demo", "researchhub-sandbox:1.2.0")
 images = json.loads(subprocess.check_output(["docker", "image", "inspect", *IMAGES], text=True))
 for image in images:
     config = image["Config"]
     assert config["User"].split(":")[0] not in ("", "0", "root"), image["RepoTags"]
     assert not any(value.startswith(("DB_PASSWORD=", "BLOB_CONNECTION_STRING=", "AI_WORKER_SERVICE_TOKEN=", "FOUNDRY_API_KEY=", "OPENAI_COMPAT_API_KEY=", "GEMINI_API_KEY=")) for value in config["Env"])
-    if "researchhub-sandbox:1.1.1" in image["RepoTags"]:
+    if "researchhub-sandbox:1.2.0" in image["RepoTags"]:
         assert config.get("Healthcheck", {}).get("Test", ["NONE"]) == ["NONE"]
     else:
         assert config["Healthcheck"]["Test"], image["RepoTags"]
