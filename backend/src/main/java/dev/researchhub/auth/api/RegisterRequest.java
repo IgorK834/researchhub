@@ -29,9 +29,11 @@ public record RegisterRequest(
 
         @NotBlank
         @Size(max = FieldLengths.NAME_MAX)
-        String displayName
+        String displayName,
+        @Size(max = 43) String invitationToken
 ) {
 
+    public RegisterRequest(String email, String password, String displayName) { this(email,password,displayName,null); }
     public RegisterRequest {
         email = Normalize.trim(email);
         displayName = Normalize.trim(displayName);

@@ -67,7 +67,7 @@ public class AuthController {
     @PostMapping("/register")
     ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserAccount account = registrationService.register(new RegisterUserCommand(
-                request.email(), request.password(), request.displayName()));
+                request.email(), request.password(), request.displayName(), request.invitationToken()));
 
         log.info("event=auth.register.success userId={}", account.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(account));

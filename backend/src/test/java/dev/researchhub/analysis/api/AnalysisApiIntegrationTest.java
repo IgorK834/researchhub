@@ -358,6 +358,8 @@ class AnalysisApiIntegrationTest {
         // Remove the dependent review/AI/audit schema too, so this remains a real V21 -> latest upgrade.
         jdbc.execute("DROP TABLE document_content_operations,comment_ai_citation_acceptances,comment_ai_suggestions,product_audit_events");
         jdbc.execute("DROP TABLE comment_audit_events, comment_replies, document_comments");
+        jdbc.execute("DROP TABLE workspace_invitation,account_lifecycle_token,account_audit_events,security_operation_bucket");
+        jdbc.execute("ALTER TABLE users DROP COLUMN email_verified_at");
         jdbc.execute("DROP FUNCTION review_history_is_immutable()");
         jdbc.execute("ALTER TABLE documents DROP CONSTRAINT uq_documents_workspace_id");
         jdbc.execute("ALTER TABLE document_versions DROP CONSTRAINT ck_document_snapshot_actor,DROP CONSTRAINT ck_document_snapshot_name,DROP CONSTRAINT ck_document_snapshot_state,DROP COLUMN name,DROP COLUMN actor_name,DROP COLUMN yjs_state,DROP COLUMN state_sha256,DROP COLUMN collaboration_epoch,DROP COLUMN collaboration_sequence,ALTER COLUMN created_by SET NOT NULL,ADD CONSTRAINT uq_document_versions_document_revision UNIQUE(document_id,revision)");
@@ -376,6 +378,8 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP TABLE cost_quota_bucket");
         jdbc.execute("DROP TABLE registration_rejections");
         jdbc.update("DELETE FROM flyway_schema_history WHERE version::integer > 21");flyway.migrate();
+        // Rebuilding V36 removes JDBC sessions; re-authenticate after the historical upgrade.
+        assertEquals(200,owner.postJson("/api/auth/login", "{\"email\":\"owner@example.test\",\"password\":\"correct-horse-battery-staple\"}").statusCode());
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());

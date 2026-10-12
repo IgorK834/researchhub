@@ -16,7 +16,7 @@ import java.util.*;
 @Transactional(propagation = Propagation.MANDATORY)
 public class ProductAudit {
     public enum Type {
-        WORKSPACE_CREATED, MEMBER_ADDED, MEMBER_ROLE_CHANGED, MEMBER_REMOVED,
+        INVITATION_CREATED, INVITATION_ACCEPTED, INVITATION_REVOKED, WORKSPACE_CREATED, MEMBER_ADDED, MEMBER_ROLE_CHANGED, MEMBER_REMOVED,
         SOURCE_UPLOADED, SOURCE_REPROCESSED, DOCUMENT_CREATED, AI_EVIDENCE_REQUESTED,
         AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED, CANVAS_STAGE_COMPLETED
     }
@@ -34,6 +34,11 @@ public class ProductAudit {
         if(millis<0)throw new IllegalArgumentException("Invalid stage latency");
         append(workspace,actor,Type.CANVAS_STAGE_COMPLETED,"DOCUMENT",document,
             Map.of("operationId",operation,"stage",stage.name(),"durationMs",millis,"outcome",success ? "SUCCESS" : "FAILURE"));
+    }
+    public void invitation(UUID workspace, UUID actor, UUID invitation, Type type, String role) {
+        if (!Set.of(Type.INVITATION_CREATED, Type.INVITATION_ACCEPTED, Type.INVITATION_REVOKED).contains(type))
+            throw new IllegalArgumentException("Invalid invitation audit event");
+        append(workspace, actor, type, "INVITATION", invitation, Map.of("role", role(role)));
     }
     public void workspaceCreated(UUID workspace, UUID actor) {
         append(workspace, actor, Type.WORKSPACE_CREATED, "WORKSPACE", workspace, Map.of());

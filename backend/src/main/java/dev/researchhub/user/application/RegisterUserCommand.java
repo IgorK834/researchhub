@@ -6,7 +6,8 @@ package dev.researchhub.user.application;
  * <p>{@code rawPassword} is a plaintext password and exists only for the duration of the call. It is
  * hashed inside the service and never stored on a domain object, returned, or logged.
  */
-public record RegisterUserCommand(String email, String rawPassword, String displayName) {
+public record RegisterUserCommand(String email, String rawPassword, String displayName, String invitationToken) {
+    public RegisterUserCommand(String email, String rawPassword, String displayName) { this(email, rawPassword, displayName, null); }
 
     @Override
     public String toString() {

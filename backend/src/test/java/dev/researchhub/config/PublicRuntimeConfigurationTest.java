@@ -3,7 +3,7 @@ package dev.researchhub.config;
 import dev.researchhub.ai.application.*;
 import dev.researchhub.ai.application.GenerationContracts.ModelMetadata;
 import dev.researchhub.user.application.*;
-import dev.researchhub.user.infrastructure.UnavailableRegistrationInvitations;
+import dev.researchhub.user.application.RegistrationInvitations;
 import dev.researchhub.shared.error.ApiException;
 import org.junit.jupiter.api.Test;
 import java.time.*;
@@ -13,7 +13,7 @@ import static org.mockito.Mockito.*;
 class PublicRuntimeConfigurationTest {
     final ModelProvider model = mock(ModelProvider.class);
     final Clock clock = mock(Clock.class);
-    final RegistrationPolicy registration = new RegistrationPolicy("disabled", mock(RegistrationRejectionAudit.class), new UnavailableRegistrationInvitations());
+    final RegistrationPolicy registration = new RegistrationPolicy("disabled", mock(RegistrationRejectionAudit.class), mock(RegistrationInvitations.class));
     @Test void fixtureIdentityIsHonestCachedAndRefreshesFromActualProvider() {
         var now = Instant.parse("2026-10-08T10:00:00Z"); when(clock.instant()).thenReturn(now);
         when(model.modelMetadata()).thenReturn(new ModelMetadata("deterministic","extractive-fixture","1",true,false));

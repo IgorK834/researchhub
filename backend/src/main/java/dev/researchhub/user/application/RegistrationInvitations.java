@@ -2,7 +2,7 @@ package dev.researchhub.user.application;
 
 import java.util.function.Supplier;
 
-/** Invitation redemption and account creation must commit together; null means invalid invitation. */
+/** Invitation validation and account creation commit together; acceptance follows verified sign-in. Null means invalid invitation. */
 public interface RegistrationInvitations {
     UserAccount register(RegisterUserCommand command, Supplier<UserAccount> create);
 }
