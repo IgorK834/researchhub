@@ -18,6 +18,8 @@ import java.util.*;
 
 @Service
 public class ExportService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private dev.researchhub.analysis.application.SolutionService solutions;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private dev.researchhub.analysis.application.ProblemService problems;
     private final DocumentService documents;
     private final DocumentProvenance provenance;
     private final WorkspaceAuthorizationService authorization;
@@ -44,7 +46,7 @@ public class ExportService {
         var origins=new ArrayList<Origin>();
         collectOrigins(json.readTree(detail.content()),workspace,caller,document,origins,0);
         var report=new EditorReportAdapter(json).convert(workspace,document,revision,detail.summary().title(),detail.content(),clock.instant(),
-            new WorkspaceExportReferences(workspace,caller,sources,executions),origins);
+            new WorkspaceExportReferences(workspace,caller,sources,executions,solutions,problems),origins);
         // Reject malformed or impractically wide tables before creating a durable job.
         validateTables(report.blocks());
         if (json.writeValueAsString(report).getBytes(StandardCharsets.UTF_8).length>24*1024*1024)

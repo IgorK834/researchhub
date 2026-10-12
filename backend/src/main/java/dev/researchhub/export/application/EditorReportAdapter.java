@@ -18,7 +18,7 @@ public final class EditorReportAdapter {
         if (!root.isObject() || !"doc".equals(root.path("type").asString())) throw invalid("Unsupported document format");
         var state=new State(workspace,references);
         var blocks=state.blocks(root,0);
-        return new Report("1.0",workspace,document,revision,title,now,blocks,
+        return new Report(state.version2 ? "2.0" : "1.0",workspace,document,revision,title,now,blocks,
             new ArrayList<>(state.bibliography.values()),origins,new ArrayList<>(state.warnings));
     }
     private static final class State {
@@ -26,7 +26,7 @@ public final class EditorReportAdapter {
         final ExportReferences references;
         final Map<String,BibliographyEntry> bibliography=new LinkedHashMap<>();
         final Set<String> warnings=new LinkedHashSet<>();
-        int nodes,cells;
+        int nodes,cells; boolean version2;
         State(UUID workspace,ExportReferences references) { this.workspace=workspace;this.references=references; }
         List<Block> blocks(JsonNode parent,int depth) {
             var result=new ArrayList<Block>();
@@ -53,12 +53,16 @@ public final class EditorReportAdapter {
                     case "table" -> result.add(table(node,depth+1));
                     case "figure","blockquote" -> result.add(new Container(blocks(node,depth+1),type.equals("blockquote")));
                     case "codeBlock" -> result.add(new Code(plain(node,depth+1)));
+                    case "blockMath" -> { var math=node.path("attrs").path("math");dev.researchhub.shared.math.MathAst.value(math);result.add(new Equation("AST",math.path("notation").asString(),math(math),null)); }
                     case "horizontalRule" -> result.add(new Rule());
                     case "analysisResult" -> {
                         var attrs=node.path("attrs");var ref=attrs.path("reference");
-                        var output=references.analysis(uuid(ref,"analysisId"),uuid(ref,"executionId"),
-                            required(ref,"outputId"),required(ref,"renderMode"),attrs.path("caption").asString(""));
+                        var output="PROBLEM".equals(ref.path("workload").asString()) ? references.analysis(uuid(ref,"analysisId"),uuid(ref,"executionId"),
+                            required(ref,"outputId"),required(ref,"renderMode"),attrs.path("caption").asString(""),
+                            ref.path("workload").asString("DATASET"),optionalId(ref,"stepId"),optionalId(ref,"conversationId")) : references.analysis(uuid(ref,"analysisId"),uuid(ref,"executionId"),required(ref,"outputId"),required(ref,"renderMode"),attrs.path("caption").asString(""));
+                        if("PROBLEM".equals(ref.path("workload").asString()))version2=true;
                         for (var block:output) {
+                            if(block instanceof Equation eq && eq.math()!=null && eq.math().warning()!=null)warnings.add(eq.math().warning());
                             if (block instanceof Table t) countCells(t.rows().stream().mapToInt(List::size).sum());
                             result.add(block);
                         }
@@ -77,6 +81,11 @@ public final class EditorReportAdapter {
             }
             return result;
         }
+        MathExpression math(JsonNode value) {
+            version2=true;var frozen=ReportMath.freeze(value.path("ast"),value.path("verification").isNull() ? null : value.path("verification"));
+            if(frozen.warning()!=null)warnings.add(frozen.warning());return frozen;
+        }
+        UUID optionalId(JsonNode ref,String field) {return ref.path(field).isMissingNode() || ref.path(field).isNull() ? null : uuid(ref,field);}
         Table table(JsonNode node,int depth) {
             var rows=new ArrayList<List<Cell>>();
             for (var row:children(node)) {
@@ -115,6 +124,7 @@ public final class EditorReportAdapter {
                         }
                         result.add(new Text(required(node,"text"),styles));
                     }
+                    case "inlineMath" -> {var math=node.path("attrs").path("math");dev.researchhub.shared.math.MathAst.value(math);result.add(new InlineMath(math(math)));}
                     case "hardBreak" -> result.add(new Text("\n",Set.of()));
                     case "researchCitation" -> result.add(citation(node.path("attrs").path("citation")));
                     default -> throw invalid("Unsupported inline node");

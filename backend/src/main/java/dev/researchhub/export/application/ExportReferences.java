@@ -9,4 +9,9 @@ public interface ExportReferences {
     SourceReference source(UUID sourceId, UUID versionId, String processingVersion, String chunkId, String citedContentHash,
                            Integer pageStart, Integer pageEnd, String sectionTitle, List<Span> spans);
     List<Block> analysis(UUID analysisId, UUID executionId, String outputId, String renderMode, String caption);
+    default List<Block> analysis(UUID analysisId, UUID executionId, String outputId, String renderMode, String caption,
+                                 String workload, UUID stepId, UUID conversationId) {
+        if ("PROBLEM".equals(workload)) throw EditorReportAdapter.invalid("Saved solution export is unavailable");
+        return analysis(analysisId,executionId,outputId,renderMode,caption);
+    }
 }

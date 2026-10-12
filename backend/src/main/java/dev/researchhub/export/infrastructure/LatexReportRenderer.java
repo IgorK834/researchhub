@@ -25,7 +25,7 @@ public final class LatexReportRenderer {
         \\usepackage{fontspec}
         \\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
         \\setmonofont{lmmono10-regular.otf}
-        \\usepackage{graphicx,array,longtable}
+        \\usepackage{graphicx,array,longtable,amsmath}
         \\usepackage[longtable]{multirow}
         \\usepackage{enumitem}
         \\usepackage[normalem]{ulem}
@@ -46,7 +46,7 @@ public final class LatexReportRenderer {
         Extract the complete ZIP before editing or compiling.
         report.tex       Editable UTF-8 academic report.
         images/          Embedded, normalized PNG figures; keep their relative paths.
-        report.json      Frozen report schema 1.0, including full source and analysis provenance.
+        report.json      Frozen report schema 1.0/2.0, including full source and analysis provenance.
 
         Compile locally with a current TeX Live or MiKTeX installation:
           xelatex -no-shell-escape report.tex
@@ -57,8 +57,8 @@ public final class LatexReportRenderer {
 
         Citations use the same numeric labels as the exported report. Bibliography
         entries retain immutable source versions. Captions keep the author's text.
-        Code and reserved equation nodes are literal text; edit them in report.tex
-        to add your own mathematical typesetting. User text is escaped throughout.
+        Controlled AST equations are editable mathematics. Legacy/oversized notation
+        remains literal text with an explicit warning. User text is escaped throughout.
         """;
 
     public byte[] render(Report report) {
@@ -177,8 +177,14 @@ public final class LatexReportRenderer {
                     case Code code -> literal(out, code.text());
                     case Rule ignored -> out.append("\\par\\noindent\\rule{\\linewidth}{0.4pt}\\par\n");
                     case Equation equation -> {
-                        caption(out, "Equation (" + equation.notation() + " source)");
-                        literal(out, equation.source());
+                        if(equation.math()!=null && equation.math().warning()==null) {
+                            out.append("\\[\n").append(dev.researchhub.export.application.ReportMath.tex(equation.math().ast())).append("\n\\]\n");
+                            caption(out,equation.math().accessibleText());
+                        } else {
+                            caption(out,dev.researchhub.export.application.ReportMath.FALLBACK);
+                            literal(out,equation.source());
+                        }
+                        caption(out,ReportText.provenance(equation.provenance()));
                     }
                 }
             }
@@ -188,6 +194,11 @@ public final class LatexReportRenderer {
             var out = new StringBuilder();
             for (var inline : content) {
                 if (inline instanceof Citation citation) { out.append(escape(ReportText.citation(citation))); continue; }
+                if(inline instanceof InlineMath math) {
+                    if(math.math().warning()==null)out.append("\\(").append(dev.researchhub.export.application.ReportMath.tex(math.math().ast())).append("\\)");
+                    else out.append(escape(math.math().warning()+" "+math.math().accessibleText()+"; source: "+math.math().source()));
+                    continue;
+                }
                 var text = (Text) inline;
                 String value = escape(text.text());
                 // A fixed nesting order keeps output reproducible across immutable Set implementations.

@@ -39,13 +39,14 @@ public final class PdfReportRenderer {
             .append("thead { display:table-header-group; } td,th { border:0.5pt solid #c9c6c0; padding:5pt; word-wrap:break-word; font-size:9pt; } ")
             .append("th { background:#f0eee9; } tr { page-break-inside:avoid; } td p,th p { margin:0; } li { margin-bottom:4pt; } ")
             .append(".caption,.provenance { font-size:9pt; color:#555; } .caption { font-style:italic; } .provenance { word-wrap:break-word; }")
-            .append("code,pre { font-family:ReportCode; } .image { text-align:center; page-break-inside:avoid; } blockquote { margin:8pt 16pt; } pre { white-space:pre-wrap; word-wrap:break-word; }")
+            .append("code,pre { font-family:ReportCode; } .equation { page-break-inside:avoid; } .equation img { display:block; margin:6pt 0; } .image { text-align:center; page-break-inside:avoid; } blockquote { margin:8pt 16pt; } pre { white-space:pre-wrap; word-wrap:break-word; }")
             .append("</style></head><body><h1>").append(escape(report.title())).append("</h1>");
         blocks(html,report.blocks());
         if (!report.bibliography().isEmpty()) {
             html.append("<h2>References</h2>");
             report.bibliography().forEach(e -> html.append("<p class=\"provenance\">").append(escape(ReportText.bibliography(e))).append("</p>"));
         }
+        if(!report.warnings().isEmpty()) {html.append("<h2>Export notes</h2>");report.warnings().forEach(w -> html.append("<p>").append(escape(w)).append("</p>"));}
         return html.append("</body></html>").toString();
     }
     private void blocks(StringBuilder html,List<Block> blocks) {
@@ -85,11 +86,17 @@ public final class PdfReportRenderer {
             case Container container -> { html.append(container.quote() ? "<blockquote>" : "<div>");blocks(html,container.blocks());html.append(container.quote() ? "</blockquote>" : "</div>"); }
             case Code code -> html.append("<pre>").append(escape(code.text())).append("</pre>");
             case Rule ignored -> html.append("<hr/>");
-            case Equation equation -> html.append("<pre>").append(escape(equation.source())).append("</pre>");
+            case Equation equation -> {
+                html.append("<div class=\"equation\">");
+                if(equation.math()!=null) {math(html,equation.math(),false);caption(html,equation.math().accessibleText());}
+                else html.append("<p>").append(escape(dev.researchhub.export.application.ReportMath.FALLBACK+" "+equation.source())).append("</p>");
+                html.append("</div>");provenance(html,equation.provenance());
+            }
         }
     }
     private void inlines(StringBuilder html,List<Inline> content) {
         for (Inline inline:content) {
+            if(inline instanceof InlineMath m) {math(html,m.math(),true);continue;}
             var tags=new ArrayList<String>();
             if (inline instanceof Text text) for (Style style:Style.values()) if (text.styles().contains(style))
                 tags.add(switch (style) { case BOLD -> "strong";case ITALIC -> "em";case UNDERLINE -> "u";case STRIKE -> "s";case CODE -> "code"; });
@@ -97,6 +104,13 @@ public final class PdfReportRenderer {
             html.append(escape(ReportText.inline(inline)).replace("\n","<br/>"));
             for (int i=tags.size()-1;i>=0;i--) html.append("</").append(tags.get(i)).append('>');
         }
+    }
+    private void math(StringBuilder html,MathExpression m,boolean inline) {
+        if(m.warning()!=null) {html.append(escape(m.warning()+" "+m.accessibleText()+"; source: "+m.source()));return;}
+        double scale=Math.min(inline ? 0.5 : 0.65,445d/m.width());
+        html.append("<img src=\"data:image/png;base64,").append(m.pngBase64()).append("\" alt=\"")
+            .append(escape(m.accessibleText())).append("\" style=\"width:").append(Math.max(1,(int)(m.width()*scale)))
+            .append("pt;height:").append(Math.max(1,(int)(m.height()*scale))).append("pt;vertical-align:middle;\"/>");
     }
     private void caption(StringBuilder html,String caption) {
         if (!caption.isBlank()) html.append("<p class=\"caption\">").append(escape(caption)).append("</p>");

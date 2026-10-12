@@ -23,6 +23,10 @@ public final class DocxReportRenderer {
                 heading(document,1,List.of(new Text("References",Set.of())));
                 report.bibliography().forEach(e -> paragraph(document,List.of(new Text(ReportText.bibliography(e),Set.of())),false));
             }
+            if(!report.warnings().isEmpty()) {
+                heading(document,1,List.of(new Text("Export notes",Set.of())));
+                report.warnings().forEach(w -> paragraph(document,List.of(new Text(w,Set.of())),false));
+            }
             document.write(output);return output.toByteArray();
         } catch (Exception failure) { throw new IllegalStateException("DOCX rendering failed",failure); }
     }
@@ -84,7 +88,13 @@ public final class DocxReportRenderer {
             }
             case Code code -> paragraph(body,List.of(new Text(code.text(),Set.of(Style.CODE))),false);
             case Rule ignored -> { var p=newParagraph(body);p.setBorderBottom(Borders.SINGLE); }
-            case Equation equation -> paragraph(body,List.of(new Text(equation.source(),Set.of(Style.CODE))),false);
+            case Equation equation -> {
+                if(equation.math()!=null) {
+                    var p=newParagraph(body);math(p,equation.math());
+                    paragraph(body,List.of(new Text(equation.math().accessibleText(),Set.of())),true);
+                } else paragraph(body,List.of(new Text(dev.researchhub.export.application.ReportMath.FALLBACK+" "+equation.source(),Set.of(Style.CODE))),false);
+                provenance(body,equation.provenance());
+            }
         }
     }
     private void table(XWPFDocument doc,IBody body,Table source,int depth) throws Exception {
@@ -134,6 +144,7 @@ public final class DocxReportRenderer {
     }
     private void inlines(XWPFParagraph p,List<Inline> content) {
         for (Inline inline:content) {
+            if(inline instanceof InlineMath m) {math(p,m.math());continue;}
             var r=p.createRun();r.setFontFamily("Times New Roman");r.setFontSize(11);
             if (inline instanceof Text text) {
                 r.setBold(text.styles().contains(Style.BOLD));r.setItalic(text.styles().contains(Style.ITALIC));
@@ -144,6 +155,13 @@ public final class DocxReportRenderer {
             String[] lines=ReportText.inline(inline).split("\n",-1);
             for (int i=0;i<lines.length;i++) { if (i>0) r.addBreak();r.setText(lines[i]); }
         }
+    }
+    private void math(XWPFParagraph p,MathExpression math) {
+        if(math.warning()!=null) {p.createRun().setText(math.warning()+" "+math.accessibleText()+"; source: "+math.source());return;}
+        try {
+            var parsed=org.openxmlformats.schemas.officeDocument.x2006.math.CTOMath.Factory.parse(dev.researchhub.export.application.ReportMath.omml(math.ast()));
+            p.getCTP().addNewOMath().set(parsed.selectChildren("http://schemas.openxmlformats.org/officeDocument/2006/math","oMath")[0]);
+        } catch(org.apache.xmlbeans.XmlException invalid) {throw new IllegalArgumentException("Invalid controlled OMML",invalid);}
     }
     private BigInteger numbering(XWPFDocument doc,boolean ordered,int start) {
         var numbering=doc.getNumbering()==null ? doc.createNumbering() : doc.getNumbering();

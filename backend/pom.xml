@@ -33,17 +33,20 @@
         <jacoco.version>0.8.14</jacoco.version>
         <poi.version>5.5.1</poi.version>
         <openhtmltopdf.version>1.1.29</openhtmltopdf.version>
+        <jlatexmath.version>1.0.7</jlatexmath.version>
         <batik.version>1.19</batik.version>
         <!-- RH-184: patched BOMs/container until the Boot 4.1.1 baseline includes these fixes.
              Keep Jackson families aligned through their BOMs; see repository-security.md. -->
         <jackson-2-bom.version>2.22.3</jackson-2-bom.version>
         <jackson-bom.version>3.2.3</jackson-bom.version>
         <tomcat.version>11.0.25</tomcat.version>
+        <build.commit>${git.commit.id.full}</build.commit>
     </properties>
     <dependencies>
         <!-- These document libraries are not managed by Spring Boot's BOM. -->
         <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>${poi.version}</version></dependency>
         <dependency><groupId>io.github.openhtmltopdf</groupId><artifactId>openhtmltopdf-pdfbox</artifactId><version>${openhtmltopdf.version}</version></dependency>
+        <dependency><groupId>org.scilab.forge</groupId><artifactId>jlatexmath</artifactId><version>${jlatexmath.version}</version></dependency>
         <dependency><groupId>org.apache.xmlgraphics</groupId><artifactId>batik-transcoder</artifactId><version>${batik.version}</version></dependency>
         <dependency><groupId>org.apache.xmlgraphics</groupId><artifactId>batik-codec</artifactId><version>${batik.version}</version></dependency>
         <dependency>
@@ -155,6 +158,19 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions><execution><goals><goal>build-info</goal></goals><configuration>
+                    <additionalProperties><commit>${build.commit}</commit></additionalProperties>
+                </configuration></execution></executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId><artifactId>git-commit-id-maven-plugin</artifactId><version>9.0.2</version>
+                <executions><execution><goals><goal>revision</goal></goals></execution></executions>
+                <configuration>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <commitIdGenerationMode>full</commitIdGenerationMode>
+                    <includeOnlyProperties><includeOnlyProperty>^git.commit.id.full$</includeOnlyProperty></includeOnlyProperties>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -168,6 +184,7 @@
                         <include>dev/researchhub/user/application/UserRegistrationService*</include>
                         <include>dev/researchhub/user/infrastructure/*Registration*</include>
                         <include>dev/researchhub/shared/observability/**</include>
+                        <include>dev/researchhub/shared/math/**</include>
                         <include>dev/researchhub/security/**</include>
                         <include>dev/researchhub/auth/**</include>
                         <include>dev/researchhub/comment/**</include>
@@ -306,7 +323,7 @@
                         <id>canvas-document-coverage-report</id><phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
                         <configuration>
-                            <includes><include>dev/researchhub/document/application/CanvasDocumentTarget*</include><include>dev/researchhub/document/application/CanvasTargets*</include></includes>
+                            <includes><include>dev/researchhub/document/application/CanvasDocumentTarget*</include><include>dev/researchhub/document/application/CanvasTargets*</include><include>dev/researchhub/document/application/CanvasEdit*</include></includes>
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-document</outputDirectory>
                             <rules><rule><element>BUNDLE</element><limits>
                                 <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
@@ -330,7 +347,7 @@
                         <id>canvas-infrastructure-coverage-report</id><phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
                         <configuration>
-                            <includes><include>dev/researchhub/ai/infrastructure/PostgresCanvas*Store*</include><include>dev/researchhub/collaboration/infrastructure/HttpCanvasPositionResolver*</include></includes>
+                            <includes><include>dev/researchhub/ai/infrastructure/PostgresCanvas*Store*</include><include>dev/researchhub/collaboration/infrastructure/HttpCanvasPositionResolver*</include><include>dev/researchhub/collaboration/infrastructure/HttpCanvasOperationBridge*</include></includes>
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-infrastructure</outputDirectory>
                             <rules><rule><element>BUNDLE</element><limits>
                                 <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
@@ -557,6 +574,11 @@
                             </limit></limits></rule></rules>
                         </configuration>
                     </execution>
+                    <execution><id>solution-package-coverage-report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><includes><include>dev/researchhub/analysis/application/Solution*</include><include>dev/researchhub/ai/application/Calculation*</include></includes><outputDirectory>${project.reporting.outputDirectory}/jacoco-solution-package</outputDirectory><rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules></configuration></execution>
+                    <execution><id>canvas-workflow-export-math-coverage-report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><includes><include>dev/researchhub/ai/observability/CanvasWorkflowObservation*</include><include>dev/researchhub/export/application/ReportMath*</include></includes><outputDirectory>${project.reporting.outputDirectory}/jacoco-canvas-workflow-export-math</outputDirectory><rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules></configuration></execution>
+                    <execution><id>problem-application-coverage-report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><includes><include>dev/researchhub/analysis/application/Problem*</include></includes><outputDirectory>${project.reporting.outputDirectory}/jacoco-problem-application</outputDirectory><rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules></configuration></execution>
+                    <execution><id>problem-infrastructure-coverage-report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><includes><include>dev/researchhub/analysis/infrastructure/PostgresProblemStore*</include></includes><outputDirectory>${project.reporting.outputDirectory}/jacoco-problem-infrastructure</outputDirectory><rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules></configuration></execution>
+                    <execution><id>math-coverage-report</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration><includes><include>dev/researchhub/shared/math/*</include><include>dev/researchhub/document/application/MathDocumentValidator*</include></includes><outputDirectory>${project.reporting.outputDirectory}/jacoco-math</outputDirectory><rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules></configuration></execution>
                     <execution>
                         <id>analysis-coverage-report</id>
                         <phase>verify</phase>

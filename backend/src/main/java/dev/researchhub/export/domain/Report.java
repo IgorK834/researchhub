@@ -10,13 +10,19 @@ public record Report(String schemaVersion, UUID workspaceId, UUID documentId, lo
                      Instant capturedAt, List<Block> blocks, List<BibliographyEntry> bibliography,
                      List<Origin> origins, List<String> warnings) {
     public Report {
-        if (!"1.0".equals(schemaVersion) || revision < 1) throw new IllegalArgumentException("Invalid report version");
+        if (!Set.of("1.0","2.0").contains(schemaVersion) || revision < 1) throw new IllegalArgumentException("Invalid report version");
         blocks=List.copyOf(blocks); bibliography=List.copyOf(bibliography); origins=List.copyOf(origins); warnings=List.copyOf(warnings);
     }
     public enum Style { BOLD, ITALIC, UNDERLINE, STRIKE, CODE }
     @JsonTypeInfo(use=JsonTypeInfo.Id.NAME, property="kind")
-    @JsonSubTypes({@JsonSubTypes.Type(value=Text.class,name="text"), @JsonSubTypes.Type(value=Citation.class,name="citation")})
-    public sealed interface Inline permits Text, Citation {}
+    @JsonSubTypes({@JsonSubTypes.Type(value=Text.class,name="text"), @JsonSubTypes.Type(value=Citation.class,name="citation"), @JsonSubTypes.Type(value=InlineMath.class,name="math")})
+    public sealed interface Inline permits Text, Citation, InlineMath {}
+    /** Controlled AST plus a bounded, locally rendered frozen PNG. Source is never executable notation. */
+    public record MathExpression(tools.jackson.databind.JsonNode ast, String accessibleText, String source,
+                                 String pngBase64, int width, int height, String warning, tools.jackson.databind.JsonNode verification) {
+        public MathExpression { if (verification!=null && verification.isNull()) verification=null; }
+    }
+    public record InlineMath(MathExpression math) implements Inline {}
     public record Text(String text, Set<Style> styles) implements Inline {
         public Text { styles=Set.copyOf(styles); }
     }
@@ -43,9 +49,17 @@ public record Report(String schemaVersion, UUID workspaceId, UUID documentId, lo
     /** Trusted operation metadata is preserved as JSON text, independently of the editor's attributes. */
     public record Origin(UUID blockId, UUID operationId, String category, UUID actorUserId, String actorName,
                          UUID sourceOperationId, long documentRevision, Instant createdAt, String metadataJson) {}
+    public record SolutionProvenance(String inputHash, String planHash, String candidateHash, String imageId,
+                                     String runtimeVersion, Map<String,String> codeHashes, String verificationVersion,
+                                     tools.jackson.databind.JsonNode precision, String domain,
+                                     tools.jackson.databind.JsonNode receipt, UUID stepId, UUID conversationId,
+                                     String arithmetic, String interpretation) {}
     public record AnalysisProvenance(UUID analysisId, UUID executionId, String outputId, String codeSha256,
-                                     List<SourceReference> inputs) {
+                                     List<SourceReference> inputs, SolutionProvenance solution) {
         public AnalysisProvenance { inputs=List.copyOf(inputs); }
+        public AnalysisProvenance(UUID analysisId, UUID executionId, String outputId, String codeSha256, List<SourceReference> inputs) {
+            this(analysisId,executionId,outputId,codeSha256,inputs,null);
+        }
     }
     @JsonTypeInfo(use=JsonTypeInfo.Id.NAME, property="kind")
     @JsonSubTypes({
@@ -78,6 +92,8 @@ public record Report(String schemaVersion, UUID workspaceId, UUID documentId, lo
     }
     public record Code(String text) implements Block {}
     public record Rule() implements Block {}
-    /** Reserved for future mathematical typesetting. MVP renders the source notation visibly. */
-    public record Equation(String notation, String source) implements Block {}
+    public record Equation(String notation, String source, MathExpression math, AnalysisProvenance provenance) implements Block {
+        /** Legacy snapshots remain readable; unvalidated source is rendered only as literal text. */
+        public Equation(String notation,String source) {this(notation,source,null,null);}
+    }
 }

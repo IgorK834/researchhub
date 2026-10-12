@@ -7,7 +7,7 @@ import java.util.List;
 public final class ReportText {
     private ReportText() {}
     public static String inline(Inline inline) {
-        return inline instanceof Text text ? text.text() : citation((Citation)inline);
+        return switch(inline) {case Text t -> t.text();case Citation c -> citation(c);case InlineMath m -> m.math().accessibleText();};
     }
     public static String plain(List<Inline> content) { return content.stream().map(ReportText::inline).reduce("",String::concat); }
     public static String citation(Citation citation) {
@@ -35,6 +35,15 @@ public final class ReportText {
     }
     public static String provenance(AnalysisProvenance p) {
         if (p==null) return "";
+        if(p.solution()!=null) {
+            var s=p.solution();
+            return "PROBLEM: analysis "+p.analysisId()+"; execution "+p.executionId()+"; output "+p.outputId()
+                +"; step "+s.stepId()+"; conversation "+s.conversationId()+". Arithmetic: "+s.arithmetic()
+                +"; interpretation: "+s.interpretation()+"; domain "+s.domain()+". Input SHA-256: "+s.inputHash()
+                +"; plan SHA-256: "+s.planHash()+"; candidate SHA-256: "+s.candidateHash()
+                +". Runtime: "+s.runtimeVersion()+"; image: "+s.imageId()+"; verification: "+s.verificationVersion()
+                +"; precision: "+s.precision()+"; code hashes: "+new java.util.TreeMap<>(s.codeHashes())+".";
+        }
         String inputs=p.inputs().stream().map(s -> s.title()+" (v"+s.versionNumber()+", "+s.sourceVersionId()+")")
             .reduce((a,b) -> a+"; "+b).orElse("");
         return "Source: "+inputs+". Analysis: "+p.analysisId()+"; execution: "+p.executionId()+"; output: "+p.outputId()+"; code SHA-256: "+p.codeSha256()+".";
