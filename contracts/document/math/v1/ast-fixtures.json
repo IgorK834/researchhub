@@ -1,0 +1,2664 @@
+{
+  "valid": [
+    {
+      "op": "number",
+      "value": "0"
+    },
+    {
+      "op": "number",
+      "value": "-1.25"
+    },
+    {
+      "op": "symbol",
+      "name": "distance"
+    },
+    {
+      "op": "add",
+      "args": [
+        {
+          "op": "number",
+          "value": "2"
+        },
+        {
+          "op": "number",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "op": "mul",
+      "args": [
+        {
+          "op": "number",
+          "value": "2"
+        },
+        {
+          "op": "number",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "op": "div",
+      "left": {
+        "op": "number",
+        "value": "2"
+      },
+      "right": {
+        "op": "number",
+        "value": "3"
+      }
+    },
+    {
+      "op": "eq",
+      "left": {
+        "op": "number",
+        "value": "2"
+      },
+      "right": {
+        "op": "number",
+        "value": "3"
+      }
+    },
+    {
+      "op": "pow",
+      "base": {
+        "op": "symbol",
+        "name": "x"
+      },
+      "exponent": -2
+    },
+    {
+      "op": "sqrt",
+      "arg": {
+        "op": "number",
+        "value": "2"
+      }
+    },
+    {
+      "op": "sin",
+      "arg": {
+        "op": "number",
+        "value": "2"
+      }
+    },
+    {
+      "op": "cos",
+      "arg": {
+        "op": "number",
+        "value": "2"
+      }
+    }
+  ],
+  "invalid": [
+    null,
+    [],
+    {},
+    {
+      "op": "symbol",
+      "name": "x;alert(1)"
+    },
+    {
+      "op": "symbol",
+      "name": "<img>"
+    },
+    {
+      "op": "number",
+      "value": "1,2"
+    },
+    {
+      "op": "number",
+      "value": "NaN"
+    },
+    {
+      "op": "number",
+      "value": "-0"
+    },
+    {
+      "op": "number",
+      "value": "1.0"
+    },
+    {
+      "op": "number",
+      "value": "99999999999999999999999999999999999999999"
+    },
+    {
+      "op": "add",
+      "args": []
+    },
+    {
+      "op": "mul",
+      "args": [
+        {
+          "op": "number",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "op": "add",
+      "args": [
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        },
+        {
+          "op": "number",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "op": "pow",
+      "base": {
+        "op": "number",
+        "value": "2"
+      },
+      "exponent": 9
+    },
+    {
+      "op": "pow",
+      "base": {
+        "op": "number",
+        "value": "2"
+      },
+      "exponent": 1.5
+    },
+    {
+      "op": "eval",
+      "code": "import os"
+    },
+    {
+      "op": "number",
+      "value": "1",
+      "extra": true
+    },
+    {
+      "op": "sqrt",
+      "arg": {
+        "op": "sqrt",
+        "arg": {
+          "op": "sqrt",
+          "arg": {
+            "op": "sqrt",
+            "arg": {
+              "op": "sqrt",
+              "arg": {
+                "op": "sqrt",
+                "arg": {
+                  "op": "sqrt",
+                  "arg": {
+                    "op": "sqrt",
+                    "arg": {
+                      "op": "sqrt",
+                      "arg": {
+                        "op": "sqrt",
+                        "arg": {
+                          "op": "sqrt",
+                          "arg": {
+                            "op": "sqrt",
+                            "arg": {
+                              "op": "sqrt",
+                              "arg": {
+                                "op": "sqrt",
+                                "arg": {
+                                  "op": "number",
+                                  "value": "1"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "op": "mul",
+      "args": [
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "add",
+          "args": [
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            },
+            {
+              "op": "add",
+              "args": [
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                },
+                {
+                  "op": "number",
+                  "value": "1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

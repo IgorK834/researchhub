@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "2.0",
+  "workspaceId": "00000000-0000-4000-8000-000000000001",
+  "documentId": "00000000-0000-4000-8000-000000000002",
+  "revision": 3,
+  "title": "Frozen mathematical solution",
+  "capturedAt": "2026-10-07T10:00:00Z",
+  "blocks": [
+    {
+      "kind": "paragraph",
+      "content": [
+        {
+          "kind": "text",
+          "text": "Inline equation: ",
+          "styles": []
+        },
+        {
+          "kind": "math",
+          "math": {
+            "ast": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "R1"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "sqrt",
+                "arg": {
+                  "op": "number",
+                  "value": "4"
+                }
+              }
+            },
+            "accessibleText": "((R1 ^ 2) / sqrt(4))",
+            "source": "\\frac{{\\mathrm{R1}}^{2}}{\\sqrt{4}}",
+            "pngBase64": "iVBORw0KGgoAAAANSUhEUgAAADkAAABMCAIAAABYlYigAAAFH0lEQVR4Xu2aWyh8WxzHZ9xGJIXItdxKMkRCPJzEAx1JkVMuLyRvwosR9XfJpQzlUkIcpCj3cntxkhSleMCUIrk2JJfJuDPn216ZMxZ7Ltj7P6fm86C1f7+1rY81s9dev70JVP8fBHTAiDG5coPJlRtMrlo5OjoqLy8vLCyMjY2tqqp6fX2le7DAt+vLy0tTU9Pz8zPaSqXSz8+vsrKS7sQC364bGxtisfjh4YEcwtvBweF9F1b4dt3c3PTw8Li7uyOHY2NjAoHg8vLyfa/P4duVorm52cXFhY6yoNt1YGAgIiLCyclJwODj4xMdHR0ZGYlgWFhYQUHBzs4OfY7exMTE1NXV0VEWdLsSzs7OIGpmZvb4+KgOKhSKhoYGW1vbjo4Ojb76MjExER8fr/kLtaOvK4Crubk5HVWpcCEjNTIyQie0gpUrNTX15uaGTrDzA657e3tIBQUF0Ql27u/vscRizUL76urq6emJ7vEZP+CKxRIpa2trOsFOX1/f7e0taff09PDnKpfLkcLVRidYgBwu/78Zurq6srKy6B4s/ICrVCq1srJaXFykE58hk8ksLS3JkkKIi4ujO7HwLVesA7jxYPFaWVnRjHOEYa5CofAvhvT09JCQEJFIpHO1wkTi63FyckInDMcwV2pesUA6OjpWVFRoBtUsLCxIJJL8/HyceHh4SKcN51uuYHBwUKB1cZ2dnTUW1/Pzc8Rx+6HiaozIFftRxLXsP4zIlcTBxcUFnWAwLld7e3uklpaWyOH8/Lxm9je44pZI5u/jbiMhIQFx3BHIYWZmpmaWV9fJycmUlBRsW4mrv79/cnLy+Pi4usP29ranp2dAQMDu7i72+dR+lFdXfUBNMjw8XFtbi59UXWp0rlqYnp6G68HBAZ0wHA5d19fXsUlFwQNXfG3Q/ubscuiKfS02puQrgZ+oVbAY050MgUPXH8fkyg0mV27Q4YqC+BcvtLS00GN/QIfr9fV1Ay90d3fTY39Ah6tRYXLlBm5dc3NzQ0ND/9QDfZ4Wcuh6dnbm7OyM7e8/eqDPGw4OXSUSSUlJCR39Bly5olREcXt6ekonvgFXrljeCwoK6Ogbx8fH3t7edFQXnLgqFApMqpadNQq4T0ti7XDiisIrLy+Pjr6Bq03AUr5r5+ddlUqlq6sralo6wXB5ednW1mYsro2NjdnZ2XT0jZqaGvKo4fe7ovh2d3eXyWR0ggHr6NzcHBpG4dra2pqWlkZHGTCdZWVlpM2T6+zsLNtrE9wnvby8UGrTCQZ8+uqn23y4VldXY5iBgQE6wdDZ2Yk7Ox1lWFtba29vVx9y64piv7i4uLS0FMNgO0KnVSpMto+Pz/LyMp1gzsUSpvlwgFtXfHxbW1toiMVijEQ9uFQxr9fY3v5IpdLV1VXNCLeuanp7ezFSYmKiZhBzFhAQgMtcM0jY2dn5uIPhyRUXkJubm1AoJNNMGBoaio6O1uj1H83NzVFRUX+8R8BA2lNTU/Q5LBjsCurr6zFSTk4OOcTWMzg4eGZm5n0vbfA0ryqmELezsxOJRHK5HIfj4+NhYWF0J63w5wqKioowHlnbw8PDR0dH6R7sYMNAvgPYjtE5rXzRdX9/38LCwsHBYXh4ODAwUJ8KRMW89khKSvL19SWuaGA91v9d7hddQUZGBsazsbFhuzV85OHhAXda8s9Z+PPQwBzrUxUSvu6KWxFc/fz8yNg88HVXgA+0v7+fjnLGt1x5xuTKDSZXbjC5coPJlRv+BXSheCyERh/qAAAAAElFTkSuQmCC",
+            "width": 57,
+            "height": 76,
+            "warning": null,
+            "verification": null
+          }
+        },
+        {
+          "kind": "text",
+          "text": " preserved suffix.",
+          "styles": []
+        }
+      ],
+      "caption": false
+    },
+    {
+      "kind": "heading",
+      "level": 2,
+      "content": [
+        {
+          "kind": "text",
+          "text": "Step 0",
+          "styles": []
+        }
+      ]
+    },
+    {
+      "kind": "equation",
+      "notation": "AST",
+      "source": "\\frac{{\\mathrm{R1}}^{2}}{\\sqrt{4}}",
+      "math": {
+        "ast": {
+          "op": "div",
+          "left": {
+            "op": "pow",
+            "base": {
+              "op": "symbol",
+              "name": "R1"
+            },
+            "exponent": 2
+          },
+          "right": {
+            "op": "sqrt",
+            "arg": {
+              "op": "number",
+              "value": "4"
+            }
+          }
+        },
+        "accessibleText": "((R1 ^ 2) / sqrt(4))",
+        "source": "\\frac{{\\mathrm{R1}}^{2}}{\\sqrt{4}}",
+        "pngBase64": "iVBORw0KGgoAAAANSUhEUgAAADkAAABMCAIAAABYlYigAAAFH0lEQVR4Xu2aWyh8WxzHZ9xGJIXItdxKMkRCPJzEAx1JkVMuLyRvwosR9XfJpQzlUkIcpCj3cntxkhSleMCUIrk2JJfJuDPn216ZMxZ7Ltj7P6fm86C1f7+1rY81s9dev70JVP8fBHTAiDG5coPJlRtMrlo5OjoqLy8vLCyMjY2tqqp6fX2le7DAt+vLy0tTU9Pz8zPaSqXSz8+vsrKS7sQC364bGxtisfjh4YEcwtvBweF9F1b4dt3c3PTw8Li7uyOHY2NjAoHg8vLyfa/P4duVorm52cXFhY6yoNt1YGAgIiLCyclJwODj4xMdHR0ZGYlgWFhYQUHBzs4OfY7exMTE1NXV0VEWdLsSzs7OIGpmZvb4+KgOKhSKhoYGW1vbjo4Ojb76MjExER8fr/kLtaOvK4Crubk5HVWpcCEjNTIyQie0gpUrNTX15uaGTrDzA657e3tIBQUF0Ql27u/vscRizUL76urq6emJ7vEZP+CKxRIpa2trOsFOX1/f7e0taff09PDnKpfLkcLVRidYgBwu/78Zurq6srKy6B4s/ICrVCq1srJaXFykE58hk8ksLS3JkkKIi4ujO7HwLVesA7jxYPFaWVnRjHOEYa5CofAvhvT09JCQEJFIpHO1wkTi63FyckInDMcwV2pesUA6OjpWVFRoBtUsLCxIJJL8/HyceHh4SKcN51uuYHBwUKB1cZ2dnTUW1/Pzc8Rx+6HiaozIFftRxLXsP4zIlcTBxcUFnWAwLld7e3uklpaWyOH8/Lxm9je44pZI5u/jbiMhIQFx3BHIYWZmpmaWV9fJycmUlBRsW4mrv79/cnLy+Pi4usP29ranp2dAQMDu7i72+dR+lFdXfUBNMjw8XFtbi59UXWp0rlqYnp6G68HBAZ0wHA5d19fXsUlFwQNXfG3Q/ubscuiKfS02puQrgZ+oVbAY050MgUPXH8fkyg0mV27Q4YqC+BcvtLS00GN/QIfr9fV1Ay90d3fTY39Ah6tRYXLlBm5dc3NzQ0ND/9QDfZ4Wcuh6dnbm7OyM7e8/eqDPGw4OXSUSSUlJCR39Bly5olREcXt6ekonvgFXrljeCwoK6Ogbx8fH3t7edFQXnLgqFApMqpadNQq4T0ti7XDiisIrLy+Pjr6Bq03AUr5r5+ddlUqlq6sralo6wXB5ednW1mYsro2NjdnZ2XT0jZqaGvKo4fe7ovh2d3eXyWR0ggHr6NzcHBpG4dra2pqWlkZHGTCdZWVlpM2T6+zsLNtrE9wnvby8UGrTCQZ8+uqn23y4VldXY5iBgQE6wdDZ2Yk7Ox1lWFtba29vVx9y64piv7i4uLS0FMNgO0KnVSpMto+Pz/LyMp1gzsUSpvlwgFtXfHxbW1toiMVijEQ9uFQxr9fY3v5IpdLV1VXNCLeuanp7ezFSYmKiZhBzFhAQgMtcM0jY2dn5uIPhyRUXkJubm1AoJNNMGBoaio6O1uj1H83NzVFRUX+8R8BA2lNTU/Q5LBjsCurr6zFSTk4OOcTWMzg4eGZm5n0vbfA0ryqmELezsxOJRHK5HIfj4+NhYWF0J63w5wqKioowHlnbw8PDR0dH6R7sYMNAvgPYjtE5rXzRdX9/38LCwsHBYXh4ODAwUJ8KRMW89khKSvL19SWuaGA91v9d7hddQUZGBsazsbFhuzV85OHhAXda8s9Z+PPQwBzrUxUSvu6KWxFc/fz8yNg88HVXgA+0v7+fjnLGt1x5xuTKDSZXbjC5coPJlRv+BXSheCyERh/qAAAAAElFTkSuQmCC",
+        "width": 57,
+        "height": 76,
+        "warning": null,
+        "verification": null
+      },
+      "provenance": {
+        "analysisId": "00000000-0000-4000-8000-000000000011",
+        "executionId": "00000000-0000-4000-8000-000000000012",
+        "outputId": "solution",
+        "codeSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "inputs": [],
+        "solution": {
+          "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "planHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "candidateHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "imageId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "runtimeVersion": "1.2.0",
+          "codeHashes": {
+            "problem.py": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "verify_problem.py": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "verificationVersion": "2.0",
+          "precision": {
+            "absolute": 1e-10,
+            "relative": 1e-10
+          },
+          "domain": "REAL",
+          "receipt": {
+            "schemaVersion": "2.0",
+            "phase": "VERIFY",
+            "status": "CHECKED",
+            "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "problemSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "planSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "candidateSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "tolerance": {
+              "absolute": 1e-10,
+              "relative": 1e-10
+            },
+            "checkedOutputs": 1,
+            "checkedPoints": 0
+          },
+          "interpretation": "NOT_CHECKED",
+          "stepId": "00000000-0000-4000-8000-000000000013",
+          "conversationId": null,
+          "arithmetic": "CHECKED"
+        }
+      }
+    }
+  ],
+  "bibliography": [],
+  "origins": [],
+  "warnings": []
+}

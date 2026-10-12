@@ -1,0 +1,1339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://researchhub.dev/contracts/document/report/v2/report.schema.json",
+  "$ref": "#/$defs/report",
+  "$defs": {
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unitId": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "characterStart": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "characterEnd": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "unitId",
+        "characterStart",
+        "characterEnd"
+      ]
+    },
+    "bibliographicMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64000
+          },
+          "maxItems": 100
+        },
+        "publicationYear": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "doi": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "venue": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "citationKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "title",
+        "authors",
+        "publicationYear",
+        "doi",
+        "venue",
+        "url",
+        "citationKey"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sourceVersionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionNumber": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "processingVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "chunkId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "citedContentHash": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pageStart": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pageEnd": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sectionTitle": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/span"
+          },
+          "maxItems": 1024
+        },
+        "bibliography": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/bibliographicMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "sourceId",
+        "sourceVersionId",
+        "versionNumber",
+        "title",
+        "sha256",
+        "processingVersion",
+        "chunkId",
+        "citedContentHash",
+        "pageStart",
+        "pageEnd",
+        "sectionTitle",
+        "spans",
+        "bibliography"
+      ]
+    },
+    "solutionProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "planHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "candidateHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "imageId": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "runtimeVersion": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "codeHashes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "problem.py",
+            "verify_problem.py"
+          ],
+          "properties": {
+            "problem.py": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "verify_problem.py": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "verificationVersion": {
+          "const": "2.0"
+        },
+        "precision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "absolute",
+            "relative"
+          ],
+          "properties": {
+            "absolute": {
+              "const": 1e-10
+            },
+            "relative": {
+              "const": 1e-10
+            }
+          }
+        },
+        "domain": {
+          "const": "REAL"
+        },
+        "receipt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "phase",
+            "status",
+            "inputHash",
+            "problemSha256",
+            "planSha256",
+            "candidateSha256",
+            "tolerance",
+            "checkedOutputs",
+            "checkedPoints"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "const": "2.0"
+            },
+            "phase": {
+              "const": "VERIFY"
+            },
+            "status": {
+              "const": "CHECKED"
+            },
+            "inputHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "problemSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "planSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "candidateSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "tolerance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "absolute",
+                "relative"
+              ],
+              "properties": {
+                "absolute": {
+                  "const": 1e-10
+                },
+                "relative": {
+                  "const": 1e-10
+                }
+              }
+            },
+            "checkedOutputs": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "checkedPoints": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 201
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "stepId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conversationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "arithmetic": {
+          "const": "CHECKED"
+        },
+        "interpretation": {
+          "const": "NOT_CHECKED"
+        }
+      },
+      "required": [
+        "inputHash",
+        "planHash",
+        "candidateHash",
+        "imageId",
+        "runtimeVersion",
+        "codeHashes",
+        "verificationVersion",
+        "precision",
+        "domain",
+        "receipt",
+        "stepId",
+        "conversationId",
+        "arithmetic",
+        "interpretation"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "executionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "outputId": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "codeSha256": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "maxItems": 5
+        },
+        "solution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/solutionProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "analysisId",
+        "executionId",
+        "outputId",
+        "codeSha256",
+        "inputs",
+        "solution"
+      ]
+    },
+    "sharedMathAst": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "const": "number"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "name"
+          ],
+          "properties": {
+            "op": {
+              "const": "symbol"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "add"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/sharedMathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "args"
+          ],
+          "properties": {
+            "op": {
+              "const": "mul"
+            },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/sharedMathAst"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "div"
+            },
+            "left": {
+              "$ref": "#/$defs/sharedMathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/sharedMathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "op": {
+              "const": "eq"
+            },
+            "left": {
+              "$ref": "#/$defs/sharedMathAst"
+            },
+            "right": {
+              "$ref": "#/$defs/sharedMathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "base",
+            "exponent"
+          ],
+          "properties": {
+            "op": {
+              "const": "pow"
+            },
+            "base": {
+              "$ref": "#/$defs/sharedMathAst"
+            },
+            "exponent": {
+              "type": "integer",
+              "minimum": -8,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sqrt"
+            },
+            "arg": {
+              "$ref": "#/$defs/sharedMathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "sin"
+            },
+            "arg": {
+              "$ref": "#/$defs/sharedMathAst"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "arg"
+          ],
+          "properties": {
+            "op": {
+              "const": "cos"
+            },
+            "arg": {
+              "$ref": "#/$defs/sharedMathAst"
+            }
+          }
+        }
+      ],
+      "description": "Maximum 128 nodes and depth 12, enforced by all runtimes. Canonical decimals exclude negative zero and trailing fractional zeros."
+    },
+    "math": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ast": {
+          "$ref": "#/$defs/sharedMathAst"
+        },
+        "accessibleText": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "pngBase64": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1600
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 512
+        },
+        "warning": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "analysisId",
+                    "executionId",
+                    "outputName",
+                    "stepIndex",
+                    "inputHash"
+                  ],
+                  "properties": {
+                    "analysisId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "executionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "outputName": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9-]{0,79}$"
+                    },
+                    "stepIndex": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 31
+                    },
+                    "inputHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ast",
+        "accessibleText",
+        "source",
+        "pngBase64",
+        "width",
+        "height",
+        "warning",
+        "verification"
+      ]
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "text"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "styles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "BOLD",
+              "ITALIC",
+              "UNDERLINE",
+              "STRIKE",
+              "CODE"
+            ]
+          },
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "kind",
+        "text",
+        "styles"
+      ]
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "citation"
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reference": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "required": [
+        "kind",
+        "number",
+        "reference"
+      ]
+    },
+    "mathInline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "math"
+        },
+        "math": {
+          "$ref": "#/$defs/math"
+        }
+      },
+      "required": [
+        "kind",
+        "math"
+      ]
+    },
+    "inline": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "$ref": "#/$defs/citation"
+        },
+        {
+          "$ref": "#/$defs/mathInline"
+        }
+      ]
+    },
+    "paragraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "paragraph"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/inline"
+          },
+          "maxItems": 10000
+        },
+        "caption": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "content",
+        "caption"
+      ]
+    },
+    "heading": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "heading"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/inline"
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "kind",
+        "level",
+        "content"
+      ]
+    },
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "list"
+        },
+        "ordered": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/block"
+            },
+            "maxItems": 10000
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "kind",
+        "ordered",
+        "start",
+        "items"
+      ]
+    },
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "header": {
+          "type": "boolean"
+        },
+        "colspan": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "rowspan": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "header",
+        "colspan",
+        "rowspan",
+        "blocks"
+      ]
+    },
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "table"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cell"
+            },
+            "maxItems": 100
+          },
+          "maxItems": 1000
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/provenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "rows",
+        "caption",
+        "provenance"
+      ]
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "image"
+        },
+        "pngBase64": {
+          "type": "string",
+          "maxLength": 12000000
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/provenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "pngBase64",
+        "width",
+        "height",
+        "alt",
+        "caption",
+        "provenance"
+      ]
+    },
+    "container": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "container"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "maxItems": 10000
+        },
+        "quote": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "blocks",
+        "quote"
+      ]
+    },
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "code"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 64000
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "rule"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "equation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "equation"
+        },
+        "notation": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "math": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/math"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/provenance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "notation",
+        "source",
+        "math",
+        "provenance"
+      ]
+    },
+    "block": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/paragraph"
+        },
+        {
+          "$ref": "#/$defs/heading"
+        },
+        {
+          "$ref": "#/$defs/list"
+        },
+        {
+          "$ref": "#/$defs/table"
+        },
+        {
+          "$ref": "#/$defs/image"
+        },
+        {
+          "$ref": "#/$defs/container"
+        },
+        {
+          "$ref": "#/$defs/code"
+        },
+        {
+          "$ref": "#/$defs/rule"
+        },
+        {
+          "$ref": "#/$defs/equation"
+        }
+      ]
+    },
+    "bibliographyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "required": [
+        "number",
+        "source"
+      ]
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "actorUserId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actorName": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceOperationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "documentRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "metadataJson": {
+          "type": "string",
+          "maxLength": 64000
+        }
+      },
+      "required": [
+        "blockId",
+        "operationId",
+        "category",
+        "actorUserId",
+        "actorName",
+        "sourceOperationId",
+        "documentRevision",
+        "createdAt",
+        "metadataJson"
+      ]
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "2.0"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 64000
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "maxItems": 10000
+        },
+        "bibliography": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bibliographyEntry"
+          },
+          "maxItems": 10000
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/origin"
+          },
+          "maxItems": 10000
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64000
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "workspaceId",
+        "documentId",
+        "revision",
+        "title",
+        "capturedAt",
+        "blocks",
+        "bibliography",
+        "origins",
+        "warnings"
+      ]
+    }
+  }
+}

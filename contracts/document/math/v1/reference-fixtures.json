@@ -1,0 +1,341 @@
+{
+  "valid": [
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "bad",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": 2,
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": null,
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "bad",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": 2,
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": null,
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "!",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": 3,
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": null,
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": -1,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 32,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 1.5,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": "0",
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": null,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "bad"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": 3
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": null
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": false
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": 0
+    },
+    {
+      "schemaVersion": "1.0",
+      "ast": {
+        "op": "number",
+        "value": "2"
+      },
+      "notation": "2",
+      "accessibleText": "2",
+      "verification": {
+        "analysisId": "00000000-0000-4000-8000-000000000001",
+        "executionId": "00000000-0000-4000-8000-000000000002",
+        "outputName": "result",
+        "stepIndex": 0,
+        "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "forged": "VERIFIED"
+      }
+    }
+  ]
+}
