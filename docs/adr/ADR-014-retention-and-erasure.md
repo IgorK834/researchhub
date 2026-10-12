@@ -4,6 +4,7 @@
 - Date: 2026-10-12
 - Backlog: RH-338 / Task 26.6; RH-350 / Task 30.7 operational retention follow-up
 - Decision accepted: 2026-10-12, user approval of immediate tombstoning, durable live-store erasure, pseudonymous history, shared-workspace refusal and explicit backup/download boundaries.
+- Implementation trigger: RH-338 implements the accepted active-store erasure lifecycle; retention windows require separate policy approval and operational verification under RH-350 before enforcement.
 
 ## Decision and implemented boundary
 
