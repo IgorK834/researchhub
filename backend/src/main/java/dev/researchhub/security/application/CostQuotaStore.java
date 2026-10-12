@@ -10,4 +10,9 @@ import java.util.UUID;
  */
 public interface CostQuotaStore {
     void admit(UUID userId, UUID workspaceId, CostCategory category, QuotaPolicy policy);
+    /** Read the same workspace window used by admission, without consuming it. */
+    default Consumption consumption(UUID workspaceId, CostCategory category, QuotaPolicy policy) {
+        throw new UnsupportedOperationException("Quota adapter does not support consumption reads");
+    }
+    record Consumption(CostCategory category, int requests, int limit, java.time.Instant resetsAt) {}
 }

@@ -84,6 +84,14 @@ public final class PostgresCostQuotaStore implements CostQuotaStore {
             throw new RateLimitExceededException(category, window.retryAfterSeconds(now));
         }
     }
+    @Override
+    public Consumption consumption(UUID workspaceId, CostCategory category, QuotaPolicy policy) {
+        var window = CostQuotaWindow.at(clock.instant(), policy.window());
+        var counts = jdbc.query("SELECT request_count FROM cost_quota_bucket WHERE scope_type='WORKSPACE' AND scope_id=:id AND category=:category AND window_start=:window",
+                new MapSqlParameterSource().addValue("id", workspaceId).addValue("category", category.name())
+                        .addValue("window", Timestamp.from(window.start())), (r, i) -> r.getInt(1));
+        return new Consumption(category, counts.isEmpty() ? 0 : counts.getFirst(), policy.workspaceRequests(), window.end());
+    }
 
     private static boolean retryable(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {

@@ -47,10 +47,8 @@ public class CostQuotaConfiguration {
         return new PostgresCostQuotaStore(jdbc, manager, clock, registry, retention, window, maxAttempts);
     }
 
-    @Bean
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    WebMvcConfigurer costlyRequestAdmission(CurrentUserResolver users, WorkspaceAuthorizationService authorization,
-            CostQuotaStore store,
+    @Bean("costQuotaPolicies")
+    Map<CostCategory, QuotaPolicy> costQuotaPolicies(
             @Value("${researchhub.security.quotas.window:PT1M}") Duration window,
             @Value("${researchhub.security.quotas.llm.user:20}") int llmUser,
             @Value("${researchhub.security.quotas.llm.workspace:60}") int llmWorkspace,
@@ -58,10 +56,17 @@ public class CostQuotaConfiguration {
             @Value("${researchhub.security.quotas.analysis.workspace:30}") int analysisWorkspace,
             @Value("${researchhub.security.quotas.retrieval.user:60}") int retrievalUser,
             @Value("${researchhub.security.quotas.retrieval.workspace:180}") int retrievalWorkspace) {
-        CostlyRequestInterceptor admission = new CostlyRequestInterceptor(users, authorization, store, Map.of(
+        return Map.of(
                 CostCategory.LLM, new QuotaPolicy(llmUser, llmWorkspace, window),
                 CostCategory.ANALYSIS, new QuotaPolicy(analysisUser, analysisWorkspace, window),
-                CostCategory.RETRIEVAL, new QuotaPolicy(retrievalUser, retrievalWorkspace, window)));
+                CostCategory.RETRIEVAL, new QuotaPolicy(retrievalUser, retrievalWorkspace, window));
+    }
+
+    @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    WebMvcConfigurer costlyRequestAdmission(CurrentUserResolver users, WorkspaceAuthorizationService authorization,
+            CostQuotaStore store, @org.springframework.beans.factory.annotation.Qualifier("costQuotaPolicies") Map<CostCategory, QuotaPolicy> policies) {
+        CostlyRequestInterceptor admission = new CostlyRequestInterceptor(users, authorization, store, policies);
         return new WebMvcConfigurer() {
             @Override public void addInterceptors(InterceptorRegistry registry) {
                 registry.addInterceptor(admission).addPathPatterns("/api/workspaces/**");

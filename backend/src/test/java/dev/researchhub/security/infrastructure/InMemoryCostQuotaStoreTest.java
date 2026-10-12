@@ -71,4 +71,13 @@ class InMemoryCostQuotaStoreTest {
         assertThrows(IllegalArgumentException.class, () -> new QuotaPolicy(1, 1, Duration.ZERO));
         assertThrows(IllegalArgumentException.class, () -> new QuotaPolicy(1, 1, Duration.ofDays(2)));
     }
+    @org.junit.jupiter.api.Test void consumptionIsReadOnlyAndUsesTheAdmissionWindow() {
+        var clock=java.time.Clock.fixed(java.time.Instant.parse("2026-10-12T12:00:10Z"),java.time.ZoneOffset.UTC);
+        var store=new InMemoryCostQuotaStore(clock,10);var workspace=java.util.UUID.randomUUID();var user=java.util.UUID.randomUUID();
+        var policy=new dev.researchhub.security.application.QuotaPolicy(2,5,java.time.Duration.ofMinutes(1));
+        org.junit.jupiter.api.Assertions.assertEquals(0,store.consumption(workspace,dev.researchhub.security.application.CostCategory.LLM,policy).requests());
+        store.admit(user,workspace,dev.researchhub.security.application.CostCategory.LLM,policy);
+        org.junit.jupiter.api.Assertions.assertEquals(1,store.consumption(workspace,dev.researchhub.security.application.CostCategory.LLM,policy).requests());
+        org.junit.jupiter.api.Assertions.assertEquals(java.time.Instant.parse("2026-10-12T12:01:00Z"),store.consumption(workspace,dev.researchhub.security.application.CostCategory.LLM,policy).resetsAt());
+    }
 }

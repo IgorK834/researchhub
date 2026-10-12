@@ -55,6 +55,13 @@ public final class InMemoryCostQuotaStore implements CostQuotaStore {
         return bucket == null ? new Bucket(1, CostQuotaWindow.at(now, policy.window()).end())
                 : new Bucket(bucket.requests() + 1, bucket.expiresAt());
     }
+    @Override
+    public synchronized Consumption consumption(UUID workspaceId, CostCategory category, QuotaPolicy policy) {
+        Instant now = clock.instant();
+        Bucket bucket = buckets.get(new Key(true, workspaceId, category));
+        return new Consumption(category, bucket != null && bucket.expiresAt().isAfter(now) ? bucket.requests() : 0,
+                policy.workspaceRequests(), CostQuotaWindow.at(now, policy.window()).end());
+    }
     private static long retry(Bucket bucket, int limit, Instant now) {
         return bucket != null && bucket.requests() >= limit ? seconds(now, bucket.expiresAt()) : 0;
     }

@@ -12,7 +12,7 @@ import java.util.Map;
 /** Shared PostgreSQL budgets, charged independently even when the operation fails. */
 @Service
 public class SecurityOperationLimiter {
-    public enum Operation { INVITE, PASSWORD, SESSIONS, RESET_REQUEST, RESET, VERIFY_REQUEST, VERIFY }
+    public enum Operation { INVITE, PASSWORD, SESSIONS, RESET_REQUEST, RESET, VERIFY_REQUEST, VERIFY, AUDIT_EXPORT, ACCOUNT_EXPORT, ACCOUNT_ERASURE }
     private final JdbcTemplate jdbc;
     private final Clock clock;
     public SecurityOperationLimiter(JdbcTemplate jdbc, Clock clock) { this.jdbc=jdbc; this.clock=clock; }
