@@ -23,7 +23,6 @@ env:
   AZ_RESOURCE_GROUP: ${{ vars.AZ_RESOURCE_GROUP }}
   STAGING_OWNER: ${{ vars.STAGING_OWNER }}
   STAGING_RESULTS_DIR: ${{ github.workspace }}/.demo/azure/staging/results
-  STAGING_PRIVATE_DIR: ${{ runner.temp }}/researchhub-staging-private
 
 jobs:
   destroy:
@@ -31,6 +30,8 @@ jobs:
     timeout-minutes: 40
     environment: azure-staging
     steps:
+      - name: Set private runtime directory
+        run: echo "STAGING_PRIVATE_DIR=$RUNNER_TEMP/researchhub-staging-private" >> "$GITHUB_ENV"
       - name: Require staging and dedicated group
         env:
           REQUESTED_ENVIRONMENT: ${{ inputs.environment }}

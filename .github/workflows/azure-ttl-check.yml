@@ -19,7 +19,6 @@ env:
   AZ_RESOURCE_GROUP: ${{ vars.AZ_RESOURCE_GROUP }}
   STAGING_OWNER: ${{ vars.STAGING_OWNER }}
   STAGING_RESULTS_DIR: ${{ github.workspace }}/.demo/azure/staging/results
-  STAGING_PRIVATE_DIR: ${{ runner.temp }}/researchhub-staging-private
 
 jobs:
   ttl:
@@ -29,6 +28,8 @@ jobs:
     env:
       AUTO_DESTROY: ${{ vars.AUTO_DESTROY }}
     steps:
+      - name: Set private runtime directory
+        run: echo "STAGING_PRIVATE_DIR=$RUNNER_TEMP/researchhub-staging-private" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
