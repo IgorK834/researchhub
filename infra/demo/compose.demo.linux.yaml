@@ -1,11 +1,12 @@
 # Linux containers cannot reach a host process bound to loopback via host-gateway.
 # Only the edge and collaboration use the host network, and both listen on loopback.
+# The HTTPS health probe resolves localhost to IPv6, so Caddy needs both loopback families.
 services:
   caddy:
     network_mode: host
     ports: !reset []
     environment:
-      DEMO_PROXY_BIND: 127.0.0.1
+      DEMO_PROXY_BIND: "127.0.0.1 ::1"
       DEMO_BACKEND: 127.0.0.1:28081
       DEMO_COLLABORATION: 127.0.0.1:28091
   collaboration:
