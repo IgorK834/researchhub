@@ -106,6 +106,14 @@ export class DocumentAutosave {
       blocked: !isSavable(this.draft),
     };
   }
+  /** Adopt a server-approved operation only when every local edit is already durable. */
+  adoptSaved(draft: DocumentDraft, revision: number): void {
+    if (this.inFlight || this.hasUnsavedChanges || this.status !== 'saved')
+      throw new Error('Save local changes before applying a server operation.');
+    this.draft = draft;
+    this.revision = revision;
+    this.options.onChange(this.state);
+  }
 
   /** True when something on screen is not stored. */
   get hasUnsavedChanges(): boolean {

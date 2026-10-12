@@ -14,6 +14,7 @@ import { describeError, queryKeys } from '../../../shared/api';
 import { Button } from '../../../shared/components/Button';
 import { isAnalysisBlockAttrs, type AnalysisReference } from '../api/analysisReference';
 import styles from './DocumentAnalysisBlock.module.css';
+import { ProblemReferencedOutput } from './ProblemReferencedOutput';
 
 export function DocumentAnalysisBlock({
   node,
@@ -37,6 +38,14 @@ export function DocumentAnalysisBlock({
     >
       {!workspaceId || !attrs ? (
         <p role="alert">This analysis reference is unavailable.</p>
+      ) : attrs.reference.workload === 'PROBLEM' ? (
+        <ProblemReferencedOutput
+          workspaceId={workspaceId}
+          reference={attrs.reference}
+          caption={attrs.caption}
+          canEdit={canEdit}
+          onUpdate={() => setUpdating(!updating)}
+        />
       ) : (
         <ReferencedOutput
           workspaceId={workspaceId}
@@ -149,7 +158,15 @@ export function ReferencedOutput({
       {output?.kind === 'TEXT' && reference.renderMode === 'SUMMARY' ? (
         <p className={styles.summary}>{output.text}</p>
       ) : null}
-      {caption ? <p className={styles.caption}>{caption}</p> : null}
+      {caption ? (
+        <p className={styles.caption}>
+          {reference.schemaVersion === '2.0' ? (
+            <>Human caption (not verified): {caption}</>
+          ) : (
+            caption
+          )}
+        </p>
+      ) : null}
       <div className={styles.footer}>
         <span>
           Analysis {reference.analysisId.slice(0, 8)} · Execution{' '}

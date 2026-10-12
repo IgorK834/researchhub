@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { describeError, fieldErrorsByName, queryKeys } from '../../../shared/api';
 import type { WorkspaceDocument } from '../api/documentApi';
+import { fetchDocument } from '../api/documentApi';
 import {
   EMPTY_DOCUMENT,
   readStoredDocument,
@@ -234,6 +235,33 @@ export function DocumentEditorForm({
           autosave={autosave}
           realtime={realtimeEnabled ? realtime : undefined}
           onClose={() => setCanvasContext(null)}
+          onApplying={setAiBusy}
+          onApplied={async () => {
+            if (!realtimeEnabled) {
+              const saved = await fetchDocument(workspaceId, document.id);
+              const content = readStoredDocument(saved.content);
+              if (!content || !commentEditor)
+                throw new Error(
+                  'Reload the saved document to view the accepted operation.',
+                );
+              legacyAutosave.adoptSaved?.(
+                { title: saved.title, content },
+                saved.revision,
+                saved.updatedAt,
+              );
+              commentEditor
+                .chain()
+                .setMeta('addToHistory', false)
+                .setContent(content, { emitUpdate: false })
+                .run();
+              setBody(content);
+              setTitle(saved.title);
+              queryClient.setQueryData(
+                queryKeys.document(workspaceId, document.id),
+                saved,
+              );
+            }
+          }}
         />
       ) : null}
       {exportHost

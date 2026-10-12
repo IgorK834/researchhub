@@ -5,7 +5,12 @@ export interface AnalysisReference {
   readonly executionId: string;
   /** Persisted output name, unique within this execution; never an image URL. */
   readonly outputId: string;
-  readonly renderMode: 'CHART' | 'TABLE' | 'SUMMARY';
+  readonly renderMode:
+    'CHART' | 'TABLE' | 'SUMMARY' | 'SOLUTION' | 'STEP' | 'INPUTS' | 'ASSUMPTIONS';
+  readonly schemaVersion?: '2.0';
+  readonly workload?: 'DATASET' | 'PROBLEM';
+  readonly stepId?: string | null;
+  readonly conversationId?: string | null;
 }
 export interface AnalysisBlockAttrs {
   readonly blockId: string;
@@ -28,7 +33,25 @@ function fields(
 }
 export function isAnalysisReference(value: unknown): value is AnalysisReference {
   return (
-    fields(value, ['analysisId', 'executionId', 'outputId', 'renderMode']) &&
+    (fields(value, ['analysisId', 'executionId', 'outputId', 'renderMode']) ||
+      (fields(value, [
+        'schemaVersion',
+        'workload',
+        'analysisId',
+        'executionId',
+        'outputId',
+        'renderMode',
+        'stepId',
+        'conversationId',
+      ]) &&
+        value.schemaVersion === '2.0' &&
+        ['DATASET', 'PROBLEM'].includes(String(value.workload)) &&
+        (value.conversationId === null ||
+          (typeof value.conversationId === 'string' &&
+            uuid.test(value.conversationId))) &&
+        (value.renderMode === 'STEP'
+          ? typeof value.stepId === 'string' && uuid.test(value.stepId)
+          : value.stepId === null))) &&
     typeof value.analysisId === 'string' &&
     uuid.test(value.analysisId) &&
     typeof value.executionId === 'string' &&
@@ -37,7 +60,10 @@ export function isAnalysisReference(value: unknown): value is AnalysisReference 
     value.outputId.trim().length > 0 &&
     value.outputId.length <= 100 &&
     typeof value.renderMode === 'string' &&
-    ['CHART', 'TABLE', 'SUMMARY'].includes(value.renderMode)
+    (value.schemaVersion === '2.0' && value.workload === 'PROBLEM'
+      ? ['CHART', 'TABLE', 'SOLUTION', 'STEP', 'INPUTS', 'ASSUMPTIONS']
+      : ['CHART', 'TABLE', 'SUMMARY']
+    ).includes(value.renderMode)
   );
 }
 export function isAnalysisBlockAttrs(value: unknown): value is AnalysisBlockAttrs {

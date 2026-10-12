@@ -1,9 +1,14 @@
 .block {
+  overflow-wrap: anywhere;
   border-left: 3px solid var(--color-brand-yellow);
   padding: 16px;
   margin: 24px 0;
   background: var(--color-surface);
   font-family: var(--font-ui);
+}
+.block img {
+  max-width: 100%;
+  height: auto;
 }
 .block select {
   display: block;

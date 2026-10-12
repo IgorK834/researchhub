@@ -45,6 +45,7 @@ export interface CanvasContext {
       chunkId: string | null;
       processingVersion: string | null;
     }[];
+    formulas?: readonly import('../api/mathAst').MathValue[];
     analyses: readonly { analysisId: string; executionId: string; outputId: string }[];
   };
 }
@@ -65,7 +66,9 @@ export function canvasEndpoint(
     if (result) return;
     if (
       analysis
-        ? node.type.name === 'analysisResult' && position >= start && position < start + 1
+        ? ['analysisResult', 'blockMath'].includes(node.type.name) &&
+          position >= start &&
+          position < start + 1
         : node.isTextblock &&
           position >= start + 1 &&
           position <= start + 1 + node.content.size
@@ -130,10 +133,19 @@ export function canvasFingerprint(editor: Editor, selection: Selection): string 
 export function canvasSelectionKey(editor: Editor, selection: Selection): string {
   const analysis =
     selection instanceof NodeSelection && selection.node.type.name === 'analysisResult';
-  const start = canvasEndpoint(editor.state.doc, selection.from, analysis);
-  const end = analysis ? start : canvasEndpoint(editor.state.doc, selection.to);
+  const atom =
+    analysis ||
+    (selection instanceof NodeSelection && selection.node.type.name === 'blockMath');
+  const start = canvasEndpoint(editor.state.doc, selection.from, atom);
+  const end = atom ? start : canvasEndpoint(editor.state.doc, selection.to);
+  const formulas: unknown[] = [];
+  editor.state.doc.nodesBetween(selection.from, selection.to, (node) => {
+    if (['inlineMath', 'blockMath'].includes(node.type.name))
+      formulas.push(node.attrs['math']);
+  });
   return JSON.stringify([
     canvasFingerprint(editor, selection),
+    formulas,
     start.blockId ?? start.path,
     end.blockId ?? end.path,
   ]);
@@ -158,8 +170,11 @@ export async function captureCanvasTarget(
       : selection.empty
         ? 'CARET'
         : 'TEXT';
-  const start = canvasEndpoint(editor.state.doc, from, analysis),
-    end = analysis ? { ...start, offset: 1 } : canvasEndpoint(editor.state.doc, to);
+  const atom =
+    analysis ||
+    (selection instanceof NodeSelection && selection.node.type.name === 'blockMath');
+  const start = canvasEndpoint(editor.state.doc, from, atom),
+    end = atom ? { ...start, offset: 1 } : canvasEndpoint(editor.state.doc, to);
   const fingerprint = canvasFingerprint(editor, selection);
   if (fingerprint.length > 4000) throw new Error('Select at most 4000 characters.');
   let relative: CanvasCapture['relative'] = null;

@@ -29,6 +29,8 @@ export function CanvasContextPreview({
   autosave,
   realtime,
   onClose,
+  onApplying,
+  onApplied,
 }: {
   readonly editor: Editor;
   readonly bookmark: SelectionBookmark;
@@ -39,6 +41,8 @@ export function CanvasContextPreview({
   readonly autosave: UseDocumentAutosave;
   readonly realtime?: RealtimeDocument;
   readonly onClose: () => void;
+  readonly onApplying?: (value: boolean) => void;
+  readonly onApplied?: () => Promise<void>;
 }): ReactElement {
   const target = useRef(bookmark);
   const [original, setOriginal] = useState(() =>
@@ -171,7 +175,8 @@ export function CanvasContextPreview({
                 : 'Selected text'}
           </p>
           <blockquote>
-            {context.snapshot.text ||
+            {context.snapshot.formulas?.map((math) => math.accessibleText).join('; ') ||
+              context.snapshot.text ||
               `${context.snapshot.before} | ${context.snapshot.after}`}
           </blockquote>
         </div>
@@ -182,6 +187,9 @@ export function CanvasContextPreview({
         proposal={proposal}
         context={context}
         canEdit={editor.isEditable}
+        canApply={saved}
+        onApplying={onApplying}
+        onApplied={onApplied}
         onClose={onClose}
         onChangeContext={() => {
           target.current = editor.state.selection.getBookmark();

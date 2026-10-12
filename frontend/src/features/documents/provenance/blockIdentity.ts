@@ -2,7 +2,7 @@ import { Extension } from '@tiptap/core';
 import { Plugin } from '@tiptap/pm/state';
 import { Fragment, Slice, type Node as ProseMirrorNode } from '@tiptap/pm/model';
 
-const types = ['paragraph', 'heading', 'codeBlock', 'figure'];
+const types = ['paragraph', 'heading', 'codeBlock', 'figure', 'blockMath'];
 export const BlockIdentity = Extension.create({
   name: 'blockIdentity',
   addGlobalAttributes() {

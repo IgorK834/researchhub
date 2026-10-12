@@ -1,6 +1,8 @@
 import { getSchema, type Editor, type Extensions, type JSONContent } from '@tiptap/core';
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
+import { InlineMath, BlockMath } from './mathExtension';
+import { validateMathNodes } from './mathAst';
 import { ResearchCitation } from './researchCitation';
 import { DocumentFigure, FigureCaption } from './documentFigure';
 import { AnalysisResultBlock, validateAnalysisNodes } from './analysisReference';
@@ -46,6 +48,8 @@ export const documentExtensions: Extensions = [
   TableHeader,
   TableCell,
   ResearchCitation,
+  InlineMath,
+  BlockMath,
   DocumentFigure,
   FigureCaption,
   AnalysisResultBlock,
@@ -90,6 +94,7 @@ export function readStoredDocument(content: unknown): ProseMirrorDocument | null
 
   try {
     validateAnalysisNodes(content);
+    validateMathNodes(content);
     const node = documentSchema.nodeFromJSON(content);
     node.check();
     return toSavedDocument(node.toJSON() as JSONContent);
@@ -110,6 +115,7 @@ export function toSavedDocument(json: JSONContent): ProseMirrorDocument {
     throw new Error('The editor did not produce a document node');
   }
   validateAnalysisNodes(json);
+  validateMathNodes(json);
   stripIdentityDefaults(json as Record<string, unknown>);
   return json as ProseMirrorDocument;
 }

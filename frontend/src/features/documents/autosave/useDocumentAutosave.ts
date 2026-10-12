@@ -17,6 +17,7 @@ export interface UseDocumentAutosave extends AutosaveState {
   readonly saveNow: () => void;
   /** Tries a failed save again. */
   readonly retry: () => void;
+  readonly adoptSaved?: (draft: DocumentDraft, revision: number, savedAt: string) => void;
 }
 
 /**
@@ -109,6 +110,12 @@ export function useDocumentAutosave(
     },
     retry: () => {
       if (enabled) controller.retry();
+    },
+    adoptSaved: (draft, revision, at) => {
+      if (enabled) {
+        controller.adoptSaved(draft, revision);
+        setSavedAt(at);
+      }
     },
   };
 }

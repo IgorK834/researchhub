@@ -166,3 +166,33 @@ it('does not split surrogate pairs at the bounds of caret fingerprints', async (
   );
   editor.destroy();
 });
+it('captures display atoms and notices formula changes with the same object marker', async () => {
+  const { mathValue, parseMath } = await import('../api/mathAst');
+  const { canvasSelectionKey } = await import('./canvasTarget');
+  const editor = new Editor({
+    extensions: documentExtensions,
+    content: {
+      type: 'doc',
+      content: [
+        {
+          type: 'blockMath',
+          attrs: {
+            blockId: '00000000-0000-4000-8000-000000000001',
+            math: mathValue(parseMath('x^2=4')),
+          },
+        },
+        { type: 'paragraph' },
+      ],
+    },
+  });
+  editor.commands.setNodeSelection(0);
+  const first = canvasSelectionKey(editor, editor.state.selection);
+  const capture = await captureCanvasTarget(editor, editor.state.selection, 1);
+  expect(capture.target.kind).toBe('TEXT');
+  expect(capture.target.start.offset).toBe(0);
+  expect(capture.target.end.offset).toBe(1);
+  expect(capture.target.hash).toBe(await canvasHash('\uFFFC'));
+  editor.commands.updateAttributes('blockMath', { math: mathValue(parseMath('x^2=9')) });
+  expect(canvasSelectionKey(editor, editor.state.selection)).not.toBe(first);
+  editor.destroy();
+});

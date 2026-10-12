@@ -1,3 +1,4 @@
+import { MathAuthoring } from './MathAuthoring';
 import { NodeSelection, TextSelection, type SelectionBookmark } from '@tiptap/pm/state';
 import { CanvasContextMenu } from './CanvasContextMenu';
 import type { VirtualAnchor } from '../../../shared/components/overlays/Popover';
@@ -481,6 +482,7 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
 
   return (
     <div role="toolbar" aria-label="Formatting" className={styles.toolbar}>
+      <MathAuthoring editor={editor} />
       <button
         type="button"
         aria-label="Undo"

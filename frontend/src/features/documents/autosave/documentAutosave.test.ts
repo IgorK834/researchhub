@@ -83,6 +83,21 @@ beforeEach(() => {
 afterEach(() => {
   jest.useRealTimers();
 });
+it('adopts a server operation without autosaving it and uses its revision for the next edit', async () => {
+  const { autosave, saves } = harness();
+  autosave.adoptSaved(draft('Accepted AI'), 5);
+  expect(autosave.state.revision).toBe(5);
+  expect(saves).toHaveLength(0);
+  autosave.edit(draft('Human edit'));
+  expect(() => autosave.adoptSaved(draft('Other'), 6)).toThrow('Save local changes');
+  jest.advanceTimersByTime(TIMING.debounceMs);
+  expect(saves[0]!.revision).toBe(5);
+  expect(() => autosave.adoptSaved(draft('Other'), 6)).toThrow('Save local changes');
+  saves[0]!.resolve(6);
+  await settle();
+  autosave.adoptSaved(draft('Compensated'), 7);
+  expect(autosave.state.revision).toBe(7);
+});
 
 describe('DocumentAutosave', () => {
   it('starts saved, at the revision it was opened with', () => {
