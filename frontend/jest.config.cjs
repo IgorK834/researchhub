@@ -27,6 +27,10 @@ module.exports = {
     'src/features/workspaces/components/{WorkspaceCard,WorkspaceList,CreateWorkspaceForm,CreateWorkspaceDialog,MemberList,AddMemberForm,RoleInformation,EditWorkspaceForm,ArchiveWorkspaceButton}.tsx',
     'src/features/auth/components/AuthLayout.tsx',
     'src/features/auth/api/accountApi.ts',
+    'src/features/auth/api/accountDataApi.ts',
+    'src/features/auth/components/AccountDataSettings.tsx',
+    'src/features/workspaces/api/governanceApi.ts',
+    'src/features/workspaces/components/WorkspaceGovernance.tsx',
     'src/features/auth/components/{AccountSettings,AccountLink,PasswordRecovery}.tsx',
     'src/features/workspaces/api/invitationApi.ts',
     'src/features/workspaces/components/InvitationPanel.tsx',
@@ -43,6 +47,36 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/auth/api/accountDataApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/auth/components/AccountDataSettings.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/workspaces/api/governanceApi.ts': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/workspaces/components/WorkspaceGovernance.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/documents/provenance/ProvenancePanel.tsx': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/features/auth/api/accountApi.ts': {
       lines: 80,
       branches: 80,
