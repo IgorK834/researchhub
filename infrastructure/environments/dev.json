@@ -1,0 +1,18 @@
+{
+  "environment": "dev",
+  "location": "westeurope",
+  "owner": "student",
+  "studentContext": "portfolio",
+  "deployApplications": false,
+  "backendImage": "",
+  "workerImage": "",
+  "frontendImage": "",
+  "maxReplicas": 1,
+  "poolSize": 8,
+  "schedulerHeadroom": 2,
+  "rolloutSurge": 1,
+  "maxConnections": 50,
+  "reservedConnections": 15,
+  "otherConnections": 0,
+  "ttlHours": 8
+}
