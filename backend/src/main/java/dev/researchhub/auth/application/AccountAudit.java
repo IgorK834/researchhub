@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Service
 public class AccountAudit {
-    public enum Type { PASSWORD_CHANGED, SESSION_REVOKED, SESSIONS_REVOKED, SESSIONS_VIEWED, PASSWORD_RESET, EMAIL_VERIFIED }
+    public enum Type { PASSWORD_CHANGED, SESSION_REVOKED, SESSIONS_REVOKED, SESSIONS_VIEWED, PASSWORD_RESET, EMAIL_VERIFIED, ACCOUNT_EXPORTED, ERASURE_REQUESTED, LIVE_DATA_ERASED }
     private final JdbcTemplate jdbc;
     private final Clock clock;
     public AccountAudit(JdbcTemplate jdbc,Clock clock) { this.jdbc=jdbc;this.clock=clock; }

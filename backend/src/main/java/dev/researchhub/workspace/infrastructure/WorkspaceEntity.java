@@ -135,4 +135,8 @@ public class WorkspaceEntity {
         return archivedBy;
     }
 
+    @Column(name="erasure_requested_at")
+    private Instant erasureRequestedAt;
+    public boolean isPendingErasure() { return erasureRequestedAt != null; }
+
 }

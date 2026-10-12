@@ -17,6 +17,8 @@ public enum UserStatus {
     DISABLED,
 
     /** Temporarily barred, for example after repeated failed sign-in attempts. */
-    LOCKED
+    LOCKED,
+    ERASURE_PENDING,
+    ERASED
 
 }
