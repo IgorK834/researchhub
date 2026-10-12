@@ -9,6 +9,33 @@ import { useSourcesQuery } from '../../sources/api/useSources';
 import type { CanvasContext } from '../../documents/provenance/canvasTarget';
 import type { WorkspaceSource } from '../../sources/api/sourceApi';
 
+import * as analysis from '../../analysis/api/analysisApi';
+jest.mock('../../documents/components/DocumentAnalysisBlock', () => ({
+  ReferencedOutput: ({ reference }: { reference: { renderMode: string } }) => (
+    <p>Saved output {reference.renderMode}</p>
+  ),
+}));
+jest.mock('./CanvasDatasetPicker', () => ({
+  CanvasDatasetPicker: ({ onChange }: { onChange: (v: unknown[]) => void }) => (
+    <button
+      onClick={() =>
+        onChange([
+          { sourceId: 's', sourceVersionId: 'v1', sheetName: 'CSV', columns: [1, 2] },
+        ])
+      }
+    >
+      Choose frozen input
+    </button>
+  ),
+}));
+jest.mock('./CalculationPackagePicker', () => ({
+  CalculationPackagePicker: () => <p>Saved package picker</p>,
+}));
+jest.mock('./CanvasProposalPreview', () => ({
+  CanvasProposalPreview: ({ proposalId }: { proposalId: string }) => (
+    <p>Saved package {proposalId}</p>
+  ),
+}));
 jest.mock('../api/conversationApi');
 jest.mock('../../sources/api/useSources');
 jest.mock('../../../shared/api', () => ({
@@ -86,6 +113,20 @@ const user: api.ConversationMessage = {
   completedAt: null,
 };
 let history: api.ConversationHistory;
+test('refreshes previous proposal snapshots when an expanded proposal becomes ready', async () => {
+  history = {
+    ...history,
+    turns: [{ ...state, status: 'PROPOSAL_READY', proposalId: 'expanded' }],
+    messages: [{ ...user, status: 'COMPLETED' }],
+  };
+  const { cache } = setup({ conversationId: 'c1' });
+  cache.setQueryData(['canvas-proposal', 'w', 'doc', 'older'], { state: 'PENDING' });
+  await waitFor(() =>
+    expect(
+      cache.getQueryState(['canvas-proposal', 'w', 'doc', 'older'])?.isInvalidated,
+    ).toBe(true),
+  );
+});
 function Location() {
   const location = useLocation();
   return (
@@ -382,3 +423,116 @@ it('can reuse a referenced proposal from saved history without guessing one from
   fireEvent.click(screen.getByRole('button', { name: 'Clear proposal target' }));
   expect(screen.queryByText(/Follow-up target/)).toBeNull();
 });
+
+it('requires explicit frozen dataset fields and sends those fields once', async () => {
+  setup({ canEdit: true });
+  fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'ANALYZE' } });
+  fireEvent.change(screen.getByLabelText('Ask about this context'), {
+    target: { value: 'Calculate plot' },
+  });
+  expect(
+    (screen.getByRole('button', { name: 'Send question' }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Choose frozen input' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send question' }));
+  await waitFor(() =>
+    expect(api.startCanvasConversation).toHaveBeenCalledWith(
+      'w',
+      expect.objectContaining({
+        turn: expect.objectContaining({
+          datasetInputs: [
+            { sourceId: 's', sourceVersionId: 'v1', sheetName: 'CSV', columns: [1, 2] },
+          ],
+          scope: { sourceVersionIds: ['v1'], analysisOutputs: [] },
+        }),
+      }),
+    ),
+  );
+});
+it('opens saved package preview at the pinned context and hides it explicitly', () => {
+  setup({ canEdit: true });
+  fireEvent.click(screen.getByRole('button', { name: 'Insert saved package' }));
+  expect(screen.getByText('Saved package picker')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Hide saved package picker' }));
+  expect(screen.queryByText('Saved package picker')).toBeNull();
+});
+it.each(['success', 'failed', 'unavailable'])(
+  'reload reads the exact dataset result and saved package history (%s)',
+  async (status) => {
+    const fetch = jest.spyOn(analysis, 'fetchExecutionRecord');
+    if (status === 'unavailable')
+      fetch.mockRejectedValue(new Error('Record unavailable'));
+    else
+      fetch.mockResolvedValue({
+        execution: {
+          status: status === 'failed' ? 'FAILED' : 'SUCCEEDED',
+          failureCode: 'SANDBOX_TIMEOUT',
+          result: {
+            outputs: [
+              { name: 'numbers', kind: 'TABLE' },
+              { name: 'plot', kind: 'CHART' },
+              { name: 'summary', kind: 'TEXT' },
+            ],
+          },
+        },
+      } as never);
+    history = {
+      conversation,
+      messages: [{ ...user, id: 'answer', role: 'ASSISTANT', status: 'COMPLETED' }],
+      nextBeforeSequence: null,
+      turns: [
+        {
+          ...state,
+          status: 'COMPLETED',
+          messageId: 'answer',
+          analysisId: 'a',
+          executionId: 'e',
+          resultKind: 'ANALYSIS_RESULT',
+          calculationProposalIds: ['package-id'],
+        },
+      ],
+    };
+    setup({ conversationId: 'c1', canEdit: true });
+    await screen.findByText('Saved package package-id');
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith('w', 'a', 'e', expect.any(AbortSignal)),
+    );
+    if (status === 'success') {
+      await screen.findByText('Saved output TABLE');
+      expect(screen.getByText('Saved output CHART')).toBeTruthy();
+      expect(screen.getByText('Saved output SUMMARY')).toBeTruthy();
+    } else await screen.findByRole('alert');
+    expect(
+      screen
+        .getByRole('link', { name: 'Open exact analysis execution' })
+        .getAttribute('href'),
+    ).toContain('execution=e');
+    expect(api.startCanvasConversation).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  'RATE_LIMIT_EXCEEDED',
+  'AI_UNAVAILABLE',
+  'FORBIDDEN',
+  'AI_OUTPUT_INVALID',
+] as const)(
+  'restores the saved prompt after %s without automatically resending',
+  async (errorCode) => {
+    history = {
+      ...history,
+      messages: [{ ...user, status: 'FAILED', errorCode }],
+      turns: [{ ...state, status: 'FAILED', failureCode: errorCode }],
+    };
+    setup({ conversationId: 'c1' });
+    const restore = await screen.findByRole('button', { name: 'Przywróć polecenie' });
+    expect(api.startCanvasConversation).not.toHaveBeenCalled();
+    expect(api.sendCanvasTurn).not.toHaveBeenCalled();
+    fireEvent.click(restore);
+    expect(
+      (screen.getByLabelText('Ask about this context') as HTMLTextAreaElement).value,
+    ).toBe('Question');
+    expect(document.activeElement).toBe(screen.getByLabelText('Ask about this context'));
+    expect(api.sendCanvasTurn).not.toHaveBeenCalled();
+  },
+);

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/api';
 import {
@@ -33,8 +33,18 @@ export function useCanvasConversation(
   const messages = [...pages].reverse().flatMap((page) => page.messages);
   const turns = [...pages].reverse().flatMap((page) => page.turns ?? []);
   const lastTurn = pages[0]?.turns?.at(-1);
+  useEffect(() => {
+    if (
+      ['COMPLETED', 'PROPOSAL_READY'].includes(lastTurn?.status ?? '') &&
+      lastTurn?.proposalId
+    )
+      void cache.invalidateQueries({ queryKey: ['canvas-proposal', workspaceId] });
+  }, [cache, workspaceId, lastTurn?.status, lastTurn?.proposalId]);
   const pending = turns.find(
-    (turn) => turn.status === 'ACCEPTED' || turn.status === 'PLANNING',
+    (turn) =>
+      turn.status === 'ACCEPTED' ||
+      turn.status === 'PLANNING' ||
+      turn.status === 'EXECUTING',
   );
   const refresh = async (id: string): Promise<void> => {
     await Promise.all([
@@ -82,6 +92,8 @@ export function useCanvasConversation(
       scope: CanvasScope,
       replyToMessageId: string | null = null,
       targetProposalId: string | null = null,
+      intent: CanvasTurnRequest['intent'] = 'ANSWER',
+      datasetInputs?: CanvasTurnRequest['datasetInputs'],
     ) => {
       const turn: CanvasTurnRequest = {
         schemaVersion: '1.0',
@@ -89,9 +101,10 @@ export function useCanvasConversation(
         contextId,
         instruction,
         scope,
-        intent: 'ANSWER',
+        intent,
         replyToMessageId,
         targetProposalId,
+        ...(datasetInputs ? { datasetInputs } : {}),
       };
       return run({
         conversationId,

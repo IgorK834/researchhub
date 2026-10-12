@@ -12,13 +12,24 @@ export interface AnalysisCitation extends AnalysisEvidenceReference {
   readonly title: string;
   readonly executionHash: string;
   readonly contentHash: string;
-  readonly codeSha256: string;
+  readonly codeSha256: string | null;
   readonly executedAt: string;
   readonly runtimeVersion: string | null;
   readonly inputSources: ExecutionRecord['snapshot']['inputs'];
   readonly provenanceUrl: string;
   readonly detailsUrl: string;
   readonly truncated: boolean;
+  readonly problem?: {
+    readonly schemaVersion: '2.0';
+    readonly workload: 'PROBLEM';
+    readonly inputHash: string;
+    readonly planHash: string;
+    readonly verificationVersion: string;
+    readonly arithmeticStatus: 'CHECKED';
+    readonly interpretationStatus: 'NOT_CHECKED';
+    readonly domain: string;
+    readonly assumptions: readonly string[];
+  };
 }
 export function analysisCitationPath(citation: AnalysisCitation): string {
   return `/app/workspaces/${encodeURIComponent(citation.workspaceId)}/analyses/${encodeURIComponent(citation.analysisId)}?execution=${encodeURIComponent(citation.executionId)}`;

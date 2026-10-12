@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { queryKeys } from '../../../shared/api';
+import { canvasPollDelay } from './canvasFailures';
 import { fetchConversations, fetchConversationHistory } from './conversationApi';
 
 /** Shared cache shape for the editor's history and the workspace's recent-activity summary. */
@@ -29,12 +30,14 @@ export function useConversationHistory(
     getNextPageParam: (page) => page.nextBeforeSequence ?? undefined,
     staleTime: 0,
     refetchOnWindowFocus: true,
+    retry: false,
     refetchInterval: (query) =>
-      query.state.error === null &&
-      query.state.data?.pages.some((page) =>
-        page.messages.some((message) => message.status === 'PENDING'),
-      )
-        ? 2000
-        : false,
+      canvasPollDelay(
+        query.state.data?.pages.some((page) =>
+          page.messages.some((message) => message.status === 'PENDING'),
+        ) ?? false,
+        query.state.dataUpdateCount,
+        query.state.error !== null,
+      ),
   });
 }

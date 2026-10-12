@@ -39,6 +39,13 @@ export interface ConversationMessage {
   readonly selectedSourceIds: readonly string[] | null;
   readonly selectedAnalysisOutputs?: readonly AnalysisEvidenceReference[];
   readonly response: QuestionResponse | null;
+  readonly canvasResult?: {
+    readonly kind:
+      'EDIT_PROPOSAL' | 'ANALYSIS_HANDOFF' | 'PROBLEM_HANDOFF' | 'ANALYSIS_RESULT';
+    readonly proposalId: string | null;
+    readonly analysisId?: string | null;
+    readonly text: string;
+  };
   readonly errorCode: ApiErrorCode | null;
   readonly createdAt: string;
   readonly completedAt: string | null;
@@ -219,6 +226,7 @@ export interface CanvasTurnRequest {
   readonly replyToMessageId: string | null;
   readonly targetProposalId: string | null;
   readonly scope: CanvasScope;
+  readonly datasetInputs?: readonly import('../../analysis/api/analysisApi').AnalysisInput[];
 }
 export interface CanvasFirstTurn {
   readonly schemaVersion: '1.0';
@@ -234,12 +242,28 @@ export interface CanvasTurnState {
   readonly intent: CanvasTurnRequest['intent'];
   readonly scope: CanvasScope;
   readonly status:
-    'ACCEPTED' | 'PLANNING' | 'WAITING_FOR_INPUT' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+    | 'ACCEPTED'
+    | 'PLANNING'
+    | 'EXECUTING'
+    | 'WAITING_FOR_INPUT'
+    | 'PROPOSAL_READY'
+    | 'COMPLETED'
+    | 'FAILED'
+    | 'CANCELLED';
   readonly messageId: string | null;
   readonly proposalId: string | null;
   readonly executionId: string | null;
+  readonly analysisId?: string | null;
+  readonly calculationProposalIds?: readonly string[];
   readonly failureCode: ApiErrorCode | null;
-  readonly resultKind: 'ANSWER' | 'CLARIFICATION' | null;
+  readonly resultKind:
+    | 'ANSWER'
+    | 'CLARIFICATION'
+    | 'EDIT_PROPOSAL'
+    | 'ANALYSIS_HANDOFF'
+    | 'PROBLEM_HANDOFF'
+    | 'ANALYSIS_RESULT'
+    | null;
   readonly memory: {
     readonly includedMessages: number;
     readonly omittedMessages: number;

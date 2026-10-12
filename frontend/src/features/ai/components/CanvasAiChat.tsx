@@ -4,14 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient, describeError } from '../../../shared/api';
 import type { CanvasContext } from '../../documents/provenance/canvasTarget';
 import { useCanvasConversation } from '../api/useCanvasConversation';
+import { canvasFailure, describeCanvasFailure } from '../api/canvasFailures';
 import { citationPath, analysisCitationPath } from '../api/generationApi';
-import type { CanvasScope } from '../api/conversationApi';
+import type { CanvasScope, CanvasTurnRequest } from '../api/conversationApi';
+import { CanvasProposalPreview } from './CanvasProposalPreview';
 import { useSourcesQuery } from '../../sources/api/useSources';
 import { SourcePicker } from './SourcePicker';
 import { AnalysisEvidencePicker } from './AnalysisEvidencePicker';
 import { Button } from '../../../shared/components/Button';
 import { Textarea } from '../../../shared/components/forms';
 import styles from './CanvasAiChat.module.css';
+import { CanvasDatasetPicker } from './CanvasDatasetPicker';
+import { CalculationPackagePicker } from './CalculationPackagePicker';
+import { ReferencedOutput } from '../../documents/components/DocumentAnalysisBlock';
+import type { AnalysisInput } from '../../analysis/api/analysisApi';
+import { fetchExecutionRecord } from '../../analysis/api/analysisApi';
 
 export interface CanvasProposalReference {
   readonly id: string;
@@ -29,6 +36,9 @@ export function CanvasAiChat({
   onClose,
   onChangeContext,
   proposal: initialProposal,
+  canApply = true,
+  onApplying,
+  onApplied,
 }: {
   readonly workspaceId: string;
   readonly context?: CanvasContext;
@@ -38,6 +48,9 @@ export function CanvasAiChat({
   readonly onClose?: () => void;
   readonly onChangeContext?: () => void;
   readonly proposal?: CanvasProposalReference;
+  readonly canApply?: boolean;
+  readonly onApplying?: (value: boolean) => void;
+  readonly onApplied?: () => Promise<void>;
 }): ReactElement {
   const chat = useCanvasConversation(workspaceId, initialId);
   const navigate = useNavigate();
@@ -48,6 +61,9 @@ export function CanvasAiChat({
   const [scopeOpen, setScopeOpen] = useState(false);
   const [reply, setReply] = useState<string | null>(null);
   const [proposal, setProposal] = useState(initialProposal);
+  const [intent, setIntent] = useState<CanvasTurnRequest['intent']>('ANSWER');
+  const [datasetInputs, setDatasetInputs] = useState<readonly AnalysisInput[]>([]);
+  const [packagesOpen, setPackagesOpen] = useState(false);
   const sources = useSourcesQuery(workspaceId);
   const origin = chat.history.data?.pages[0]?.conversation.origin;
   const contextId = context?.contextId ?? chat.lastTurn?.contextId ?? origin?.contextId;
@@ -80,9 +96,10 @@ export function CanvasAiChat({
       analysisOutputs: pinned?.snapshot.analyses ?? [],
     };
   const focusOnOpen = onClose !== undefined;
+  const focusContextId = pinned?.contextId;
   useEffect(() => {
-    if (focusOnOpen) input.current?.focus();
-  }, [focusOnOpen]);
+    if (focusOnOpen && focusContextId !== undefined) input.current?.focus();
+  }, [focusOnOpen, focusContextId]);
   const busy = chat.submitting || chat.pending !== undefined;
   const unavailable =
     busy ||
@@ -109,7 +126,8 @@ export function CanvasAiChat({
         </p>
         {pinned ? (
           <blockquote>
-            {pinned.snapshot.text ||
+            {pinned.snapshot.formulas?.map((math) => math.accessibleText).join('; ') ||
+              pinned.snapshot.text ||
               `${pinned.snapshot.before} | ${pinned.snapshot.after}`}
           </blockquote>
         ) : (
@@ -146,17 +164,56 @@ export function CanvasAiChat({
             </Button>
           ) : null}
           {documentId ? (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                void navigate(`/app/workspaces/${workspaceId}/documents/${documentId}`);
-              }}
-            >
-              Open document
-            </Button>
+            <>
+              {canEdit ? (
+                <Button
+                  variant="ghost"
+                  disabled={busy || pinned === undefined}
+                  onClick={() => setPackagesOpen(!packagesOpen)}
+                >
+                  {packagesOpen ? 'Hide saved package picker' : 'Insert saved package'}
+                </Button>
+              ) : null}
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  void navigate(`/app/workspaces/${workspaceId}/documents/${documentId}`);
+                }}
+              >
+                Open document
+              </Button>
+            </>
           ) : null}
         </div>
       </div>
+      {packagesOpen && pinned && documentId ? (
+        <CalculationPackagePicker
+          key={pinned.contextId}
+          workspaceId={workspaceId}
+          documentId={documentId}
+          contextId={pinned.contextId}
+          conversationId={chat.conversationId}
+          turnId={chat.lastTurn?.turnId ?? null}
+          canApply={canApply && !busy}
+          onApplying={onApplying}
+          onApplied={onApplied}
+        />
+      ) : null}
+      {intent === 'ANALYZE' ? (
+        <CanvasDatasetPicker
+          workspaceId={workspaceId}
+          sources={sources.data ?? []}
+          value={datasetInputs}
+          disabled={busy}
+          onChange={(inputs) => {
+            setDatasetInputs(inputs);
+            setScope({
+              ...currentScope,
+              sourceVersionIds: inputs.map((i) => i.sourceVersionId),
+            });
+          }}
+        />
+      ) : null}
       {scopeOpen ? (
         <div className={styles.scope}>
           {sources.error ? <p role="alert">{describeError(sources.error)}</p> : null}
@@ -227,11 +284,63 @@ export function CanvasAiChat({
                 {citation.title ?? 'Source'}{' '}
               </a>
             ))}
+            {message.role === 'USER' &&
+            (message.status === 'FAILED' || message.status === 'ABANDONED') ? (
+              <div>
+                <p role="alert">
+                  {message.status === 'ABANDONED'
+                    ? 'Polecenie anulowano. Wysłane już wywołanie AI może być płatne; późna odpowiedź nie zostanie opublikowana.'
+                    : canvasFailure(message.errorCode)}
+                </p>
+                <Button
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    setInstruction(message.content);
+                    input.current?.focus();
+                  }}
+                >
+                  Przywróć polecenie
+                </Button>
+              </div>
+            ) : null}
             {message.response?.analysisCitations?.map((citation) => (
               <a key={citation.evidenceId} href={analysisCitationPath(citation)}>
                 {citation.title}{' '}
               </a>
             ))}
+            {chat.turns
+              .filter(
+                (turn) =>
+                  turn.messageId === message.id &&
+                  turn.resultKind === 'EDIT_PROPOSAL' &&
+                  turn.proposalId &&
+                  documentId,
+              )
+              .map((turn) => (
+                <CanvasProposalPreview
+                  key={turn.turnId}
+                  workspaceId={workspaceId}
+                  documentId={documentId!}
+                  proposalId={turn.proposalId!}
+                  canEdit={canEdit}
+                  canApply={canApply}
+                  onApplying={onApplying}
+                  onApplied={onApplied}
+                />
+              ))}
+            {chat.turns.some(
+              (turn) =>
+                turn.messageId === message.id &&
+                (turn.resultKind === 'ANALYSIS_HANDOFF' ||
+                  turn.resultKind === 'PROBLEM_HANDOFF'),
+            ) ? (
+              <a
+                href={`/app/workspaces/${workspaceId}/analyses${message.canvasResult?.analysisId ? `/${message.canvasResult.analysisId}` : ''}`}
+              >
+                Open Analysis Studio
+              </a>
+            ) : null}
             {chat.turns
               .filter((turn) => turn.messageId === message.id && turn.proposalId)
               .map((turn) => (
@@ -250,6 +359,39 @@ export function CanvasAiChat({
                   Use this proposal as context
                 </Button>
               ))}
+            {chat.turns
+              .filter(
+                (t) =>
+                  t.messageId === message.id &&
+                  t.resultKind === 'ANALYSIS_RESULT' &&
+                  t.analysisId &&
+                  t.executionId,
+              )
+              .map((t) => (
+                <CanvasDatasetResult
+                  key={t.turnId}
+                  workspaceId={workspaceId}
+                  analysisId={t.analysisId!}
+                  executionId={t.executionId!}
+                />
+              ))}
+            {documentId
+              ? chat.turns
+                  .filter((t) => t.messageId === message.id)
+                  .flatMap((t) => t.calculationProposalIds ?? [])
+                  .map((pid) => (
+                    <CanvasProposalPreview
+                      key={pid}
+                      workspaceId={workspaceId}
+                      documentId={documentId}
+                      proposalId={pid}
+                      canEdit={canEdit}
+                      canApply={canApply}
+                      onApplying={onApplying}
+                      onApplied={onApplied}
+                    />
+                  ))
+              : null}
             {message.role === 'ASSISTANT' && message.status === 'COMPLETED' ? (
               <Button
                 variant="ghost"
@@ -276,14 +418,23 @@ export function CanvasAiChat({
           <p role="status">
             {chat.pending.status === 'ACCEPTED'
               ? 'Question queued…'
-              : 'Preparing a grounded answer…'}{' '}
+              : chat.pending.status === 'EXECUTING'
+                ? 'Calculating the frozen dataset in the sandbox…'
+                : 'Preparing a grounded answer…'}{' '}
             You can close this window while it runs.
+            {chat.lastTurn?.status === 'EXECUTING' ? (
+              <span>
+                {' '}
+                Cancelling this question stops chat observation; the saved execution
+                continues in Analysis Studio.
+              </span>
+            ) : null}
           </p>
         ) : null}
       </div>
       {chat.error !== null || chat.history.error !== null || snapshot.error !== null ? (
         <p role="alert">
-          {describeError(chat.error ?? chat.history.error ?? snapshot.error)}
+          {describeCanvasFailure(chat.error ?? chat.history.error ?? snapshot.error)}
         </p>
       ) : null}
       {chat.retryAvailable ? (
@@ -309,6 +460,8 @@ export function CanvasAiChat({
               currentScope,
               reply,
               proposal?.id ?? null,
+              intent,
+              intent === 'ANALYZE' && datasetInputs.length ? datasetInputs : undefined,
             )
             .then((sent) => {
               if (sent) {
@@ -339,6 +492,25 @@ export function CanvasAiChat({
             </Button>
           </div>
         ) : null}
+        <label htmlFor={`${id}-intent`}>Action</label>
+        <select
+          id={`${id}-intent`}
+          value={intent}
+          disabled={busy}
+          onChange={(event) =>
+            setIntent(event.target.value as CanvasTurnRequest['intent'])
+          }
+        >
+          <option value="ANSWER">Ask about sources or saved results</option>
+          <option value="CLARIFY">Clarify the request</option>
+          {canEdit ? (
+            <>
+              <option value="EDIT">Write or revise text</option>
+              <option value="ANALYZE">Analyze a dataset</option>
+              <option value="SOLVE">Solve a problem</option>
+            </>
+          ) : null}
+        </select>
         <Textarea
           ref={input}
           id={`${id}-prompt`}
@@ -349,7 +521,15 @@ export function CanvasAiChat({
           disabled={busy}
         />
         <div className={styles.actions}>
-          <Button type="submit" icon="send" disabled={unavailable || !instruction.trim()}>
+          <Button
+            type="submit"
+            icon="send"
+            disabled={
+              unavailable ||
+              !instruction.trim() ||
+              (intent === 'ANALYZE' && !datasetInputs.length)
+            }
+          >
             Send question
           </Button>
           {chat.pending ? (
@@ -377,6 +557,53 @@ export function CanvasAiChat({
           ) : null}
         </div>
       </form>
+    </section>
+  );
+}
+function CanvasDatasetResult({
+  workspaceId,
+  analysisId,
+  executionId,
+}: {
+  readonly workspaceId: string;
+  readonly analysisId: string;
+  readonly executionId: string;
+}): ReactElement {
+  const record = useQuery({
+    queryKey: ['canvas-run', workspaceId, analysisId, executionId],
+    queryFn: ({ signal }) =>
+      fetchExecutionRecord(workspaceId, analysisId, executionId, signal),
+    retry: false,
+  });
+  return (
+    <section aria-label="Saved dataset calculation">
+      <a
+        href={`/app/workspaces/${workspaceId}/analyses/${analysisId}?execution=${executionId}`}
+      >
+        Open exact analysis execution
+      </a>
+      {record.isPending ? <p role="status">Loading saved calculation…</p> : null}
+      {record.error ? <p role="alert">{describeError(record.error)}</p> : null}
+      {record.data?.execution.status === 'FAILED' ? (
+        <p role="alert">Execution failed: {record.data.execution.failureCode}</p>
+      ) : null}
+      {record.data?.execution.status === 'SUCCEEDED'
+        ? record.data.execution.result?.outputs.map((output) => (
+            <ReferencedOutput
+              key={output.name}
+              workspaceId={workspaceId}
+              reference={{
+                analysisId,
+                executionId,
+                outputId: output.name,
+                renderMode: output.kind === 'TEXT' ? 'SUMMARY' : output.kind,
+              }}
+              caption=""
+              canEdit={false}
+              onUpdate={() => undefined}
+            />
+          ))
+        : null}
     </section>
   );
 }
