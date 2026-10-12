@@ -11,14 +11,14 @@ class SessionProfileConfigurationTest {
     @Configuration(proxyBeanMethods = false)
     static class Probe {}
 
-    @Test void deploymentOverlaysSelectJdbcWhileLocalAndTestRemainServlet() {
+    @Test void productProfilesSelectJdbcWhileTestRemainsServlet() {
         for (String profile : new String[]{"local", "test", "demo", "azure"}) {
             try (var app = new SpringApplicationBuilder(Probe.class).web(WebApplicationType.NONE).profiles(profile).run("--DB_URL=jdbc:postgresql://localhost/test", "--DB_USER=test", "--DB_PASSWORD=test",
                     "--BLOB_ENDPOINT=https://example.blob.core.windows.net", "--BLOB_CONNECTION_STRING=test-only",
                     "--AI_WORKER_BASE_URL=http://worker:8090", "--AI_WORKER_SERVICE_TOKEN=" + "w".repeat(32),
                     "--METRICS_SCRAPE_TOKEN=" + "m".repeat(32))) {
                 var environment = app.getEnvironment();
-                assertEquals(profile.equals("demo") || profile.equals("azure") ? "jdbc" : "servlet",
+                assertEquals(!profile.equals("test") ? "jdbc" : "servlet",
                         environment.getProperty("researchhub.auth.session-store"), profile);
                 assertEquals("never", environment.getProperty("spring.session.jdbc.initialize-schema"));
                 assertEquals("JSESSIONID", environment.getProperty("server.servlet.session.cookie.name"));

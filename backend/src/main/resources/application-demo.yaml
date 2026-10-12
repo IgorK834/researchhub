@@ -2,6 +2,8 @@
 researchhub:
   environment: demo
   auth:
+    mail:
+      public-base-url: ${PUBLIC_BASE_URL:https://localhost:8443}
     registration:
       mode: ${REGISTRATION_MODE:disabled}
     cors:

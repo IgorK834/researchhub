@@ -1,5 +1,9 @@
 # Local adapter defaults are public development values, never deployment credentials.
 researchhub:
+  auth:
+    session-store: ${AUTH_SESSION_STORE:jdbc}
+    mail:
+      public-base-url: ${PUBLIC_BASE_URL:http://localhost:3000}
   observability:
     scrape-token: ${METRICS_SCRAPE_TOKEN:local-development-metrics-token-change-before-deployment}
   debug:
