@@ -483,7 +483,20 @@ function ShellContent({
             ) : undefined
           }
           user={user}
-          signOut={<LogoutButton />}
+          signOut={
+            <>
+              <Button
+                href="/app/account"
+                variant="ghost"
+                size="compact"
+                icon="sliders"
+                aria-label="Account settings"
+              >
+                <span data-rh-label="">Account settings</span>
+              </Button>
+              <LogoutButton />
+            </>
+          }
         />
       }
     >

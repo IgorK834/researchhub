@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useLogin } from '../features/auth/api/useAuth';
 import { AuthLayout } from '../features/auth/components/AuthLayout';
@@ -20,6 +20,7 @@ import { usePublicConfig } from '../app/PublicConfig';
 export function LoginPage(): ReactElement {
   const { config } = usePublicConfig();
   const navigate = useNavigate();
+  const returnAction = useLocation().hash.slice(1);
   const { mutate, isPending, error } = useLogin();
 
   const [email, setEmail] = useState('');
@@ -43,7 +44,12 @@ export function LoginPage(): ReactElement {
       {
         onSuccess: () => {
           setPassword('');
-          void navigate('/app');
+          const match = /^(invite|verify):([A-Za-z0-9_-]{43})$/.exec(returnAction);
+          void navigate(
+            match
+              ? `${match[1] === 'invite' ? '/invitations' : '/verify-email'}#${match[2]}`
+              : '/app',
+          );
         },
       },
     );
@@ -104,6 +110,9 @@ export function LoginPage(): ReactElement {
           Log in
         </Button>
       </form>
+      <p>
+        <Link to="/forgot-password">Forgot password?</Link>
+      </p>
       <div className={styles.divider}>or</div>
       <Button
         type="button"

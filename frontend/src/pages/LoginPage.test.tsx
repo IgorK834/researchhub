@@ -158,7 +158,9 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText('Password').getAttribute('autocomplete')).toBe(
       'current-password',
     );
-    expect(screen.queryByRole('link', { name: /Forgot/ })).toBeNull();
+    expect(screen.getByRole('link', { name: /Forgot/ }).getAttribute('href')).toBe(
+      '/forgot-password',
+    );
   });
 
   it('preserves field errors from ProblemDetail and their accessible associations', async () => {

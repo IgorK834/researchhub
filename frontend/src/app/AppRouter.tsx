@@ -1,3 +1,6 @@
+import { AccountSettings } from '../features/auth/components/AccountSettings';
+import { AccountLink } from '../features/auth/components/AccountLink';
+import { PasswordRecovery } from '../features/auth/components/PasswordRecovery';
 import { AiDebugger } from '../features/devtools/AiDebugger';
 import type { ReactElement } from 'react';
 import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router-dom';
@@ -20,6 +23,10 @@ export const appRoutes: RouteObject[] = [
   // Public: reaching these is how someone becomes authenticated, so they must not be behind the guard.
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/forgot-password', element: <PasswordRecovery /> },
+  { path: '/reset-password', element: <PasswordRecovery complete /> },
+  { path: '/invitations', element: <AccountLink kind="invite" /> },
+  { path: '/verify-email', element: <AccountLink kind="verify" /> },
   {
     path: '/app',
     // The guard is the outermost element under /app, so every nested route — including a deep workspace
@@ -33,6 +40,7 @@ export const appRoutes: RouteObject[] = [
         element: <AppLayoutPage />,
         children: [
           { index: true, element: <WorkspaceListPage /> },
+          { path: 'account', element: <AccountSettings /> },
           { path: 'workspaces', element: <WorkspaceListPage /> },
           { path: 'workspaces/:workspaceId', element: <WorkspaceDetailPage /> },
           ...(
