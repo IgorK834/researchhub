@@ -111,8 +111,8 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(44, appliedVersions,
-                "A fresh database should have exactly versions 1 through 41 applied");
+        assertEquals(45, appliedVersions,
+                "A fresh database should have exactly versions 1 through 45 applied");
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'report_exports'", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
