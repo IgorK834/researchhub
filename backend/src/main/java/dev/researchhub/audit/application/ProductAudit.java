@@ -18,7 +18,7 @@ public class ProductAudit {
     public enum Type {
         INVITATION_CREATED, INVITATION_ACCEPTED, INVITATION_REVOKED, WORKSPACE_CREATED, MEMBER_ADDED, MEMBER_ROLE_CHANGED, MEMBER_REMOVED,
         SOURCE_UPLOADED, SOURCE_REPROCESSED, DOCUMENT_CREATED, AI_EVIDENCE_REQUESTED,
-        AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED, CANVAS_STAGE_COMPLETED
+        AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED, CANVAS_STAGE_COMPLETED, AUDIT_EXPORTED
     }
     public record Event(UUID id, UUID workspaceId, UUID actorUserId, Type eventType,
                         String resourceType, UUID resourceId, Map<String, Object> metadata, Instant createdAt) {}
@@ -42,6 +42,9 @@ public class ProductAudit {
     }
     public void workspaceCreated(UUID workspace, UUID actor) {
         append(workspace, actor, Type.WORKSPACE_CREATED, "WORKSPACE", workspace, Map.of());
+    }
+    public void auditExported(UUID workspace, UUID actor, UUID export) {
+        append(workspace, actor, Type.AUDIT_EXPORTED, "WORKSPACE", workspace, Map.of("exportId", export));
     }
     public void memberAdded(UUID workspace, UUID actor, UUID member, String role) {
         append(workspace, actor, Type.MEMBER_ADDED, "MEMBER", member, Map.of("role", role(role)));
