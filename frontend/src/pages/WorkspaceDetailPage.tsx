@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { WorkspaceGovernance } from '../features/workspaces/components/WorkspaceGovernance';
 import {
   Link,
   Navigate,
@@ -279,6 +280,9 @@ function WorkspaceDetail({
               workspace={workspace}
               readOnly={!canManage}
             />
+            {workspace.role === 'OWNER' ? (
+              <WorkspaceGovernance workspaceId={workspace.id} />
+            ) : null}
             {canManage ? (
               <ArchiveWorkspaceButton
                 workspaceId={workspace.id}

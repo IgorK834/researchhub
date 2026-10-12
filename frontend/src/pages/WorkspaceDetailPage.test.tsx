@@ -16,6 +16,15 @@ import {
 import { WorkspaceDetailPage } from './WorkspaceDetailPage';
 import { installResizeObserver } from '../shared/testing/resizeObserver';
 
+jest.mock('../features/workspaces/api/governanceApi', () => ({
+  fetchAiUsage: jest.fn(async () => ({
+    from: '2026-10-01T00:00:00Z',
+    to: '2026-10-12T00:00:00Z',
+    features: [],
+    quotas: [],
+  })),
+  downloadAudit: jest.fn(),
+}));
 const WORKSPACE_ID = 'w-1';
 
 const mockNavigate = jest.fn();
