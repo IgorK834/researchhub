@@ -6,6 +6,7 @@ import { Button } from '../../../shared/components/Button';
 import { TextField } from '../../../shared/components/forms';
 import * as api from '../api/accountApi';
 import styles from './AccountSettings.module.css';
+import { AccountDataSettings } from './AccountDataSettings';
 
 export function AccountSettings(): ReactElement {
   const cache = useQueryClient();
@@ -61,6 +62,7 @@ export function AccountSettings(): ReactElement {
   return (
     <section className={styles.page}>
       <h1>Account settings</h1>
+      <AccountDataSettings />
       {message ? <p role="status">{message}</p> : null}
       {error ? <p role="alert">{describeError(error)}</p> : null}
       <section>

@@ -1,3 +1,4 @@
+import { AccountDeletionReceipt } from '../features/auth/components/AccountDataSettings';
 import { AccountSettings } from '../features/auth/components/AccountSettings';
 import { AccountLink } from '../features/auth/components/AccountLink';
 import { PasswordRecovery } from '../features/auth/components/PasswordRecovery';
@@ -22,6 +23,7 @@ export const appRoutes: RouteObject[] = [
   { path: '/', element: <LandingPage /> },
   // Public: reaching these is how someone becomes authenticated, so they must not be behind the guard.
   { path: '/login', element: <LoginPage /> },
+  { path: '/account-deletion', element: <AccountDeletionReceipt /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/forgot-password', element: <PasswordRecovery /> },
   { path: '/reset-password', element: <PasswordRecovery complete /> },
