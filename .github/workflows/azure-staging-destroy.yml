@@ -1,0 +1,54 @@
+name: Azure staging destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Must be staging; production is refused
+        type: string
+        required: true
+        default: staging
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: azure-staging-${{ vars.AZ_RESOURCE_GROUP }}
+  cancel-in-progress: false
+
+env:
+  ENVIRONMENT: staging
+  AZ_SUBSCRIPTION_ID: ${{ vars.AZ_SUBSCRIPTION_ID }}
+  AZ_RESOURCE_GROUP: ${{ vars.AZ_RESOURCE_GROUP }}
+  STAGING_OWNER: ${{ vars.STAGING_OWNER }}
+  STAGING_RESULTS_DIR: ${{ github.workspace }}/.demo/azure/staging/results
+  STAGING_PRIVATE_DIR: ${{ runner.temp }}/researchhub-staging-private
+
+jobs:
+  destroy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: azure-staging
+    steps:
+      - name: Require staging and dedicated group
+        env:
+          REQUESTED_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          test "$REQUESTED_ENVIRONMENT" = staging
+          case "$AZ_RESOURCE_GROUP" in *prod*|*PROD*) exit 2 ;; rg-rh-staging-*) ;; *) exit 2 ;; esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0, OIDC only
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZ_SUBSCRIPTION_ID }}
+      - name: Destroy only an owned staging fixture
+        run: scripts/azure/destroy-staging.sh

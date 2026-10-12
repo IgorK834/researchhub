@@ -1,0 +1,99 @@
+name: Azure staging deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Must be staging; production is refused
+        type: string
+        required: true
+        default: staging
+      load_test:
+        description: Run bounded five-user, two-minute k6 load
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: azure-staging-${{ vars.AZ_RESOURCE_GROUP }}
+  cancel-in-progress: false
+
+env:
+  ENVIRONMENT: staging
+  AZ_SUBSCRIPTION_ID: ${{ vars.AZ_SUBSCRIPTION_ID }}
+  AZ_RESOURCE_GROUP: ${{ vars.AZ_RESOURCE_GROUP }}
+  STAGING_OWNER: ${{ vars.STAGING_OWNER }}
+  STAGING_RESULTS_DIR: ${{ github.workspace }}/.demo/azure/staging/results
+  STAGING_PRIVATE_DIR: ${{ runner.temp }}/researchhub-staging-private
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: azure-staging
+    env:
+      ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+    steps:
+      - name: Require staging and dedicated group
+        env:
+          REQUESTED_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          test "$REQUESTED_ENVIRONMENT" = staging
+          case "$AZ_RESOURCE_GROUP" in *prod*|*PROD*) exit 2 ;; rg-rh-staging-*) ;; *) exit 2 ;; esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0, OIDC only
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZ_SUBSCRIPTION_ID }}
+      - name: Install compiler and command extensions
+        run: |
+          az config set bicep.use_binary_from_path=false bicep.check_version=false
+          az bicep install --version v0.48.1
+          az extension add --name application-insights --yes
+          az extension add --name containerapp --yes
+      - name: Resolve the validation client's restricted ingress CIDR
+        run: |
+          client_ip=$(curl --fail --silent --show-error https://api.ipify.org)
+          [[ "$client_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || exit 2
+          printf 'STAGING_CLIENT_CIDR=%s/32\n' "$client_ip" >> "$GITHUB_ENV"
+      - name: Deploy SHA images and verify migration before scale-out
+        run: scripts/azure/deploy-staging.sh
+      - name: Seed synthetic data and close registration
+        run: scripts/azure/seed-staging.sh
+      - name: Run public smoke and cross-replica identity checks
+        run: scripts/azure/run-smoke.sh
+      - name: Install bounded load tool
+        if: inputs.load_test
+        run: |
+          curl --fail --location --silent --show-error https://github.com/grafana/k6/releases/download/v2.3.0/k6-v2.3.0-linux-amd64.tar.gz -o "$RUNNER_TEMP/k6.tar.gz"
+          tar -xzf "$RUNNER_TEMP/k6.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/k6-v2.3.0-linux-amd64" >> "$GITHUB_PATH"
+      - name: Run bounded synthetic load
+        if: inputs.load_test
+        run: scripts/azure/run-load-test.sh
+      - name: Allow telemetry ingestion, then collect and validate live signals
+        if: always()
+        run: |
+          scripts/azure/collect-results.sh
+      - name: Upload redacted evidence before any later teardown
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: azure-staging-${{ github.sha }}-${{ github.run_id }}
+          path: .demo/azure/staging/results/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Remove private runtime credentials
+        if: always()
+        run: rm -rf -- "$STAGING_PRIVATE_DIR"

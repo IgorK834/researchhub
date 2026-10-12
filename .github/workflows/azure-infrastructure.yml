@@ -1,0 +1,39 @@
+name: Azure infrastructure contracts
+
+on:
+  pull_request:
+    paths: ['infrastructure/**', 'docs/adr/**', 'docs/case-study.md', 'README.md', 'backend/src/main/resources/application*.yaml', 'frontend/docker/Caddyfile', 'frontend/Dockerfile', 'scripts/ci/**', '.github/workflows/azure-infrastructure.yml']
+  push:
+    branches: [main, master]
+    paths: ['infrastructure/**', 'docs/adr/**', 'docs/case-study.md', 'README.md', 'backend/src/main/resources/application*.yaml', 'frontend/docker/Caddyfile', 'frontend/Dockerfile', 'scripts/ci/**', '.github/workflows/azure-infrastructure.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-infrastructure-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - name: Install pinned compiler without Azure credentials
+        run: |
+          az config set bicep.use_binary_from_path=false bicep.check_version=false
+          az bicep install --version v0.48.1
+      - name: Compile and lint every template
+        run: node infrastructure/scripts/check.mjs
+      - name: Validate disposable dev configuration
+        run: node infrastructure/scripts/deploy.mjs validate
+      - name: Contract tests and deployment logic coverage (minimum 80%)
+        run: node --test --experimental-test-coverage --test-coverage-include='infrastructure/scripts/deployment.mjs' --test-coverage-lines=80 --test-coverage-branches=80 --test-coverage-functions=80 infrastructure/test/*.test.mjs

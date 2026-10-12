@@ -1,0 +1,7 @@
+{
+  "analyzers": { "core": { "enabled": true, "rules": {
+    "no-unused-params": { "level": "error" },
+    "no-unused-vars": { "level": "error" },
+    "outputs-should-not-contain-secrets": { "level": "error" }
+  } } }
+}

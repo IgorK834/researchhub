@@ -1,0 +1,12 @@
+{
+  "location": "westeurope",
+  "owner": "student",
+  "ttlHours": 8,
+  "poolSize": 5,
+  "maxReplicas": 2,
+  "p95Milliseconds": 1500,
+  "errorPercent": 5,
+  "minimumRequests": 20,
+  "budgetAlertsUsd": [5, 10, 20],
+  "billingCurrency": "USD"
+}
