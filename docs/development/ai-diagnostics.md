@@ -76,3 +76,9 @@ AI_DIAGNOSTICS_BROWSER_TESTS=true ./mvnw -Dtest=SourceExtractionEndToEndTest#pro
 ```
 
 Backend E2E uploads and processes a PDF through the actual Python HTTP worker, asks supported/weak questions, drafts a section, verifies the aggregate, injects a provider failure and inspects persisted completed stages. Tests cover operator/membership/workspace isolation, disabled capture redaction, unavailable source versions, revoked membership, retention and unknown costs. Browser E2E verifies production Webpack output under the enforcing CSP and checks 1600/1200/760/390px layouts. JaCoCo gates the diagnostics module at 80% lines/branches; Jest gates the devtools feature at 80% lines/branches/functions/statements; the worker's AI telemetry gate is 80%.
+
+## Contextual stage latency (CAI-17)
+
+`researchhub.canvas.stage.duration` separates QUEUE, ROUTING, RETRIEVAL, MODEL, SANDBOX and INSERTION, with only closed `stage`/`outcome` labels. Queue time ends at the durable claim; insertion time covers the transactional application and is recorded only after commit. Saved execution duration is recorded once at completion, rather than on every observation poll. Model usage, bounded retries/repair and cost retain the existing `record_payload`/diagnostics accounting, including billed usage on locally invalid output; absent provider usage remains unknown.
+
+Append-only product audit event `CANVAS_STAGE_COMPLETED` stores document/turn or operation identity, stage, outcome and duration. It contains no prompt or generated text; IDs never become metric labels. V44 extends the audit/error enums and the report snapshot version constraint. Missing audit availability cannot change a completed model/action result; a closed warning identifies the affected stage.

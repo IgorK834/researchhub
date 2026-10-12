@@ -74,7 +74,7 @@ remain protected from update/delete. Persisted diagnostic summaries are sanitize
 RH-151 introduces [result v2](../../contracts/analysis/execution/v2/README.md): chart title, labelled axes/units/scales
 and series references to saved numeric table columns. Both runtime and Java validate them; Java derives counts and
 binds analysis/execution/code provenance. Legacy charts retain their images with explicitly absent metadata.
-The server runtime is now `researchhub-sandbox:1.1.1`, preserving pinned scientific dependencies and v1 compatibility.
+The server runtime is now `researchhub-sandbox:1.2.0`, preserving pinned scientific dependencies and v1 compatibility.
 
 The frontend provides `/app/workspaces/:workspaceId/analyses`, `/analyses/new`, and `/analyses/:analysisId` with an
 optional `?execution=` selector. The result view shows saved tables/images, historical attempts, exact code and a
@@ -100,7 +100,7 @@ for report save/update behavior, source/computation citations, component boundar
 Build the pinned image, then enable the runner in the backend's local environment:
 
 ```bash
-docker build -t researchhub-sandbox:1.1.1 sandbox
+docker build -t researchhub-sandbox:1.2.0 sandbox
 ```
 
 Runner configuration and limits are documented in `.env.example`. Execution is opt-in and fails closed when the
@@ -177,3 +177,16 @@ RH-152/RH-153/RH-154 verified locally on 2026-10-05:
 - Browser QA renders the real latest-input E2E record and PNG. It checks the version-change banner,
   chart/table/provenance layout, keyboard focus and scrolling on Show code, and the provenance details
   panel at a narrower viewport against the design reference.
+
+CAI-13 uses these same dataset application services and quotas from contextual chat, with explicit frozen version/sheet/columns. A durable EXECUTING turn observes its saved execution rather than enqueueing again after reload/recovery. CAI-14 adds the server assembled SOLUTION capability after the controlled PROBLEM verifier, with hashes of both runtime code files collected in the fresh pinned containers. The original v2 sandbox TABLE/CHART/TEXT transport is unchanged. CAI-15 previews and atomically inserts exact saved capabilities through CAI-09. See [canvas-ai.md](canvas-ai.md) and [validation](canvas-packages-validation.md).
+
+
+### Controlled electrical units
+
+Native PROBLEM inputs additionally accept `V`, `A`, `mA`, `ohm`, `kohm`, `W`, `mW`.
+Dimensions use length/mass/time/current with mA=0.001 A, kohm=1000 ohm and mW=0.001 W.
+The same registry and dimensional rejection exist in Spring, planning contracts and the
+trusted compute/verifier runtime. Incompatible inputs are rejected before publication.
+See the [fixed Canvas evaluation](canvas-export-recovery-evaluation.md) for Ohm's law,
+all 13 sampled I(U) points and independent residual checks for the explicitly provided
+elimination expressions x=(sum+difference)/2 and y=(sum−difference)/2.

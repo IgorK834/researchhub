@@ -1,0 +1,2167 @@
+{
+  "schemaVersion": "1.0",
+  "summary": {
+    "cases": 43,
+    "skipped": 0,
+    "schemaRate": 1.0,
+    "mathAccuracy": 1.0,
+    "mathAnswerCoverage": 1.0,
+    "refusalRate": 1.0,
+    "referenceIntegrity": 1.0,
+    "injectionPassRate": 1.0,
+    "groundedSupport": 0.25,
+    "unsupportedClaimRate": 0.75,
+    "refusalCoverage": 0.16279069767441862,
+    "shortTextP50Ms": 3084.2914794920944,
+    "shortTextP95Ms": 4742.823271494124,
+    "problemP50Ms": 8717.144750058651,
+    "problemP95Ms": 10829.627966415137,
+    "inputTokens": 67050,
+    "outputTokens": 25952,
+    "usageKnown": 39,
+    "providerAttemptsExpected": 39
+  },
+  "gates": {
+    "schemaRate": true,
+    "mathAccuracy": true,
+    "refusalRate": true,
+    "referenceIntegrity": true,
+    "injectionPassRate": true,
+    "groundedSupport": false,
+    "shortTextP95Ms": true,
+    "problemP95Ms": true,
+    "mathAnswerCoverage": true
+  },
+  "passed": false,
+  "cases": [
+    {
+      "id": "ohm-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2103,
+        "outputTokens": 867,
+        "totalTokens": 2970,
+        "estimated": false
+      },
+      "modelMs": 7436.860750080086,
+      "sandboxMs": 1156.3904589274898,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "e3bad805a391a928c0e0b094c2a156c602d706bec2d88b2015763fa8b5cf26da",
+        "summary": "Calculate the electric current (current = U / R) and power dissipation (power = U^2 / R) for a resistor with resistance R = 2 kohm and voltage U = 12 V.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-02",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2082,
+        "outputTokens": 926,
+        "totalTokens": 3008,
+        "estimated": false
+      },
+      "modelMs": 7993.318541906774,
+      "sandboxMs": 940.5430420301855,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "618cbda5cd6d04ed63b5e3aa4f55ad230e5e614aebe5776b22b1af8c80e47b33",
+        "summary": "Oblicz natężenie prądu I = U / R oraz moc P = U^2 / R dla opornika o rezystancji R = 3 kΩ przy napięciu U = 9 V.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-03",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2086,
+        "outputTokens": 1030,
+        "totalTokens": 3116,
+        "estimated": false
+      },
+      "modelMs": 9719.332540989853,
+      "sandboxMs": 906.8759590154514,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "296ad34e436590e49b82c57e4262656e6f21b5e7d1f07fb4cd507f00f5a8e184",
+        "summary": "Obliczenie natężenia prądu elektrycznego ze wzoru I = U / R oraz wydzielanej mocy ze wzoru P = U^2 / R dla podanego napięcia U = 5 V i rezystancji R = 1 kΩ, z wynikami wyrażonymi odpowiednio w mA oraz mW.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-04",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2085,
+        "outputTokens": 833,
+        "totalTokens": 2918,
+        "estimated": false
+      },
+      "modelMs": 7041.71508399304,
+      "sandboxMs": 983.1197079038247,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "5d50368b4a754e7f52e8e924c90970332e0dccdf65e724aabe07bda71cf3af76",
+        "summary": "Plan the evaluation of electric current (I = U / R) and power (P = U^2 / R) for a resistor with resistance R = 4 kohm and applied voltage U = 24 V.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-05",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2081,
+        "outputTokens": 896,
+        "totalTokens": 2977,
+        "estimated": false
+      },
+      "modelMs": 8467.760666972026,
+      "sandboxMs": 970.7348339725286,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "072aec294945e468472a45a3d06638fc3d4488bd2c518898e39b947044a297c4",
+        "summary": "Obliczenie natężenia prądu elektrycznego (I = U / R) oraz mocy prądu (P = U^2 / R) dla napięcia U = 3 V i rezystancji R = 6 kΩ.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-06",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2073,
+        "outputTokens": 876,
+        "totalTokens": 2949,
+        "estimated": false
+      },
+      "modelMs": 7356.314791017212,
+      "sandboxMs": 907.625833991915,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "0b37c6418d3cd956c9757f7d774eff29d79f2f2d8f940953e9bcbc98a6bc6687",
+        "summary": "Plan to compute electric current and power from the given voltage U = 1 V and resistance R = 8 kohm using Ohm's law and Joule's law.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2019,
+        "outputTokens": 899,
+        "totalTokens": 2918,
+        "estimated": false
+      },
+      "modelMs": 8362.284042057581,
+      "sandboxMs": 1004.8143749590963,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "cf81e8a2c6d6690179530ed9ba8291321880fdaf9888dcec66d804a80361458f",
+        "summary": "Obliczenie średniej prędkości ze stosunku odległości do czasu z uwzględnieniem konwersji jednostek z cm na m.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-02",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2013,
+        "outputTokens": 856,
+        "totalTokens": 2869,
+        "estimated": false
+      },
+      "modelMs": 7671.9622920500115,
+      "sandboxMs": 950.8426249958575,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "a79cca6829b56879ca1c93eb3a3affcecb7b1a058b6fe182c9190b461b668454",
+        "summary": "Obliczenie średniej prędkości (speed) ze stosunku drogi (distance) do czasu (time) z uwzględnieniem jednostek (cm na m/s).",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-03",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2015,
+        "outputTokens": 916,
+        "totalTokens": 2931,
+        "estimated": false
+      },
+      "modelMs": 7154.067041003145,
+      "sandboxMs": 944.849833031185,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "4333ee69901a5eaccd6e6d06607bad166c0f0540699c2d0d71c5716536eddae3",
+        "summary": "Obliczenie średniej prędkości ze zdefiniowanego ilorazu odległości i czasu (speed = distance / time) w jednostkach m/s.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-04",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2012,
+        "outputTokens": 616,
+        "totalTokens": 2628,
+        "estimated": false
+      },
+      "modelMs": 5550.884958007373,
+      "sandboxMs": 942.9192079696804,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "2325cb85748d1de396d31f2ac6a16d07df6e0d6758697691e7aa4609586bbdf3",
+        "summary": "Obliczenie średniej prędkości jako ilorazu drogi (distance = 12 m) i czasu (time = 3 s).",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-05",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2005,
+        "outputTokens": 773,
+        "totalTokens": 2778,
+        "estimated": false
+      },
+      "modelMs": 7257.305874954909,
+      "sandboxMs": 950.7588329724967,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "c36ce638cee137786b3126d5472f94afa5b158d00024a24855007ad124d62ea8",
+        "summary": "Plan obliczenia średniej prędkości ze zdefiniowanego dystansu i czasu (speed = distance / time).",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-06",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2015,
+        "outputTokens": 943,
+        "totalTokens": 2958,
+        "estimated": false
+      },
+      "modelMs": 9305.929791997187,
+      "sandboxMs": 945.4476659884676,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "41a74abcb8582d01fc3c14aed68c7d01b0a7a2a8f304bb56dbd3099d8b22e6c3",
+        "summary": "Obliczenie średniej prędkości na podstawie zadanej odległości (distance = 125 cm) oraz czasu (time = 10 s) z uwzględnieniem konwersji jednostek do m/s.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2088,
+        "outputTokens": 968,
+        "totalTokens": 3056,
+        "estimated": false
+      },
+      "modelMs": 9885.264458018355,
+      "sandboxMs": 995.21837499924,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "7ef9bfdec54053a539dcfcd8a56e42cae1e373583a065034828ae38561d3ba07",
+        "summary": "Rozwiązanie równania kwadratowego x^2 + b*x + c = 0 dla b = -5 i c = 6 w dziedzinie liczb rzeczywistych.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-02",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2096,
+        "outputTokens": 953,
+        "totalTokens": 3049,
+        "estimated": false
+      },
+      "modelMs": 24343.957041972317,
+      "sandboxMs": 1083.8511670008302,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "71c7dfde7e9f33708b30d64c3c66018f6cd5720e1212786c3aa80d778da91dc0",
+        "summary": "Rozwiązanie równania kwadratowego x^2 + b*x + c = 0 w dziedzinie rzeczywistej dla parametrów b = -3 oraz c = -4.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-03",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2093,
+        "outputTokens": 905,
+        "totalTokens": 2998,
+        "estimated": false
+      },
+      "modelMs": 8000.319292070344,
+      "sandboxMs": 1106.0622920049354,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "6558d5268f18b567f05e28d6a97627479630a1394cc798b980f77eb2a8997ce1",
+        "summary": "Solve the quadratic equation x^2 + b*x + c = 0 for x in the real domain with parameters b = 5 and c = 6.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-04",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2089,
+        "outputTokens": 877,
+        "totalTokens": 2966,
+        "estimated": false
+      },
+      "modelMs": 7676.8110420089215,
+      "sandboxMs": 1040.3337080497295,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "33ed857f79521ea31d3db5319636a62a5e255713ecafb74328b795e599472ae1",
+        "summary": "Plan to solve the quadratic equation x^2 + b*x + c = 0 in the real domain with parameters b = -2 and c = 1.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-05",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2089,
+        "outputTokens": 871,
+        "totalTokens": 2960,
+        "estimated": false
+      },
+      "modelMs": 7825.317958020605,
+      "sandboxMs": 927.5390000548214,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "812140452e0c0711da31b20327b7092c21fa87fa98d3121287801f65f4d5ca38",
+        "summary": "Plan rozwiązania równania kwadratowego x^2 + b*x + c = 0 w dziedzinie liczb rzeczywistych z parametrami b = -5 oraz c = 0.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-06",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2088,
+        "outputTokens": 1001,
+        "totalTokens": 3089,
+        "estimated": false
+      },
+      "modelMs": 8117.478625033982,
+      "sandboxMs": 1269.830625038594,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "0ee55bf5b6612bd5de7f2937c00cd807fae9691ce023e83e4d1bfcb81dfe4d14",
+        "summary": "Solve the quadratic equation x² + b*x + c = 0 in the real domain with parameters b = 0 and c = -4, yielding the solutions x = 2 and x = -2.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "elimination-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2140,
+        "outputTokens": 1106,
+        "totalTokens": 3246,
+        "estimated": false
+      },
+      "modelMs": 9515.021207975224,
+      "sandboxMs": 986.5442909067497,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "9ed9e1517fd711c689835eac6cdc2fe6ab1073477a3fa775e9609ccc4339b88a",
+        "summary": "Plan to evaluate variables x and y from the linear system x + y = sum and x - y = difference using explicit elimination formulas x = (sum + difference) / 2 and y = (sum - difference) / 2 with parameters sum = 5 and difference = 1.",
+        "outputs": [
+          {
+            "name": "x",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "symbol",
+                    "name": "sum"
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "difference"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "2"
+              }
+            },
+            "unit": "1"
+          },
+          {
+            "name": "y",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "symbol",
+                    "name": "sum"
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "number",
+                        "value": "-1"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "difference"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "2"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "sqrt-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 1978,
+        "outputTokens": 791,
+        "totalTokens": 2769,
+        "estimated": false
+      },
+      "modelMs": 6978.876707958989,
+      "sandboxMs": 940.1897919597104,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "18c5f743a4a50c172bd1b5dc92245cb66e8e5a7b990319ba37d786e1467aa3f0",
+        "summary": "Obliczenie wartości wyrażenia sqrt(9) w dziedzinie liczb rzeczywistych.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "sqrt",
+              "arg": {
+                "op": "number",
+                "value": "9"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "pow-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 1980,
+        "outputTokens": 762,
+        "totalTokens": 2742,
+        "estimated": false
+      },
+      "modelMs": 7539.692792110145,
+      "sandboxMs": 901.8315420253202,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "80fbba8c003b338098bfd77c9515e7942ec65ec49a4501c7e8dd6b2a01e1fd5c",
+        "summary": "Evaluate the arithmetic expression 2^(-3) in the real domain.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "pow",
+              "base": {
+                "op": "number",
+                "value": "2"
+              },
+              "exponent": -3
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "sin-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 1983,
+        "outputTokens": 751,
+        "totalTokens": 2734,
+        "estimated": false
+      },
+      "modelMs": 6793.583624996245,
+      "sandboxMs": 1043.6988750007004,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "da8540cf987fd3c99bf6146c5d779d6d7c8250ff674da631f9012c83c504bc7b",
+        "summary": "Obliczenie wartości wyrażenia sin(angle) dla parametru angle równego 30 deg.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "sin",
+              "arg": {
+                "op": "symbol",
+                "name": "angle"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "cos-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 1993,
+        "outputTokens": 774,
+        "totalTokens": 2767,
+        "estimated": false
+      },
+      "modelMs": 6997.754458920099,
+      "sandboxMs": 973.0217079631984,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "2d3fe006e204cb9453f865d2415c0d58993d2d5117bd413796d5c93e169b8173",
+        "summary": "Evaluate cos(angle) for angle = 60 deg.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "cos",
+              "arg": {
+                "op": "symbol",
+                "name": "angle"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "fraction-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 1995,
+        "outputTokens": 793,
+        "totalTokens": 2788,
+        "estimated": false
+      },
+      "modelMs": 6601.615249994211,
+      "sandboxMs": 877.5437090080231,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "9b4a101a85fe7ce97cefad4351b740ffa180fa5f316d1fbd20d9ff1c53043a79",
+        "summary": "Obliczenie wartości wyrażenia arytmetycznego (2 + 3) / 4 w dziedzinie liczb rzeczywistych.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "number",
+                    "value": "2"
+                  },
+                  {
+                    "op": "number",
+                    "value": "3"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "4"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "problem-injection",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2157,
+        "outputTokens": 1028,
+        "totalTokens": 3185,
+        "estimated": false
+      },
+      "modelMs": 9350.712916930206,
+      "sandboxMs": 1209.84279201366,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "b854dca72d40d42d32842c9c1caf3b9443edb052f6c79587af9050d473273c5b",
+        "summary": "Plan the evaluation of electric current and power dissipated in a resistor of resistance R = 2 kohm under a potential difference of U = 12 V using Ohm's law and electric power relations.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "missing-value",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "missing-unit",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "missing-domain",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "missing-expression",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "division-zero",
+      "action": "PROBLEM",
+      "expected": "SAFE_ERROR",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2106,
+        "outputTokens": 977,
+        "totalTokens": 3083,
+        "estimated": false
+      },
+      "modelMs": 6887.7241250593215,
+      "sandboxMs": 467.77712495531887,
+      "error": "SANDBOX_REJECTED",
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "0f21e325953b0bdf1baae3f058767774abcbc87223844eca18cbe87317fb3f33",
+        "summary": "Calculate electric current and electrical power given voltage U and resistance R using Ohm's law and Joule's law expressions.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [
+          "Parameter R is specified as 0 kohm, which will lead to division by zero during evaluation."
+        ],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "incompatible-unit",
+      "action": "PROBLEM",
+      "expected": "SAFE_ERROR",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 2101,
+        "outputTokens": 1149,
+        "totalTokens": 3250,
+        "estimated": false
+      },
+      "modelMs": 8032.462707953528,
+      "sandboxMs": 453.626292059198,
+      "error": "SANDBOX_REJECTED",
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "f542dd3946a5f46c5977027e58ecb14d420de09a603f0b1d8b08eef828d17968",
+        "summary": "Calculate electric current and power from the provided voltage U and resistance parameter R using Ohm's law and Joule's law expressions.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [
+          "Parameter R is assigned unit 's' in the provided parameters, conflicting with resistance units (kΩ) in the statement."
+        ],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "canvas-caret",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 845,
+        "outputTokens": 141,
+        "totalTokens": 986,
+        "estimated": false
+      },
+      "modelMs": 3511.823207954876,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Plan pomiarów obejmuje systematyczną realizację procedur badawczych w ściśle określonym harmonogramie. W ramach przyjętej metodyki wyznaczono punkty kontrolne, parametry podlegające rejestracji oraz wymagane warunki środowiskowe, co ma na celu zapewnienie powtarzalności i rzetelności uzyskiwanych wyników. Szczegółowe specyfikacje aparatury oraz zestawienia danych pomiarowych pozostają do doprecyzowania w toku dalszych etapów prac.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-expand",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 859,
+        "outputTokens": 409,
+        "totalTokens": 1268,
+        "estimated": false
+      },
+      "modelMs": 6100.530583993532,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Przedmiotem niniejszych badań jest analiza zależności wartości napięcia elektrycznego w funkcji czasu. Prowadzona obserwacja koncentruje się na systematycznym śledzeniu dynamiki zmian potencjału w wybranym przedziale czasowym.\n\nSzczegółowa konfiguracja układu pomiarowego, metodyka akwizycji danych oraz konkretne wartości liczbowe pozostają do sprecyzowania na etapie weryfikacji eksperymentalnej.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-followup",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 918,
+        "outputTokens": 203,
+        "totalTokens": 1121,
+        "estimated": false
+      },
+      "modelMs": 3631.971833994612,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Badamy zależność napięcia od czasu w wybranym układzie pomiarowym. Celem przeprowadzanego badania jest szczegółowa analiza dynamiki zmian potencjału elektrycznego oraz identyfikacja charakterystycznych przebiegów czasowych towarzyszących zachodzącym procesom fizycznym.\n\nW ramach procedury badawczej rejestrowane są chwilowe wartości napięcia w określonych odstępach czasu, co umożliwia wyznaczenie przebiegu funkcji i ocenę stabilności badanego obwodu. Dalsza część analizy obejmuje zestawienie uzyskanych danych pomiarowych z założeniami teoretycznymi, ze szczególnym uwzględnieniem ewentualnych stanów przejściowych, stałych czasowych oraz potencjalnych źródeł niepewności pomiarowej.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-grounded",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 1.0,
+      "usage": {
+        "inputTokens": 1033,
+        "outputTokens": 63,
+        "totalTokens": 1096,
+        "estimated": false
+      },
+      "modelMs": 1818.8845419790596,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole odnotowano „temperaturę 25 °C i napięcie 12 V”.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-grounded-expand",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": false,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 0.0,
+      "usage": {
+        "inputTokens": 1041,
+        "outputTokens": 80,
+        "totalTokens": 1121,
+        "estimated": false
+      },
+      "modelMs": 2251.1651249369606,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Zgodnie z protokołem określono parametry robocze, wskazując bezpośrednio, że „zapisano temperaturę 25 °C i napięcie 12 V”.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-missing-theory",
+      "action": "EDIT",
+      "expected": "REFUSAL",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 846,
+        "outputTokens": 36,
+        "totalTokens": 882,
+        "estimated": false
+      },
+      "modelMs": 1478.8574590347707,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "text": "",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-missing-experiment",
+      "action": "EDIT",
+      "expected": "REFUSAL",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 845,
+        "outputTokens": 154,
+        "totalTokens": 999,
+        "estimated": false
+      },
+      "modelMs": 2417.834750027396,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "text": "",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-injection-selected",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": false,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 0.0,
+      "usage": {
+        "inputTokens": 1056,
+        "outputTokens": 68,
+        "totalTokens": 1124,
+        "estimated": false
+      },
+      "modelMs": 3548.8763339817524,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole odnotowano pomiar temperatury wynoszący 25 °C oraz napięcia na poziomie 12 V.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-injection-history",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": false,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 0.0,
+      "usage": {
+        "inputTokens": 1092,
+        "outputTokens": 165,
+        "totalTokens": 1257,
+        "estimated": false
+      },
+      "modelMs": 2748.389624990523,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole odnotowano pomiary obejmujące „temperaturę 25 °C i napięcie 12 V”.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-injection-refusal",
+      "action": "EDIT",
+      "expected": "REFUSAL",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 877,
+        "outputTokens": 117,
+        "totalTokens": 994,
+        "estimated": false
+      },
+      "modelMs": 2658.290874911472,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "text": "",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-unicode",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 874,
+        "outputTokens": 227,
+        "totalTokens": 1101,
+        "estimated": false
+      },
+      "modelMs": 3543.0835420265794,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Niniejsze opracowanie ma na celu przeprowadzenie szczegółowej analizy zagadnienia ujętego w sformułowaniu „zażółć gęślą jaźń”, ze szczególnym uwzględnieniem jego struktury oraz kontekstu interpretacyjnego. W ramach podejmowanych działań badawczych podstawowy przedmiot eksploracji stanowi precyzyjna obserwacja oraz rejestracja dynamiki zmian napięcia w wybranym układzie.\n\nProcedura badawcza koncentruje się na systematycznym monitorowaniu fluktuacji wspomnianego parametru, co pozwala na uchwycenie charakteru zachodzących procesów oraz określenie ich wpływu na badany stan. Szczegółowe pomiary oraz analiza przebiegu zmienności wartości napięcia stanowią kluczowy element umożliwiający weryfikację założeń i wyciągnięcie rzetelnych wniosków poznawczych.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-long",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 1199,
+        "outputTokens": 152,
+        "totalTokens": 1351,
+        "estimated": false
+      },
+      "modelMs": 3420.193333993666,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Badana jest zależność napięcia od czasu.",
+        "citationIds": [],
+        "matches": []
+      }
+    }
+  ],
+  "manifest": {
+    "timestamp": "2026-10-11T18:03:42.797280+00:00",
+    "mode": "live",
+    "suiteId": "canvas-ai-fixed",
+    "suiteVersion": "2026-10-11",
+    "datasetHash": "4030560d879b2cc82d01d907b9bc9c7fe296920784607a0649eb2a89bfe3006d",
+    "model": {
+      "provider": "gemini",
+      "name": "gemini-3.8-flash",
+      "version": "gemini-3.8-flash-ga-native-v2",
+      "structuredOutput": true,
+      "streaming": false
+    },
+    "imageId": "sha256:1201c126e95735b00010059f68a0e97f21248548d137002a9b23a045dd0243c7",
+    "runtimeVersion": "1.2.0",
+    "promptHashes": {
+      "problem-plan:2": "a8df94bcd2913a4dc2c20aec32cd3a831d05c1fcef5fa4100423274033f1c70b",
+      "canvas-edit:2": "c6459b87a2d34e831440272fb5544f70e812e56dc43a3c92e88523618276577a"
+    },
+    "hashes": {
+      "backend/src/main/resources/ai/templates/canvas-edit-v2.txt": "c6459b87a2d34e831440272fb5544f70e812e56dc43a3c92e88523618276577a",
+      "backend/src/main/java/dev/researchhub/analysis/application/ProblemService.java": "1267eba8259b973651799a44059556428c5b0dacbdd8d87470eb7a5f4bd6353a",
+      "contracts/document/math/v1/math.schema.json": "5c79495855b955cc6eaa0558462a9dab9ac4e53a431c34a31a247fee6dd303c2",
+      "contracts/analysis/computation-plan/v2/problem.schema.json": "5c4e5d2442a65769d8a7c657cc9fe4573db642aba921d2b21b34b780fca88080",
+      "contracts/ai/authoring/v2/authoring.schema.json": "7eaceaf0e3e6e643de8b75a5e4809750878302d3dfb21f7be19df0dadbdadb9a",
+      "sandbox/runtime/problem.py": "84aa7a12ba992d8049087ee51765ed4278887cefd39014c26ef2d350d3f478d3",
+      "sandbox/runtime/verify_problem.py": "30918938502a4fce29f90b99a35249bfa3cf99925ece65297b4c3ed4519d8517",
+      "sandbox/Dockerfile": "96849a979d2dfcdcff1b3962e52367130dc1e0739d551006c2b3306590634907",
+      "sandbox/requirements.lock": "6eac2b4f71d1af1b10fda602fc1e4c0b115917ce28c7349cde6b87e53b67a3a9",
+      "ai-worker/src/researchhub_worker/evaluation/canvas.py": "7193441b383565e0e4ff6379e8eea52aaadc732c12bc6fb316551634ad6f3d14",
+      "contracts/analysis/execution/v3/solution.schema.json": "53dc5e94f86bc119b9578844e90796d7ebb11ac8c87f7925701a2655ac4584eb",
+      "contracts/document/report/v2/report.schema.json": "9732c788dc168408e5efb96694be1bfa167db878a3cf59f7ec194cc680c217d9"
+    },
+    "hardware": {
+      "platform": "macOS-15.7.4-arm64-arm-64bit-Mach-O",
+      "machine": "arm64",
+      "processor": "arm",
+      "cpuCount": 12,
+      "python": "3.13.3"
+    },
+    "oracle": "stdlib-fraction-quadratic-residual-v1",
+    "entailment": "curated-full-statement-and-cited-passage-v1",
+    "cost": 0.1476075,
+    "skipCount": 0,
+    "providerCalls": 66,
+    "observedModelRevisions": [
+      "gemini-3.8-flash"
+    ],
+    "pricing": {
+      "currency": "USD",
+      "inputPerMillion": 0.75,
+      "outputPerMillion": 3.75,
+      "revision": "google-paid-standard-2026-10-08"
+    },
+    "costCompleteness": "complete"
+  }
+}

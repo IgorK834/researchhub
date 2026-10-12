@@ -13,7 +13,7 @@ No cloud account, model key or paid service is needed. The first build needs int
 for Maven/npm and pinned container images. Subsequent starts reuse successful builds.
 
 The command builds the backend JAR, the production Webpack/Babel frontend, missing worker,
-collaboration and Caddy images, and `researchhub-sandbox:1.1.1`. It waits for readiness,
+collaboration and Caddy images, and `researchhub-sandbox:1.2.0`. It waits for readiness,
 seeds the authored synthetic RC laboratory via the existing public REST API, restarts Spring
 with registration disabled, starts the edge, and runs an authenticated smoke check.
 It prints **https://localhost:8443** and two generated editor logins. Private passwords,
@@ -157,3 +157,35 @@ observed in this macOS workspace. Local evidence stays in ignored `.demo/local/t
 `.demo/local/browser/`; CI exports only timing and browser evidence, never account/service secrets.
 
 Public hosting and Azure provisioning remain separate tasks.
+
+
+## Canvas AI verification (CAI-16–18)
+
+From the repository root, with Java 25, Node/npm, Python 3.13.3, the project `.venv`s,
+installed npm dependencies, Docker Desktop/Engine and Chromium:
+
+```bash
+python3 scripts/demo/canvas-suite.py --output .demo/canvas-suite
+# Explicit paid native Gemini measurement after the required suite succeeds:
+python3 scripts/demo/canvas-suite.py --live --output .demo/canvas-suite-live
+```
+
+The entrypoint builds both production editor modes and the sandbox, runs all layer coverage
+gates, then real Spring/PostgreSQL/browser/worker/Docker tests and a fixed 43-case benchmark.
+All 24 interaction requirements need successful JUnit evidence; a skipped or missing required
+test fails the runner. Old opt-in tests outside this matrix are counted separately.
+`--live` reads the private root `.env` through `stack.worker_env()` and provides the key only
+to the worker benchmark. All ordinary stages use an environment with worker settings removed.
+The benchmark checks both isolated compute and verifier containers before any paid request.
+It holds an owned image reference so rebuilding the demo's mutable tag cannot replace its runtime.
+
+`up.sh` also fingerprints the sandbox Dockerfile, pinned lock and runtime sources, rebuilding
+version `1.2.0` on drift even when an old tag exists. No additional provider secret is needed.
+Saved prompts can be restored after failure; restoration does not submit a new paid request.
+Supported unit conversion includes V, A/mA, ohm/kohm and W/mW. The two-variable matrix case
+uses explicitly supplied elimination expressions; this does not add a general multivariable solver.
+
+See [recorded Canvas verification](../development/canvas-export-recovery-evaluation.md) for measured results and the current Gemini
+quality gates. Offline/fake-provider results measure contracts and product behavior and are not
+claims about native Gemini quality. Local `.demo` logs remain private; published reports contain
+only committed synthetic fixtures, normalized validated results, hashes and measurements.

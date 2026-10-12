@@ -495,3 +495,13 @@ installation missing its default CA bundle can use the OS CA bundle automaticall
 The helper explicitly reprocesses demo sources via authenticated HTTPS when embedding identity
 changes. Checkpoints make it resumable; the old vector space is never relabeled. Other workspaces
 must use their existing authorized source **Reprocess** action. No schema migration is needed.
+
+## Contextual Canvas budgets and recovery (CAI-17)
+
+Existing `researchhub.security.quotas` apply to actual Canvas stages: LLM defaults 20/user and 60/workspace, retrieval 60/180, analysis 10/30, within `window=PT1M`. A saved turn reservation, clarification, history read or replay does not admit a new Canvas LLM call. Admission and the paid-model marker share the locked lease transaction; dataset enqueue and the durable EXECUTING observer are atomic. Studio HTTP request limits remain independently enforced by the existing costly-operation policy.
+
+The worker shares a maximum of **three actual provider transports** per contextual operation, including a schema fallback, bounded repair and any gateway retry. There is at most one repair; an ordinary authoring turn does not automatically resend an uncertain paid request. Other legacy generation operations retain their bounded six-transport ceiling. The existing Gemini HTTP/operation deadlines continue to bound total elapsed work. No new secret is introduced.
+
+History polling starts at 2 s, increases to 4/8/16 s every three updates and stops on terminal state or error; React Query automatic retry is disabled for this observer. Failed/cancelled user messages retain the saved prompt and offer **Przywróć polecenie**, which fills the input without resending. Provider timeout/429, revoked access and invalid output have concrete Polish messages. Invalid output says: „AI zwróciło odpowiedź w nieprawidłowym formacie. Dokument nie został zmieniony. Spróbuj ponownie.” Cancellation fences publication after the paid call; sent provider requests may still be billed. Observing a queued dataset can be stopped while its saved Studio execution continues.
+
+`scripts/demo/up.sh` hashes the sandbox Dockerfile, pinned requirements and runtime. It rebuilds `researchhub-sandbox:1.2.0` when any change or the local stamp is missing, even if the tag already exists. Worker credentials remain worker-only. The fixed benchmark keeps an owned image reference and runs its exact digest, avoiding mutable tag/attestation-index drift during a run. It validates both runtime phases before sending paid requests and removes only its owned reference afterwards.

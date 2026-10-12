@@ -9,10 +9,10 @@ still uses host Maven, npm and the existing dependency-only Compose stack.
 Run from the repository root:
 
 ```bash
-docker build -t researchhub-backend:demo backend
+docker build --build-arg BUILD_COMMIT="$(git rev-parse HEAD)" -t researchhub-backend:demo backend
 docker build -f frontend/Dockerfile -t researchhub-frontend:demo .
 docker build -t researchhub-ai-worker:demo ai-worker
-docker build -t researchhub-sandbox:1.1.1 sandbox
+docker build -t researchhub-sandbox:1.2.0 sandbox
 python3 scripts/demo/verify-images.py
 ```
 
@@ -21,7 +21,7 @@ python3 scripts/demo/verify-images.py
 | Backend | Temurin JDK 25.0.2, Maven wrapper, Spring Boot BOM | Temurin JRE 25.0.2, UID 10001; executable JAR only | Java probe checks public Actuator readiness; target platform uses HTTP liveness/readiness |
 | Frontend | Node 26.9.0; `npm ci` consumes the committed lock, typecheck and production Webpack | Caddy 2.11.2, UID 10001; static assets only | `/healthz` checks static hosting; API readiness is separate |
 | AI worker | Python 3.13.3; uv 0.12.20, frozen production dependencies, installed wheel | Same pinned Python, UID 10001; virtualenv only, no uv/build environment | `/health`; environment supplies service token, model/embedding adapters and parser limits |
-| Sandbox | Pinned Python 3.13.3 and existing scientific requirements lock | UID 65532, unchanged runtime 1.1.1 | One-shot execution; process exit and validated result manifest; no daemon health check |
+| Sandbox | Pinned Python 3.13.3 and scientific requirements lock, including SymPy/mpmath | UID 65532, runtime 1.2.0 | One-shot compute/verify execution; process exit and validated result manifest; no daemon health check |
 
 Each FROM uses an exact version **and manifest digest**. Update both together, rebuild all affected
 images, run their existing tests and image acceptance, and review the repository security scan.

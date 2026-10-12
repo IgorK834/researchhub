@@ -20,7 +20,7 @@ Base path: `/api/workspaces/{workspaceId}/documents/{documentId}/exports`.
 | --- | --- | --- |
 | `POST /exports` | `{"format":"DOCX" or "PDF" or "LATEX","revision":positive integer}` | `202`, `Location` pointing to the job, `ExportJob` JSON |
 | `GET /exports/{jobId}` | None | `200`, job metadata |
-| `GET /exports/{jobId}/representation` | None | `200`, frozen report schema `1.0`; `409` when expired |
+| `GET /exports/{jobId}/representation` | None | `200`, frozen report schema `1.0` or `2.0`; `409` when expired |
 | `GET /exports/{jobId}/download` | None | `200`, bytes with explicit media type, UTF-8 attachment filename and content length; `409` until successful or after expiration |
 
 `ExportJob`: `id`, `workspaceId`, `documentId`, `requestedBy`, `revision`, `format`, `status`, `filename`, `warnings`, `createdAt`, nullable `startedAt`/`finishedAt`, `expiresAt`, nullable `failureCode`/`sha256`, `sizeBytes`. Times are ISO-8601 UTC instants. States: `QUEUED → RUNNING → SUCCEEDED | FAILED`; any retained state may become `EXPIRED`. Checksums are lowercase SHA-256 over the downloadable bytes. The artifact's actual format and revision come from the job, even if the editor has changed since it was generated.
@@ -80,7 +80,7 @@ Each UTF-8 ZIP contains:
 | --- | --- |
 | `report.tex` | Editable `article` document, A4 page geometry, Unicode text, headings, styled paragraphs, ordered/unordered nested lists, tables, images, captions, numeric citations, references and export warnings |
 | `images/figure-001.png`, etc. | The exact normalized PNG bytes from the frozen IR. Identical images share one generated path; no user-supplied filenames or URLs become asset paths |
-| `report.json` | The complete schema `1.0` snapshot, including immutable source locations, analysis inputs/code hashes and trusted block-operation provenance |
+| `report.json` | The complete schema `1.0` or `2.0` snapshot, including immutable source locations, analysis inputs/code hashes and trusted block-operation provenance |
 | `README.txt` | Extraction, required packages, local compilation instructions and limits |
 
 Extract the complete archive and compile `report.tex` twice with `xelatex -no-shell-escape report.tex` or `lualatex -no-shell-escape report.tex` in a current TeX Live/MiKTeX installation. The generated preamble uses the standard Latin Modern OpenType font files via [fontspec](https://ctan.org/pkg/fontspec), and the packages geometry, graphicx, array, [longtable](https://ctan.org/pkg/longtable), [multirow](https://ctan.org/pkg/multirow), [enumitem](https://ctan.org/pkg/enumitem), and ulem. Fonts and packages are supplied by the user's TeX distribution; ResearchHub does not fetch them. Users can edit the preamble to choose journal templates, fonts and language-specific glyph coverage.
@@ -106,3 +106,13 @@ Verified on 2026-10-07 through RH-233: full backend `EXPORT_BROWSER_TESTS=true L
 Equation typesetting, custom citation styles, unrelated storage providers and collaboration changes remain separate backlog tasks. LaTeX compilation remains under the user's control outside the main backend.
 
 Bibliographic metadata is now resolved and frozen with each cited version; see [source-library.md](source-library.md). All three renderers include normalized bibliographic fields alongside immutable provenance.
+
+## Controlled mathematical solutions (CAI-16)
+
+Documents containing inline/block math or native PROBLEM references freeze [report v2](../../contracts/document/report/v2/README.md). Existing v1 jobs remain readable. V44 admits both persisted versions. The snapshot carries controlled AST, accessible notation, bounded PNG, verification references and the saved solution's hashes, receipt, runtime/image identity, units, substitutions, values and exact step/conversation IDs. Arithmetic CHECKED remains distinct from interpretation NOT_CHECKED; a human caption never changes the receipt.
+
+DOCX emits native editable OMML fractions, powers, subscripts and roots. PDF embeds locally rendered formulas from **JLaTeXMath 1.0.7**, pinned in Maven and verified headlessly on Java 25. The [upstream license](https://github.com/opencollab/jlatexmath/blob/master/LICENSE) is GPL v2 or later with the independent-module linking exception; bundled font notices and original license texts are retained under `backend/src/main/resources/export/jlatexmath/`. This permits linking independent application modules under their own terms while retaining the library's notices and source obligations. It is not a license change to the library. [Upstream implementation](https://github.com/opencollab/jlatexmath) and [versioned API](https://javadoc.io/static/org.scilab.forge/jlatexmath/1.0.7/org/scilab/forge/jlatexmath/TeXFormula.html).
+
+Only validated AST generates TeX or OMML; model/user notation never reaches a TeX parser. AST limits are 128 nodes/depth 12, canonical notation at most 4000 characters; formula raster dimensions are checked **before** allocation and capped at 1600 × 512. Long/unsupported legacy notation remains escaped literal text with a visible Polish warning in all formats. The LaTeX ZIP contains editable controlled expressions and the exact frozen `report.json`; the backend never runs TeX. Rendering consumes only the snapshot and embedded assets, with no AI, worker, sandbox or remote fetch.
+
+Visual QA renders a 30-step report, fractions, powers, indices, long-formula fallback and a native solution with a chart. DOCX is additionally opened through a test-only LibreOffice conversion to catch malformed OMML; LibreOffice is absent from the production export pipeline. Evidence and measured checks are in [CAI-16–18 validation](canvas-export-recovery-evaluation.md).

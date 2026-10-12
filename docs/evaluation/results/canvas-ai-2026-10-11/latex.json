@@ -1,0 +1,47 @@
+{
+  "compiler": "Tectonic 0.16.9",
+  "bundles": [
+    {
+      "bundle": "math-solution",
+      "compiled": true,
+      "pages": 6,
+      "untrusted": true
+    },
+    {
+      "bundle": "math-fallback",
+      "compiled": true,
+      "pages": 1,
+      "untrusted": true
+    },
+    {
+      "bundle": "native-solution",
+      "compiled": true,
+      "pages": 4,
+      "untrusted": true
+    },
+    {
+      "bundle": "canvas-legacy",
+      "compiled": true,
+      "pages": 4,
+      "untrusted": true
+    },
+    {
+      "bundle": "canvas-realtime",
+      "compiled": true,
+      "pages": 4,
+      "untrusted": true
+    },
+    {
+      "bundle": "browser-report",
+      "compiled": true,
+      "pages": 1,
+      "untrusted": true
+    }
+  ],
+  "date": "2026-10-11",
+  "visualInspection": [
+    "math-solution first/last page: fractions, superscript, subscript, radical, all 30 steps",
+    "math-fallback: wrapped literal notation and visible warnings",
+    "native-solution final page: table and plot with units"
+  ]
+}

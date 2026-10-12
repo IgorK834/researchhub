@@ -388,8 +388,10 @@ or readiness failures. Prometheus names include `hikaricp_connections_active`, `
 **Epic 21 Bicep parameter validation contract:** parameters `maxReplicas`, backend pool size, scheduler headroom
 and the managed database connection limit must reference this section. Reject a parameter set violating either
 budget before deployment; include revision surge and other consumers. Render `DB_POOL_MAX_SIZE` from the same
-pool-size parameter used in validation, so code and deployment cannot diverge. This repository has no Azure Bicep
-module yet; RH-314 records its required validation rather than introducing infrastructure outside this change.
+pool-size parameter used in validation, so code and deployment cannot diverge. The
+[Azure dev wrapper](../../infrastructure/README.md) now enforces this budget including rollout surge,
+reserved slots and other consumers before deployment; it renders `DB_POOL_MAX_SIZE` from the validated
+`poolSize`. Live server limits still need verification. RH-314 established this contract; RH-201 supplies IaC.
 
 Evidence: `CloudProfileStartupTests` asserts every Hikari default and staging override;
 `AzureProfileStartupIntegrationTest` checks the real single datasource and pool gauges after Flyway startup,

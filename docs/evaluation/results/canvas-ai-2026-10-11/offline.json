@@ -1,0 +1,2154 @@
+{
+  "schemaVersion": "1.0",
+  "summary": {
+    "cases": 43,
+    "skipped": 0,
+    "schemaRate": 1.0,
+    "mathAccuracy": 1.0,
+    "mathAnswerCoverage": 1.0,
+    "refusalRate": 1.0,
+    "referenceIntegrity": 1.0,
+    "injectionPassRate": 1.0,
+    "groundedSupport": 1.0,
+    "unsupportedClaimRate": 0.0,
+    "refusalCoverage": 0.16279069767441862,
+    "shortTextP50Ms": 0.1999794621951878,
+    "shortTextP95Ms": 4.084175173193211,
+    "problemP50Ms": 1011.5571239730343,
+    "problemP95Ms": 1336.745858099311,
+    "inputTokens": 4479,
+    "outputTokens": 385,
+    "usageKnown": 39,
+    "providerAttemptsExpected": 39
+  },
+  "gates": {
+    "schemaRate": true,
+    "mathAccuracy": true,
+    "refusalRate": true,
+    "referenceIntegrity": true,
+    "injectionPassRate": true,
+    "groundedSupport": true,
+    "shortTextP95Ms": true,
+    "problemP95Ms": true,
+    "mathAnswerCoverage": true
+  },
+  "passed": true,
+  "cases": [
+    {
+      "id": "ohm-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 0.7770420052111149,
+      "sandboxMs": 1550.793792004697,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "e3bad805a391a928c0e0b094c2a156c602d706bec2d88b2015763fa8b5cf26da",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-02",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 1.443500048480928,
+      "sandboxMs": 970.2405000571162,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "618cbda5cd6d04ed63b5e3aa4f55ad230e5e614aebe5776b22b1af8c80e47b33",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-03",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 0.9208329720422626,
+      "sandboxMs": 1036.633166950196,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "296ad34e436590e49b82c57e4262656e6f21b5e7d1f07fb4cd507f00f5a8e184",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-04",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 0.9362919954583049,
+      "sandboxMs": 961.3052079221234,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "5d50368b4a754e7f52e8e924c90970332e0dccdf65e724aabe07bda71cf3af76",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-05",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 1.0857919696718454,
+      "sandboxMs": 999.6241659391671,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "072aec294945e468472a45a3d06638fc3d4488bd2c518898e39b947044a297c4",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "ohm-06",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 0.9797500679269433,
+      "sandboxMs": 979.7564590116963,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "0b37c6418d3cd956c9757f7d774eff29d79f2f2d8f940953e9bcbc98a6bc6687",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 69,
+        "outputTokens": 10,
+        "totalTokens": 79,
+        "estimated": true
+      },
+      "modelMs": 1.0040829656645656,
+      "sandboxMs": 948.5861249268055,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "cf81e8a2c6d6690179530ed9ba8291321880fdaf9888dcec66d804a80361458f",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-02",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 69,
+        "outputTokens": 10,
+        "totalTokens": 79,
+        "estimated": true
+      },
+      "modelMs": 0.86229108273983,
+      "sandboxMs": 991.4858749834821,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "a79cca6829b56879ca1c93eb3a3affcecb7b1a058b6fe182c9190b461b668454",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-03",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 69,
+        "outputTokens": 10,
+        "totalTokens": 79,
+        "estimated": true
+      },
+      "modelMs": 0.49045798368752,
+      "sandboxMs": 1011.0666659893468,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "4333ee69901a5eaccd6e6d06607bad166c0f0540699c2d0d71c5716536eddae3",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-04",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 69,
+        "outputTokens": 10,
+        "totalTokens": 79,
+        "estimated": true
+      },
+      "modelMs": 0.9090829407796264,
+      "sandboxMs": 1122.5965410703793,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "2325cb85748d1de396d31f2ac6a16d07df6e0d6758697691e7aa4609586bbdf3",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-05",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 69,
+        "outputTokens": 10,
+        "totalTokens": 79,
+        "estimated": true
+      },
+      "modelMs": 0.9042499586939812,
+      "sandboxMs": 999.3644169298932,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "c36ce638cee137786b3126d5472f94afa5b158d00024a24855007ad124d62ea8",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "speed-06",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 69,
+        "outputTokens": 10,
+        "totalTokens": 79,
+        "estimated": true
+      },
+      "modelMs": 0.7365000201389194,
+      "sandboxMs": 964.8681250400841,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "41a74abcb8582d01fc3c14aed68c7d01b0a7a2a8f304bb56dbd3099d8b22e6c3",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "speed",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "distance"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "time"
+              }
+            },
+            "unit": "m/s"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 67,
+        "outputTokens": 10,
+        "totalTokens": 77,
+        "estimated": true
+      },
+      "modelMs": 0.9030000073835254,
+      "sandboxMs": 991.0276669543236,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "7ef9bfdec54053a539dcfcd8a56e42cae1e373583a065034828ae38561d3ba07",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-02",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 67,
+        "outputTokens": 10,
+        "totalTokens": 77,
+        "estimated": true
+      },
+      "modelMs": 1.021500094793737,
+      "sandboxMs": 1017.0670000370592,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "71c7dfde7e9f33708b30d64c3c66018f6cd5720e1212786c3aa80d778da91dc0",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-03",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 67,
+        "outputTokens": 10,
+        "totalTokens": 77,
+        "estimated": true
+      },
+      "modelMs": 0.8911250624805689,
+      "sandboxMs": 1031.510666012764,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "6558d5268f18b567f05e28d6a97627479630a1394cc798b980f77eb2a8997ce1",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-04",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 67,
+        "outputTokens": 10,
+        "totalTokens": 77,
+        "estimated": true
+      },
+      "modelMs": 1.0425420477986336,
+      "sandboxMs": 1050.2081250306219,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "33ed857f79521ea31d3db5319636a62a5e255713ecafb74328b795e599472ae1",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-05",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 67,
+        "outputTokens": 10,
+        "totalTokens": 77,
+        "estimated": true
+      },
+      "modelMs": 1.2287499848753214,
+      "sandboxMs": 1018.3822079561651,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "812140452e0c0711da31b20327b7092c21fa87fa98d3121287801f65f4d5ca38",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "quadratic-06",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 67,
+        "outputTokens": 10,
+        "totalTokens": 77,
+        "estimated": true
+      },
+      "modelMs": 0.48579100985080004,
+      "sandboxMs": 1166.7159999487922,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "0ee55bf5b6612bd5de7f2937c00cd807fae9691ce023e83e4d1bfcb81dfe4d14",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "roots",
+            "kind": "SOLVE",
+            "expression": {
+              "op": "eq",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "pow",
+                    "base": {
+                      "op": "symbol",
+                      "name": "x"
+                    },
+                    "exponent": 2
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "symbol",
+                        "name": "b"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "x"
+                      }
+                    ]
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "c"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "0"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "elimination-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 71,
+        "outputTokens": 10,
+        "totalTokens": 81,
+        "estimated": true
+      },
+      "modelMs": 1.0885419324040413,
+      "sandboxMs": 1039.509000023827,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "9ed9e1517fd711c689835eac6cdc2fe6ab1073477a3fa775e9609ccc4339b88a",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "x",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "symbol",
+                    "name": "sum"
+                  },
+                  {
+                    "op": "symbol",
+                    "name": "difference"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "2"
+              }
+            },
+            "unit": "1"
+          },
+          {
+            "name": "y",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "symbol",
+                    "name": "sum"
+                  },
+                  {
+                    "op": "mul",
+                    "args": [
+                      {
+                        "op": "number",
+                        "value": "-1"
+                      },
+                      {
+                        "op": "symbol",
+                        "name": "difference"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "2"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "sqrt-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 65,
+        "outputTokens": 10,
+        "totalTokens": 75,
+        "estimated": true
+      },
+      "modelMs": 0.8415828924626112,
+      "sandboxMs": 969.0178750315681,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "18c5f743a4a50c172bd1b5dc92245cb66e8e5a7b990319ba37d786e1467aa3f0",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "sqrt",
+              "arg": {
+                "op": "number",
+                "value": "9"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "pow-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 65,
+        "outputTokens": 10,
+        "totalTokens": 75,
+        "estimated": true
+      },
+      "modelMs": 0.9766250150278211,
+      "sandboxMs": 972.8614171035588,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "80fbba8c003b338098bfd77c9515e7942ec65ec49a4501c7e8dd6b2a01e1fd5c",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "pow",
+              "base": {
+                "op": "number",
+                "value": "2"
+              },
+              "exponent": -3
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "sin-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 65,
+        "outputTokens": 10,
+        "totalTokens": 75,
+        "estimated": true
+      },
+      "modelMs": 0.8549999911338091,
+      "sandboxMs": 1066.2315419176593,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "da8540cf987fd3c99bf6146c5d779d6d7c8250ff674da631f9012c83c504bc7b",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "sin",
+              "arg": {
+                "op": "symbol",
+                "name": "angle"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "cos-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 65,
+        "outputTokens": 10,
+        "totalTokens": 75,
+        "estimated": true
+      },
+      "modelMs": 0.8731249254196882,
+      "sandboxMs": 993.3680839603767,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "2d3fe006e204cb9453f865d2415c0d58993d2d5117bd413796d5c93e169b8173",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "cos",
+              "arg": {
+                "op": "symbol",
+                "name": "angle"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "fraction-01",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 65,
+        "outputTokens": 10,
+        "totalTokens": 75,
+        "estimated": true
+      },
+      "modelMs": 0.9992920095100999,
+      "sandboxMs": 1056.8042090162635,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "9b4a101a85fe7ce97cefad4351b740ffa180fa5f316d1fbd20d9ff1c53043a79",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "value",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "add",
+                "args": [
+                  {
+                    "op": "number",
+                    "value": "2"
+                  },
+                  {
+                    "op": "number",
+                    "value": "3"
+                  }
+                ]
+              },
+              "right": {
+                "op": "number",
+                "value": "4"
+              }
+            },
+            "unit": "1"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "problem-injection",
+      "action": "PROBLEM",
+      "expected": "CHECKED",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 95,
+        "outputTokens": 10,
+        "totalTokens": 105,
+        "estimated": true
+      },
+      "modelMs": 0.5806249100714922,
+      "sandboxMs": 1378.5512499744073,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "b854dca72d40d42d32842c9c1caf3b9443edb052f6c79587af9050d473273c5b",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "missing-value",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "missing-unit",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "missing-domain",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "missing-expression",
+      "action": "PROBLEM",
+      "expected": "CLARIFICATION",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": null,
+      "modelMs": 0.0,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": false,
+      "normalizedResult": null
+    },
+    {
+      "id": "division-zero",
+      "action": "PROBLEM",
+      "expected": "SAFE_ERROR",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 0.6302499677985907,
+      "sandboxMs": 500.1232499489561,
+      "error": "SANDBOX_REJECTED",
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "0f21e325953b0bdf1baae3f058767774abcbc87223844eca18cbe87317fb3f33",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "incompatible-unit",
+      "action": "PROBLEM",
+      "expected": "SAFE_ERROR",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 73,
+        "outputTokens": 10,
+        "totalTokens": 83,
+        "estimated": true
+      },
+      "modelMs": 1.0647079907357693,
+      "sandboxMs": 477.1309159696102,
+      "error": "SANDBOX_REJECTED",
+      "providerAttempted": true,
+      "normalizedResult": {
+        "schemaVersion": "2.0",
+        "workload": "PROBLEM",
+        "problemHash": "f542dd3946a5f46c5977027e58ecb14d420de09a603f0b1d8b08eef828d17968",
+        "summary": "Compute the explicitly supplied formulas in the isolated scientific runtime.",
+        "outputs": [
+          {
+            "name": "current",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "symbol",
+                "name": "U"
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mA"
+          },
+          {
+            "name": "power",
+            "kind": "EVALUATE",
+            "expression": {
+              "op": "div",
+              "left": {
+                "op": "pow",
+                "base": {
+                  "op": "symbol",
+                  "name": "U"
+                },
+                "exponent": 2
+              },
+              "right": {
+                "op": "symbol",
+                "name": "R"
+              }
+            },
+            "unit": "mW"
+          }
+        ],
+        "assumptions": [],
+        "warnings": [],
+        "clarifications": []
+      }
+    },
+    {
+      "id": "canvas-caret",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 192,
+        "outputTokens": 6,
+        "totalTokens": 198,
+        "estimated": true
+      },
+      "modelMs": 8.675666991621256,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Dodaj krótki akapit o planie pomiarów.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-expand",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 200,
+        "outputTokens": 5,
+        "totalTokens": 205,
+        "estimated": true
+      },
+      "modelMs": 0.32666593324393034,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Badamy zależność napięcia od czasu.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-followup",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 202,
+        "outputTokens": 5,
+        "totalTokens": 207,
+        "estimated": true
+      },
+      "modelMs": 0.21850003395229578,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Badamy zależność napięcia od czasu.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-grounded",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 1.0,
+      "usage": {
+        "inputTokens": 204,
+        "outputTokens": 10,
+        "totalTokens": 214,
+        "estimated": true
+      },
+      "modelMs": 0.32750004902482033,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole zapisano temperaturę 25 °C i napięcie 12 V.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-grounded-expand",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 1.0,
+      "usage": {
+        "inputTokens": 204,
+        "outputTokens": 10,
+        "totalTokens": 214,
+        "estimated": true
+      },
+      "modelMs": 0.23329199757426977,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole zapisano temperaturę 25 °C i napięcie 12 V.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-missing-theory",
+      "action": "EDIT",
+      "expected": "REFUSAL",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 192,
+        "outputTokens": 1,
+        "totalTokens": 193,
+        "estimated": true
+      },
+      "modelMs": 0.16241695266216993,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "text": "",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-missing-experiment",
+      "action": "EDIT",
+      "expected": "REFUSAL",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 192,
+        "outputTokens": 1,
+        "totalTokens": 193,
+        "estimated": true
+      },
+      "modelMs": 0.14637503772974014,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "text": "",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-injection-selected",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 1.0,
+      "usage": {
+        "inputTokens": 208,
+        "outputTokens": 10,
+        "totalTokens": 218,
+        "estimated": true
+      },
+      "modelMs": 0.18991692923009396,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole zapisano temperaturę 25 °C i napięcie 12 V.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-injection-history",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": 1.0,
+      "usage": {
+        "inputTokens": 206,
+        "outputTokens": 10,
+        "totalTokens": 216,
+        "estimated": true
+      },
+      "modelMs": 0.21004199516028166,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "W protokole zapisano temperaturę 25 °C i napięcie 12 V.",
+        "citationIds": [
+          "5b8f89675e4f1bb1db604b1d9e7f3e6764fea867fa7f45a6a2631deb5bac03d8"
+        ],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-injection-refusal",
+      "action": "EDIT",
+      "expected": "REFUSAL",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": true,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 200,
+        "outputTokens": 1,
+        "totalTokens": 201,
+        "estimated": true
+      },
+      "modelMs": 0.15916593838483095,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "text": "",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-unicode",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 198,
+        "outputTokens": 6,
+        "totalTokens": 204,
+        "estimated": true
+      },
+      "modelMs": 0.14270900283008814,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Zażółć gęślą jaźń. Badamy zmianę napięcia.",
+        "citationIds": [],
+        "matches": []
+      }
+    },
+    {
+      "id": "canvas-long",
+      "action": "EDIT",
+      "expected": "READY",
+      "schemaValid": true,
+      "correct": true,
+      "refusal": false,
+      "referenceIntegrity": true,
+      "injectionPass": true,
+      "groundedSupport": null,
+      "usage": {
+        "inputTokens": 390,
+        "outputTokens": 50,
+        "totalTokens": 440,
+        "estimated": true
+      },
+      "modelMs": 0.18624996300786734,
+      "sandboxMs": null,
+      "error": null,
+      "providerAttempted": true,
+      "normalizedResult": {
+        "status": "READY",
+        "text": "Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu. Badamy zależność napięcia od czasu.",
+        "citationIds": [],
+        "matches": []
+      }
+    }
+  ],
+  "manifest": {
+    "timestamp": "2026-10-11T17:57:40.201274+00:00",
+    "mode": "offline",
+    "suiteId": "canvas-ai-fixed",
+    "suiteVersion": "2026-10-11",
+    "datasetHash": "4030560d879b2cc82d01d907b9bc9c7fe296920784607a0649eb2a89bfe3006d",
+    "model": {
+      "provider": "deterministic",
+      "name": "extractive-fixture",
+      "version": "1",
+      "structuredOutput": true,
+      "streaming": false
+    },
+    "imageId": "sha256:1201c126e95735b00010059f68a0e97f21248548d137002a9b23a045dd0243c7",
+    "runtimeVersion": "1.2.0",
+    "promptHashes": {
+      "problem-plan:2": "a8df94bcd2913a4dc2c20aec32cd3a831d05c1fcef5fa4100423274033f1c70b",
+      "canvas-edit:2": "c6459b87a2d34e831440272fb5544f70e812e56dc43a3c92e88523618276577a"
+    },
+    "hashes": {
+      "backend/src/main/resources/ai/templates/canvas-edit-v2.txt": "c6459b87a2d34e831440272fb5544f70e812e56dc43a3c92e88523618276577a",
+      "backend/src/main/java/dev/researchhub/analysis/application/ProblemService.java": "1267eba8259b973651799a44059556428c5b0dacbdd8d87470eb7a5f4bd6353a",
+      "contracts/document/math/v1/math.schema.json": "5c79495855b955cc6eaa0558462a9dab9ac4e53a431c34a31a247fee6dd303c2",
+      "contracts/analysis/computation-plan/v2/problem.schema.json": "5c4e5d2442a65769d8a7c657cc9fe4573db642aba921d2b21b34b780fca88080",
+      "contracts/ai/authoring/v2/authoring.schema.json": "7eaceaf0e3e6e643de8b75a5e4809750878302d3dfb21f7be19df0dadbdadb9a",
+      "sandbox/runtime/problem.py": "84aa7a12ba992d8049087ee51765ed4278887cefd39014c26ef2d350d3f478d3",
+      "sandbox/runtime/verify_problem.py": "30918938502a4fce29f90b99a35249bfa3cf99925ece65297b4c3ed4519d8517",
+      "sandbox/Dockerfile": "96849a979d2dfcdcff1b3962e52367130dc1e0739d551006c2b3306590634907",
+      "sandbox/requirements.lock": "6eac2b4f71d1af1b10fda602fc1e4c0b115917ce28c7349cde6b87e53b67a3a9",
+      "ai-worker/src/researchhub_worker/evaluation/canvas.py": "3ac68b9e1a7b5ae2efd75d1ecab3e0ef857b64ea5dbd4ffc8f3fd0f40d151691",
+      "contracts/analysis/execution/v3/solution.schema.json": "53dc5e94f86bc119b9578844e90796d7ebb11ac8c87f7925701a2655ac4584eb",
+      "contracts/document/report/v2/report.schema.json": "9732c788dc168408e5efb96694be1bfa167db878a3cf59f7ec194cc680c217d9"
+    },
+    "hardware": {
+      "platform": "macOS-15.7.4-arm64-arm-64bit-Mach-O",
+      "machine": "arm64",
+      "processor": "arm",
+      "cpuCount": 12,
+      "python": "3.13.3"
+    },
+    "oracle": "stdlib-fraction-quadratic-residual-v1",
+    "entailment": "curated-full-statement-and-cited-passage-v1",
+    "cost": "unknown",
+    "skipCount": 0,
+    "providerCalls": 0,
+    "observedModelRevisions": []
+  }
+}

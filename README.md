@@ -19,6 +19,18 @@ This repository is in active development and is not production-ready.
 
 Architecture and product context: [docs/context.md](docs/context.md).
 
+Architecture evidence and limits: [case study](docs/case-study.md).
+Azure dev infrastructure, validation and teardown commands: [infrastructure](infrastructure/README.md).
+Forward-looking decisions (RH-350): [ADR-010 deployment topology](docs/adr/ADR-010-deployment-topology.md),
+[ADR-013 collaboration scale-out](docs/adr/ADR-013-collaboration-scale-out.md),
+[ADR-014 retention and erasure](docs/adr/ADR-014-retention-and-erasure.md),
+[ADR-015 Azure sandbox runner](docs/adr/ADR-015-azure-sandbox-runner.md).
+Only the topology policy is Accepted; the three future capabilities are Proposed. Azure IaC is locally
+validated; live Azure deployment, distributed room writers, erasure and cloud sandbox execution remain unverified.
+
+Ephemeral staging automation, dashboard/alerts, OIDC, build identity and safeguards:
+[Azure staging](docs/deployment/azure-staging.md). Local validation is recorded separately from live cloud acceptance.
+
 RH-112 adds source-grounded questions on the workspace page, authorized selected-source retrieval,
 traceable citations and explicit no-evidence results. API/configuration/testing:
 [Workspace questions](docs/development/workspace-questions.md).
@@ -31,12 +43,19 @@ RH-120–RH-122 add source-grounded draft sections, selected-fragment rewrite su
 for human-written claims, with explicit approval, idempotent insertion and AI-origin provenance:
 [AI-assisted authoring](docs/development/ai-authoring.md).
 
-Remaining Canvas AI work, including intent routing, verified calculations and chart insertion:
-[Canvas AI architecture and technical backlog](docs/development/canvas-ai-backlog.md).
+Canvas AI supports contextual conversations, reviewed proposals and follow-ups in both editor
+modes, controlled scientific calculations without an upload, full-dataset analyses, atomic
+solution/chart packages and mathematical DOCX/PDF/LaTeX exports with frozen provenance.
+See [Canvas AI](docs/development/canvas-ai.md) and the
+[technical backlog](docs/development/canvas-ai-backlog.md).
 
-Implemented CAI-01–06: [Canvas AI](docs/development/canvas-ai.md), including durable contextual
-conversations, a cursor chat, bounded follow-up memory, the context menu, stable targets and
-durable authorized snapshots.
+Run the complete interaction/runtime suite from the repository root:
+`python3 scripts/demo/canvas-suite.py --output .demo/canvas-suite`.
+Add `--live` for the explicit Gemini benchmark with a worker-only `GEMINI_API_KEY`; API charges
+may apply. The runner requires all 24 interaction proofs, the real sandbox and both editor
+modes. The fixed 43-case benchmark uses independent arithmetic checks. Recorded results,
+coverage, quality gates and limitations are in the
+[CAI-16–18 validation report](docs/development/canvas-export-recovery-evaluation.md).
 
 Public landing page, pricing copy and how its screenshots are regenerated: [docs/development/landing-page.md](docs/development/landing-page.md).
 
@@ -71,6 +90,7 @@ researchhub/
 ├── sandbox/       Pinned, isolated scientific Python runtime
 ├── contracts/     Versioned Java/Python processing fixtures
 ├── docs/          Project context and development docs
+├── infrastructure/ Bicep Azure dev fixture, commands and offline contract tests
 ├── compose.yaml   Local PostgreSQL, Azurite, and AI worker
 ├── .editorconfig
 ├── .gitignore
@@ -116,8 +136,8 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.1.1` first with
-`docker build -t researchhub-sandbox:1.1.1 sandbox` from the repository root for the real computation E2E tests.
+`./mvnw test` needs Docker and the pinned AI-worker environment. Build `researchhub-sandbox:1.2.0` first with
+`docker build -t researchhub-sandbox:1.2.0 sandbox` from the repository root for the real computation E2E tests.
 Integration tests start PostgreSQL 17 and Azurite containers with Testcontainers and do not use the Compose services above. `./mvnw verify` enforces at least 80% line coverage independently for the source
 processing, AI/retrieval and analysis modules. `ANALYSIS_SANDBOX_TESTS=true ./mvnw verify` additionally enables
 the real Docker runner attack/cleanup tests.
@@ -246,7 +266,7 @@ security workflow enforces it. Cloud execution remains deferred until deployment
 RH-143–RH-145: [isolated scientific computations](docs/development/analysis-execution.md) add a pinned scientific
 Python image, a trusted Docker runner with filesystem/network/resource limits, durable authorized execution attempts,
 computed table/chart results and immutable provenance. The real CSV/XLSX impedance example runs against source-version
-bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.1.1` and explicitly enable the local runner as
+bytes; every retry keeps earlier evidence. Build `researchhub-sandbox:1.2.0` and explicitly enable the local runner as
 described in [sandbox/README.md](sandbox/README.md).
 
 RH-150–RH-151 add [durable execution records](contracts/analysis/record/v1/README.md) and

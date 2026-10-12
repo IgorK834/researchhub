@@ -37,7 +37,7 @@ other documentation assets also select `docs` to catch broken image links.
 | `ai-worker` | `ai-worker/`, contracts | `uv sync --frozen`, `scripts/check.sh`, wheel build |
 | `collaboration` | `collaboration/`, contracts | `npm ci`, build, tests with coverage |
 | `sandbox` | `sandbox/`, worker Python manifest/lock | Image build, runtime pytest with coverage, constrained Docker acceptance tests |
-| `infra` | `infra/azure/`, when that directory exists | Azure CLI `az bicep build` and `lint` for every recursive `.bicep`; `build-params` for `.bicepparam`; Bicep 0.48.1; no Azure login or deployment |
+| `infra` | `infrastructure/` (legacy `infra/azure/` remains supported) | Bicep 0.48.1 compile/lint, dev budget validation and Node contract tests with >=80% deployment-logic coverage; no Azure login or deployment |
 | `performance` | `performance/k6/`, `infra/demo/`, `scripts/demo/` | k6 2.3.0 `inspect` for every script; Node tests with 80% configuration-helper coverage |
 | `containers` | Backend/frontend/sandbox or performance selection | Build all four pinned non-root images; static-hosting checks; public-REST real sandbox seed; shared-session/failover/quota proof; two-minute 5-VU smoke and resource evidence |
 | `scripts` | `scripts/`, `ai-worker/scripts/` | ShellCheck for tracked shell scripts, including extensionless scripts; CI helper tests with branch coverage of at least 80% |
@@ -48,6 +48,9 @@ manual runs also select all available jobs, so the default branch verifies the e
 Missing optional Azure infrastructure skips its job. Compiler, linter and inspector failures propagate to
 their job and the required aggregate. Bicep uses each template's linter configuration; default
 warning-level diagnostics remain warnings, while error diagnostics fail.
+The new infrastructure checker rejects all compiler/linter diagnostics. The independent
+[Azure infrastructure workflow](../../.github/workflows/azure-infrastructure.yml) also checks ADR and
+case-study links. It does not deploy; the aggregate `infra` job runs the same Node checks for IaC changes.
 
 The backend and sandbox jobs require the committed RH-142 analysis security boundary before
 computation tests, using `scripts/security/check_analysis_boundary.py` from the prerequisite work.

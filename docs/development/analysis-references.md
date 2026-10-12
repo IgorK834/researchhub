@@ -97,4 +97,10 @@ Details panels and selectors wrap long output metadata and analysis names in nar
 
 Reproduce frontend validation with `npm run test:coverage -- --runInBand`, `npm run lint`,
 `npm run build` and `npm run format:check`. Backend full verification needs a running Docker daemon
-and the pinned `researchhub-sandbox:1.1.1` image. Worker verification uses `sh scripts/check.sh`.
+and the pinned `researchhub-sandbox:1.2.0` image. Worker verification uses `sh scripts/check.sh`.
+
+## Saved PROBLEM evidence and package references (CAI-14–15)
+
+The [PROBLEM provenance v2](../../contracts/analysis/provenance/v2/README.md) extension supplies exact successful computation as A evidence with empty inputSources and no invented sourceVersionId. CHECKED arithmetic and NOT_CHECKED interpretation/assumptions are separate. The saved [SOLUTION](../../contracts/analysis/execution/v3/SOLUTION.md) endpoint is read-only and needs no inference. Native steps bind AST, input/SI substitutions, values, units, hashes and the fresh verifier receipt.
+
+[Document references v2](../../contracts/analysis/document-block/v2/README.md) add workload, exact step and origin conversation to the legacy capability. FULL/TABLE/CHART previews use `/documents/{d}/ai/proposals/calculation` and the common conditional accept/undo operation. Missing/foreign refs fail atomically. Values/formulas are read-only saved outputs; captions and explicit Update reference are human edits. A new execution never silently updates an existing block. Dataset references/exports remain compatible; native PROBLEM package export is CAI-16.
