@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const backend = process.env.E2E_BACKEND_URL;
 const workspace = process.env.E2E_WORKSPACE_ID;
 const documentId = process.env.E2E_DOCUMENT_ID;
-const security = require('../dist/security-headers.json');
+const security = require('../dist-canvas-legacy/security-headers.json');
 const server = createServer(async (req, res) => {
   if (req.url.startsWith('/api/') || req.url.startsWith('/actuator/')) {
     const upstream = request(
@@ -36,8 +36,8 @@ const server = createServer(async (req, res) => {
     req.url.startsWith('/app') || req.url === '/login'
       ? 'index.html'
       : req.url.split('?')[0].replace(/^\//, '') || 'index.html';
-  const file = path.resolve('dist', filename);
-  if (!file.startsWith(path.resolve('dist') + path.sep)) {
+  const file = path.resolve('dist-canvas-legacy', filename);
+  if (!file.startsWith(path.resolve('dist-canvas-legacy') + path.sep)) {
     res.writeHead(400);
     res.end();
     return;

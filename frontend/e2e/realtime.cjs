@@ -62,7 +62,7 @@ const proxy = createServer(async (req, res) => {
             response.statusCode === 200
           ) {
             const credential = JSON.parse(result.toString());
-            credential.websocketUrl = `ws://127.0.0.1:${wsPort}`;
+            credential.websocketUrl = `ws://${req.headers.host}/collaboration/ws`;
             result = Buffer.from(JSON.stringify(credential));
           }
           res.writeHead(response.statusCode, headers);
@@ -103,6 +103,26 @@ const proxy = createServer(async (req, res) => {
     res.writeHead(404);
     res.end();
   }
+});
+// Keep the real websocket on the application's origin, matching the enforcing CSP.
+proxy.on('upgrade', (req, socket, head) => {
+  const upstream = request(new URL(req.url, `http://127.0.0.1:${wsPort}`), {
+    headers: req.headers,
+  });
+  upstream.on('upgrade', (response, peer, initial) => {
+    socket.write(
+      `HTTP/1.1 101 Switching Protocols\r\n${Object.entries(response.headers)
+        .map(([name, value]) => `${name}: ${value}`)
+        .join('\r\n')}\r\n\r\n`,
+    );
+    if (head.length) peer.write(head);
+    if (initial.length) socket.write(initial);
+    peer.on('error', () => socket.destroy());
+    socket.on('error', () => peer.destroy());
+    socket.pipe(peer).pipe(socket);
+  });
+  upstream.on('error', () => socket.destroy());
+  upstream.end();
 });
 async function startService(origin) {
   service = spawn('node', ['dist/main.js'], {
