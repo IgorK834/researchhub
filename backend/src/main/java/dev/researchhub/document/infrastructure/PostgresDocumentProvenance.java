@@ -27,8 +27,17 @@ public class PostgresDocumentProvenance {
         return jdbc.queryForList("SELECT DISTINCT block_id FROM document_content_operations WHERE workspace_id=? AND document_id=? AND source_operation_id=? AND operation_type='AI_ACCEPTED' LIMIT 33",UUID.class,workspace,document,operation);
     }
     public List<Operation> history(UUID workspace,UUID document,UUID block,int limit) {
-        return jdbc.query("SELECT * FROM document_content_operations WHERE workspace_id=? AND document_id=? AND block_id=? ORDER BY document_revision DESC,sequence DESC LIMIT ?",
+        return jdbc.query("""
+            SELECT o.*, o.metadata || jsonb_strip_nulls(jsonb_build_object(
+                'templateId',coalesce(s.payload->'generation'->>'templateId',p.payload->'generation'->>'templateId'),
+                'templateHash',coalesce(s.payload->'generation'->>'templateHash',p.payload->'generation'->>'templateHash'))) AS exposed_metadata
+            FROM document_content_operations o
+            LEFT JOIN ai_authoring_suggestions s ON s.workspace_id=o.workspace_id AND s.document_id=o.document_id AND s.id=o.source_operation_id
+            LEFT JOIN canvas_operations c ON c.workspace_id=o.workspace_id AND c.document_id=o.document_id AND c.id=o.source_operation_id
+            LEFT JOIN canvas_proposals p ON p.workspace_id=c.workspace_id AND p.document_id=c.document_id AND p.id=c.proposal_id
+            WHERE o.workspace_id=? AND o.document_id=? AND o.block_id=? ORDER BY o.document_revision DESC,o.sequence DESC LIMIT ?
+            """,
             (r,i) -> new Operation(r.getObject("id",UUID.class),block,Category.valueOf(r.getString("category")),r.getObject("actor_user_id",UUID.class),r.getString("actor_name"),r.getString("operation_type"),
-                r.getObject("source_operation_id",UUID.class),json.readTree(r.getString("metadata")),r.getLong("document_revision"),r.getTimestamp("created_at").toInstant()),workspace,document,block,limit);
+                r.getObject("source_operation_id",UUID.class),json.readTree(r.getString("exposed_metadata")),r.getLong("document_revision"),r.getTimestamp("created_at").toInstant()),workspace,document,block,limit);
     }
 }
