@@ -61,6 +61,13 @@ dev.researchhub
 Account invitations, password/session settings and reset/verification contracts are documented in
 [account-lifecycle.md](account-lifecycle.md) (RH-333–335). These features preserve the same module boundaries.
 
+RH-338/RH-339/RH-341 are specified in [account-data-and-governance.md](account-data-and-governance.md).
+Account HTTP/session handling stays in `auth.api`; `user.application` owns export/erasure coordination
+and the restore-ledger port. The explicit administrative inventory and Flyway definer authority are
+an erasure lifecycle boundary across persisted module payloads; ordinary module authorization and
+append-only behavior remain in place. Workspace governance uses existing owner capabilities,
+telemetry and quota ports. The provenance UI reads existing APIs without introducing provenance data.
+
 `auth` owns the Spring Security filter chain, the password encoder bean, CSRF configuration, the CORS policy, the session cookie, and these endpoints:
 
 | Endpoint | Auth |

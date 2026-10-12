@@ -1,26 +1,43 @@
 # ADR-014: Retention and erasure across immutable provenance
 
-- Status: Proposed
+- Status: Accepted for RH-338 active-store erasure; retention windows remain proposed engineering targets
 - Date: 2026-10-12
-- Backlog: RH-350; design input for Task 30.7
-- Implementation trigger: before accepting non-synthetic hosted data or promising user/workspace erasure; Task 30.7 must first accept the windows and threat model below.
+- Backlog: RH-338 / Task 26.6; RH-350 / Task 30.7 operational retention follow-up
+- Decision accepted: 2026-10-12, user approval of immediate tombstoning, durable live-store erasure, pseudonymous history, shared-workspace refusal and explicit backup/download boundaries.
 
-## Current behavior and decision boundary
+## Decision and implemented boundary
 
-[ADR-005](ADR-005-immutable-source-versions.md) retains immutable source versions indefinitely. PostgreSQL
-triggers prevent source-version mutation/deletion; document versions, execution records, review/audit
-history and frozen exports also contain content/provenance. Archiving hides or locks a resource through
-authorized product flows; it is **not erasure**. There is no complete erasure API, scheduler, backup scrub
-or retention-policy enforcement. This ADR unblocks the **design** of Task 30.7, not its implementation.
-No legal compliance, fixed deletion guarantee or existing purge capability is claimed.
+RH-338 implements caller-initiated export and password-confirmed erasure as a PostgreSQL durable job.
+[The public contracts, authority and restore procedure](../development/account-data-and-governance.md)
+are implemented in the same change. No fixed backup-expiry deadline or legal compliance claim is made.
+Archiving remains a visibility/write lifecycle and is not erasure.
+
+Private owned workspaces are terminally tombstoned. An owner with other members is refused; historical
+research contributions in retained workspaces also require the workspace owner's scope decision.
+The account cannot destroy collaborators' research merely because it uploaded or edited it. A shared
+reader without such contributions can erase their identity and leave their memberships.
+
+Direct names/emails/password hashes are removed from the user and all inventoried identity-bearing
+payloads in the accepted scope. Stable UUIDs become pseudonymous actors; there is no original email/name
+lookup mapping. Content-bearing history is removed through the dedicated NOLOGIN definer authority,
+while content-free product/account audit and review headers remain queryable. Source receipts preserve
+IDs, version number, type, size and erasure time. SHA-256 is retained only for classified TXT/CSV bytes
+without identity markers; binary, identity-bearing, unavailable or unclassified inputs have a null hash.
+This avoids retaining a low-entropy identity digest as a substitute for erased content.
+
+Every source version is reconciled in Blob storage, including snapshots/versioned/deleted copies.
+Retained copies and failures leave the job pending; only reconciled live stores receive `SUCCEEDED`.
+An immutable erasure ledger in a separate namespace of existing Blob storage survives PostgreSQL PITR.
+A verified offline replay must reapply tombstones and reconcile content before restored traffic opens.
+The authority namespace must never be rolled back together with product data.
 
 Preserve append-only operational history during ordinary use, while allowing a narrow, audited erasure
 lifecycle to remove sensitive payloads. Immutable means no silent replacement of historical inputs;
 it does not mean personal content must be retained forever. Historical links resolve an explicit erased
 stub after erasure, never substituted "latest" bytes. Reproduction reports `INPUT_ERASED` conceptually;
-that future result code must be specified/versioned before use, not exposed by today's API.
+that result code remains out of scope and must be specified/versioned before a public API uses it. Deleted workspace reads return the ordinary 404.
 
-## Proposed lifecycle
+## Accepted lifecycle
 
 1. Authorize the actor and workspace server-side; record request ID, scope, policy version and deadlines.
    Account erasure and workspace erasure are different operations: an account cannot erase collaborators'
@@ -45,7 +62,7 @@ that future result code must be specified/versioned before use, not exposed by t
 6. Reconcile all stores before marking live-store erasure complete. A crash/retry cannot recreate content;
    schedulers, in-flight workers and publication recheck tombstones. Failures stay pending and observable.
    Record backup expiry separately; "request accepted", "live stores erased" and "backup window expired"
-   are separate future statuses, to be defined in Task 30.7's public contract.
+   are separate states: the live-store contract is defined by RH-338; backup expiry remains an operational verification outside that receipt.
 
 ## Retention windows to accept before implementation
 
@@ -69,19 +86,18 @@ and service versioning and uses synthetic data; that is not a production erasure
 
 ## Append-only enforcement and restoration
 
-Task 30.7 must introduce additive Flyway migrations; never rewrite old migrations or globally disable
-immutability triggers. Design separate provenance headers from erasable payloads, or a narrowly authorized
+RH-338 introduces additive Flyway V46/V47; old migrations are unchanged and immutability triggers are
+never globally disabled. Design separate provenance headers from erasable payloads, or a narrowly authorized
 terminal redaction path that cannot mutate an original into different live content. Dedicated maintenance
 authority must be inaccessible to ordinary application users. Reconcile existing foreign keys, immutable
 triggers and all new content-bearing tables before selecting the final schema.
 
 Record an erasure ledger outside restorable product backups or replay it from a separately retained
-authority. Before restored data can serve traffic, reapply tombstones, purge affected restored content
-and revoke old sessions/URLs/epochs. Otherwise PITR resurrects erased data. Test recovery at the oldest
+authority. Before restored data can serve traffic, replay authenticated ledger receipts with the implemented
+`replay_account_erasure` authority, reconcile restored content and revoke old sessions/URLs/epochs. Otherwise PITR resurrects erased data. Test recovery at the oldest
 retained backup, partial Blob deletion, jobs finishing after tombstoning, duplicate requests, conflicting
 scope, revoked actors and references in rendered DOCX/PDF/LaTeX. Define who verifies backup expiry.
 
-Browser IndexedDB/offline Yjs state and user-downloaded exports are additional copies. The future client
-must clear affected local state when notified and reject old-epoch synchronization. A server cannot prove
+Browser IndexedDB/offline Yjs state and user-downloaded exports are additional copies. The client clears this browser's affected query/offline state and old-epoch synchronization is rejected. A server cannot prove
 deletion from an offline device or a recipient's downloaded file; disclose that boundary in the future
 public contract. Workspace authorization and provenance remain mandatory throughout the lifecycle.
