@@ -1,7 +1,10 @@
 name: researchhub-scale
 x-backend: &backend
   image: researchhub-backend:demo
-  build: {context: ../../backend}
+  build:
+    context: ../../backend
+    args:
+      BUILD_COMMIT: ${BUILD_COMMIT:-}
   mem_limit: 1g
   pids_limit: 256
   read_only: true

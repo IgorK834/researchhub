@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+BUILD_COMMIT="$(git rev-parse HEAD)"
+export BUILD_COMMIT
 umask 077
 mkdir -p .demo
 if [[ ! -f .demo/scale.env ]]; then
