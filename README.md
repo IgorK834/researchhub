@@ -335,3 +335,5 @@ It passes citation membership, refusal, output validity, injection, latency and 
 but misses conservative curated grounding/correctness thresholds. [Historical local results](docs/evaluation/results/demo-models/models.md)
 include deterministic, Qwen3 and Gemma3. A configured Gemini key selects live AI automatically;
 without a key the demo uses the labeled deterministic fixture.
+
+Account lifecycle: [workspace invitations, account settings, reset and email verification](docs/development/account-lifecycle.md) (RH-333–335).

@@ -58,6 +58,9 @@ dev.researchhub
 
 `user` owns the user record and its password hash. It has no `api` package: nothing exposes users over HTTP directly, and the endpoints that create and verify them belong to `auth`.
 
+Account invitations, password/session settings and reset/verification contracts are documented in
+[account-lifecycle.md](account-lifecycle.md) (RH-333–335). These features preserve the same module boundaries.
+
 `auth` owns the Spring Security filter chain, the password encoder bean, CSRF configuration, the CORS policy, the session cookie, and these endpoints:
 
 | Endpoint | Auth |
@@ -243,6 +246,9 @@ prohibition of the normal case.
 | `workspace.application`, `source.application`, `document.application`, `ai.application`, `analysis.infrastructure` | `audit.application.ProductAudit` | Typed, safe append-only events in the transaction of each significant action; the execution store records atomic completion. |
 | `audit.api` | `auth.application.CurrentUserResolver` | Session actor for scoped audit reads. |
 | `audit.application` | `workspace.application.WorkspaceAuthorizationService` | Authorize bounded workspace audit reads. |
+| `workspace.application` | `user.application.AccountSecurityService` | Normalize invitation emails and require a verified active identity at acceptance; no user persistence imports. |
+| `workspace.infrastructure` | `user.application.RegistrationInvitations` | Implements invite-only registration validation without a reverse user-to-workspace dependency. |
+| `workspace.application`, `auth.application` | `security.application.SecurityOperationLimiter`, `SecureTokens` | Shared account-operation admission and random hashed secrets; no AI/data concerns. |
 | `auth` | `dev.researchhub.user.application` | `auth` owns login and registration endpoints; `user` owns the user record. The endpoints need to create and verify accounts. |
 | `workspace.api` | `dev.researchhub.auth.application` | Every workspace route acts on behalf of the signed-in user, and `auth` owns the session. `WorkspaceController` calls `CurrentUserResolver.requireCurrentUser()` rather than trusting a request field, which is what stops a client from creating a workspace owned by somebody else. |
 | `workspace.api` | `dev.researchhub.user.application` | Only as the return type of the call above: `requireCurrentUser()` hands back a `UserAccount`, of which `workspace` reads `id()` and nothing else. The call is chained, so the type is never even imported — but it is still a dependency, and this row is what makes it allowed. |
