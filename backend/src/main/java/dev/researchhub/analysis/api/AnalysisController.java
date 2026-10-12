@@ -13,6 +13,9 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/analyses")
 public class AnalysisController {
+    @org.springframework.beans.factory.annotation.Autowired private ProblemService problems;
+    @org.springframework.beans.factory.annotation.Autowired private SolutionService solutions;
+    @org.springframework.beans.factory.annotation.Autowired private tools.jackson.databind.ObjectMapper json;
     private final AnalysisService analyses;
     private final CurrentUserResolver users;
     private final ExecutionService executions;
@@ -20,36 +23,51 @@ public class AnalysisController {
     public AnalysisController(AnalysisService analyses,CurrentUserResolver users,ExecutionService executions,AnalysisReproductionService reproduction) {
         this.analyses=analyses; this.users=users; this.executions=executions;this.reproduction=reproduction;
     }
-    @PostMapping ResponseEntity<Analysis> create(@PathVariable UUID workspaceId,@RequestBody Create command) {
-        var result=analyses.create(workspaceId,users.requireCurrentUser().id(),command);
-        return ResponseEntity.created(URI.create("/api/workspaces/"+workspaceId+"/analyses/"+result.id()))
+    @PostMapping ResponseEntity<?> create(@PathVariable UUID workspaceId,@RequestBody tools.jackson.databind.JsonNode body) {
+        try {
+        Object result;
+        if(body.has("schemaVersion")) {
+            if(!body.path("schemaVersion").asString().equals("2.0"))throw new IllegalArgumentException("Unsupported analysis contract");
+            if(body.path("workload").asString().equals("PROBLEM"))result=problems.create(workspaceId,users.requireCurrentUser().id(),json.rebuild().enable(tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,tools.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                .disable(tools.jackson.databind.MapperFeature.ALLOW_COERCION_OF_SCALARS).disable(tools.jackson.databind.DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                .withCoercionConfig(tools.jackson.databind.type.LogicalType.Textual,cfg->{for(var shape:List.of(tools.jackson.databind.cfg.CoercionInputShape.Integer,tools.jackson.databind.cfg.CoercionInputShape.Float,tools.jackson.databind.cfg.CoercionInputShape.Boolean))cfg.setCoercion(shape,tools.jackson.databind.cfg.CoercionAction.Fail);}).build().treeToValue(body,ProblemContracts.Create.class));
+            else if(body.path("workload").asString().equals("DATASET")) {dev.researchhub.shared.math.MathAst.fields(body,"schemaVersion","workload","userPrompt","inputs");result=analyses.create(workspaceId,users.requireCurrentUser().id(),new Create(body.path("userPrompt").asString(),java.util.Arrays.asList(json.treeToValue(body.path("inputs"),Input[].class))));}
+            else throw new IllegalArgumentException("Unsupported workload");
+        } else result=analyses.create(workspaceId,users.requireCurrentUser().id(),json.treeToValue(body,Create.class));
+        UUID id=result instanceof ProblemContracts.Analysis p?p.id():((Analysis)result).id();
+        return ResponseEntity.created(URI.create("/api/workspaces/"+workspaceId+"/analyses/"+id))
             .cacheControl(CacheControl.noStore()).body(result);
+        }catch(IllegalArgumentException | tools.jackson.core.JacksonException invalid){throw new dev.researchhub.shared.error.ApiException(dev.researchhub.shared.error.ApiErrorCode.VALIDATION_FAILED,"Invalid analysis request");}
     }
-    @GetMapping ResponseEntity<List<Analysis>> list(@PathVariable UUID workspaceId,@RequestParam(defaultValue="0") int offset) {
-        return ok(analyses.list(workspaceId,users.requireCurrentUser().id(),offset));
+    @GetMapping ResponseEntity<?> list(@PathVariable UUID workspaceId,@RequestParam(defaultValue="0") int offset) {
+        return ok(analyses.list(workspaceId,users.requireCurrentUser().id(),offset).stream().map(a->problems.isProblem(workspaceId,a.id())?(Object)problems.find(workspaceId,users.requireCurrentUser().id(),a.id()):a).toList());
     }
-    @GetMapping("/{analysisId}") ResponseEntity<Analysis> find(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
-        return ok(analyses.find(workspaceId,users.requireCurrentUser().id(),analysisId));
-    }
-    @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
-    @PostMapping("/{analysisId}/plan") ResponseEntity<Analysis> plan(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
-        return ok(analyses.plan(workspaceId,users.requireCurrentUser().id(),analysisId));
-    }
-    @GetMapping("/{analysisId}/plans") ResponseEntity<List<PlanAudit>> attempts(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
-        return ok(analyses.attempts(workspaceId,users.requireCurrentUser().id(),analysisId));
+    @GetMapping("/{analysisId}") ResponseEntity<?> find(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        return ok(problems.isProblem(workspaceId,analysisId)?problems.find(workspaceId,users.requireCurrentUser().id(),analysisId):analyses.find(workspaceId,users.requireCurrentUser().id(),analysisId));
     }
     @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
-    @PostMapping("/{analysisId}/execute") ResponseEntity<ExecutionContracts.Execution> execute(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+    @PostMapping("/{analysisId}/plan") ResponseEntity<?> plan(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        return ok(problems.isProblem(workspaceId,analysisId)?problems.plan(workspaceId,users.requireCurrentUser().id(),analysisId):analyses.plan(workspaceId,users.requireCurrentUser().id(),analysisId));
+    }
+    @GetMapping("/{analysisId}/plans") ResponseEntity<?> attempts(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        return ok(problems.isProblem(workspaceId,analysisId)?Optional.ofNullable(problems.find(workspaceId,users.requireCurrentUser().id(),analysisId).audit()).stream().toList():analyses.attempts(workspaceId,users.requireCurrentUser().id(),analysisId));
+    }
+    @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
+    @PostMapping("/{analysisId}/execute") ResponseEntity<?> execute(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        if(problems.isProblem(workspaceId,analysisId)) {
+            var result=problems.enqueue(workspaceId,users.requireCurrentUser().id(),analysisId);
+            return ResponseEntity.accepted().cacheControl(CacheControl.noStore()).body(result);
+        }
         var execution=executions.enqueue(workspaceId,users.requireCurrentUser().id(),analysisId);
         return ResponseEntity.accepted().location(URI.create("/api/workspaces/"+workspaceId+"/analyses/"+analysisId+"/executions/"+execution.id()))
             .cacheControl(CacheControl.noStore()).body(execution);
     }
-    @GetMapping("/{analysisId}/executions") ResponseEntity<List<ExecutionContracts.Execution>> executions(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
-        return ok(executions.list(workspaceId,users.requireCurrentUser().id(),analysisId));
+    @GetMapping("/{analysisId}/executions") ResponseEntity<?> executions(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        return ok(problems.isProblem(workspaceId,analysisId)?problems.executions(workspaceId,users.requireCurrentUser().id(),analysisId):executions.list(workspaceId,users.requireCurrentUser().id(),analysisId));
     }
-    @GetMapping("/{analysisId}/executions/{executionId}") ResponseEntity<ExecutionContracts.Execution> execution(
+    @GetMapping("/{analysisId}/executions/{executionId}") ResponseEntity<?> execution(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
-        return ok(executions.find(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
+        return ok(problems.isProblem(workspaceId,analysisId)?problems.execution(workspaceId,users.requireCurrentUser().id(),analysisId,executionId):executions.find(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
     }
     @GetMapping("/{analysisId}/executions/{executionId}/artifacts/{artifactId}") ResponseEntity<byte[]> artifact(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId,@PathVariable UUID artifactId) {
@@ -59,9 +77,14 @@ public class AnalysisController {
                 ContentDisposition.attachment().filename(content.artifact().filename()).build().toString())
             .header("X-Content-Type-Options","nosniff").header("Content-Security-Policy","sandbox; default-src 'none'").body(content.bytes());
     }
-    @GetMapping("/{analysisId}/executions/{executionId}/record") ResponseEntity<ExecutionContracts.ExecutionRecord> record(
+    @GetMapping("/{analysisId}/executions/{executionId}/record") ResponseEntity<?> record(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
+        if(problems.isProblem(workspaceId,analysisId)){var a=problems.find(workspaceId,users.requireCurrentUser().id(),analysisId);var e=problems.execution(workspaceId,users.requireCurrentUser().id(),analysisId,executionId);return ok(Map.of("schemaVersion","2.0","workload","PROBLEM","snapshot",a.snapshot(),"plan",a.plan(),"audit",a.audit(),"execution",e));}
         return ok(executions.record(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
+    }
+    @GetMapping("/{analysisId}/executions/{executionId}/solution") ResponseEntity<SolutionContracts.Bundle> solution(
+        @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
+        return ok(solutions.find(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
     }
     @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
     @PostMapping("/{analysisId}/executions/{executionId}/rerun") ResponseEntity<ReproductionContracts.RerunResult> rerun(
@@ -88,6 +111,14 @@ public class AnalysisController {
     @GetMapping("/{analysisId}/executions/{executionId}/code") ResponseEntity<ReproductionContracts.SavedCode> code(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
         return ok(reproduction.code(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
+    }
+    @CostlyOperation(value = CostCategory.ANALYSIS, access = CostlyOperation.Access.EDIT)
+    @PostMapping("/{analysisId}/problem/executions/{executionId}/reproduce") ResponseEntity<?> reproduceProblem(@PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
+        return ResponseEntity.accepted().cacheControl(CacheControl.noStore()).body(problems.reproduce(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
+    }
+    @GetMapping("/{analysisId}/problem/executions/{executionId}/artifacts/{name}") ResponseEntity<byte[]> problemArtifact(@PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId,@PathVariable String name) {
+        byte[] bytes=problems.artifact(workspaceId,users.requireCurrentUser().id(),analysisId,executionId,name);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.IMAGE_PNG).contentLength(bytes.length).header("X-Content-Type-Options","nosniff").header("Content-Security-Policy","sandbox; default-src 'none'").body(bytes);
     }
     private static <T> ResponseEntity<T> ok(T body) { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body); }
 }

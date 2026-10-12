@@ -11,6 +11,8 @@ import java.util.*;
 public final class AnalysisDocumentReferences implements DocumentReferenceValidator {
     private final ExecutionService executions;
     private final ObjectMapper json;
+    @org.springframework.beans.factory.annotation.Autowired private SolutionService solutions;
+    @org.springframework.beans.factory.annotation.Autowired private dev.researchhub.ai.application.ConversationStore conversations;
     public AnalysisDocumentReferences(ExecutionService executions, ObjectMapper json) { this.executions=executions;this.json=json; }
     @Override public void validate(UUID workspace,UUID caller,String content) {
         var references=new ArrayList<JsonNode>(); collect(json.readTree(content),references,0);
@@ -24,9 +26,30 @@ public final class AnalysisDocumentReferences implements DocumentReferenceValida
                 var caption=attrs.get("caption");
                 if (!caption.isString() || caption.asString().length()>1000) throw invalid();
                 var ref=attrs.get("reference");
-                if (!fields(ref,Set.of("analysisId","executionId","outputId","renderMode"))) throw invalid();
+                boolean v2=ref!=null && ref.has("schemaVersion");
+                if (!fields(ref,v2?Set.of("schemaVersion","workload","analysisId","executionId","outputId","renderMode","stepId","conversationId"):Set.of("analysisId","executionId","outputId","renderMode"))) throw invalid();
                 var analysis=uuid(ref.get("analysisId"));var execution=uuid(ref.get("executionId"));
                 if (!ref.get("outputId").isString() || !ref.get("renderMode").isString()) throw invalid();
+                if(v2) {
+                    if(!ref.path("schemaVersion").asString().equals("2.0") || !Set.of("DATASET","PROBLEM").contains(ref.path("workload").asString()))throw invalid();
+                    if(!ref.path("conversationId").isNull())conversations.find(workspace,uuid(ref.path("conversationId")));
+                    if(ref.path("workload").asString().equals("PROBLEM")) {
+                        var bundle=solutions.find(workspace,caller,analysis,execution);
+                        String mode=ref.path("renderMode").asString(),output=ref.path("outputId").asString();
+                        if(mode.equals("STEP")) {
+                            String step=uuid(ref.path("stepId")).toString();
+                            if(!output.equals("solution") || bundle.steps().stream().noneMatch(s->s.id().equals(step)))throw invalid();
+                        } else {
+                            if(!ref.path("stepId").isNull())throw invalid();
+                            boolean valid=Set.of("SOLUTION","INPUTS","ASSUMPTIONS").contains(mode) && output.equals("solution")
+                                || mode.equals("TABLE") && output.equals("plot-data") && !bundle.plot().isNull()
+                                || mode.equals("CHART") && output.equals("plot") && !bundle.plot().isNull();
+                            if(!valid)throw invalid();
+                        }
+                        continue;
+                    }
+                    if(!ref.path("stepId").isNull())throw invalid();
+                }
                 var record=executions.record(workspace,caller,analysis,execution);
                 if (record.execution().status()!=ExecutionContracts.Status.SUCCEEDED || record.execution().result()==null)
                     throw new ConflictException("Only saved successful analysis outputs can be inserted into a document");

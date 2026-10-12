@@ -331,6 +331,19 @@ class AnalysisApiIntegrationTest {
         var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
+        jdbc.execute("DROP TABLE problem_artifacts,problem_executions,analysis_problems CASCADE");
+        jdbc.execute("DROP FUNCTION protect_problem_intent(),protect_problem_execution()");
+        jdbc.execute("ALTER TABLE analyses DROP CONSTRAINT analyses_inputs_check,DROP COLUMN workload");
+        jdbc.execute("ALTER TABLE analyses ADD CONSTRAINT analyses_inputs_check CHECK(jsonb_typeof(inputs)='array' AND jsonb_array_length(inputs) BETWEEN 1 AND 5 AND octet_length(inputs::text)<=16384)");
+        jdbc.execute("DROP TABLE canvas_proposals,canvas_operations CASCADE");
+        jdbc.execute("DROP FUNCTION preserve_canvas_receipt(),preserve_canvas_proposal_payload()");
+        jdbc.execute("ALTER TABLE ai_messages DROP CONSTRAINT ck_ai_messages_visible_complete,DROP COLUMN canvas_result");
+        // Restore the pre-proposal message invariant before rebuilding the historical schema.
+        try(var input=getClass().getClassLoader().getResourceAsStream("db/migration/V40__contextual_conversations.sql")) {
+            String migration=new String(java.util.Objects.requireNonNull(input).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+            int start=migration.indexOf("ALTER TABLE ai_messages ADD CONSTRAINT ck_ai_messages_visible_complete");
+            jdbc.execute(migration.substring(start,migration.indexOf(';',start)+1));
+        }
         jdbc.execute("DROP TABLE canvas_turns");
         jdbc.execute("ALTER TABLE ai_conversations DROP CONSTRAINT ck_contextual_origin,DROP COLUMN origin,DROP COLUMN origin_document_id,DROP COLUMN origin_context_id,DROP COLUMN client_conversation_id,DROP COLUMN first_request_hash");
         jdbc.execute("ALTER TABLE ai_messages DROP CONSTRAINT uq_ai_messages_workspace,DROP CONSTRAINT uq_ai_messages_conversation");
@@ -362,7 +375,7 @@ class AnalysisApiIntegrationTest {
         jdbc.execute("DROP TABLE spring_session_attributes, spring_session");
         jdbc.execute("DROP TABLE cost_quota_bucket");
         jdbc.execute("DROP TABLE registration_rejections");
-        jdbc.update("DELETE FROM flyway_schema_history WHERE version IN ('22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40')");flyway.migrate();
+        jdbc.update("DELETE FROM flyway_schema_history WHERE version::integer > 21");flyway.migrate();
         var response=owner.get(path+"/"+id+"/executions/"+execution+"/record");assertEquals(200,response.statusCode(),response.body());
         var record=owner.json(response);assertEquals(before,record.get("execution"));
         assertEquals("Select the first two columns",record.get("snapshot").get("userPrompt").asString());

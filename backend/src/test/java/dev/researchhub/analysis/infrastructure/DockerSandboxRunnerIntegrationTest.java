@@ -86,4 +86,13 @@ class DockerSandboxRunnerIntegrationTest {
         assertEquals(65536, result.stdout().getBytes(StandardCharsets.UTF_8).length);
         assertEquals(65536, result.stderr().getBytes(StandardCharsets.UTF_8).length);
     }
+
+    @Test void controlledProblemIgnoresGeneratedCodeAndFreshVerifierRejectsForgedValues()throws Exception{
+        var snapshot=(tools.jackson.databind.node.ObjectNode)json.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("../contracts/analysis/computation-plan/v2/problem-snapshot.json")));((tools.jackson.databind.node.ObjectNode)snapshot.path("problem")).putNull("plot");String plan=java.nio.file.Files.readString(java.nio.file.Path.of("../contracts/analysis/computation-plan/v2/problem-plan.json"));
+        String frozen=dev.researchhub.analysis.application.ProblemJson.canonical(json,snapshot);plan=dev.researchhub.analysis.application.ProblemJson.canonical(json,json.readTree(plan));var launcher=runner(Duration.ofSeconds(30));var outputs=List.of(new Output("calculation",OutputKind.TEXT));UUID analysis=UUID.randomUUID();
+        var computed=launcher.run(new Request(UUID.randomUUID(),analysis,"raise Exception('generated code must never run')",List.of(),outputs,null,new ProblemInput(frozen,plan,null)));assertTrue(computed.successful(),computed.failureCode());var candidate=(tools.jackson.databind.node.ObjectNode)json.readTree(json.readTree(computed.files().get("result.json")).path("outputs").get(0).path("text").asString());assertEquals(0.5,candidate.path("outputs").get(0).path("values").get(0).asDouble(),1e-10);
+        var identity=new dev.researchhub.analysis.application.ReproductionContracts.RuntimeIdentity(computed.imageId(),computed.runtimeVersion());var verified=List.of(new Output("verification",OutputKind.TEXT));
+        for(String field:List.of("values","steps")){var forged=candidate.deepCopy();((tools.jackson.databind.node.ObjectNode)forged.path("outputs").get(0)).set(field,field.equals("values")?json.readTree("[5000]"):json.createArrayNode());var rejected=launcher.run(new Request(UUID.randomUUID(),analysis,"import os",List.of(),verified,identity,new ProblemInput(frozen,plan,dev.researchhub.analysis.application.ProblemJson.canonical(json,forged))));assertFalse(rejected.successful());assertTrue(rejected.files().isEmpty());}
+        var healthy=launcher.run(new Request(UUID.randomUUID(),analysis,"ignored",List.of(),verified,identity,new ProblemInput(frozen,plan,dev.researchhub.analysis.application.ProblemJson.canonical(json,candidate))));assertTrue(healthy.successful(),healthy.failureCode());assertEquals("CHECKED",json.readTree(json.readTree(healthy.files().get("result.json")).path("outputs").get(0).path("text").asString()).path("status").asString());
+    }
 }

@@ -17,7 +17,7 @@ import java.util.Set;
 
 /** Analysis owns its worker port/adapter; the literature/authoring AI module does not depend on computation. */
 @Component
-public class HttpAnalysisPlanner implements AnalysisPlanner {
+public class HttpAnalysisPlanner implements AnalysisPlanner, dev.researchhub.analysis.application.ProblemPlanner {
     @org.springframework.beans.factory.annotation.Autowired
     private dev.researchhub.shared.observability.WorkMetrics metrics =
         new dev.researchhub.shared.observability.WorkMetrics(io.micrometer.core.instrument.Metrics.globalRegistry);
@@ -42,9 +42,11 @@ public class HttpAnalysisPlanner implements AnalysisPlanner {
     @Override public Candidate plan(PlanningRequest request) {
         return metrics.ai(() -> planUnobserved(request));
     }
-    private Candidate planUnobserved(PlanningRequest request) {
+    @Override public Candidate planProblem(dev.researchhub.analysis.application.ProblemContracts.PlanningRequest request) { return metrics.ai(() -> send(request,"/internal/analysis/problem/plan")); }
+    private Candidate planUnobserved(PlanningRequest request) { return send(request,"/internal/analysis/plan"); }
+    private Candidate send(Object request,String path) {
         try {
-            return client.post().uri("/internal/analysis/plan").header("Authorization","Bearer "+token)
+            return client.post().uri(path).header("Authorization","Bearer "+token)
                 .contentType(MediaType.APPLICATION_JSON).body(json.writeValueAsBytes(request)).exchange((_request,response) -> {
                     int status=response.getStatusCode().value();
                     if (status!=200) {

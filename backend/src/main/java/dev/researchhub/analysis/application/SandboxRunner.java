@@ -4,7 +4,7 @@ import java.util.*;
 
 /** Trusted launcher port. Saved runtime identity comes from completed server records, never from request JSON. */
 public interface SandboxRunner {
-    String IMAGE = "researchhub-sandbox:1.1.1";
+    String IMAGE = "researchhub-sandbox:1.2.0";
     Result run(Request request);
 
     record Input(UUID sourceVersionId, String format, byte[] bytes, String sha256) {
@@ -24,11 +24,12 @@ public interface SandboxRunner {
         }
     }
     record Request(UUID executionId, UUID planId, String code, List<Input> inputs, List<Output> outputs,
-                   ReproductionContracts.RuntimeIdentity savedRuntime) {
-        public Request(UUID executionId,UUID planId,String code,List<Input> inputs,List<Output> outputs) { this(executionId,planId,code,inputs,outputs,null); }
+                   ReproductionContracts.RuntimeIdentity savedRuntime, ProblemInput problem) {
+        public Request(UUID executionId,UUID planId,String code,List<Input> inputs,List<Output> outputs,ReproductionContracts.RuntimeIdentity savedRuntime) {this(executionId,planId,code,inputs,outputs,savedRuntime,null);}
+        public Request(UUID executionId,UUID planId,String code,List<Input> inputs,List<Output> outputs) { this(executionId,planId,code,inputs,outputs,null,null); }
         public Request {
             if (executionId == null || planId == null || code == null || code.isBlank() || code.length() > 32000
-                || inputs == null || inputs.isEmpty() || inputs.size() > 5 || outputs == null || outputs.isEmpty()
+                || inputs == null || (problem==null && inputs.isEmpty()) || (problem!=null && !inputs.isEmpty()) || inputs.size() > 5 || outputs == null || outputs.isEmpty()
                 || outputs.size() > 10 || inputs.stream().anyMatch(Objects::isNull) || outputs.stream().anyMatch(Objects::isNull)
                 || inputs.stream().map(Input::sourceVersionId).distinct().count() != inputs.size()
                 || outputs.stream().map(Output::name).distinct().count() != outputs.size())
@@ -36,10 +37,19 @@ public interface SandboxRunner {
             inputs = List.copyOf(inputs); outputs = List.copyOf(outputs);
         }
     }
+    record ProblemInput(String snapshot,String plan,String candidate) {
+        public ProblemInput {if(snapshot==null||plan==null||snapshot.length()>65536||plan.length()>65536||candidate!=null&&candidate.length()>131072)throw new IllegalArgumentException("Invalid frozen problem");}
+        public boolean verification(){return candidate!=null;}
+    }
     record Result(boolean successful, String failureCode, Integer exitCode, boolean timedOut,
                   String stdout, String stderr, boolean stdoutTruncated, boolean stderrTruncated,
-                  String imageId, String runtimeVersion, Map<String, byte[]> files) {
+                  String imageId, String runtimeVersion, Map<String, byte[]> files, Map<String,String> codeHashes) {
+        public Result(boolean successful,String failureCode,Integer exitCode,boolean timedOut,String stdout,String stderr,
+                      boolean stdoutTruncated,boolean stderrTruncated,String imageId,String runtimeVersion,Map<String,byte[]> files) {
+            this(successful,failureCode,exitCode,timedOut,stdout,stderr,stdoutTruncated,stderrTruncated,imageId,runtimeVersion,files,Map.of());
+        }
         public Result {
+            codeHashes=Map.copyOf(codeHashes);
             var copy = new LinkedHashMap<String, byte[]>();
             files.forEach((name, bytes) -> copy.put(name, bytes.clone()));
             files = Collections.unmodifiableMap(copy);

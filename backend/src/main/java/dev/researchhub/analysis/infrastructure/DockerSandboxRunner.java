@@ -15,7 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 /** Local Docker is a privileged server dependency. Only validated bytes cross into this disposable container. */
 public final class DockerSandboxRunner implements SandboxRunner {
     public static final String IMAGE = SandboxRunner.IMAGE;
-    public static final String RUNTIME_VERSION = "1.1.1";
+    public static final String RUNTIME_VERSION = "1.2.0";
     static final int LOG_LIMIT = 64 * 1024;
     static final int OUTPUT_LIMIT = 16 * 1024 * 1024;
     private final SandboxProperties properties;
@@ -70,7 +70,17 @@ public final class DockerSandboxRunner implements SandboxRunner {
                 "--workdir", "/execution", "--entrypoint", "python", imageId, "-I", "-c", "import time;time.sleep(135)"));
             checked(command(staging, deadline, 1024, arguments.toArray(String[]::new)));
             checked(command(staging, deadline, 1024, "start", name));
-            execution = command(staging, deadline, LOG_LIMIT, "exec", name, "python", "-I", "/opt/researchhub/run.py");
+            Map<String,String> codeHashes=Map.of();
+            if(request.problem()!=null) {
+                var hashes=command(staging,deadline,1024,"exec",name,"python","-I","-c",
+                    "import hashlib,json,pathlib; print(json.dumps({n:hashlib.sha256((pathlib.Path('/opt/researchhub')/n).read_bytes()).hexdigest() for n in ('problem.py','verify_problem.py')}))");
+                checked(hashes);
+                var value=json.readTree(hashes.stdout());
+                dev.researchhub.shared.math.MathAst.fields(value,"problem.py","verify_problem.py");
+                codeHashes=Map.of("problem.py",value.path("problem.py").asString(),"verify_problem.py",value.path("verify_problem.py").asString());
+                if(codeHashes.values().stream().anyMatch(v->!v.matches("[a-f0-9]{64}")))throw new Failure("SANDBOX_UNAVAILABLE");
+            }
+            execution = command(staging, deadline, LOG_LIMIT, "exec", name, "python", "-I", request.problem()==null ? "/opt/researchhub/run.py" : request.problem().verification() ? "/opt/researchhub/verify_problem.py" : "/opt/researchhub/problem.py");
             if (execution.timedOut()) throw new Failure("EXECUTION_TIMEOUT");
             if (execution.exitCode() != 0) {
                 String code = execution.exitCode() == 137 ? "EXECUTION_RESOURCE_LIMIT" :
@@ -86,7 +96,7 @@ public final class DockerSandboxRunner implements SandboxRunner {
             try { new ExecutionOutputValidator(json).validate(request.outputs(), files); }
             catch (IllegalArgumentException invalid) { throw new Failure("EXECUTION_OUTPUT_INVALID"); }
             result = new Result(true, null, execution.exitCode(), false, string(execution.stdout()), string(execution.stderr()),
-                execution.stdoutTruncated(), execution.stderrTruncated(), imageId, runtimeVersion, files);
+                execution.stdoutTruncated(), execution.stderrTruncated(), imageId, runtimeVersion, files, codeHashes);
         } catch (Failure safe) {
             result = failure(safe.code, imageId, execution, null);
         } catch (InterruptedException stopped) {
@@ -113,10 +123,11 @@ public final class DockerSandboxRunner implements SandboxRunner {
             if (interrupted) Thread.currentThread().interrupt();
         }
         return new Result(result.successful(),result.failureCode(),result.exitCode(),result.timedOut(),result.stdout(),result.stderr(),
-            result.stdoutTruncated(),result.stderrTruncated(),result.imageId(),result.imageId()==null ? null : runtimeVersion,result.files());
+            result.stdoutTruncated(),result.stderrTruncated(),result.imageId(),result.imageId()==null ? null : runtimeVersion,result.files(),result.codeHashes());
     }
 
     private void stage(Request request, Path inputs, Path source) throws IOException {
+        if(request.problem()!=null){stageProblem(request,inputs,source);return;}
         List<Map<String, Object>> manifestInputs = new ArrayList<>();
         for (Input input : request.inputs()) {
             byte[] bytes = input.bytes();
@@ -133,6 +144,14 @@ public final class DockerSandboxRunner implements SandboxRunner {
         writeReadonly(source.resolve("code.py"), request.code().getBytes(StandardCharsets.UTF_8));
         Files.setPosixFilePermissions(inputs, PosixFilePermissions.fromString("r-xr-xr-x"));
         Files.setPosixFilePermissions(source, PosixFilePermissions.fromString("r-xr-xr-x"));
+    }
+    private void stageProblem(Request request,Path inputs,Path source) throws IOException {
+        var p=request.problem();var files=new LinkedHashMap<String,String>();files.put("problem.json",p.snapshot());files.put("plan.json",p.plan());if(p.verification())files.put("candidate.json",p.candidate());
+        var entries=new ArrayList<Map<String,String>>();
+        for(var file:files.entrySet()){byte[] bytes=file.getValue().getBytes(StandardCharsets.UTF_8);writeReadonly(inputs.resolve(file.getKey()),bytes);entries.add(Map.of("name",file.getKey(),"file","/inputs/"+file.getKey(),"sha256",dev.researchhub.ai.application.RetrievalIdentity.hash(file.getValue())));}
+        var outputs=request.outputs().stream().map(o->Map.of("name",o.name(),"kind",o.kind().name())).toList();
+        writeReadonly(source.resolve("manifest.json"),json.writeValueAsBytes(Map.of("schemaVersion","2.0","workload","PROBLEM","phase",p.verification()?"VERIFY":"COMPUTE","files",entries,"outputs",outputs)));
+        Files.setPosixFilePermissions(inputs,PosixFilePermissions.fromString("r-xr-xr-x"));Files.setPosixFilePermissions(source,PosixFilePermissions.fromString("r-xr-xr-x"));
     }
     private static void writeReadonly(Path path, byte[] bytes) throws IOException {
         Files.write(path, bytes, StandardOpenOption.CREATE_NEW);
