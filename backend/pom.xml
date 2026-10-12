@@ -190,6 +190,12 @@
                         <include>dev/researchhub/auth/**</include>
                         <include>dev/researchhub/workspace/**</include>
                         <include>dev/researchhub/user/application/AccountSecurityService*</include>
+                        <include>dev/researchhub/user/application/UserLookupService*</include>
+                        <include>dev/researchhub/user/application/AccountErasureService*</include>
+                        <include>dev/researchhub/user/application/AccountExportService*</include>
+                        <include>dev/researchhub/auth/api/AccountDataController*</include>
+                        <include>dev/researchhub/user/infrastructure/AccountErasureDispatcher*</include>
+                        <include>dev/researchhub/user/infrastructure/AzureBlobErasureLedger*</include>
                         <include>dev/researchhub/comment/**</include>
                         <include>dev/researchhub/document/**</include>
                         <include>dev/researchhub/audit/**</include>
@@ -318,6 +324,18 @@
                             <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
                         </configuration>
                     </execution>
+                    <execution><id>account-data-coverage</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration><includes><include>dev/researchhub/user/application/UserLookupService*</include>
+                        <include>dev/researchhub/user/application/AccountErasureService*</include><include>dev/researchhub/user/application/AccountExportService*</include><include>dev/researchhub/auth/api/AccountDataController*</include><include>dev/researchhub/user/infrastructure/AccountErasureDispatcher*</include>
+                        <include>dev/researchhub/user/infrastructure/AzureBlobErasureLedger*</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-account-data</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
+                        </configuration></execution>
+                    <execution><id>workspace-governance-coverage</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration><includes><include>dev/researchhub/audit/api/AuditExportController*</include><include>dev/researchhub/audit/application/AuditExportService*</include><include>dev/researchhub/ai/observability/WorkspaceAiUsage*</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-workspace-governance</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
+                        </configuration></execution>
                     <execution>
                         <id>audit-coverage-report</id>
                         <phase>verify</phase>
