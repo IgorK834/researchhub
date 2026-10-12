@@ -43,6 +43,7 @@ export interface AnalysisPlan {
   readonly code: { readonly language: 'PYTHON'; readonly source: string };
 }
 export interface Analysis {
+  readonly workload?: 'DATASET' | 'PROBLEM';
   readonly id: string;
   readonly workspaceId: string;
   readonly createdBy: string;

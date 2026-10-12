@@ -1,3 +1,4 @@
+import { ProblemForm } from './ProblemForm';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +29,7 @@ export function NewAnalysis({
   readonly onCreated: (analysisId: string) => void;
   readonly initialVersionId?: string;
 }): ReactElement {
+  const [problemMode, setProblemMode] = useState(false);
   const [version, setVersion] = useState(
     initialVersionId ?? datasets[0]?.sourceVersionId ?? '',
   );
@@ -49,10 +51,22 @@ export function NewAnalysis({
       onCreated(id);
     },
   });
+  if (problemMode)
+    return (
+      <section className={styles.page}>
+        <Button variant="ghost" onClick={() => setProblemMode(false)}>
+          Use dataset
+        </Button>
+        <ProblemForm workspaceId={workspaceId} onCreated={onCreated} />
+      </section>
+    );
   return (
     <section className={styles.page}>
       <Link to={`/app/workspaces/${workspaceId}/analyses`}>All analyses</Link>
       <h1>New analysis</h1>
+      <Button variant="secondary" onClick={() => setProblemMode(true)}>
+        Solve a problem without dataset
+      </Button>
       <p>
         Choose the data and describe what to calculate. Each run keeps its source
         versions, code and result.

@@ -1,0 +1,15 @@
+.solution {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+.solution pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-inline-size: 100%;
+}
+.solution :global(.katex-display) {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}

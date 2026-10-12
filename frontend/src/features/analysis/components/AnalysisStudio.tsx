@@ -1,3 +1,4 @@
+import { ProblemStudio } from './ProblemStudio';
 import { useState, type ReactElement } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -27,7 +28,7 @@ import styles from './Analysis.module.css';
 import { InsertAnalysisResult } from './InsertAnalysisResult';
 import { AnalysisCodePanel } from './AnalysisWidgets';
 
-export function AnalysisStudio({
+function DatasetStudio({
   workspaceId,
   analysisId,
   canEdit,
@@ -424,5 +425,18 @@ export function AnalysisStudio({
         ) : null}
       </div>
     </ToolShell>
+  );
+}
+
+export function AnalysisStudio(props: {
+  readonly workspaceId: string;
+  readonly analysisId: string;
+  readonly canEdit: boolean;
+}): ReactElement {
+  const analysis = useAnalysisQuery(props.workspaceId, props.analysisId);
+  return analysis.data?.workload === 'PROBLEM' ? (
+    <ProblemStudio {...props} />
+  ) : (
+    <DatasetStudio {...props} />
   );
 }

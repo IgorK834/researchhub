@@ -4,6 +4,8 @@ import { fetchAnalyses, fetchExecutions, fetchExecutionRecord } from '../api/ana
 import { describeError, queryKeys } from '../../../shared/api';
 import type { AnalysisReference } from '../../documents/api/analysisReference';
 import { Button } from '../../../shared/components/Button';
+import { fetchProblemExecutions } from '../api/problemApi';
+import { fetchSolution } from '../api/solutionApi';
 import { Select } from '../../../shared/components/forms';
 import styles from './AnalysisOutputPicker.module.css';
 
@@ -27,15 +29,42 @@ export function AnalysisOutputPicker({
     queryKey: [...queryKeys.analyses(workspaceId), { offset }],
     queryFn: ({ signal }) => fetchAnalyses(workspaceId, offset, signal),
   });
+  const problem =
+    analyses.data?.find((a) => a.id === analysisId)?.workload === 'PROBLEM' ||
+    (initial?.analysisId === analysisId && initial.workload === 'PROBLEM');
   const executions = useQuery({
-    queryKey: queryKeys.executions(workspaceId, analysisId),
-    queryFn: ({ signal }) => fetchExecutions(workspaceId, analysisId, signal),
+    queryKey: [...queryKeys.executions(workspaceId, analysisId), 'picker', !!problem],
+    queryFn: async ({ signal }) =>
+      problem
+        ? (await fetchProblemExecutions(workspaceId, analysisId, signal)).map((e) => ({
+            id: e.id,
+            status: e.status,
+            attempt: null,
+            finishedAt: e.completedAt ?? null,
+          }))
+        : fetchExecutions(workspaceId, analysisId, signal),
     enabled: !!analysisId,
   });
   const record = useQuery({
-    queryKey: queryKeys.executionRecord(workspaceId, analysisId, executionId),
-    queryFn: ({ signal }) =>
-      fetchExecutionRecord(workspaceId, analysisId, executionId, signal),
+    queryKey: [
+      ...queryKeys.executionRecord(workspaceId, analysisId, executionId),
+      'picker',
+      !!problem,
+    ],
+    queryFn: async ({ signal }) => {
+      if (!problem)
+        return fetchExecutionRecord(workspaceId, analysisId, executionId, signal);
+      const solution = await fetchSolution(workspaceId, analysisId, executionId, signal);
+      const outputs: { name: string; kind: 'SOLUTION' | 'TABLE' | 'CHART' }[] = [
+        { name: 'solution', kind: 'SOLUTION' },
+      ];
+      if (solution.plot)
+        outputs.push(
+          { name: 'plot-data', kind: 'TABLE' },
+          { name: 'plot', kind: 'CHART' },
+        );
+      return { execution: { status: 'SUCCEEDED' as const, result: { outputs } } };
+    },
     enabled: !!executionId,
   });
   const error = analyses.error ?? executions.error ?? record.error;
@@ -99,8 +128,8 @@ export function AnalysisOutputPicker({
           ?.filter((run) => run.status === 'SUCCEEDED')
           .map((run) => (
             <option key={run.id} value={run.id}>
-              Attempt {run.attempt} · {new Date(run.finishedAt!).toLocaleString()} ·{' '}
-              {run.id.slice(0, 8)}
+              {run.attempt === null ? 'Saved run' : `Attempt ${run.attempt}`} ·{' '}
+              {new Date(run.finishedAt!).toLocaleString()} · {run.id.slice(0, 8)}
             </option>
           ))}
       </Select>
@@ -134,6 +163,14 @@ export function AnalysisOutputPicker({
               executionId,
               outputId: output.name,
               renderMode: output.kind === 'TEXT' ? 'SUMMARY' : output.kind,
+              ...(problem
+                ? {
+                    schemaVersion: '2.0',
+                    workload: 'PROBLEM',
+                    stepId: null,
+                    conversationId: null,
+                  }
+                : {}),
             });
         }}
       >
