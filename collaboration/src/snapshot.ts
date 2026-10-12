@@ -1,3 +1,4 @@
+import { validateMathNodes } from './mathAst.js';
 import {createHash} from 'node:crypto';
 import * as Y from 'yjs';
 import {prosemirrorJSONToYDoc, yDocToProsemirrorJSON} from 'y-prosemirror';
@@ -9,6 +10,7 @@ const ordered = (value: any): any => Array.isArray(value) ? value.map(ordered)
 export const stateHash = (state: Uint8Array): string => createHash('sha256').update(state).digest('hex');
 export function editorSnapshot(document: Y.Doc): {title: string; content: unknown} {
   const content = yDocToProsemirrorJSON(document, 'default');
+  validateMathNodes(content);
   schema.nodeFromJSON(content).check();
   const title = document.getMap('metadata').get('title');
   if (typeof title !== 'string' || !title.trim() || title.length > 500) throw new Error('Invalid title');
@@ -22,7 +24,8 @@ export function reconstruct(snapshot: State): Y.Doc {
     if (snapshot.state === null) {
       if (snapshot.sequence !== 0) throw new Error('Committed snapshot is missing');
       const content = JSON.parse(snapshot.content);
-      schema.nodeFromJSON(content).check();
+      validateMathNodes(content);
+  schema.nodeFromJSON(content).check();
       const seed = prosemirrorJSONToYDoc(schema, content, 'default');
       try { Y.applyUpdate(document, Y.encodeStateAsUpdate(seed)); } finally {seed.destroy();}
       document.getMap('metadata').set('title', snapshot.title);

@@ -9,6 +9,7 @@ import type { Config } from './config.js';
 import {prepareEmptyText} from './emptyText.js';
 import {stateHash} from './snapshot.js';
 import { editorSnapshot, reconstruct } from './snapshot.js';
+import { applyCanvasPatch, type Patch } from './operations.js';
 
 export type Logger = (event: string, fields?: Record<string, unknown>) => void;
 export const log: Logger = (event, fields = {}) => process.stdout.write(`${JSON.stringify({time: new Date().toISOString(), event, ...fields})}\n`);
@@ -57,6 +58,60 @@ export function createService(config: Config, backend = new Backend(config), log
       }
     },
     async onRequest({request, response}) {
+      if (request.url === '/internal/canvas/apply') {
+        const supplied = Buffer.from(String(request.headers['x-collaboration-service-token'] ?? ''));
+        const expected = Buffer.from(config.serviceToken);
+        if (request.method !== 'POST' || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
+          response.writeHead(403); response.end(); throw null;
+        }
+        try {
+          let size=0;const chunks: Buffer[]=[];
+          for await (const chunk of request) {size+=chunk.length;if(size>1024)throw new Error('Request too large');chunks.push(Buffer.from(chunk));}
+          const {operationId,room} = JSON.parse(Buffer.concat(chunks).toString()) as {operationId:string;room:string};
+          if(!/^[a-f0-9-]{36}$/.test(operationId) || !/^document:[a-f0-9-]{36}(?::\d+)?$/.test(room))throw new Error('Invalid operation');
+          let receipt: unknown;
+          await serialized(room,async () => {
+            const loaded=await backend.call<{operation:{receipt:unknown;documentId:string;epoch:number};state:State;patch:Patch|null}>('ai/load',{operationId});
+            if(room!==`document:${loaded.operation.documentId}${loaded.operation.epoch ? `:${loaded.operation.epoch}` : ''}`)throw new Error('Room mismatch');
+            const live=server.hocuspocus.documents.get(room);
+            const candidate=reconstruct(loaded.state);
+            try {
+              // A previous commit may have lost its response before broadcast. Repair that gap first.
+              if(live && loaded.state.sequence >= (sequences.get(room) ?? 0)) {
+                Y.applyUpdate(live,Y.encodeStateAsUpdate(candidate),'canvas-recovery');
+                sequences.set(room,loaded.state.sequence);savedStates.set(room,loaded.state);
+              }
+              if(loaded.operation.receipt) {receipt=loaded.operation.receipt;}
+              else {
+                if(!loaded.patch)throw new Error('Frozen patch is missing');
+                const content=applyCanvasPatch(candidate,loaded.patch);
+                editorSnapshot(candidate);
+                const body={operationId,epoch:loaded.operation.epoch,sequence:loaded.state.sequence,state:Buffer.from(Y.encodeStateAsUpdate(candidate)).toString('base64'),content:JSON.stringify(content)};
+                let committed: {receipt:unknown;state:State};
+                try { committed=await backend.call('ai/commit',body); }
+                catch(error) {
+                  if(!(error instanceof BackendError) || !error.transient)throw error;
+                  committed=await backend.call('ai/commit',body);
+                }
+                receipt=committed.receipt;
+                // Only the canonical committed binary can be broadcast, including a recovered replay.
+                if(live)Y.applyUpdate(live,Buffer.from(committed.state.state!,'base64'),'canvas-ai');
+                sequences.set(room,committed.state.sequence);savedStates.set(room,committed.state);
+              }
+              if(live) {
+                const saved=savedStates.get(room)!;
+                live.getConnections().forEach(peer=>peer.sendStateless(JSON.stringify({event:'persisted',sequence:saved.sequence,revision:saved.revision,savedAt:saved.savedAt})));
+              } else {sequences.delete(room);savedStates.delete(room);}
+            } finally {candidate.destroy();}
+          });
+          response.setHeader('Content-Type','application/json');response.setHeader('Cache-Control','no-store');
+          response.writeHead(200);response.end(JSON.stringify(receipt));
+        } catch(error) {
+          const status=error instanceof BackendError ? ([401,403,404].includes(error.status) ? 403 : error.transient ? 503 : 409) : 409;
+          response.writeHead(status);response.end('{}');
+        }
+        throw null;
+      }
       if (request.url === '/internal/canvas/resolve') {
         const supplied = Buffer.from(String(request.headers['x-collaboration-service-token'] ?? ''));
         const expected = Buffer.from(config.serviceToken);
@@ -90,6 +145,7 @@ export function createService(config: Config, backend = new Backend(config), log
     },
     async onLoadDocument({document, documentName, context}) {
       const {token} = context as Session;
+      await serialized(documentName, async () => {
       try {
         const state = await backend.load(token, documentName);
         const restored = reconstruct(state);
@@ -109,6 +165,7 @@ export function createService(config: Config, backend = new Backend(config), log
         logger('document.load.failed', {documentId: (context as Session).access.documentId});
         throw error;
       }
+      });
       return document;
     },
     async connected({connection, context, socketId, documentName}) {

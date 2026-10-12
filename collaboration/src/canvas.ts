@@ -13,7 +13,7 @@ function endpoint(doc: Node, position: number, end = false): Endpoint {
   let result: Endpoint | undefined;
   const visit = (node: Node, start: number, path: number[]): void => {
     if (result) return;
-    if (node.type.name === 'analysisResult' && (end ? position > start && position <= start + 1 : position >= start && position < start + 1))
+    if (['analysisResult','blockMath'].includes(node.type.name) && (end ? position > start && position <= start + 1 : position >= start && position < start + 1))
       result = { blockId: node.attrs.blockId ?? null, path, offset: position - start };
     else if (node.isTextblock && position >= start + 1 && position <= start + 1 + node.content.size)
       result = { blockId: node.attrs.blockId ?? null, path, offset: position - start - 1 };

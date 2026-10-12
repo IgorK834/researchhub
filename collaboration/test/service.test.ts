@@ -10,6 +10,7 @@ import {configuration} from '../src/config.js';
 import {stateHash, reconstruct, editorSnapshot} from '../src/snapshot.js';
 import {schema} from '../src/schema.js';
 import * as encoding from 'lib0/encoding';
+import type {Patch} from '../src/operations.js';
 
 const room = 'document:11111111-1111-1111-1111-111111111111';
 const config = configuration({COLLABORATION_PORT: '0', COLLABORATION_SERVICE_TOKEN: 'x'.repeat(32), COLLABORATION_RECHECK_MS: '100'});
@@ -46,6 +47,49 @@ async function fixture(initial?: State, lifetime = 60000) {
   };
   return {backend, service, url, client, stored: () => stored, events, deny: () => {denied = true;}, fail: () => {failed = true;}};
 }
+async function operationFixture(live=false) {
+  const f=await fixture({sequence:0,state:null,stateSha256:null,title:'Report',revision:1,savedAt:new Date().toISOString(),content:JSON.stringify({type:'doc',content:[{type:'paragraph',attrs:{blockId:'target'},content:[{type:'text',text:'original'}]},{type:'paragraph',content:[{type:'text',text:'outside'}]}]})});
+  const a=f.client(),b=live ? f.client('owner') : undefined;
+  await until(()=>a.provider.isSynced&&(!b||b.provider.isSynced));
+  let state=f.stored(),receipt:unknown=null,commits=0,fail=false,lost=false;
+  const before=JSON.parse(state.content).content[0];
+  const patch:Patch={parent:[],index:0,before:[before],after:[schema.nodeFromJSON({type:'paragraph',attrs:{blockId:'generated'},content:[{type:'text',text:'generated'}]}).toJSON()],generatedBlocks:['generated']};
+  const id='22222222-2222-4222-8222-222222222222';
+  f.backend.call=async <T>(path:string,body:any):Promise<T>=>{
+    if(path==='ai/load')return {operation:{documentId:room.substring(9),epoch:0,receipt},state,patch:receipt ? null : patch} as T;
+    if(path!=='ai/commit')throw new BackendError(404,false);
+    if(fail)throw new BackendError(503,true);
+    if(!receipt){commits++;state={...state,sequence:state.sequence+1,revision:state.revision+1,state:body.state,content:body.content,stateSha256:stateHash(Buffer.from(body.state,'base64'))};receipt={operationId:id,revision:state.revision,kind:'ACCEPT',proposalId:'proposal'};}
+    if(lost){lost=false;throw new BackendError(0,true);}
+    return {receipt,state} as T;
+  };
+  const apply=(headers:Record<string,string>={'X-Collaboration-Service-Token':config.serviceToken},body:unknown={operationId:id,room})=>fetch(f.url.replace('ws:','http:')+'/internal/canvas/apply',{method:'POST',headers,body:typeof body==='string' ? body : JSON.stringify(body)});
+  return {f,a,b,apply,patch,commits:()=>commits,state:()=>state,fail:()=>{fail=true;},loseResponse:()=>{lost=true;}};
+}
+describe('frozen canvas operations',()=>{
+  it('commits exactly once for two connected clients and recovers a lost commit response',async()=>{
+    const o=await operationFixture(true);o.loseResponse();const first=await o.apply();expect(first.status).toBe(200);
+    await until(()=>o.a.doc.getXmlFragment('default').toString().includes('generated')&&o.b!.doc.getXmlFragment('default').toString().includes('generated'));
+    const replay=await o.apply();expect(await replay.json()).toEqual(await first.json());expect(o.commits()).toBe(1);
+    expect(o.b!.doc.getXmlFragment('default').toString()).toContain('outside');
+  });
+  it('rejects failed persistence before exposing any candidate to the room',async()=>{
+    const o=await operationFixture(true);o.fail();expect((await o.apply()).status).toBe(503);expect(o.commits()).toBe(0);
+    expect(o.b!.doc.getXmlFragment('default').toString()).toContain('original');expect(o.b!.doc.getXmlFragment('default').toString()).not.toContain('generated');
+  });
+  it('requires service authentication and bounded known operation identity and room',async()=>{
+    const o=await operationFixture();expect((await o.apply({})).status).toBe(403);
+    expect((await o.apply(undefined,'bad')).status).toBe(409);expect((await o.apply(undefined,'x'.repeat(1025))).status).toBe(409);
+    expect((await o.apply(undefined,{operationId:'invented',room})).status).toBe(409);
+    expect((await o.apply(undefined,{operationId:'22222222-2222-4222-8222-222222222222',room:room+':1'})).status).toBe(409);
+    o.f.backend.call=async()=>{throw new BackendError(403,false);};expect((await o.apply()).status).toBe(403);
+  });
+  it('applies and replays durable state when there is no loaded room',async()=>{
+    const o=await operationFixture();o.a.provider.destroy();await until(()=>!o.f.service.hocuspocus.documents.has(room));
+    expect((await o.apply()).status).toBe(200);expect((await o.apply()).status).toBe(200);expect(o.commits()).toBe(1);
+    expect(reconstruct(o.state()).getXmlFragment('default').toString()).toContain('generated');
+  });
+});
 describe('realtime security and durability', () => {
   it('exchanges edits between two clients, persists before ack and reconnects from binary state', async () => {
     const f = await fixture();
