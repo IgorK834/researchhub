@@ -55,7 +55,7 @@ class CloudProfileStartupTests {
                 assertNull(env.getProperty("spring.autoconfigure.exclude"));
                 assertEquals("true", env.getProperty("server.servlet.session.cookie.secure"));
                 assertEquals("none", env.getProperty("server.forward-headers-strategy"));
-                assertEquals("health,prometheus", env.getProperty("management.endpoints.web.exposure.include"));
+                assertEquals("health,prometheus,info", env.getProperty("management.endpoints.web.exposure.include"));
                 assertEquals("false", env.getProperty("researchhub.analysis.sandbox.enabled"));
                 assertNull(env.getProperty("researchhub.sources.storage.azure-blob.account-key"));
                 var pool = Binder.get(env).bind("spring.datasource.hikari", HikariConfig.class).orElseThrow(() -> new AssertionError("Missing Hikari configuration"));

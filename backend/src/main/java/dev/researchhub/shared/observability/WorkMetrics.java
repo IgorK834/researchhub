@@ -19,7 +19,12 @@ public class WorkMetrics {
     public enum Queue { SOURCE_INGEST, ANALYSIS_EXECUTION }
     public enum RetryReason { FAILURE, STALE }
     private final MeterRegistry registry;
-    public WorkMetrics(MeterRegistry registry) { this.registry = registry; }
+    public WorkMetrics(MeterRegistry registry) {
+        this.registry = registry;
+        for (Queue queue : Queue.values()) registry.counter("researchhub.worker.failures", "queue", queue.name());
+        registry.counter("researchhub.ai.provider.unavailable");
+    }
+    public void providerUnavailable() { registry.counter("researchhub.ai.provider.unavailable").increment(); }
 
     public Timer.Sample start() { return Timer.start(registry); }
     public void finish(Timer.Sample sample, Operation operation, boolean success) {

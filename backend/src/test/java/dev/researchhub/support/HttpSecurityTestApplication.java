@@ -17,5 +17,6 @@ import org.springframework.context.annotation.Import;
 @EnableAutoConfiguration
 @Import({SecurityConfiguration.class, BrowserSecurityConfiguration.class,
         ProblemDetailAuthenticationEntryPoint.class, ProblemDetailAccessDeniedHandler.class, ProblemDetailErrorWriter.class,
-        MetricsSecurityConfiguration.class, RequestCorrelationFilter.class})
+        MetricsSecurityConfiguration.class, RequestCorrelationFilter.class,
+        dev.researchhub.shared.observability.DeploymentInfoContributor.class})
 public class HttpSecurityTestApplication {}

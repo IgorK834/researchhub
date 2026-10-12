@@ -1,0 +1,10 @@
+{
+  "role": { "name": "researchhub-backend" },
+  "sampling": { "percentage": 100 },
+  "metricIntervalSeconds": 60,
+  "instrumentation": {
+    "micrometer": { "enabled": true },
+    "logging": { "level": "OFF" }
+  },
+  "selfDiagnostics": { "destination": "console", "level": "WARN" }
+}

@@ -34,4 +34,13 @@ class ObservabilityApiTest {
         mvc.perform(post("/actuator/prometheus").header("Authorization","Bearer "+TOKEN)).andExpect(status().isUnauthorized());
         mvc.perform(get("/actuator/env").header("Authorization","Bearer "+TOKEN)).andExpect(status().isUnauthorized());
     }
+    @Test void operationalInfoRequiresScrapeTokenAndRejectsBrowserCredentials() throws Exception {
+        mvc.perform(get("/actuator/info")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/info").header("Authorization", "Bearer wrong")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/info").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("browser")))
+            .andExpect(status().isUnauthorized());
+        mvc.perform(post("/actuator/info").header("Authorization", "Bearer " + TOKEN)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/info").header("Authorization", "Bearer " + TOKEN)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.deployment.commit").isString()).andExpect(jsonPath("$.deployment.flywayVersion").value("none"));
+    }
 }

@@ -21,7 +21,7 @@ public class MetricsSecurityConfiguration {
     @Bean @Order(1)
     SecurityFilterChain metricsSecurity(HttpSecurity http,
             @Value("${researchhub.observability.scrape-token:}") String token) throws Exception {
-        return http.securityMatcher("/actuator/prometheus")
+        return http.securityMatcher("/actuator/prometheus", "/actuator/info")
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .csrf(c -> c.disable())
             .authorizeHttpRequests(a -> a.anyRequest().access((authentication, context) -> {

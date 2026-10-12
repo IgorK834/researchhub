@@ -2,6 +2,9 @@ researchhub:
   # INSTANCE_ID / researchhub.instance-id overrides the hostname resolved before logging starts.
   observability:
     scrape-token: ${METRICS_SCRAPE_TOKEN:}
+    expected-commit: ${DEPLOYMENT_COMMIT:}
+    image-digest: ${DEPLOYMENT_IMAGE_DIGEST:}
+    require-identity: ${DEPLOYMENT_REQUIRE_IDENTITY:false}
   collaboration:
     internal-url: ${COLLABORATION_INTERNAL_URL:http://127.0.0.1:8091}
     enabled: ${COLLABORATION_ENABLED:false}
@@ -106,6 +109,7 @@ logging:
     json:
       add:
         replicaId: ${researchhub.instance-id}
+        commit: ${researchhub.build-commit:unknown}
     format:
       console: logstash
 
@@ -117,7 +121,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus
+        include: health,prometheus,info
   endpoint:
     health:
       show-details: never

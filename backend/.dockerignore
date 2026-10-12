@@ -7,6 +7,8 @@
 !src/**
 !docker
 !docker/HealthProbe.java
+!observability
+!observability/*.json
 src/test
 **/.env*
 **/*.key
