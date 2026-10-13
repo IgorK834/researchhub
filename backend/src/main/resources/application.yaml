@@ -47,9 +47,11 @@ researchhub:
       cleanup-cron: ${COST_QUOTA_CLEANUP_CRON:0 0 * * * *}
       window: PT1M
       max-buckets: 100000
-      llm: {user: 20, workspace: 60}
-      analysis: {user: 10, workspace: 30}
-      retrieval: {user: 60, workspace: 180}
+      llm: { user: 20, workspace: 60 }
+      analysis: { user: 10, workspace: 30 }
+      retrieval: { user: 60, workspace: 180 }
+      metadata-lookup: { user: 10, workspace: 30 }
+      bibliography-import: { user: 10, workspace: 30 }
   sources:
     # The largest file accepted as one source, in bytes. 50 MiB. Cannot exceed this hard ceiling; a larger value fails startup. See docs/development/sources.md.
     max-size-bytes: 52428800
@@ -193,6 +195,10 @@ researchhub:
           max-bytes: ${AI_GROUNDED_RESPONSE_CONTEXT_MAX_BYTES:24576}
           collapse-exact-duplicates: ${AI_GROUNDED_RESPONSE_CONTEXT_COLLAPSE_EXACT_DUPLICATES:true}
   sources:
+    metadata-lookup:
+      enabled: ${SOURCE_METADATA_LOOKUP_ENABLED:false}
+      contact-address: ${SOURCE_METADATA_LOOKUP_CONTACT_ADDRESS:}
+      timeout: ${SOURCE_METADATA_LOOKUP_TIMEOUT:PT5S}
     external-search:
       enabled: ${EXTERNAL_SEARCH_ENABLED:false}
       api-key: ${BRAVE_SEARCH_API_KEY:}

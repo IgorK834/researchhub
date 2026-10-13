@@ -1,4 +1,4 @@
 package dev.researchhub.security.application;
 
 /** Independent request budgets; ordinary reads and writes do not consume them. */
-public enum CostCategory { LLM, ANALYSIS, RETRIEVAL }
+public enum CostCategory { LLM, ANALYSIS, RETRIEVAL, METADATA_LOOKUP, BIBLIOGRAPHY_IMPORT }

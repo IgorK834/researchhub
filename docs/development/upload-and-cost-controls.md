@@ -23,11 +23,11 @@ Office limits: 10,000 entries, 100 MiB total declared uncompressed size, expansi
 
 `IdempotentSourceIngestProcessor` uses `IsolatedSourceParser` by default. Each extraction runs in a fresh subprocess, not an API thread. The parent terminates and reaps the process group on deadline; subsequent work can continue. The child receives only parser/chunking/local blob-origin settings, not provider credentials or the worker service token. Download failures remain retryable and uncached; bounded parser failures are terminal/idempotent results.
 
-| Environment setting | Default | Accepted range |
-| --- | --- | --- |
-| `AI_WORKER_PARSE_TIMEOUT_SECONDS` | 20 seconds wall time, including download | 1–25 |
-| `AI_WORKER_PARSE_CPU_SECONDS` | 15 CPU seconds | 1–20 |
-| `AI_WORKER_PARSE_MEMORY_MIB` | 512 MiB address space | 128–1024 |
+| Environment setting               | Default                                  | Accepted range |
+| --------------------------------- | ---------------------------------------- | -------------- |
+| `AI_WORKER_PARSE_TIMEOUT_SECONDS` | 20 seconds wall time, including download | 1–25           |
+| `AI_WORKER_PARSE_CPU_SECONDS`     | 15 CPU seconds                           | 1–20           |
+| `AI_WORKER_PARSE_MEMORY_MIB`      | 512 MiB address space                    | 128–1024       |
 
 The Linux worker child enforces CPU, address-space, output-file and zero-core-dump limits before importing parsers. Host macOS development enforces CPU/time/output limits; reliable address-space enforcement is supplied by the Linux container. Compose runs the worker as its existing non-root user with a read-only root filesystem, 128 MiB temporary filesystem, 1 GiB container memory, 64 PIDs, dropped capabilities and no new privileges.
 
@@ -39,23 +39,25 @@ Extraction remains bounded to 500,000 characters, 10,000 units and a 4 MiB seria
 
 Both budgets are global for a category: a user across all workspaces, and a workspace across all users. `CostQuotaStore.admit` must check/consume both atomically; refusal consumes neither.
 
-| Category | User / minute | Workspace / minute | Endpoints |
-| --- | ---: | ---: | --- |
-| `LLM` | 20 | 60 | Generation, workspace questions, authoring suggestions, source comparisons/disagreements, conversation messages (including streaming), comment AI evidence |
-| `ANALYSIS` | 10 | 30 | Plan, execute, rerun; covers bounded internal planning attempts as one public request |
-| `RETRIEVAL` | 60 | 180 | Semantic retrieval search, which can invoke query embeddings |
+| Category          | User / minute | Workspace / minute | Endpoints                                                                                                                                                  |
+| ----------------- | ------------: | -----------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LLM`             |            20 |                 60 | Generation, workspace questions, authoring suggestions, source comparisons/disagreements, conversation messages (including streaming), comment AI evidence |
+| `ANALYSIS`        |            10 |                 30 | Plan, execute, rerun; covers bounded internal planning attempts as one public request                                                                      |
+| `RETRIEVAL`       |            60 |                180 | Semantic retrieval search, which can invoke query embeddings                                                                                               |
+| `METADATA_LOOKUP` |            10 |                 30 | User-initiated Crossref DOI metadata suggestions                                                                                                           |
+| `BIBLIOGRAPHY_IMPORT` |        10 |                 30 | Bounded local bibliography preview; confirm/cancel do not invoke a model                                                                                   |
 
 Ordinary traffic (workspace/document/source reads, conversation history, suggestion acceptance, analysis drafts/status/artifacts) consumes none of these budgets. Query embeddings inside an already admitted LLM operation are covered by that request. Authentication/workspace authorization failures consume no budget. Authenticated admitted requests consume budget even if body validation, resource lookup, idempotency or the provider later fails; this is a **request limit, not token billing**. The client never automatically retries quota failures.
 
-Settings live under `researchhub.security.quotas`: `window` (1 second–1 day), `llm.user/workspace`, `analysis.user/workspace`, and the adapter settings below. Invalid policies fail startup. Every replica must use identical policies/window settings and synchronized UTC clocks. Both adapters use fixed windows aligned to the Unix epoch (`Clock` truncated to `policy.window()`), including non-minute durations; retry delays round up to the end of the same window. Fixed windows can permit bursts across a boundary.
+Settings live under `researchhub.security.quotas`: `window` (1 second–1 day), `llm.user/workspace`, `analysis.user/workspace`, `retrieval.user/workspace`, `metadata-lookup.user/workspace`, `bibliography-import.user/workspace`, and the adapter settings below. Invalid policies fail startup. Every replica must use identical policies/window settings and synchronized UTC clocks. Both adapters use fixed windows aligned to the Unix epoch (`Clock` truncated to `policy.window()`), including non-minute durations; retry delays round up to the end of the same window. Fixed windows can permit bursts across a boundary.
 
-| Setting | Default / behavior |
-| --- | --- |
-| `store` / `COST_QUOTA_STORE` | `memory` on local; `postgres` on demo/azure. Only these two values are accepted. |
-| `max-buckets` | 100,000; memory only. Expired windows release capacity, and capacity exhaustion fails closed. |
-| `retention` / `COST_QUOTA_RETENTION` | `P7D`; PostgreSQL history retention, at least the configured/admitted window. |
-| `max-attempts` / `COST_QUOTA_MAX_ATTEMPTS` | 3 total attempts, bounded to 1–10. |
-| `cleanup-cron` / `COST_QUOTA_CLEANUP_CRON` | `0 0 * * * *` (hourly); `-` disables the scheduled cleanup. |
+| Setting                                    | Default / behavior                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `store` / `COST_QUOTA_STORE`               | `memory` on local; `postgres` on demo/azure. Only these two values are accepted.              |
+| `max-buckets`                              | 100,000; memory only. Expired windows release capacity, and capacity exhaustion fails closed. |
+| `retention` / `COST_QUOTA_RETENTION`       | `P7D`; PostgreSQL history retention, at least the configured/admitted window.                 |
+| `max-attempts` / `COST_QUOTA_MAX_ATTEMPTS` | 3 total attempts, bounded to 1–10.                                                            |
+| `cleanup-cron` / `COST_QUOTA_CLEANUP_CRON` | `0 0 * * * *` (hourly); `-` disables the scheduled cleanup.                                   |
 
 `CostQuotaConfiguration` retains `@ConditionalOnMissingBean(CostQuotaStore.class)` so an explicit store bean overrides either adapter. Memory remains suitable only for one process and resets on restart. PostgreSQL preserves shared budgets across process restarts and replica changes until their window expires. Multi-instance deployments must select PostgreSQL or supply an equivalent atomic shared implementation.
 
@@ -67,7 +69,7 @@ Each admission uses one independent `REQUIRES_NEW`, `READ_COMMITTED` transaction
 
 Lock order is always USER → WORKSPACE, independent of UUID order. SQLSTATE `40P01` (deadlock) and `40001` (serialization failure) retry the entire transaction up to `max-attempts`; other database errors and exhausted retries propagate as infrastructure failures, without being mislabeled as quota denials. Cleanup deletes only rows with `window_start < Clock.instant() - retention`; retention validation prevents removal of live budgets. Cleanup is safe to run on each replica.
 
-Micrometer `researchhub.security.quotas.rejections` counts each rejected admission once, tagged only by `category=LLM|ANALYSIS|RETRIEVAL`; Prometheus exports `researchhub_security_quotas_rejections_total`. Both adapters expose it. Retried database conflicts are not quota rejections, and user/workspace identifiers never become metric tags.
+Micrometer `researchhub.security.quotas.rejections` counts each rejected admission once, tagged only by `category=LLM|ANALYSIS|RETRIEVAL|METADATA_LOOKUP`; Prometheus exports `researchhub_security_quotas_rejections_total`. Both adapters expose it. Retried database conflicts are not quota rejections, and user/workspace identifiers never become metric tags.
 
 ### Replica contention proof (RH-310)
 
@@ -83,7 +85,7 @@ Micrometer `researchhub.security.quotas.rejections` counts each rejected admissi
 
 Run all quota proof tests with `./mvnw -Dtest='*CostQuota*Test,FlywayMigrationIntegrationTest' test` (Docker required).
 
-Rejection contract: HTTP `429`, `application/problem+json`, `code: RATE_LIMIT_EXCEEDED`, `quotaCategory: LLM | ANALYSIS | RETRIEVAL`, positive `retryAfterSeconds`, `Retry-After` header with that same delay and `Cache-Control: private, no-store`. No provider call, generation run or analysis execution is created on refusal. The frontend preserves input and displays a clear delay through its shared error formatter.
+Rejection contract: HTTP `429`, `application/problem+json`, `code: RATE_LIMIT_EXCEEDED`, `quotaCategory: LLM | ANALYSIS | RETRIEVAL | METADATA_LOOKUP`, positive `retryAfterSeconds`, `Retry-After` header with that same delay and `Cache-Control: private, no-store`. No provider call, generation run or analysis execution is created on refusal. The frontend preserves input and displays a clear delay through its shared error formatter.
 
 ## Verification
 

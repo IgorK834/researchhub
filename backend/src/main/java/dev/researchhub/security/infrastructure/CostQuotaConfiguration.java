@@ -55,11 +55,17 @@ public class CostQuotaConfiguration {
             @Value("${researchhub.security.quotas.analysis.user:10}") int analysisUser,
             @Value("${researchhub.security.quotas.analysis.workspace:30}") int analysisWorkspace,
             @Value("${researchhub.security.quotas.retrieval.user:60}") int retrievalUser,
-            @Value("${researchhub.security.quotas.retrieval.workspace:180}") int retrievalWorkspace) {
+            @Value("${researchhub.security.quotas.retrieval.workspace:180}") int retrievalWorkspace,
+            @Value("${researchhub.security.quotas.metadata-lookup.user:10}") int metadataLookupUser,
+            @Value("${researchhub.security.quotas.metadata-lookup.workspace:30}") int metadataLookupWorkspace,
+            @Value("${researchhub.security.quotas.bibliography-import.user:10}") int bibliographyImportUser,
+            @Value("${researchhub.security.quotas.bibliography-import.workspace:30}") int bibliographyImportWorkspace) {
         return Map.of(
                 CostCategory.LLM, new QuotaPolicy(llmUser, llmWorkspace, window),
                 CostCategory.ANALYSIS, new QuotaPolicy(analysisUser, analysisWorkspace, window),
-                CostCategory.RETRIEVAL, new QuotaPolicy(retrievalUser, retrievalWorkspace, window));
+                CostCategory.RETRIEVAL, new QuotaPolicy(retrievalUser, retrievalWorkspace, window),
+                CostCategory.METADATA_LOOKUP, new QuotaPolicy(metadataLookupUser, metadataLookupWorkspace, window),
+                CostCategory.BIBLIOGRAPHY_IMPORT, new QuotaPolicy(bibliographyImportUser, bibliographyImportWorkspace, window));
     }
 
     @Bean
