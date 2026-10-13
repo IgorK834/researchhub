@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Local gh substitute: only a JSON fixture is mutated, never GitHub."""
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+state_path = Path(os.environ["GH_MOCK_STATE"])
+event_path = Path(os.environ["GH_MOCK_EVENTS"])
+state = json.loads(state_path.read_text())
+
+
+def value(flag):
+    return args[args.index(flag) + 1]
+
+
+def fail(message):
+    print(message, file=sys.stderr)
+    raise SystemExit(1)
+
+
+def record(kind, payload):
+    with event_path.open("a") as stream:
+        stream.write(json.dumps({"kind": kind, "repo": os.environ.get("GH_REPO"), **payload}, ensure_ascii=False) + "\n")
+    state_path.write_text(json.dumps(state, ensure_ascii=False))
+
+
+if args[:2] == ["auth", "status"]:
+    raise SystemExit(0)
+if args[:2] == ["repo", "view"]:
+    print(os.environ.get("GH_MOCK_RESOLVED", os.environ["GH_REPO"]))
+    raise SystemExit(0)
+if args[0] == "api":
+    endpoint = next(arg for arg in args[1:] if arg.startswith("repos/"))
+    if "/issues?" in endpoint:
+        if "--paginate" not in args or "state=all" not in endpoint:
+            fail("Issue inventory must cover every page and state")
+        for issue in state["issues"]:
+            print("\t".join(str(issue[key]) for key in ("number", "state", "title")))
+        raise SystemExit(0)
+    if "/milestones?" in endpoint:
+        for milestone in state["milestones"]:
+            print("\t".join(str(milestone[key]) for key in ("number", "title", "state")))
+        raise SystemExit(0)
+    if endpoint == "repos/:owner/:repo/milestones" and "-f" in args:
+        fields = dict(arg.split("=", 1) for index, arg in enumerate(args) if index > 0 and args[index - 1] == "-f")
+        if any(item["title"] == fields["title"] for item in state["milestones"]):
+            fail("Duplicate milestone")
+        item = {"number": len(state["milestones"]) + 1, **fields}
+        state["milestones"].append(item)
+        record("milestone", item)
+        print(json.dumps(item))
+        raise SystemExit(0)
+if args[:2] == ["label", "create"]:
+    item = {"name": args[2], "color": value("--color"), "description": value("--description")}
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", item["color"]) or "--force" not in args:
+        fail("Label format mismatch")
+    state["labels"][item["name"]] = item
+    record("label", item)
+    raise SystemExit(0)
+if args[:2] == ["issue", "create"]:
+    title = value("--title")
+    match = re.match(r"^\[Task (\d+\.\d+)\] ", title)
+    if not match:
+        fail("Missing Task ID")
+    task_id = match.group(1)
+    if task_id == os.environ.get("GH_MOCK_FAIL_TASK"):
+        fail("Simulated issue create failure")
+    if any(item["title"].startswith(f"[Task {task_id}]") for item in state["issues"]):
+        fail("Duplicate task, including closed issues")
+    milestone = value("--milestone")
+    if not any(item["title"] == milestone and item["state"] == "open" for item in state["milestones"]):
+        fail("Missing/open milestone mismatch")
+    labels = value("--label").split(",")
+    if any(label not in state["labels"] for label in labels):
+        fail("Unknown label")
+    item = {"number": max((item["number"] for item in state["issues"]), default=0) + 1, "state": "open", "title": title, "milestone": milestone, "labels": labels, "body": value("--body")}
+    state["issues"].append(item)
+    record("issue", item)
+    print(f"https://github.com/{os.environ['GH_REPO']}/issues/{item['number']}")
+    raise SystemExit(0)
+fail(f"Unsupported fake gh invocation: {args!r}")
