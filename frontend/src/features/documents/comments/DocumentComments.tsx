@@ -23,6 +23,7 @@ export function DocumentComments({
   pendingAnchor,
   onCancel,
   onOpen,
+  initialCommentId,
 }: {
   readonly workspaceId: string;
   readonly documentId: string;
@@ -32,6 +33,7 @@ export function DocumentComments({
   readonly pendingAnchor: CommentAnchor | null;
   readonly onCancel: () => void;
   readonly onOpen: () => void;
+  readonly initialCommentId?: string;
 }): ReactElement {
   const client = useQueryClient();
   const key = queryKeys.documentComments(workspaceId, documentId);
@@ -95,6 +97,23 @@ export function DocumentComments({
     },
   });
   const data = comments.data;
+  const [appliedLink, setAppliedLink] = useState<string | null>(null);
+  const linkedComment = data?.find((row) => row.id === initialCommentId);
+  const linkTarget = initialCommentId ?? null;
+  if (appliedLink !== linkTarget && (linkTarget === null || linkedComment)) {
+    setAppliedLink(linkTarget);
+    if (linkedComment) {
+      setActiveId(linkedComment.id);
+      setShowResolved(linkedComment.status === 'RESOLVED');
+    }
+  }
+  const linkedId = linkedComment?.id;
+  useEffect(() => {
+    if (linkedId)
+      window.document
+        .getElementById(`comment-${linkedId}`)
+        ?.scrollIntoView?.({ block: 'nearest' });
+  }, [linkedId]);
   useEffect(() => {
     if (!editor) return;
     const synchronize = (): void => {
@@ -277,6 +296,7 @@ export function DocumentComments({
       {rows.map((comment) => (
         <article
           key={comment.id}
+          id={`comment-${comment.id}`}
           aria-label={`Comment by ${comment.authorName}`}
           className={styles.thread}
           data-status={comment.status.toLowerCase()}

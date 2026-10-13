@@ -35,6 +35,10 @@ dev.researchhub
 │   ├── application     SourceService, processing listener, the SourceStorage port, limits and quota, version summaries/content
 │   ├── domain          Source, SourceVersion, SourceType, SourceStatus, SourceFilename, StorageKey
 │   └── infrastructure  SourceEntity, SourceVersionEntity, their repositories, AzureBlobSourceStorage and its configuration
+├── search          Workspace lexical search (Task 35.4)
+│   ├── api             WorkspaceSearchController with bounded q/types/cursor/limit
+│   ├── application     WorkspaceSearchService, cursor/result contracts and store port
+│   └── infrastructure  PostgreSQL workspace projection reads; V50 maintains transactional projections
 ├── analysis        Dataset inspection, computation planning, isolated execution and immutable results
 │   ├── api             DatasetPreviewController, AnalysisController
 │   ├── domain          AnalysisStatus and lifecycle transitions

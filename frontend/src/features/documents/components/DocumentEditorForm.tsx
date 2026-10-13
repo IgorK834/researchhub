@@ -4,7 +4,7 @@ import { DocumentProvenance } from '../provenance/DocumentProvenance';
 import { useEffect, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { describeError, fieldErrorsByName, queryKeys } from '../../../shared/api';
 import type { WorkspaceDocument } from '../api/documentApi';
@@ -114,6 +114,7 @@ export function DocumentEditorForm({
   focusBlock,
   contextCaptureEnabled = true,
 }: DocumentEditorFormProps): ReactElement {
+  const commentHash = useLocation().hash;
   const [canvasContext, setCanvasContext] = useState<{
     id: string;
     editor: Editor;
@@ -309,6 +310,11 @@ export function DocumentEditorForm({
       {commentsHost
         ? createPortal(
             <DocumentComments
+              initialCommentId={
+                commentHash.startsWith('#comment-')
+                  ? commentHash.slice('#comment-'.length)
+                  : undefined
+              }
               workspaceId={workspaceId}
               documentId={document.id}
               editor={commentEditor}

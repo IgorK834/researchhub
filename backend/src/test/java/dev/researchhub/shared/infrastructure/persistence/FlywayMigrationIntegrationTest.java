@@ -111,10 +111,19 @@ class FlywayMigrationIntegrationTest {
         Integer appliedVersions = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertEquals(47, appliedVersions,
-                "A fresh database should have exactly versions 1 through 47 applied");
+        assertEquals(50, appliedVersions,
+                "A fresh database should have exactly versions 1 through 50 applied");
         assertEquals(1, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'report_exports'", Integer.class));
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_name = 'report_exports' AND column_name = 'citation_style' AND is_nullable = 'NO'
+                """, Integer.class));
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM pg_constraint
+                WHERE conname = 'cost_quota_bucket_category_check'
+                  AND pg_get_constraintdef(oid) LIKE '%METADATA_LOOKUP%'
+                """, Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('document_comments','comment_replies','comment_audit_events')", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
@@ -123,6 +132,14 @@ class FlywayMigrationIntegrationTest {
                 "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('collaboration_documents','collaboration_credentials')", Integer.class));
         assertEquals(3, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('analyses','analysis_inputs','analysis_plan_attempts')", Integer.class));
+        assertEquals(3, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.tables
+                WHERE table_name IN ('bibliography_imports','bibliography_items','bibliography_import_records')
+                """, Integer.class));
+        assertEquals(1, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_name='workspace_search_entries' AND column_name='search_vector'
+                """, Integer.class));
     }
 
     @Test

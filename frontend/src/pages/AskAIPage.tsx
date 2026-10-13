@@ -36,7 +36,7 @@ export function AskAIPage({
   return (
     <>
       <ResearchPanel
-        key={`${workspaceId}:${initialSourceId ?? focus?.sourceId ?? ''}:${focus?.sheetName ?? ''}`}
+        key={`${workspaceId}:${initialConversationId ?? ''}:${initialSourceId ?? focus?.sourceId ?? ''}:${focus?.sheetName ?? ''}`}
         workspaceId={workspaceId}
         initialConversationId={initialConversationId}
         canEdit={canEdit}

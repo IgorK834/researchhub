@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from '../features/auth/api/authApi';
 import { LogoutButton } from '../features/auth/components/LogoutButton';
 import { useDocumentsQuery } from '../features/documents/api/useDocuments';
 import { useSourcesQuery } from '../features/sources/api/useSources';
-import { SourceCommandSearch } from '../features/sources/components/SourceCommandSearch';
+import { WorkspaceCommandSearch } from '../features/search/components/WorkspaceCommandSearch';
 import { useAnalysesQuery } from '../features/analysis/api/useAnalyses';
 import {
   useWorkspaceMembersQuery,
@@ -382,10 +382,9 @@ function ShellContent({
           }
           navigation={
             <nav aria-label="Application navigation" className={styles.navigation}>
-              <SourceCommandSearch
+              <WorkspaceCommandSearch
                 key={context?.workspace.id ?? 'no-workspace'}
                 workspaceId={context?.workspace.id}
-                titles={context?.sourceTitles ?? new Map()}
                 compact={narrow || tool}
               />
               <NavEntry

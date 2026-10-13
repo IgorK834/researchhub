@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Link,
@@ -107,8 +107,18 @@ function DocumentScreen({
   const [navigationTarget, setNavigationTarget] = useState<{ position: number } | null>(
     null,
   );
-  const [tab, setTab] = useState<ContextTab>('sources');
-  const [contextOpen, setContextOpen] = useState(false);
+  const [tab, setTab] = useState<ContextTab>(
+    location.hash.startsWith('#comment-') ? 'comments' : 'sources',
+  );
+  const [contextOpen, setContextOpen] = useState(location.hash.startsWith('#comment-'));
+  const [commentNavigation, setCommentNavigation] = useState(location.key);
+  if (commentNavigation !== location.key) {
+    setCommentNavigation(location.key);
+    if (location.hash.startsWith('#comment-')) {
+      setTab('comments');
+      setContextOpen(true);
+    }
+  }
   const [historyHost] = useState(() => window.document.createElement('div'));
   const [provenanceHost] = useState(() => window.document.createElement('div'));
   const [commentsHost] = useState(() => window.document.createElement('div'));

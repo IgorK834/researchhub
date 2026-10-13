@@ -1,4 +1,4 @@
-/* RH-243 / RH-306: production UI -> Spring -> real retrieval/PostgreSQL and explicit external discovery. */
+/* Workspace search and file bibliography migration: production UI -> Spring -> real PostgreSQL. */
 const { chromium, expect } = require('@playwright/test');
 const { createServer, request } = require('node:http');
 const { readFile, mkdir } = require('node:fs/promises');
@@ -84,9 +84,9 @@ const server = createServer(async (req, res) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     page.on('pageerror', (error) => errors.push(error.message));
-    const retrievalUrls = [];
+    const searchUrls = [];
     page.on('request', (req) => {
-      if (req.url().includes('/retrieval/search')) retrievalUrls.push(req.url());
+      if (req.url().includes('/search?')) searchUrls.push(req.url());
     });
     async function login(target, email) {
       await target.goto(`${origin}/login`);
@@ -124,28 +124,34 @@ const server = createServer(async (req, res) => {
     const currentDocument = `${origin}/app/workspaces/${workspace}/documents/${document.id}`;
     await page.goto(currentDocument);
     const shortcut = page.getByRole('button', {
-      name: 'Search source text (Cmd or Ctrl K)',
+      name: 'Search workspace (Cmd or Ctrl K)',
     });
     await expect(shortcut).toBeEnabled();
     await page.keyboard.press('Control+k');
-    const search = page.getByRole('dialog', { name: 'Search source text' });
-    await expect(search.getByRole('combobox')).toBeFocused();
-    await expect(search.getByRole('combobox')).toHaveCSS('box-shadow', 'none');
-    await search.getByRole('combobox').fill('Lecture');
-    await expect(search.getByRole('option')).toHaveCount(3);
+    const search = page.getByRole('dialog', { name: 'Search workspace' });
     await expect(
-      search.getByRole('status').filter({ hasText: '3 results in workspace sources' }),
-    ).toHaveText('3 results in workspace sources');
+      search.getByRole('combobox', { name: 'Search workspace' }),
+    ).toBeFocused();
+    await expect(
+      search.getByRole('combobox', { name: 'Search workspace' }),
+    ).not.toHaveCSS('box-shadow', 'none');
+    await search.getByRole('combobox', { name: 'Search workspace' }).fill('Lecture');
+    await expect(search.getByRole('listbox').getByRole('option')).toHaveCount(2);
+    await expect(search.getByRole('status').filter({ hasText: '2 results' })).toHaveText(
+      '2 results',
+    );
     assert.ok(await search.locator('mark').count());
     assert.ok(!(await search.textContent()).includes('PRIVATE_SEARCH_CANARY'));
     await mkdir('../backend/target/source-search-qa', { recursive: true });
     await page.screenshot({ path: '../backend/target/source-search-qa/search-1440.png' });
-    await search.getByRole('combobox').press('ArrowDown');
-    await expect(search.getByRole('option').nth(1)).toHaveAttribute(
+    await search.getByRole('combobox', { name: 'Search workspace' }).press('ArrowDown');
+    await expect(search.getByRole('listbox').getByRole('option').nth(1)).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    await search.getByRole('combobox').press('Control+Enter');
+    await search
+      .getByRole('combobox', { name: 'Search workspace' })
+      .press('Control+Enter');
     const beside = page.getByRole('dialog');
     await expect(beside.getByText(/opened beside your current page/)).toBeVisible();
     await expect(beside.getByRole('button', { name: 'Open page' })).toBeVisible();
@@ -158,48 +164,88 @@ const server = createServer(async (req, res) => {
         .getByText('Keep this draft intact.', { exact: true }),
     ).toBeVisible();
     await shortcut.click();
-    await page.getByRole('combobox', { name: 'Search source text' }).fill('Lecture');
+    await page.getByRole('combobox', { name: 'Search workspace' }).fill('Lecture');
     await expect(
-      page.getByRole('dialog', { name: 'Search source text' }).getByRole('option'),
-    ).toHaveCount(3);
-    await page.getByRole('combobox', { name: 'Search source text' }).press('Enter');
+      page
+        .getByRole('dialog', { name: 'Search workspace' })
+        .getByRole('listbox')
+        .getByRole('option'),
+    ).toHaveCount(2);
+    await page.getByRole('combobox', { name: 'Search workspace' }).press('Enter');
     await expect(page).toHaveURL(
-      new RegExp(`/app/workspaces/${workspace}/sources/.*version=.*processingVersion=`),
+      new RegExp(`/app/workspaces/${workspace}/sources/.*version=`),
     );
     assert.ok(
-      retrievalUrls.every((url) =>
-        url.includes(`/api/workspaces/${workspace}/retrieval/search?`),
-      ),
+      searchUrls.every((url) => url.includes(`/api/workspaces/${workspace}/search?`)),
     );
     await page.goto(`${origin}/app/workspaces/${emptyWorkspace}/sources`);
     await expect(
-      page.getByRole('button', { name: 'Search source text (Cmd or Ctrl K)' }),
+      page.getByRole('button', { name: 'Search workspace (Cmd or Ctrl K)' }),
     ).toBeEnabled();
     await page.keyboard.press('Meta+k');
-    await page
-      .getByRole('combobox', { name: 'Search source text' })
-      .fill('thermal drift');
+    await page.getByRole('combobox', { name: 'Search workspace' }).fill('thermal drift');
     await expect(
       page.getByRole('heading', { name: 'Nothing matches “thermal drift”' }),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Search sources only', exact: true }).click();
-    await expect(
-      page.getByRole('combobox', { name: 'Search source text' }),
-    ).toBeFocused();
-    await expect
-      .poll(() =>
-        page
-          .locator('img[data-illustration="search"]')
-          .evaluate((image) => image.complete && image.naturalWidth > 0),
-      )
-      .toBe(true);
     await page.screenshot({ path: '../backend/target/source-search-qa/empty-1440.png' });
-    await page.getByRole('button', { name: 'Clear search' }).click();
-    await expect(page.getByRole('combobox', { name: 'Search source text' })).toHaveValue(
-      '',
-    );
+    await page.getByRole('combobox', { name: 'Search workspace' }).fill('');
     await page.keyboard.press('Escape');
     await page.goto(`${origin}/app/workspaces/${workspace}/sources`);
+    // Cancelling a preview persists no metadata; confirming/re-uploading one local export is idempotent.
+    async function previewBibliography() {
+      await page
+        .getByRole('button', { name: 'Import bibliography', exact: true })
+        .click();
+      const dialog = page.getByRole('dialog', { name: 'Import bibliography' });
+      await dialog.getByLabel('Export source').selectOption('ZOTERO');
+      await dialog
+        .getByLabel('Bibliography file')
+        .setInputFiles('../contracts/bibliography/fixtures/zotero-export.json');
+      await dialog.getByRole('button', { name: 'Preview import' }).click();
+      return dialog;
+    }
+    let imported = await previewBibliography();
+    await expect(
+      imported.getByText('2 records · 2 ready · 0 duplicates · 0 conflicts · 0 rejected'),
+    ).toBeVisible();
+    await expect(imported.getByText(/systematic review/)).toBeVisible();
+    await expect(imported.getByText(/attachment reference.*ignored/)).toBeVisible();
+    await page.screenshot({
+      path: '../backend/target/source-search-qa/bibliography-preview.png',
+    });
+    await imported.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(imported).toHaveCount(0);
+    assert.equal(
+      (
+        await (
+          await page.request.get(
+            `${origin}/api/workspaces/${workspace}/bibliography/items`,
+          )
+        ).json()
+      ).items.length,
+      0,
+    );
+    imported = await previewBibliography();
+    await imported.getByRole('button', { name: 'Confirm import' }).click();
+    await expect(imported.getByText('Import complete')).toBeVisible();
+    await imported.getByRole('button', { name: 'Done' }).click();
+    imported = await previewBibliography();
+    await expect(imported.getByText('Import complete')).toBeVisible();
+    await imported.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Show bibliography' }).click();
+    await expect(
+      page.getByText('Zotero synthetic export – Łódź', { exact: true }),
+    ).toBeVisible();
+    assert.equal(
+      (
+        await (
+          await page.request.get(
+            `${origin}/api/workspaces/${workspace}/bibliography/items`,
+          )
+        ).json()
+      ).items.length,
+      2,
+    );
     await page
       .getByRole('link', { name: 'External web references', exact: true })
       .click();
@@ -244,10 +290,13 @@ const server = createServer(async (req, res) => {
       path: '../backend/target/source-search-qa/external-1280.png',
     });
     await page.keyboard.press('Control+k');
-    await page.getByRole('combobox', { name: 'Search source text' }).fill('Lecture');
+    await page.getByRole('combobox', { name: 'Search workspace' }).fill('Lecture');
     await expect(
-      page.getByRole('dialog', { name: 'Search source text' }).getByRole('option'),
-    ).toHaveCount(3);
+      page
+        .getByRole('dialog', { name: 'Search workspace' })
+        .getByRole('listbox')
+        .getByRole('option'),
+    ).toHaveCount(2);
     await page.screenshot({ path: '../backend/target/source-search-qa/search-1280.png' });
     await page.keyboard.press('Escape');
     const readerContext = await browser.newContext({
@@ -259,14 +308,17 @@ const server = createServer(async (req, res) => {
     await expect(reader.getByText('Discovery provenance')).toBeVisible();
     await expect(reader.getByRole('checkbox')).toHaveCount(0);
     await reader.keyboard.press('Control+k');
-    await reader.getByRole('combobox', { name: 'Search source text' }).fill('Lecture');
+    await reader.getByRole('combobox', { name: 'Search workspace' }).fill('Lecture');
     await expect(
-      reader.getByRole('dialog', { name: 'Search source text' }).getByRole('option'),
-    ).toHaveCount(3);
+      reader
+        .getByRole('dialog', { name: 'Search workspace' })
+        .getByRole('listbox')
+        .getByRole('option'),
+    ).toHaveCount(2);
     await readerContext.close();
     assert.deepEqual(errors, []);
     console.log(
-      'Source search browser E2E passed: real retrieval, keyboard, immutable page links, beside preview, empty state, external consent/provenance, viewer and workspace isolation, 1440/1280 layouts.',
+      'Workspace search + bibliography browser E2E passed: local import, cancel, preview/collections, idempotent replay, real lexical search, keyboard/deep links, beside preview, empty state, external consent, viewer and workspace isolation, 1440/1280 layouts.',
     );
   } finally {
     if (browser) await browser.close();

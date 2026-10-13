@@ -76,6 +76,8 @@ export const queryKeys = {
   sources: (workspaceId: string) => ['sources', workspaceId] as const,
   sourceTextSearch: (workspaceId: string, query: string) =>
     ['sources', workspaceId, 'text-search', query] as const,
+  workspaceSearch: (workspaceId: string, query: string, type: string, cursor?: string) =>
+    ['search', workspaceId, query, type, cursor ?? 'first'] as const,
   externalSources: (workspaceId: string) => ['external-sources', workspaceId] as const,
   source: (workspaceId: string, sourceId: string) =>
     ['sources', workspaceId, sourceId] as const,

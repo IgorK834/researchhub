@@ -251,7 +251,7 @@ class ProblemApiIntegrationTest {
         for(String format:List.of("DOCX","PDF","LATEX")) {
             var job=viewer.postJson(dp+"/exports",json.writeValueAsString(Map.of("format",format,"revision",saved.path("revision").asLong())));
             assertEquals(202,job.statusCode(),job.body());String jobId=viewer.json(job).path("id").asString();exports.put(format,jobId);
-            var frozen=viewer.json(viewer.get(dp+"/exports/"+jobId+"/representation"));assertEquals("2.0",frozen.path("schemaVersion").asString());snapshots.put(jobId,frozen);
+            var frozen=viewer.json(viewer.get(dp+"/exports/"+jobId+"/representation"));assertEquals("3.0",frozen.path("schemaVersion").asString());snapshots.put(jobId,frozen);
             assertTrue(frozen.toString().contains(bundle.path("inputHash").asString()));assertTrue(frozen.toString().contains(bundle.at("/steps/0/id").asString()));
             exportDispatcher.dispatchAvailable();var download=viewer.getBytes(dp+"/exports/"+jobId+"/download");assertEquals(200,download.statusCode());artifacts.put(jobId,download.body());
             java.nio.file.Files.createDirectories(Path.of("target/export-qa"));java.nio.file.Files.write(Path.of("target/export-qa/native-solution."+(format.equals("LATEX") ? "zip" : format.toLowerCase())),download.body());
