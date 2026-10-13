@@ -39,6 +39,11 @@ RH-113–RH-115 add durable workspace research conversations, a panel beside the
 versioned citation links and SSE progress with complete-answer persistence:
 [Research conversations](docs/development/research-conversations.md).
 
+Tasks 35.2–35.4 add local BibTeX/RIS/Zotero/Mendeley migration with preview, explicit conflict decisions and
+bibliographic-only references, plus workspace lexical search across five research-object types:
+[bibliography import](docs/development/bibliography-import.md), [workspace search](docs/development/workspace-search.md).
+File migration does not synchronize external accounts or turn references into RAG evidence.
+
 RH-120–RH-122 add source-grounded draft sections, selected-fragment rewrite suggestions and evidence
 for human-written claims, with explicit approval, idempotent insertion and AI-origin provenance:
 [AI-assisted authoring](docs/development/ai-authoring.md).
@@ -220,7 +225,6 @@ only schema metadata; older CSV sources need authorized reprocessing to adopt th
 
 Retrieval chunk schema, versioning and structure-aware chunking: [source-retrieval.md](docs/development/source-retrieval.md).
 
-
 Retrieval (RH-102–RH-105): normal PDF/DOCX/TXT ingestion now embeds and indexes chunks
 before READY. [ADR-002](docs/adr/ADR-002-retrieval.md) selects PostgreSQL + pgvector;
 [retrieval contracts/API/configuration](docs/development/source-retrieval.md) describe
@@ -240,7 +244,6 @@ RH-111: [grounded context](docs/development/grounded-context.md) now assigns loc
 packs escaped source titles/locations/text, shares exact duplicate text and rejects budget overflow
 before inference. Its mapping is preserved in audited responses and rendered by the frontend.
 
-
 RH-123–RH-125: [Structured citations and source analysis](docs/development/source-analysis.md)
 add stable editor references with dynamic numbering, selected-source comparison tables and cited,
 AI-assisted interpretations of potential differences. Results preserve provenance and do not
@@ -256,7 +259,6 @@ version (sheets, dimensions, header, inferred types, missing values, sample rows
 by the Spring API from the worker's stored profile and shown on the source page with an **Analyze this data** action.
 Shared Java/Python contract and fixtures: [`contracts/analysis/dataset-preview/v1`](contracts/analysis/dataset-preview/v1/README.md).
 Existing databases are upgraded by Flyway V19 (existing sources become version 1; no blobs move).
-
 
 RH-142: [ADR-008](docs/adr/ADR-008-analysis-execution-boundary.md) and the
 [threat model](docs/security/analysis-execution-threat-model.md) define the reviewed local security boundary.
@@ -313,11 +315,12 @@ Request correlation, structured logs, authenticated Prometheus metrics and verif
 
 ### Academic report export
 
-Documents can be exported to DOCX, PDF and LaTeX source bundles from the editor's **Export** action. The backend freezes the saved
-revision, citations and analysis provenance into a browser-independent report, then renders it asynchronously.
+Documents can be exported to DOCX, PDF and LaTeX source bundles from the editor's **Export** action. APA 7 and IEEE use pinned,
+bundled CSL styles; LaTeX bundles also include `report.bib`. The backend freezes the saved revision, citation style, citations and
+analysis provenance into a browser-independent report, then renders it asynchronously.
 See [report export contracts and verification](docs/development/report-export.md) for API routes, retention,
 configuration, limits and real-browser E2E checks (RH-230/RH-231/RH-232/RH-233). LaTeX downloads contain
-`report.tex`, chart images and provenance for local typesetting; the main backend generates sources only.
+`report.tex`, `report.bib`, chart images and provenance for local typesetting; the main backend generates sources only.
 
 ## Architecture decision index
 

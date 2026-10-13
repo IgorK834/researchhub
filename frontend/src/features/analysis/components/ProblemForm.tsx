@@ -173,8 +173,8 @@ export function ProblemForm({
       </label>
       <p>
         One parameter per line: symbol;canonical decimal;unit. Use a decimal point.
-        Supported units: 1, m, cm, km, s, ms, kg, g, m/s, m/s^2, N, J, Pa, rad, deg, A, mA, V, ohm, kohm, W, mW.
-        Degrees are explicitly converted to radians.
+        Supported units: 1, m, cm, km, s, ms, kg, g, m/s, m/s^2, N, J, Pa, rad, deg, A,
+        mA, V, ohm, kohm, W, mW. Degrees are explicitly converted to radians.
       </p>
       <label>
         <input
