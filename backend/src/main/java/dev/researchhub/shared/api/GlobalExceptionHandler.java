@@ -154,8 +154,8 @@ public class GlobalExceptionHandler {
             case CONFLICT, COLLABORATION_STATE_REPLACED -> HttpStatus.CONFLICT;
             case PAYLOAD_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
             case UNSUPPORTED_FILE_TYPE, UNSUPPORTED_MEDIA_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
-            case AI_UNAVAILABLE, EXTERNAL_SEARCH_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
-            case AI_PROVIDER_ERROR, AI_OUTPUT_INVALID, EXTERNAL_SEARCH_FAILED -> HttpStatus.BAD_GATEWAY;
+            case AI_UNAVAILABLE, EXTERNAL_SEARCH_UNAVAILABLE, METADATA_LOOKUP_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case AI_PROVIDER_ERROR, AI_OUTPUT_INVALID, EXTERNAL_SEARCH_FAILED, METADATA_LOOKUP_FAILED -> HttpStatus.BAD_GATEWAY;
             case AI_REFUSED -> HttpStatus.UNPROCESSABLE_CONTENT;
             case AI_CONTEXT_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
             case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
@@ -178,6 +178,8 @@ public class GlobalExceptionHandler {
             case AI_UNAVAILABLE -> "Model unavailable";
             case EXTERNAL_SEARCH_UNAVAILABLE -> "External search unavailable";
             case EXTERNAL_SEARCH_FAILED -> "External search failed";
+            case METADATA_LOOKUP_UNAVAILABLE -> "Metadata lookup unavailable";
+            case METADATA_LOOKUP_FAILED -> "Metadata lookup failed";
             case AI_PROVIDER_ERROR -> "Model provider error";
             case AI_OUTPUT_INVALID -> "Invalid model response";
             case AI_REFUSED -> "Model request declined";

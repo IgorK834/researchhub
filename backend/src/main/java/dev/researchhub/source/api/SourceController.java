@@ -10,6 +10,10 @@ import dev.researchhub.source.application.SourceService;
 import dev.researchhub.source.application.SourceBibliography;
 import dev.researchhub.source.application.SourceOrganization;
 import dev.researchhub.source.application.SourceLibraryFacets;
+import dev.researchhub.source.application.SourceMetadataLookupService;
+import dev.researchhub.source.application.BibliographicSuggestion;
+import dev.researchhub.security.application.CostlyOperation;
+import dev.researchhub.security.application.CostCategory;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import dev.researchhub.source.application.UploadSourceCommand;
@@ -46,13 +50,15 @@ public class SourceController {
     private final SourceExtractionService extractions;
     private final dev.researchhub.source.application.SourceProcessingProgress progress;
     private final SourceService sources;
+    private final SourceMetadataLookupService metadataLookup;
     private final CurrentUserResolver currentUserResolver;
 
     public SourceController(SourceService sources, CurrentUserResolver currentUserResolver, SourceExtractionService extractions,
-                            dev.researchhub.source.application.SourceProcessingProgress progress) {
+                            dev.researchhub.source.application.SourceProcessingProgress progress,SourceMetadataLookupService metadataLookup) {
         this.progress = progress;
         this.extractions = extractions;
         this.sources = sources;
+        this.metadataLookup = metadataLookup;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -102,6 +108,16 @@ public class SourceController {
     SourceResponse bibliography(@PathVariable UUID workspaceId, @PathVariable UUID sourceId,
                                 @RequestBody SourceBibliography metadata) {
         return SourceResponse.from(sources.updateBibliography(workspaceId, currentUserId(), sourceId, metadata));
+    }
+
+    public record MetadataLookupRequest(String doi) {}
+
+    @PostMapping("/{sourceId}/metadata/lookup")
+    @CostlyOperation(value=CostCategory.METADATA_LOOKUP,access=CostlyOperation.Access.EDIT)
+    ResponseEntity<BibliographicSuggestion> metadataLookup(@PathVariable UUID workspaceId,@PathVariable UUID sourceId,
+                                                            @RequestBody MetadataLookupRequest request) {
+        var suggestion=metadataLookup.lookup(workspaceId,currentUserId(),sourceId,request==null ? null : request.doi());
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store").body(suggestion);
     }
 
     @PutMapping("/{sourceId}/organization")

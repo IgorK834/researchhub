@@ -90,13 +90,12 @@ function SourceMetadataEditor({
   const [name, setName] = useState(source.displayName);
   const [tags, setTags] = useState(source.tags.join('\n'));
   const [collections, setCollections] = useState(source.collections.join('\n'));
-  const { bibliography, organization } = useSaveSourceDetails(
+  const { bibliography, lookup, organization } = useSaveSourceDetails(
     source.workspaceId,
     source.id,
   );
   const fields = [
     ['title', 'Title', 1000],
-    ['doi', 'DOI', 300],
     ['venue', 'Journal/conference', 500],
     ['url', 'URL', 2000],
     ['citationKey', 'Citation key', 100],
@@ -136,6 +135,52 @@ function SourceMetadataEditor({
             }
           />
         ))}
+        <div className={styles.lookup}>
+          <TextField
+            label="DOI"
+            type="text"
+            maxLength={300}
+            value={metadata.doi ?? ''}
+            onChange={(event) => {
+              lookup.reset();
+              setMetadata({ ...metadata, doi: event.target.value || null });
+            }}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={lookup.isPending || !metadata.doi?.trim()}
+            onClick={() =>
+              lookup.mutate(metadata.doi ?? '', {
+                onSuccess: (result) => {
+                  const suggestion = result.bibliography;
+                  setMetadata((current) => ({
+                    ...current,
+                    title: current.title ?? suggestion.title,
+                    publicationYear:
+                      current.publicationYear ?? suggestion.publicationYear,
+                    doi: current.doi ?? suggestion.doi,
+                    venue: current.venue ?? suggestion.venue,
+                    url: current.url ?? suggestion.url,
+                    citationKey: current.citationKey ?? suggestion.citationKey,
+                  }));
+                  setAuthors((current) =>
+                    lines(current).length === 0 ? suggestion.authors.join('\n') : current,
+                  );
+                },
+              })
+            }
+          >
+            {lookup.isPending ? 'Looking up DOI…' : 'Look up DOI metadata'}
+          </Button>
+        </div>
+        {lookup.error ? <p role="alert">{describeError(lookup.error)}</p> : null}
+        {lookup.isSuccess ? (
+          <p role="status">
+            Suggestion from Crossref. Existing values were kept; review and save the
+            bibliography to accept it.
+          </p>
+        ) : null}
         <Textarea
           label="Authors"
           hint="One author per line, in publication order."

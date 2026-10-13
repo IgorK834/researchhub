@@ -4,6 +4,7 @@ import {
   searchSources,
   fetchSourceFacets,
   saveSourceBibliography,
+  lookupSourceBibliography,
   saveSourceOrganization,
   replaceSource,
   sourceContentPath,
@@ -112,4 +113,13 @@ it('saves bibliographic and organizational contracts separately with CSRF primin
     { body: organization },
   );
   expect(get.mock.calls).toEqual([[CSRF_PRIMING_PATH], [CSRF_PRIMING_PATH]]);
+});
+it('requests a Crossref suggestion without writing source metadata', async () => {
+  post.mockResolvedValue({ origin: 'crossref', bibliography: { title: 'Paper' } });
+  await lookupSourceBibliography('w', 's', '10.1234/example');
+  expect(get).toHaveBeenCalledWith(CSRF_PRIMING_PATH);
+  expect(post).toHaveBeenCalledWith('/api/workspaces/w/sources/s/metadata/lookup', {
+    body: { doi: '10.1234/example' },
+  });
+  expect(apiClient.put).not.toHaveBeenCalled();
 });

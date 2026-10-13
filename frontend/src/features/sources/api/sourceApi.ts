@@ -159,6 +159,10 @@ export interface SourceBibliography {
   readonly url: string | null;
   readonly citationKey: string | null;
 }
+export interface BibliographicSuggestion {
+  readonly origin: 'crossref';
+  readonly bibliography: SourceBibliography;
+}
 export interface SourceOrganization {
   readonly displayName: string;
   readonly tags: readonly string[];
@@ -217,6 +221,16 @@ export async function saveSourceBibliography(
   await apiClient.get<void>(CSRF_PRIMING_PATH);
   return apiClient.put(`${sourcesPath(workspaceId)}/${sourceId}/bibliography`, {
     body: bibliography,
+  });
+}
+export async function lookupSourceBibliography(
+  workspaceId: string,
+  sourceId: string,
+  doi: string,
+): Promise<BibliographicSuggestion> {
+  await apiClient.get<void>(CSRF_PRIMING_PATH);
+  return apiClient.post(`${sourcesPath(workspaceId)}/${sourceId}/metadata/lookup`, {
+    body: { doi },
   });
 }
 export async function saveSourceOrganization(

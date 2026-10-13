@@ -566,6 +566,17 @@ class SourceApiIntegrationTest {
     }
 
     @Test
+    void disabledMetadataLookupReturnsTheStandardUnavailableProblemWithoutChangingTheSource() throws Exception {
+        Owner owner=ownerWithWorkspace();String id=uploadedCsv(owner,"paper.csv","a\n1\n");
+        String base=sourcesPath(owner.workspaceId())+"/"+id;
+        JsonNode before=owner.browser().json(owner.browser().get(base)).path("bibliography");
+        var response=owner.browser().postJson(base+"/metadata/lookup","{\"doi\":\"10.1234/abc\"}");
+        assertEquals(503,response.statusCode(),response.body());
+        assertEquals("METADATA_LOOKUP_UNAVAILABLE",owner.browser().json(response).path("code").asString());
+        assertEquals(before,owner.browser().json(owner.browser().get(base)).path("bibliography"));
+    }
+
+    @Test
     void searchCombinesFiltersUsesLiteralSubstringsAndKeepsCountsWorkspaceScoped() throws Exception {
         Owner owner = ownerWithWorkspace();
         String id = uploadedCsv(owner, "name_100%.csv", "a\n1\n");

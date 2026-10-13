@@ -12,9 +12,11 @@ import {
   searchSources,
   fetchSourceFacets,
   saveSourceBibliography,
+  lookupSourceBibliography,
   saveSourceOrganization,
   type SourceFilters,
   type SourceBibliography,
+  type BibliographicSuggestion,
   type SourceOrganization,
   reprocessSource,
   fetchSources,
@@ -159,9 +161,12 @@ export function useSaveSourceDetails(workspaceId: string, sourceId: string) {
     mutationFn: (metadata) => saveSourceBibliography(workspaceId, sourceId, metadata),
     onSuccess,
   });
+  const lookup = useMutation<BibliographicSuggestion, ApiError, string>({
+    mutationFn: (doi) => lookupSourceBibliography(workspaceId, sourceId, doi),
+  });
   const organization = useMutation<WorkspaceSource, ApiError, SourceOrganization>({
     mutationFn: (details) => saveSourceOrganization(workspaceId, sourceId, details),
     onSuccess,
   });
-  return { bibliography, organization };
+  return { bibliography, lookup, organization };
 }

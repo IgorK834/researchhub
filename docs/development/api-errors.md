@@ -18,16 +18,16 @@ Module placement and dependency rules: [backend-architecture.md](backend-archite
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `type` | Always `about:blank` for now. Clients do not switch on this value. |
-| `title` | Stable short label for the status. |
-| `status` | HTTP status code. |
-| `detail` | Human-readable explanation safe to show. |
-| `code` | Stable machine code from the table below. |
-| `errors` | Present only for validation failures. |
-| `currentRevision` | Present only on the `CONFLICT` for a stale document revision. The stored revision, as a number. |
-| `reason` | Canvas target conflicts (`CONFLICT`): `NOT_SYNCHRONIZED` means the durable revision/epoch/sequence/state vector does not match; `TARGET_STALE` means the selected target changed or disappeared. Requires synchronization or explicit selection again; never appends elsewhere. |
+| Field             | Meaning                                                                                                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`            | Always `about:blank` for now. Clients do not switch on this value.                                                                                                                                                                                                              |
+| `title`           | Stable short label for the status.                                                                                                                                                                                                                                              |
+| `status`          | HTTP status code.                                                                                                                                                                                                                                                               |
+| `detail`          | Human-readable explanation safe to show.                                                                                                                                                                                                                                        |
+| `code`            | Stable machine code from the table below.                                                                                                                                                                                                                                       |
+| `errors`          | Present only for validation failures.                                                                                                                                                                                                                                           |
+| `currentRevision` | Present only on the `CONFLICT` for a stale document revision. The stored revision, as a number.                                                                                                                                                                                 |
+| `reason`          | Canvas target conflicts (`CONFLICT`): `NOT_SYNCHRONIZED` means the durable revision/epoch/sequence/state vector does not match; `TARGET_STALE` means the selected target changed or disappeared. Requires synchronization or explicit selection again; never appends elsewhere. |
 
 Validation adds field details:
 
@@ -38,9 +38,7 @@ Validation adds field details:
   "status": 400,
   "detail": "Request validation failed",
   "code": "VALIDATION_FAILED",
-  "errors": [
-    { "field": "name", "message": "must not be blank" }
-  ]
+  "errors": [{ "field": "name", "message": "must not be blank" }]
 }
 ```
 
@@ -70,26 +68,28 @@ succeed. A client must treat the member as optional and fall back to `detail` wh
 
 ## Codes
 
-| `code` | HTTP | When |
-| --- | --- | --- |
-| `VALIDATION_FAILED` | 400 | Bean validation failed. `errors` lists the fields. |
-| `MALFORMED_REQUEST` | 400 | The body could not be read, including invalid JSON. |
-| `UNAUTHENTICATED` | 401 | No authenticated caller. |
-| `FORBIDDEN` | 403 | The caller is known and is not allowed to perform the action. |
-| `RESOURCE_NOT_FOUND` | 404 | The resource does not exist, or the route does not. |
-| `CONFLICT` | 409 | The request collided with existing state: the write lost an optimistic concurrency check, it would duplicate a unique value, or the resource's current state does not allow it. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. Editing an archived workspace is also this code, and so is demoting or removing a workspace's last owner. |
-| `RATE_LIMIT_EXCEEDED` | 429 | Costly request quota exhausted. Positive `retryAfterSeconds`, `quotaCategory` (`LLM`, `ANALYSIS`, `RETRIEVAL`), matching `Retry-After` header and private/no-store response; provider/analysis work is not invoked. See [upload-and-cost-controls.md](upload-and-cost-controls.md). |
-| `PAYLOAD_TOO_LARGE` | 413 | The upload exceeds the configured limit: the multipart limit, the per-source limit (`researchhub.sources.max-size-bytes`), or a workspace quota. The detail names the limit. |
-| `UNSUPPORTED_FILE_TYPE` | 415 | The product does not accept this file type: the extension is not supported, the declared media type contradicts it, or the content does not match it. The detail lists the supported types; see [sources.md](sources.md#types). |
-| `UNSUPPORTED_MEDIA_TYPE` | 415 | The HTTP `Content-Type` is not accepted. |
-| `INTERNAL_ERROR` | 500 | Unexpected failure. |
-| `AI_UNAVAILABLE` | 503 | Model temporarily unavailable after bounded retries. |
-| `EXTERNAL_SEARCH_UNAVAILABLE` | 503 | Optional external discovery is disabled or not configured on this server. No provider call occurs. |
-| `EXTERNAL_SEARCH_FAILED` | 502 | External discovery provider failed or returned an invalid/oversized response; provider details and credentials are discarded. |
-| `AI_PROVIDER_ERROR` | 502 | Provider failure; unsafe details discarded. |
-| `AI_OUTPUT_INVALID` | 502 | Invalid structured response, identity, metadata, usage or citations. |
-| `AI_REFUSED` | 422 | Model refused/filtered a request; no partial response. |
-| `AI_CONTEXT_TOO_LARGE` | 413 | Selected evidence exceeds the server context budget; no model call is made. |
+| `code`                        | HTTP | When                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VALIDATION_FAILED`           | 400  | Bean validation failed. `errors` lists the fields.                                                                                                                                                                                                                                                                                                                                                                                    |
+| `MALFORMED_REQUEST`           | 400  | The body could not be read, including invalid JSON.                                                                                                                                                                                                                                                                                                                                                                                   |
+| `UNAUTHENTICATED`             | 401  | No authenticated caller.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `FORBIDDEN`                   | 403  | The caller is known and is not allowed to perform the action.                                                                                                                                                                                                                                                                                                                                                                         |
+| `RESOURCE_NOT_FOUND`          | 404  | The resource does not exist, or the route does not.                                                                                                                                                                                                                                                                                                                                                                                   |
+| `CONFLICT`                    | 409  | The request collided with existing state: the write lost an optimistic concurrency check, it would duplicate a unique value, or the resource's current state does not allow it. Registering an email that already has an account is this code, including when the address differs only by letter case or surrounding space. Editing an archived workspace is also this code, and so is demoting or removing a workspace's last owner. |
+| `RATE_LIMIT_EXCEEDED`         | 429  | Costly request quota exhausted. Positive `retryAfterSeconds`, `quotaCategory` (`LLM`, `ANALYSIS`, `RETRIEVAL`, `METADATA_LOOKUP`), matching `Retry-After` header and private/no-store response; provider/analysis work is not invoked. See [upload-and-cost-controls.md](upload-and-cost-controls.md).                                                                                                                                |
+| `PAYLOAD_TOO_LARGE`           | 413  | The upload exceeds the configured limit: the multipart limit, the per-source limit (`researchhub.sources.max-size-bytes`), or a workspace quota. The detail names the limit.                                                                                                                                                                                                                                                          |
+| `UNSUPPORTED_FILE_TYPE`       | 415  | The product does not accept this file type: the extension is not supported, the declared media type contradicts it, or the content does not match it. The detail lists the supported types; see [sources.md](sources.md#types).                                                                                                                                                                                                       |
+| `UNSUPPORTED_MEDIA_TYPE`      | 415  | The HTTP `Content-Type` is not accepted.                                                                                                                                                                                                                                                                                                                                                                                              |
+| `INTERNAL_ERROR`              | 500  | Unexpected failure.                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `AI_UNAVAILABLE`              | 503  | Model temporarily unavailable after bounded retries.                                                                                                                                                                                                                                                                                                                                                                                  |
+| `EXTERNAL_SEARCH_UNAVAILABLE` | 503  | Optional external discovery is disabled or not configured on this server. No provider call occurs.                                                                                                                                                                                                                                                                                                                                    |
+| `EXTERNAL_SEARCH_FAILED`      | 502  | External discovery provider failed or returned an invalid/oversized response; provider details and credentials are discarded.                                                                                                                                                                                                                                                                                                         |
+| `METADATA_LOOKUP_UNAVAILABLE` | 503  | Optional DOI metadata suggestions are disabled or do not have the required contact configuration. No Crossref call occurs.                                                                                                                                                                                                                                                                                                            |
+| `METADATA_LOOKUP_FAILED`      | 502  | Crossref timed out, redirected, failed, or returned an invalid/oversized response. Provider response details are discarded.                                                                                                                                                                                                                                                                                                           |
+| `AI_PROVIDER_ERROR`           | 502  | Provider failure; unsafe details discarded.                                                                                                                                                                                                                                                                                                                                                                                           |
+| `AI_OUTPUT_INVALID`           | 502  | Invalid structured response, identity, metadata, usage or citations.                                                                                                                                                                                                                                                                                                                                                                  |
+| `AI_REFUSED`                  | 422  | Model refused/filtered a request; no partial response.                                                                                                                                                                                                                                                                                                                                                                                |
+| `AI_CONTEXT_TOO_LARGE`        | 413  | Selected evidence exceeds the server context budget; no model call is made.                                                                                                                                                                                                                                                                                                                                                           |
 
 `detail` for `INTERNAL_ERROR` is always `An unexpected error occurred`. The server log has the stack trace. The body does not include the exception class name, the exception message, or the stack trace.
 
@@ -118,10 +118,10 @@ canvas target/synchronization conflicts use the bounded `reason` discriminant.
 
 Spring Security is on the classpath. Most `401` and `403` responses are still application exceptions thrown by a handler and mapped by `GlobalExceptionHandler`, but a request can also be rejected inside the filter chain, before any controller runs. That path cannot reach `@RestControllerAdvice`, so the `auth` module writes the same body itself:
 
-| Component | Answers | With |
-| --- | --- | --- |
-| `ProblemDetailAuthenticationEntryPoint` | A request to a protected route with no usable session | `401` `UNAUTHENTICATED` |
-| `ProblemDetailAccessDeniedHandler` | A denied request, in practice a missing or stale CSRF token | `403` `FORBIDDEN` |
+| Component                               | Answers                                                     | With                    |
+| --------------------------------------- | ----------------------------------------------------------- | ----------------------- |
+| `ProblemDetailAuthenticationEntryPoint` | A request to a protected route with no usable session       | `401` `UNAUTHENTICATED` |
+| `ProblemDetailAccessDeniedHandler`      | A denied request, in practice a missing or stale CSRF token | `403` `FORBIDDEN`       |
 
 Both go through `ProblemDetailErrorWriter`, so there is exactly one error contract on the wire. A client never has to parse a second shape depending on how far into the stack the request got.
 
@@ -132,16 +132,16 @@ Both go through `ProblemDetailErrorWriter`, so there is exactly one error contra
 These three answer different questions, and mixing them up either leaks information or misdescribes the
 failure. The workspace routes are the worked example:
 
-| Caller | Answer | Why |
-| --- | --- | --- |
-| Not a member | `404 RESOURCE_NOT_FOUND` | Whether the workspace exists is itself information only its members get. The detail is identical to a workspace id that does not exist, so an id cannot be probed. This applies to the member routes too: the roster is inside the boundary. |
-| A member whose role is too low | `403 FORBIDDEN` | They already know the workspace exists, so hiding it would tell them nothing and would describe the wrong problem. Their role is the problem. |
-| An owner editing an archived workspace | `409 CONFLICT` | Not an authorization failure — the caller may hold every capability there is. The request collides with the workspace's state. |
-| An owner adding an email with no active account | `404 RESOURCE_NOT_FOUND` | One detail, `No registered user has that email`, for an unknown address, a malformed one, and a disabled account alike. Distinguishing them would turn adding a member into a way to discover which addresses are registered. |
-| An owner adding somebody who is already a member | `409 CONFLICT` | Collides with existing state, and is caught both by a pre-check and by `uq_workspace_members_workspace_user`, so a race ends the same way. |
-| An owner demoting or removing the last owner | `409 CONFLICT` | The workspace would become unmanageable. The detail says to promote somebody else first. |
-| An editor saving — or restoring a version of — a document whose stored revision has moved on | `409 CONFLICT` | Somebody else saved first. The write is refused rather than applied, because overwriting them silently is the one outcome nobody can recover from. The detail names both revisions, and `currentRevision` carries the stored one, so the client can explain it. |
-| An editor saving an archived document, or any write in an archived workspace | `409 CONFLICT` | Collides with the state of the thing being written, not with the caller's permissions. |
+| Caller                                                                                       | Answer                   | Why                                                                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Not a member                                                                                 | `404 RESOURCE_NOT_FOUND` | Whether the workspace exists is itself information only its members get. The detail is identical to a workspace id that does not exist, so an id cannot be probed. This applies to the member routes too: the roster is inside the boundary.                    |
+| A member whose role is too low                                                               | `403 FORBIDDEN`          | They already know the workspace exists, so hiding it would tell them nothing and would describe the wrong problem. Their role is the problem.                                                                                                                   |
+| An owner editing an archived workspace                                                       | `409 CONFLICT`           | Not an authorization failure — the caller may hold every capability there is. The request collides with the workspace's state.                                                                                                                                  |
+| An owner adding an email with no active account                                              | `404 RESOURCE_NOT_FOUND` | One detail, `No registered user has that email`, for an unknown address, a malformed one, and a disabled account alike. Distinguishing them would turn adding a member into a way to discover which addresses are registered.                                   |
+| An owner adding somebody who is already a member                                             | `409 CONFLICT`           | Collides with existing state, and is caught both by a pre-check and by `uq_workspace_members_workspace_user`, so a race ends the same way.                                                                                                                      |
+| An owner demoting or removing the last owner                                                 | `409 CONFLICT`           | The workspace would become unmanageable. The detail says to promote somebody else first.                                                                                                                                                                        |
+| An editor saving — or restoring a version of — a document whose stored revision has moved on | `409 CONFLICT`           | Somebody else saved first. The write is refused rather than applied, because overwriting them silently is the one outcome nobody can recover from. The detail names both revisions, and `currentRevision` carries the stored one, so the client can explain it. |
+| An editor saving an archived document, or any write in an archived workspace                 | `409 CONFLICT`           | Collides with the state of the thing being written, not with the caller's permissions.                                                                                                                                                                          |
 
 A request that reaches a document through the wrong workspace is `404`, not `403` — see the first row. That
 holds for the read, the save, and the archive, and it holds even when the caller is a member of both

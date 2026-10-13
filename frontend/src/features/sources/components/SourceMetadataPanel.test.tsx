@@ -10,6 +10,7 @@ jest.mock('../api/sourceApi', () => ({
   ...jest.requireActual('../api/sourceApi'),
   saveSourceBibliography: jest.fn(),
   saveSourceOrganization: jest.fn(),
+  lookupSourceBibliography: jest.fn(),
 }));
 let client: QueryClient;
 const source = sourceFixture({
@@ -164,4 +165,82 @@ it('keeps edits on server rejection and disables each pending save', async () =>
   );
   await act(async () => finish(source));
   await screen.findByText('Bibliography saved.');
+});
+it('applies a Crossref suggestion only to empty fields and waits for explicit save', async () => {
+  view();
+  jest.mocked(api.lookupSourceBibliography).mockResolvedValue({
+    origin: 'crossref',
+    bibliography: {
+      title: 'Provider title',
+      authors: ['Provider Author'],
+      publicationYear: 2026,
+      doi: '10.1234/abc',
+      venue: 'Provider Journal',
+      url: 'https://example.org/provider',
+      citationKey: 'Provider2026',
+    },
+  });
+  jest.mocked(api.saveSourceBibliography).mockResolvedValue(source);
+  fireEvent.click(screen.getByRole('button', { name: 'Edit source details' }));
+  fireEvent.change(screen.getByLabelText('Journal/conference'), {
+    target: { value: '' },
+  });
+  fireEvent.change(screen.getByLabelText('Citation key'), { target: { value: '' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Look up DOI metadata' }));
+  await screen.findByText(/Suggestion from Crossref/);
+  expect(api.saveSourceBibliography).not.toHaveBeenCalled();
+  expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Solar study');
+  expect((screen.getByLabelText('Journal/conference') as HTMLInputElement).value).toBe(
+    'Provider Journal',
+  );
+  expect((screen.getByLabelText('Authors') as HTMLTextAreaElement).value).toBe(
+    'Ada\nSmith, J.',
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save bibliography' }));
+  await waitFor(() =>
+    expect(api.saveSourceBibliography).toHaveBeenCalledWith(
+      'workspace-1',
+      'source-1',
+      expect.objectContaining({ title: 'Solar study', venue: 'Provider Journal' }),
+    ),
+  );
+});
+it('does not overwrite an author entered while a Crossref lookup is pending', async () => {
+  view(
+    true,
+    sourceFixture({
+      bibliography: { ...source.bibliography, authors: [] },
+    }),
+  );
+  let finish!: (value: api.BibliographicSuggestion) => void;
+  jest.mocked(api.lookupSourceBibliography).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Edit source details' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Look up DOI metadata' }));
+  await waitFor(() => expect(api.lookupSourceBibliography).toHaveBeenCalled());
+  fireEvent.change(screen.getByLabelText('Authors'), {
+    target: { value: 'User entered author' },
+  });
+  await act(async () =>
+    finish({
+      origin: 'crossref',
+      bibliography: {
+        title: 'Provider title',
+        authors: ['Provider Author'],
+        publicationYear: 2026,
+        doi: '10.1234/abc',
+        venue: 'Provider Journal',
+        url: 'https://example.org/provider',
+        citationKey: 'Provider2026',
+      },
+    }),
+  );
+  await screen.findByText(/Suggestion from Crossref/);
+  expect((screen.getByLabelText('Authors') as HTMLTextAreaElement).value).toBe(
+    'User entered author',
+  );
 });
