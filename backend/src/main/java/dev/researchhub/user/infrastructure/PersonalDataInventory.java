@@ -16,9 +16,11 @@ public final class PersonalDataInventory {
         "external_source_searches","external_source_references","spring_session","spring_session_attributes","cost_quota_bucket","registration_rejections",
         "canvas_contexts","canvas_turns","canvas_proposals","canvas_operations","analysis_problems","problem_executions","problem_artifacts",
         "workspace_invitation","account_lifecycle_token","account_audit_events","security_operation_bucket","account_erasure_jobs","account_erasure_objects",
-        "erased_source_versions","erased_review_audit_events");
+        "erased_source_versions","erased_review_audit_events","bibliography_imports","bibliography_items",
+        "bibliography_import_records","workspace_search_entries");
     /** Research payloads cannot be removed from somebody else's workspace without an explicit scope decision. */
     public static final Map<String,String> CONTRIBUTIONS=Map.ofEntries(
+        Map.entry("bibliography_items","created_by"),Map.entry("bibliography_imports","created_by"),
         Map.entry("sources","uploaded_by"),Map.entry("source_versions","uploaded_by"),Map.entry("documents","created_by"),Map.entry("document_content_operations","actor_user_id"),
         Map.entry("ai_generation_runs","caller_id"),Map.entry("ai_conversations","created_by"),Map.entry("ai_messages","author_id"),
         Map.entry("ai_authoring_suggestions","created_by"),Map.entry("ai_authoring_events","accepted_by"),Map.entry("ai_source_analyses","created_by"),

@@ -1,0 +1,25 @@
+[
+  {
+    "id": "zotero2026",
+    "citation-key": "zotero2026",
+    "type": "article-journal",
+    "title": "Zotero synthetic export – Łódź",
+    "author": [
+      { "family": "Żuk", "given": "Maja" },
+      { "literal": "Open Methods Consortium" }
+    ],
+    "issued": { "date-parts": [[2026, 10, 13]] },
+    "container-title": "Migration Fixtures",
+    "DOI": "10.5555/ZOTERO.3",
+    "URL": "https://example.invalid/reference-only",
+    "categories": ["zotero", "unicode"],
+    "collections": ["systematic review"],
+    "attachments": [{ "path": "../../private.pdf", "url": "https://example.invalid/do-not-fetch" }]
+  },
+  {
+    "id": "partial-zotero",
+    "type": "report",
+    "title": "Partial Zotero record",
+    "author": [{ "literal": "Synthetic Institute" }]
+  }
+]

@@ -21,6 +21,8 @@ import { SourceStatusChip, SourceTypeBadge, SourceTypeTile } from './SourceVisua
 import { SourceProgress } from './SourceProgress';
 import { SourceRetry } from './SourceRetry';
 import { SourceUploadForm } from './SourceUploadForm';
+import { BibliographyImportDialog } from './BibliographyImportDialog';
+import { BibliographyLibrary } from './BibliographyLibrary';
 import { formatSourceBytes } from './sourcePresentation';
 import styles from './Sources.module.css';
 
@@ -66,6 +68,7 @@ export function SourceList({
     refetch: refreshFacets,
   } = useSourceFacetsQuery(workspaceId);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [bibliographyOpen, setBibliographyOpen] = useState(false);
   const readyCount = facets?.ready;
   const rows = result?.items ?? [];
   const total = facets?.total;
@@ -263,6 +266,15 @@ export function SourceList({
               Upload source
             </Button>
           ) : null}
+          {canEdit ? (
+            <Button
+              variant="secondary"
+              icon="download"
+              onClick={() => setBibliographyOpen(true)}
+            >
+              Import bibliography
+            </Button>
+          ) : null}
         </div>
       </header>
       {archived ? (
@@ -418,12 +430,20 @@ export function SourceList({
       >
         Refresh sources
       </Button>
+      <BibliographyLibrary workspaceId={workspaceId} canEdit={canEdit} />
       {canEdit ? (
-        <SourceUploadForm
-          workspaceId={workspaceId}
-          open={uploadOpen}
-          onClose={() => setUploadOpen(false)}
-        />
+        <>
+          <SourceUploadForm
+            workspaceId={workspaceId}
+            open={uploadOpen}
+            onClose={() => setUploadOpen(false)}
+          />
+          <BibliographyImportDialog
+            workspaceId={workspaceId}
+            open={bibliographyOpen}
+            onClose={() => setBibliographyOpen(false)}
+          />
+        </>
       ) : null}
     </section>
   );

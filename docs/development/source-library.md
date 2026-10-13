@@ -1,4 +1,4 @@
-# Bibliography, organization and source search (RH-240 / RH-241 / RH-242)
+# Bibliography, DOI lookup, organization and source search (RH-240 / RH-241 / RH-242 / RH-348)
 
 Sources have a stable identity and immutable uploaded versions. V34 adds mutable bibliographic metadata,
 tags and flat collections to the stable `sources` row. Renaming or moving a source between collections
@@ -31,12 +31,13 @@ not schema creation. There are no new runtime dependencies or frontend package c
 }
 ```
 
-| Endpoint below `/api/workspaces/{workspaceId}/sources` | Contract |
-| --- | --- |
-| `PUT /{sourceId}/bibliography` | Full replacement of the seven bibliography fields. `authors` is required and may be empty. Other fields may be null. |
-| `PUT /{sourceId}/organization` | Full replacement of `{displayName, tags, collections}`. Both lists are required and may be empty. |
-| `GET /search` | AND filters: `query`, `type`, `uploader`, `status`, `tag`, `collection`; `page=0`, `size=30` by default. |
-| `GET /facets` | Workspace-wide `{total, ready, types, uploaders, tags, collections}`, independent of the selected page or filters. |
+| Endpoint below `/api/workspaces/{workspaceId}/sources` | Contract                                                                                                                      |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `PUT /{sourceId}/bibliography`                         | Full replacement of the seven bibliography fields. `authors` is required and may be empty. Other fields may be null.          |
+| `POST /{sourceId}/metadata/lookup`                     | Accepts `{"doi":"10.…/…"}` and returns `{origin:"crossref", bibliography:{…}}`. It never saves or overwrites source metadata. |
+| `PUT /{sourceId}/organization`                         | Full replacement of `{displayName, tags, collections}`. Both lists are required and may be empty.                             |
+| `GET /search`                                          | AND filters: `query`, `type`, `uploader`, `status`, `tag`, `collection`; `page=0`, `size=30` by default.                      |
+| `GET /facets`                                          | Workspace-wide `{total, ready, types, uploaders, tags, collections}`, independent of the selected page or filters.            |
 
 Search returns `{items, totalElements, page, size, hasNext}`, rather than implicit Spring Page JSON.
 Pages are zero-based, size is 1–100, page is 0–1,000,000, and query is at most 200 characters.
@@ -74,6 +75,26 @@ authorized immutable source version, then freezes the current bibliography with 
 LaTeX references share the same normalized authors, title, year, venue, DOI, URL and citation key while
 retaining source version ID and SHA-256. Later label/metadata edits cannot alter a captured export.
 Old export snapshots without bibliography remain readable through the filename fallback.
+
+## DOI metadata suggestions
+
+DOI lookup is disabled by default. Enabling it requires
+`SOURCE_METADATA_LOOKUP_ENABLED=true` and a public operator address in
+`SOURCE_METADATA_LOOKUP_CONTACT_ADDRESS`; `SOURCE_METADATA_LOOKUP_TIMEOUT` defaults to `PT5S` and is
+bounded to 30 seconds. The Crossref adapter accepts only normalized DOI syntax and constructs requests
+against the fixed `https://api.crossref.org` origin. It disables redirects, bounds connect/request time,
+reads at most 256 KiB, and sends the configured contact in its User-Agent. There is no user-controlled
+host, URL following, keyword search or provider content in error responses.
+
+The endpoint requires an active content editor, CSRF protection, and an independent `METADATA_LOOKUP`
+cost quota (10 requests per user and 30 per workspace per minute by default). A disabled adapter returns
+`503 METADATA_LOOKUP_UNAVAILABLE`; provider, timeout, redirect and malformed/oversized response failures
+return `502 METADATA_LOOKUP_FAILED`; an unknown DOI returns the ordinary `404 RESOURCE_NOT_FOUND`.
+
+Returned data has `origin=crossref` and is an untrusted editable suggestion. The UI fills only currently
+empty fields, shows that existing values were retained, and requires the normal bibliography save action.
+Lookup performs no source write and does not create extraction units, retrieval chunks, analysis inputs,
+or AI evidence. Only a user's later explicit save changes workspace-curated bibliography.
 
 ## UI and verification
 

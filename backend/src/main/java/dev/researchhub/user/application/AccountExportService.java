@@ -45,6 +45,8 @@ public class AccountExportService {
         records.put("canvas_proposals",reader.rows("canvas_proposals","context_id IN (SELECT id FROM canvas_contexts WHERE created_by=?)",caller,"ARRAY[]::text[]"));
         records.put("source_version_extractions",reader.rows("source_version_extractions","source_version_id IN (SELECT id FROM source_versions WHERE uploaded_by=?)",caller,"ARRAY[]::text[]"));
         records.put("source_extractions",reader.rows("source_extractions","source_id IN (SELECT id FROM sources WHERE uploaded_by=?)",caller,"ARRAY[]::text[]"));
+        records.put("bibliography_import_records",reader.rows("bibliography_import_records",
+            "import_id IN (SELECT id FROM bibliography_imports WHERE created_by=?)",caller,"ARRAY[]::text[]"));
         jdbc.update("INSERT INTO account_audit_events VALUES (?,?,'ACCOUNT_EXPORTED',?)",UUID.randomUUID(),caller,java.sql.Timestamp.from(clock.instant()));
         return new Export("1.0",clock.instant(),account,Collections.unmodifiableMap(records));
     }
@@ -56,7 +58,7 @@ public class AccountExportService {
         private List<JsonNode> rows(String table,String predicate,Object[] parameters,String excluded) {
             var bound=new ArrayList<>(Arrays.asList(parameters));
             // Exporting one's identity does not grant access to collaborators' retained research.
-            if(PersonalDataInventory.CONTRIBUTIONS.containsKey(table) || Set.of("document_content_operations","comment_audit_events","product_audit_events","source_version_extractions","source_extractions","analysis_inputs","analysis_plan_attempts","analysis_origins","analysis_execution_records","analysis_execution_artifacts","canvas_proposals").contains(table)) {
+            if(PersonalDataInventory.CONTRIBUTIONS.containsKey(table) || Set.of("document_content_operations","comment_audit_events","product_audit_events","source_version_extractions","source_extractions","analysis_inputs","analysis_plan_attempts","analysis_origins","analysis_execution_records","analysis_execution_artifacts","canvas_proposals","bibliography_import_records").contains(table)) {
                 predicate="("+predicate+") AND workspace_id IN (SELECT m.workspace_id FROM workspace_members m JOIN workspaces w ON w.id=m.workspace_id WHERE m.user_id=? AND w.erasure_requested_at IS NULL)";
                 bound.add(caller);
             } else if(table.equals("document_versions")) {

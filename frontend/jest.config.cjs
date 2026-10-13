@@ -39,6 +39,7 @@ module.exports = {
     '!src/**/index.ts',
     '!src/**/*.typecheck.tsx',
     'src/features/sources/**/*.{ts,tsx}',
+    'src/features/search/**/*.{ts,tsx}',
     'src/features/analysis/**/*.{ts,tsx}',
     'src/features/ai/**/*.{ts,tsx}',
     'src/features/devtools/**/*.{ts,tsx}',
@@ -47,6 +48,16 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/search/': { lines: 80, branches: 80 },
+    'src/features/sources/api/bibliographyImportApi.ts': { lines: 80, branches: 80 },
+    'src/features/sources/components/BibliographyImportDialog.tsx': {
+      lines: 80,
+      branches: 80,
+    },
+    'src/features/sources/components/BibliographyLibrary.tsx': {
+      lines: 80,
+      branches: 80,
+    },
     'src/features/auth/api/accountDataApi.ts': {
       lines: 80,
       branches: 80,

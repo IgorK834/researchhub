@@ -1,0 +1,47 @@
+.dialog {
+  width: min(920px, calc(100vw - 32px));
+}
+
+.form,
+.summary {
+  display: grid;
+  gap: 12px;
+}
+
+.form input[type='file'] {
+  padding: 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+}
+
+.records {
+  display: grid;
+  gap: 12px;
+  max-height: 52vh;
+  margin: 16px 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.records > li {
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.records p {
+  margin: 6px 0 0;
+}
+
+.recordHeading,
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.issue {
+  color: var(--color-error-ink);
+}

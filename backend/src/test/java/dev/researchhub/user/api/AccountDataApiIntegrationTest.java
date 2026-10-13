@@ -36,6 +36,10 @@ class AccountDataApiIntegrationTest {
   workspace=UUID.fromString(owner.createdWorkspaceId(NAME,EMAIL));root="/api/workspaces/"+workspace;
  }
  @Test void erasesAllClassifiedTablesBlobsAndOldVersionsWhileKeepingPseudonymousReceipts() throws Exception {
+  var preview=owner.postFile(root+"/bibliography/imports","personal.bib","text/plain",
+    ("@book{personal,title={"+NAME+" "+EMAIL+"}}").getBytes(StandardCharsets.UTF_8));
+  assertEquals(201,preview.statusCode(),preview.body());
+  assertEquals(200,owner.postJson(root+"/bibliography/imports/"+owner.json(preview).path("id").asString()+"/confirm","{\"decisions\":[]}").statusCode());
   var upload=owner.postFile(root+"/sources",NAME+".txt","text/plain",(NAME+" "+EMAIL).getBytes(StandardCharsets.UTF_8));assertEquals(201,upload.statusCode(),upload.body());
   String source=owner.json(upload).path("id").asString();
   jdbc.update("UPDATE sources SET status='READY' WHERE id=?",UUID.fromString(source));
