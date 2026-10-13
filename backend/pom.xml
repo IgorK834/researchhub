@@ -35,6 +35,8 @@
         <openhtmltopdf.version>1.1.29</openhtmltopdf.version>
         <jlatexmath.version>1.0.7</jlatexmath.version>
         <batik.version>1.19</batik.version>
+        <citeproc-java.version>3.5.1</citeproc-java.version>
+        <citationstyles.version>26.8</citationstyles.version>
         <!-- RH-184: patched BOMs/container until the Boot 4.1.1 baseline includes these fixes.
              Keep Jackson families aligned through their BOMs; see repository-security.md. -->
         <jackson-2-bom.version>2.22.3</jackson-2-bom.version>
@@ -50,6 +52,10 @@
         <dependency><groupId>org.scilab.forge</groupId><artifactId>jlatexmath</artifactId><version>${jlatexmath.version}</version></dependency>
         <dependency><groupId>org.apache.xmlgraphics</groupId><artifactId>batik-transcoder</artifactId><version>${batik.version}</version></dependency>
         <dependency><groupId>org.apache.xmlgraphics</groupId><artifactId>batik-codec</artifactId><version>${batik.version}</version></dependency>
+        <!-- citeproc and the frozen CSL distribution are not managed by Spring Boot. Runtime lookup is classpath-only. -->
+        <dependency><groupId>de.undercouch</groupId><artifactId>citeproc-java</artifactId><version>${citeproc-java.version}</version></dependency>
+        <dependency><groupId>org.citationstyles</groupId><artifactId>styles</artifactId><version>${citationstyles.version}</version></dependency>
+        <dependency><groupId>org.citationstyles</groupId><artifactId>locales</artifactId><version>${citationstyles.version}</version></dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
@@ -201,6 +207,7 @@
                         <include>dev/researchhub/audit/**</include>
                         <include>dev/researchhub/collaboration/**</include>
                         <include>dev/researchhub/source/**</include>
+                        <include>dev/researchhub/search/**</include>
                         <include>dev/researchhub/processing/**</include>
                         <include>dev/researchhub/ai/**</include>
                         <include>dev/researchhub/analysis/**</include>
@@ -208,6 +215,34 @@
                     </includes>
                 </configuration>
                 <executions>
+                    <execution>
+                        <id>bibliography-import-coverage</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes>
+                                <include>dev/researchhub/source/**/Bibliography*</include>
+                                <include>dev/researchhub/source/**/LocalBibliographyParser*</include>
+                                <include>dev/researchhub/source/**/PostgresBibliographyImportStore*</include>
+                            </includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-bibliography-import</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>workspace-search-coverage</id><phase>verify</phase>
+                        <goals><goal>report</goal><goal>check</goal></goals>
+                        <configuration>
+                            <includes><include>dev/researchhub/search/**</include></includes>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-workspace-search</outputDirectory>
+                            <rules><rule><element>BUNDLE</element><limits>
+                                <limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                                <limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit>
+                            </limits></rule></rules>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>demo-registration-coverage</id><phase>verify</phase>
                         <goals><goal>report</goal><goal>check</goal></goals>
