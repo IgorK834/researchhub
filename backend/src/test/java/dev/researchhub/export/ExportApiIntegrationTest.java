@@ -61,7 +61,10 @@ class ExportApiIntegrationTest {
                 {"type":"figureCaption","content":[{"type":"text","text":"Table 1. Measurements"}]}]}]}
         """.formatted(UUID.randomUUID(),workspace,source,version,"a".repeat(64),"b".repeat(64)); }
     UUID enqueue(ApiBrowser browser,String format) throws Exception {
-        var created=browser.postJson(path,"{\"format\":\""+format+"\",\"revision\":1}");
+        return enqueue(browser,format,"IEEE");
+    }
+    UUID enqueue(ApiBrowser browser,String format,String citationStyle) throws Exception {
+        var created=browser.postJson(path,"{\"format\":\""+format+"\",\"citationStyle\":\""+citationStyle+"\",\"revision\":1}");
         assertEquals(202,created.statusCode(),created.body());assertEquals("no-store",created.headers().firstValue("Cache-Control").orElseThrow());
         UUID id=UUID.fromString(browser.json(created).path("id").asString());assertTrue(created.headers().firstValue("Location").orElseThrow().endsWith(id.toString()));return id;
     }
@@ -70,9 +73,10 @@ class ExportApiIntegrationTest {
             UUID job=enqueue(viewer,format);
             assertEquals(409,viewer.get(path+"/"+job+"/download").statusCode());
             var representation=viewer.json(viewer.get(path+"/"+job+"/representation"));
-            assertEquals("1.0",representation.path("schemaVersion").asString());assertEquals(version.toString(),representation.path("bibliography").get(0).path("source").path("sourceVersionId").asString());
+            assertEquals("3.0",representation.path("schemaVersion").asString());assertEquals("IEEE",representation.path("citationStyle").asString());assertEquals(version.toString(),representation.path("bibliography").get(0).path("source").path("sourceVersionId").asString());
             assertEquals(1,representation.path("origins").size());
             dispatcher.dispatchAvailable();var ready=viewer.get(path+"/"+job);assertEquals("SUCCEEDED",viewer.json(ready).path("status").asString(),ready.body());
+            assertTrue(viewer.json(ready).path("warnings").get(0).asString().contains("paper.txt"));
             var download=viewer.getBytes(path+"/"+job+"/download");assertEquals(200,download.statusCode());
             assertEquals(ExportFormat.valueOf(format).mediaType(),download.headers().firstValue("Content-Type").orElseThrow());
             assertTrue(viewer.json(ready).path("filename").asString().endsWith("."+ExportFormat.valueOf(format).extension()));
@@ -84,6 +88,7 @@ class ExportApiIntegrationTest {
                 var files=LatexReportRenderingTest.unzip(download.body());
                 assertTrue(LatexReportRenderingTest.tex(files).contains("Zażółć gęślą jaźń"));
                 assertTrue(LatexReportRenderingTest.tex(files).contains("[1, p. 3]"));
+                assertTrue(files.containsKey("report.bib"));
                 assertEquals(representation,json.readTree(files.get("report.json")));
                 assertEquals("HUMAN",json.readTree(files.get("report.json")).path("origins").get(0).path("category").asString());
             }
@@ -95,7 +100,9 @@ class ExportApiIntegrationTest {
         assertEquals(401,new ApiBrowser(port,json).get(path+"/"+UUID.randomUUID()).statusCode());
         assertEquals(403,owner.sendWithoutCsrf("POST",path,"{\"format\":\"PDF\",\"revision\":1}").statusCode());
         assertEquals(404,outsider.postJson(path,"{\"format\":\"PDF\",\"revision\":1}").statusCode());
-        for(String input:List.of("{\"format\":\"HTML\",\"revision\":1}","{\"format\":null,\"revision\":1}","{\"format\":\"PDF\",\"revision\":0}")) assertEquals(400,owner.postJson(path,input).statusCode());
+        for(String input:List.of("{\"format\":\"HTML\",\"revision\":1}","{\"format\":null,\"revision\":1}",
+            "{\"format\":\"PDF\",\"citationStyle\":\"MLA\",\"revision\":1}","{\"format\":\"PDF\",\"revision\":0}"))
+            assertEquals(400,owner.postJson(path,input).statusCode());
         assertEquals(409,owner.postJson(path,"{\"format\":\"PDF\",\"revision\":2}").statusCode());
         assertEquals(404,owner.get(path+"/"+UUID.randomUUID()).statusCode());
         for(int i=0;i<4;i++) enqueue(owner,"PDF");
@@ -146,6 +153,7 @@ class ExportApiIntegrationTest {
             var reference = frozen.path("bibliography").get(0).path("source");
             assertEquals("Solar efficiency", reference.path("title").asString());
             assertEquals("10.1234/abc", reference.path("bibliography").path("doi").asString());
+            assertEquals("https://example.org/paper", reference.path("bibliography").path("url").asString());
             assertEquals(version.toString(), reference.path("sourceVersionId").asString());
             assertEquals("Smith2025", reference.path("bibliography").path("citationKey").asString());
             var download = viewer.getBytes(path + "/" + job.getValue() + "/download");
@@ -156,8 +164,12 @@ class ExportApiIntegrationTest {
             } else if (job.getKey().equals("PDF")) try (var pdf = Loader.loadPDF(download.body())) {
                 text = new PDFTextStripper().getText(pdf);
             } else text = LatexReportRenderingTest.tex(LatexReportRenderingTest.unzip(download.body()));
-            for (String expected : List.of("Solar efficiency", "Smith, J.; Ada", "2025", "Energy Journal", "10.1234/abc", "https://example.org/paper", "Smith2025", version.toString()))
+            // CSL styles intentionally suppress URL when a DOI is present; both remain frozen in the IR.
+            for (String expected : List.of("Solar efficiency", "Smith", "Ada", "2025", "Energy Journal", "10.1234/abc"))
                 assertTrue(text.replaceAll("\\s+", "").contains(expected.replaceAll("\\s+", "")), expected + " missing from " + job.getKey());
+            if (job.getKey().equals("LATEX"))
+                assertTrue(new String(LatexReportRenderingTest.unzip(download.body()).get("report.bib"), java.nio.charset.StandardCharsets.UTF_8)
+                    .contains("https://example.org/paper"));
             assertFalse(text.contains("Later title"));
         }
     }

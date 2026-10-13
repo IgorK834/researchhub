@@ -29,7 +29,7 @@ public final class WorkspaceExportReferences implements ExportReferences {
         var frozen = new BibliographicMetadata(metadata.title(), metadata.authors(), metadata.publicationYear(),
                 metadata.doi(), metadata.venue(), metadata.url(), metadata.citationKey());
         return new SourceReference(sourceId,version.id(),version.versionNumber(),
-            metadata.title() == null ? source.displayName() : metadata.title(),version.contentSha256(),
+            metadata.title() == null ? source.originalFilename() : metadata.title(),version.contentSha256(),
             processingVersion,chunkId,citedContentHash,pageStart,pageEnd,sectionTitle,spans,frozen);
     }
     public List<Block> analysis(UUID analysisId,UUID executionId,String outputId,String renderMode,String caption) {

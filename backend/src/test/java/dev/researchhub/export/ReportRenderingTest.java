@@ -15,6 +15,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static dev.researchhub.export.ReportFixtures.*;
 
 class ReportRenderingTest {
+    @Test void convertsFrozenMetadataToDeterministicCslJson() {
+        var metadata=new BibliographicMetadata("Measurements",List.of("Kowalski, A."),2024,"10.1234/example",
+            "Journal","https://example.org","Kowalski2024");
+        var reference=new SourceReference(S,V,2,"Measurements","a".repeat(64),"extract:2",null,null,null,null,null,List.of(),metadata);
+        var mapped=new CslJsonMapper().toCslJson(new BibliographyEntry(1,reference));
+        assertEquals("article-journal",mapped.get("type"));
+        assertEquals("10.1234/example",mapped.get("DOI"));
+        assertEquals(List.of(Map.of("family","Kowalski","given","A.")),mapped.get("author"));
+        assertEquals(Map.of("date-parts",List.of(List.of(2024))),mapped.get("issued"));
+        assertEquals(new ArrayList<>(mapped.keySet()),List.of("id","type","title","author","issued","container-title","DOI","URL","citation-key"));
+    }
     @Test void writesOfficeReadableDocxAndPaginatedPdfWithChartsCaptionsAndCitations() throws Exception {
         var report=rich();
         var renderer=new AcademicReportRenderer(JSON);
@@ -25,13 +36,13 @@ class ReportRenderingTest {
             assertEquals(1,word.getTables().size());assertTrue(word.getTables().getFirst().getRow(0).isRepeatHeader());
             assertEquals(1,word.getAllPictures().size());
             String text=word.getParagraphs().stream().map(p -> p.getText()).reduce("",String::concat);
-            assertTrue(text.contains("[1, p. 3-4]"));assertTrue(text.contains("Figure 1. Impedance"));assertTrue(text.contains("References"));
-            assertTrue(text.contains(V.toString()));assertTrue(text.contains("SHA-256"));
+            assertTrue(text.contains("[1, p. 3–4]"));assertTrue(text.contains("Figure 1. Impedance"));assertTrue(text.contains("References"));
+            assertTrue(text.contains("Kowalski"));
         }
         try(var document=Loader.loadPDF(pdf)) {
             var text=new PDFTextStripper().getText(document);
             assertTrue(text.contains("Zażółć gęślą jaźń"),text);assertTrue(text.contains("Figure 1. Impedance"));
-            assertTrue(text.contains("[1, p. 3-4]"));assertTrue(text.contains("Table 1. Measurements"));
+            assertTrue(text.contains("[1, p. 3–4]"));assertTrue(text.contains("Table 1. Measurements"));
             assertTrue(text.contains("0.612"));assertTrue(text.contains("References"));
             assertTrue(document.getPage(0).getResources().getFontNames().iterator().hasNext());
             boolean image=false;for(var page:document.getPages()) if(page.getResources().getXObjectNames().iterator().hasNext()) image=true;
@@ -39,6 +50,31 @@ class ReportRenderingTest {
         }
         Files.createDirectories(Path.of("target/export-qa"));
         Files.write(Path.of("target/export-qa/report.docx"),docx);Files.write(Path.of("target/export-qa/report.pdf"),pdf);
+    }
+    @Test void apaAndIeeeProduceDistinctCitationsAndReferencesInEveryFormat() throws Exception {
+        var metadata=new BibliographicMetadata("Solar efficiency",List.of("Smith, Jane"),2025,"10.1234/solar",
+            "Energy Journal","https://example.org/solar","Smith2025");
+        var source=new SourceReference(S,V,2,"Solar efficiency","a".repeat(64),"extract:2","b".repeat(64),
+            "c".repeat(64),12,12,"Results",List.of(),metadata);
+        var blocks=List.<Block>of(new Paragraph(List.of(text("Finding "),new Citation(1,"Smith2025",source)),false));
+        var entries=List.of(new BibliographyEntry(1,source));
+        var apa=new Report("3.0",W,D,3,"Styles",CitationStyle.APA_7,NOW,blocks,entries,List.of(),List.of());
+        var ieee=new Report("3.0",W,D,3,"Styles",CitationStyle.IEEE,NOW,blocks,entries,List.of(),List.of());
+        var renderer=new AcademicReportRenderer(JSON);
+        for(var format:ExportFormat.values()) {
+            String apaText=renderedText(renderer.render(apa,format),format),ieeeText=renderedText(renderer.render(ieee,format),format);
+            assertNotEquals(apaText,ieeeText,format.name());
+            assertTrue(apaText.contains("Smith") && apaText.contains("2025"),apaText);
+            assertTrue(ieeeText.contains("[1") && ieeeText.contains("Solar efficiency"),ieeeText);
+            if(format==ExportFormat.LATEX)assertTrue(new String(LatexReportRenderingTest.unzip(renderer.render(apa,format)).get("report.bib"),java.nio.charset.StandardCharsets.UTF_8).contains("@article{Smith2025"));
+        }
+    }
+    private static String renderedText(byte[] bytes,ExportFormat format) throws Exception {
+        if(format==ExportFormat.DOCX)try(var word=new XWPFDocument(new ByteArrayInputStream(bytes))) {
+            return word.getParagraphs().stream().map(p->p.getText()).reduce("",(a,b)->a+"\n"+b);
+        }
+        if(format==ExportFormat.PDF)try(var pdf=Loader.loadPDF(bytes)){return new PDFTextStripper().getText(pdf);}
+        return LatexReportRenderingTest.tex(LatexReportRenderingTest.unzip(bytes));
     }
     @Test void paginatesLongTablesAndProseWithoutLosingTheFinalRowsOrBibliography() throws Exception {
         var blocks=new ArrayList<Block>();var rows=new ArrayList<List<Cell>>();

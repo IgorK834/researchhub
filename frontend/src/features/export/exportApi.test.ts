@@ -17,6 +17,7 @@ const job: ExportJob = {
   requestedBy: 'u',
   revision: 3,
   format: 'DOCX',
+  citationStyle: 'APA_7',
   status: 'SUCCEEDED',
   filename: 'report.docx',
   warnings: [],
@@ -33,10 +34,10 @@ afterEach(() => {
   jest.useRealTimers();
 });
 it('sends explicit format/revision and escapes every path segment', async () => {
-  await createExport('w/a', 'd/a', 'PDF', 7);
+  await createExport('w/a', 'd/a', 'PDF', 'IEEE', 7);
   expect(apiClient.post).toHaveBeenCalledWith(
     '/api/workspaces/w%2Fa/documents/d%2Fa/exports',
-    { body: { format: 'PDF', revision: 7 } },
+    { body: { format: 'PDF', citationStyle: 'IEEE', revision: 7 } },
   );
   const signal = new AbortController().signal;
   await fetchExport('w/a', 'd/a', 'j/a', signal);

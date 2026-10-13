@@ -5,11 +5,13 @@ import { Dialog } from '../../shared/components/overlays';
 import { describeError } from '../../shared/api';
 import {
   createExport,
+  citationStyleLabels,
   downloadExport,
   exportFailure,
   exportFormatLabels,
   fetchExport,
   type ExportFormat,
+  type CitationStyle,
 } from './exportApi';
 import styles from './ExportDocument.module.css';
 
@@ -27,8 +29,10 @@ export function ExportDocument({
 }): ReactElement {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>('DOCX');
+  const [citationStyle, setCitationStyle] = useState<CitationStyle>('APA_7');
   const create = useMutation({
-    mutationFn: () => createExport(workspaceId, documentId, format, revision),
+    mutationFn: () =>
+      createExport(workspaceId, documentId, format, citationStyle, revision),
   });
   const jobId = create.data?.id;
   const job = useQuery({
@@ -117,15 +121,38 @@ export function ExportDocument({
                 onChange={() => setFormat('LATEX')}
               />
               <strong>LaTeX sources (.zip)</strong>
-              <span>Edit report.tex and compile locally with included chart images.</span>
+              <span>
+                Edit report.tex or report.bib and compile locally with included chart
+                images.
+              </span>
             </label>
+          </fieldset>
+          <fieldset className={styles.formats} disabled={pending}>
+            <legend>Citation style</legend>
+            {(Object.keys(citationStyleLabels) as CitationStyle[]).map((style) => (
+              <label key={style}>
+                <input
+                  type="radio"
+                  name="citation-style"
+                  value={style}
+                  checked={citationStyle === style}
+                  onChange={() => setCitationStyle(style)}
+                />
+                <strong>{citationStyleLabels[style]}</strong>
+                <span>
+                  {style === 'APA_7'
+                    ? 'Author–date citations and an alphabetized reference list.'
+                    : 'Numbered citations and references in citation order.'}
+                </span>
+              </label>
+            ))}
           </fieldset>
           {format === 'LATEX' ? (
             <p>Extract the ZIP, then use XeLaTeX or LuaLaTeX to typeset your report.</p>
           ) : null}
           <p>
-            Includes headings, lists, tables, charts, captions, and numbered citations
-            with references.
+            Includes headings, lists, tables, charts, captions, and selected-style
+            citations with references.
           </p>
           <p>
             {settled

@@ -53,7 +53,8 @@ class EditorReportAdapterTest {
         assertEquals("c".repeat(64),((Citation)refsIn.getFirst()).reference().citedContentHash());
         assertEquals(20,((Citation)refsIn.getFirst()).reference().spans().getFirst().characterStart());
         when(refs.source(eq(S),isNull(),anyString(),any(),any(),any(),any(),any(),anyList())).thenReturn(source());
-        assertEquals(1,convert(doc(paragraph(citation(null,3)))).warnings().size());
+        var legacy=convert(doc(paragraph(citation(null,3)))).warnings();
+        assertEquals(2,legacy.size());assertTrue(legacy.stream().anyMatch(w -> w.contains("file name was used")));
         assertThrows(ApiException.class,() -> convert(doc(paragraph(citation(V,3).replace(W.toString(),UUID.randomUUID().toString())))));
     }
     @Test void resolvesAnalysisThroughThePortAndAcceptsOnlyEmbeddedRasterImages() {

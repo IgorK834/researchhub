@@ -30,6 +30,7 @@ public final class PdfReportRenderer {
         } catch (Exception failure) { throw new IllegalStateException("PDF rendering failed",failure); }
     }
     String html(Report report) {
+        var bibliography=new CslBibliographyFormatter().format(report);
         var html=new StringBuilder("<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><meta charset=\"UTF-8\"/><title>")
             .append(escape(report.title())).append("</title><style>")
             .append("@page { size:A4; margin:22mm 22mm 24mm; @bottom-center { content:counter(page); font-family:Report; font-size:9pt; } }")
@@ -41,22 +42,22 @@ public final class PdfReportRenderer {
             .append(".caption,.provenance { font-size:9pt; color:#555; } .caption { font-style:italic; } .provenance { word-wrap:break-word; }")
             .append("code,pre { font-family:ReportCode; } .equation { page-break-inside:avoid; } .equation img { display:block; margin:6pt 0; } .image { text-align:center; page-break-inside:avoid; } blockquote { margin:8pt 16pt; } pre { white-space:pre-wrap; word-wrap:break-word; }")
             .append("</style></head><body><h1>").append(escape(report.title())).append("</h1>");
-        blocks(html,report.blocks());
-        if (!report.bibliography().isEmpty()) {
+        blocks(html,report.blocks(),bibliography);
+        if (!bibliography.entries().isEmpty()) {
             html.append("<h2>References</h2>");
-            report.bibliography().forEach(e -> html.append("<p class=\"provenance\">").append(escape(ReportText.bibliography(e))).append("</p>"));
+            bibliography.entries().forEach(e -> html.append("<p class=\"reference\">").append(escape(e)).append("</p>"));
         }
         if(!report.warnings().isEmpty()) {html.append("<h2>Export notes</h2>");report.warnings().forEach(w -> html.append("<p>").append(escape(w)).append("</p>"));}
         return html.append("</body></html>").toString();
     }
-    private void blocks(StringBuilder html,List<Block> blocks) {
+    private void blocks(StringBuilder html,List<Block> blocks,FormattedBibliography bibliography) {
         for (Block block:blocks) switch (block) {
-            case Paragraph p -> { html.append(p.caption() ? "<p class=\"caption\">" : "<p>");inlines(html,p.content());html.append("</p>"); }
-            case Heading h -> { html.append("<h").append(h.level()).append('>');inlines(html,h.content());html.append("</h").append(h.level()).append('>'); }
+            case Paragraph p -> { html.append(p.caption() ? "<p class=\"caption\">" : "<p>");inlines(html,p.content(),bibliography);html.append("</p>"); }
+            case Heading h -> { html.append("<h").append(h.level()).append('>');inlines(html,h.content(),bibliography);html.append("</h").append(h.level()).append('>'); }
             case ListBlock list -> {
                 String tag=list.ordered() ? "ol" : "ul";html.append('<').append(tag);
                 if (list.ordered()) html.append(" start=\"").append(list.start()).append('"');html.append('>');
-                for (var item:list.items()) { html.append("<li>");blocks(html,item);html.append("</li>"); }
+                for (var item:list.items()) { html.append("<li>");blocks(html,item,bibliography);html.append("</li>"); }
                 html.append("</").append(tag).append('>');
             }
             case Table table -> {
@@ -69,7 +70,7 @@ public final class PdfReportRenderer {
                     for (Cell cell:table.rows().get(r)) {
                         String tag=cell.header() ? "th" : "td";
                         html.append('<').append(tag).append(" colspan=\"").append(cell.colspan()).append("\" rowspan=\"").append(cell.rowspan()).append("\">");
-                        blocks(html,cell.blocks());html.append("</").append(tag).append('>');
+                        blocks(html,cell.blocks(),bibliography);html.append("</").append(tag).append('>');
                     }
                     html.append("</tr>");
                 }
@@ -83,7 +84,7 @@ public final class PdfReportRenderer {
                     .append("pt;height:").append((int)(image.height()*scale)).append("pt;\"/>");
                 caption(html,image.caption());html.append("</div>");provenance(html,image.provenance());
             }
-            case Container container -> { html.append(container.quote() ? "<blockquote>" : "<div>");blocks(html,container.blocks());html.append(container.quote() ? "</blockquote>" : "</div>"); }
+            case Container container -> { html.append(container.quote() ? "<blockquote>" : "<div>");blocks(html,container.blocks(),bibliography);html.append(container.quote() ? "</blockquote>" : "</div>"); }
             case Code code -> html.append("<pre>").append(escape(code.text())).append("</pre>");
             case Rule ignored -> html.append("<hr/>");
             case Equation equation -> {
@@ -94,14 +95,14 @@ public final class PdfReportRenderer {
             }
         }
     }
-    private void inlines(StringBuilder html,List<Inline> content) {
+    private void inlines(StringBuilder html,List<Inline> content,FormattedBibliography bibliography) {
         for (Inline inline:content) {
             if(inline instanceof InlineMath m) {math(html,m.math(),true);continue;}
             var tags=new ArrayList<String>();
             if (inline instanceof Text text) for (Style style:Style.values()) if (text.styles().contains(style))
                 tags.add(switch (style) { case BOLD -> "strong";case ITALIC -> "em";case UNDERLINE -> "u";case STRIKE -> "s";case CODE -> "code"; });
             tags.forEach(tag -> html.append('<').append(tag).append('>'));
-            html.append(escape(ReportText.inline(inline)).replace("\n","<br/>"));
+            html.append(escape(bibliography.inline(inline)).replace("\n","<br/>"));
             for (int i=tags.size()-1;i>=0;i--) html.append("</").append(tags.get(i)).append('>');
         }
     }

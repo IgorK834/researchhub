@@ -1,10 +1,10 @@
-# Academic report export — RH-230, RH-231, RH-232, RH-233
+# Academic report export — RH-230, RH-231, RH-232, RH-233, RH-347
 
 The `export` module owns conversion of stored document nodes to a frozen, versioned report, and generation of DOCX/PDF files and LaTeX source bundles. It remains part of the Spring modular monolith. Rendering runs entirely in Java, without a browser, Tiptap, Python worker, LibreOffice process, TeX compiler, or external rendering service. The existing document/citation nodes (Task 12.4) and saved analysis references (Task 15.6) supply the inputs.
 
 ## User flow and design references
 
-Open a document, select **Export**, choose Word, PDF or **LaTeX sources (.zip)**, then **Generate export** and **Download**. The LaTeX option downloads editable sources with included figures for local typesetting. Export is available to every workspace content reader, including viewers and readers of archived documents/workspaces. Generation is disabled while local edits are unsaved, the collaborative editor is disconnected, an AI change is pending, or a history preview is open. A stale server revision produces the existing `409 CONFLICT` response with `currentRevision`; the user reloads the latest document.
+Open a document, select **Export**, choose Word, PDF or **LaTeX sources (.zip)**, select **APA 7th edition** or **IEEE**, then **Generate export** and **Download**. The LaTeX option downloads editable sources with included figures and a companion BibTeX database for local typesetting. Export is available to every workspace content reader, including viewers and readers of archived documents/workspaces. Generation is disabled while local edits are unsaved, the collaborative editor is disconnected, an AI change is pending, or a history preview is open. A stale server revision produces the existing `409 CONFLICT` response with `currentRevision`; the user reloads the latest document.
 
 The dialog uses the existing Button/Dialog primitives and design tokens. Document_editor.pdf p.1 and DESIGN_SPEC.md describe the serif paper, heading hierarchy, tables and numbered evidence; Results,provenance&insert.pdf p.3 describes chart/table captions and analysis/source references. No export-specific report dialog was supplied in those references, so the feature adds a small dialog in the document action bar. Existing report and editor structure is preserved.
 
@@ -16,14 +16,14 @@ All routes use the normal session/CSRF policy and `WorkspaceAuthorizationService
 
 Base path: `/api/workspaces/{workspaceId}/documents/{documentId}/exports`.
 
-| Route | Input | Response |
-| --- | --- | --- |
-| `POST /exports` | `{"format":"DOCX" or "PDF" or "LATEX","revision":positive integer}` | `202`, `Location` pointing to the job, `ExportJob` JSON |
-| `GET /exports/{jobId}` | None | `200`, job metadata |
-| `GET /exports/{jobId}/representation` | None | `200`, frozen report schema `1.0` or `2.0`; `409` when expired |
-| `GET /exports/{jobId}/download` | None | `200`, bytes with explicit media type, UTF-8 attachment filename and content length; `409` until successful or after expiration |
+| Route                                 | Input                                                                                                 | Response                                                                                                                        |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /exports`                       | `{"format":"DOCX" or "PDF" or "LATEX","citationStyle":"APA_7" or "IEEE","revision":positive integer}` | `202`, `Location` pointing to the job, `ExportJob` JSON. An omitted style defaults to `APA_7`.                                  |
+| `GET /exports/{jobId}`                | None                                                                                                  | `200`, job metadata                                                                                                             |
+| `GET /exports/{jobId}/representation` | None                                                                                                  | `200`, frozen report schema `1.0`, `2.0` or `3.0`; `409` when expired                                                           |
+| `GET /exports/{jobId}/download`       | None                                                                                                  | `200`, bytes with explicit media type, UTF-8 attachment filename and content length; `409` until successful or after expiration |
 
-`ExportJob`: `id`, `workspaceId`, `documentId`, `requestedBy`, `revision`, `format`, `status`, `filename`, `warnings`, `createdAt`, nullable `startedAt`/`finishedAt`, `expiresAt`, nullable `failureCode`/`sha256`, `sizeBytes`. Times are ISO-8601 UTC instants. States: `QUEUED → RUNNING → SUCCEEDED | FAILED`; any retained state may become `EXPIRED`. Checksums are lowercase SHA-256 over the downloadable bytes. The artifact's actual format and revision come from the job, even if the editor has changed since it was generated.
+`ExportJob`: `id`, `workspaceId`, `documentId`, `requestedBy`, `revision`, `format`, `citationStyle`, `status`, `filename`, `warnings`, `createdAt`, nullable `startedAt`/`finishedAt`, `expiresAt`, nullable `failureCode`/`sha256`, `sizeBytes`. Times are ISO-8601 UTC instants. States: `QUEUED → RUNNING → SUCCEEDED | FAILED`; any retained state may become `EXPIRED`. Checksums are lowercase SHA-256 over the downloadable bytes. The artifact's actual format, style and revision come from the job, even if the editor has changed since it was generated.
 
 Download media types/extensions are explicit: `DOCX` → `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `.docx`; `PDF` → `application/pdf`, `.pdf`; `LATEX` → `application/zip`, `.zip`. The LaTeX API response is one bundle containing the `.tex` file and every referenced local image.
 
@@ -31,26 +31,26 @@ Safe failure codes: `RENDER_FAILED`, `OUTPUT_TOO_LARGE`, `ACCESS_REVOKED`, `REND
 
 ## Stable intermediate representation
 
-The public Java contract is `export.domain.Report`. Its JSON discriminators are explicit `kind` values; it contains no ProseMirror/Tiptap types. `EditorReportAdapter` is the only converter of editor node names. All three renderers consume the same report without knowing the editor's schema. Schema `1.0` snapshots are serialized and tested through a full JSON round trip.
+The public Java contract is `export.domain.Report`. Its JSON discriminators are explicit `kind` values; it contains no ProseMirror/Tiptap types. `EditorReportAdapter` is the only converter of editor node names. All three renderers consume the same report without knowing the editor's schema. Schema `3.0` freezes the selected citation style and citation keys; schemas `1.0` and `2.0` remain readable as historical IEEE-style snapshots.
 
-A report has `schemaVersion`, `workspaceId`, `documentId`, `revision`, `title`, `capturedAt`, `blocks`, `bibliography`, `origins`, `warnings`.
+A report has `schemaVersion`, `workspaceId`, `documentId`, `revision`, `title`, `citationStyle`, `capturedAt`, `blocks`, `bibliography`, `origins`, `warnings`.
 
-| Block kind | Payload |
-| --- | --- |
-| `paragraph` | Inline `content`; `caption` identifies captions |
-| `heading` | Level 1–6 and inline `content` |
-| `list` | `ordered`, positive `start`, `items` containing block arrays (nested lists supported) |
-| `table` | Row arrays of cells with `header`, `colspan`, `rowspan`, `blocks`; `caption`, optional analysis `provenance` |
-| `image` | Embedded `pngBase64`, pixel `width`/`height`, `alt`, `caption`, optional analysis `provenance` |
-| `container` | Nested `blocks`, `quote` (also used for figure containers) |
-| `code`, `rule` | Source text / structural divider |
-| `equation` | Reserved `notation` and `source`; renderers show the source notation, pending future math typesetting/editor support |
+| Block kind     | Payload                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `paragraph`    | Inline `content`; `caption` identifies captions                                                                      |
+| `heading`      | Level 1–6 and inline `content`                                                                                       |
+| `list`         | `ordered`, positive `start`, `items` containing block arrays (nested lists supported)                                |
+| `table`        | Row arrays of cells with `header`, `colspan`, `rowspan`, `blocks`; `caption`, optional analysis `provenance`         |
+| `image`        | Embedded `pngBase64`, pixel `width`/`height`, `alt`, `caption`, optional analysis `provenance`                       |
+| `container`    | Nested `blocks`, `quote` (also used for figure containers)                                                           |
+| `code`, `rule` | Source text / structural divider                                                                                     |
+| `equation`     | Reserved `notation` and `source`; renderers show the source notation, pending future math typesetting/editor support |
 
-Inline `text` stores its text and a set of `BOLD`, `ITALIC`, `UNDERLINE`, `STRIKE`, `CODE` styles. Inline `citation` stores a numeric bibliography label and a full `SourceReference`. Hard breaks become newline text; comment anchors are review metadata and do not appear in report prose. Unknown content is rejected explicitly rather than dropped.
+Inline `text` stores its text and a set of `BOLD`, `ITALIC`, `UNDERLINE`, `STRIKE`, `CODE` styles. Inline `citation` stores its citation key, stable first-occurrence number and a full `SourceReference`. Hard breaks become newline text; comment anchors are review metadata and do not appear in report prose. Unknown content is rejected explicitly rather than dropped.
 
 `SourceReference` keeps source/version IDs, server-owned version number/title/upload SHA-256, stored processing version, chunk ID, cited content hash, inclusive page range, section and spans (`unitId`, `characterStart`, `characterEnd`). Source/version ownership is checked through the source module; a stored citation's locator is preserved, not reinterpreted as a new retrieval result. Legacy citations without an immutable source version bind to the active version at capture time and produce a visible export warning.
 
-The MVP citation style is numeric in first-source-occurrence order, deduplicated by `(sourceId, sourceVersionId)`. Each occurrence retains its own locator, e.g. `[1, p. 3-4]`. References resolve normalized workspace-curated title, ordered authors, year, venue, DOI, URL and citation key when supplied, with the display name as a title fallback. They retain the immutable source version ID/number and full upload checksum; bibliographic metadata is frozen at capture and missing fields stay absent. See [source-library.md](source-library.md).
+Citation marks resolve through the frozen source citation key. APA 7 renders author-date citations and references; IEEE renders numeric citations and references. Each occurrence retains its own locator. References convert the normalized workspace-curated title, ordered authors, year, venue, DOI, URL and citation key to CSL-JSON, while retaining immutable source version ID/number and the upload checksum in the report snapshot. If no bibliographic fields are available, the original filename becomes the title and the export result contains an explicit warning instead of dropping the source. See [source-library.md](source-library.md).
 
 Analysis nodes resolve the exact `(analysisId, executionId, outputId, renderMode)` through `ExecutionService`. Only successful saved outputs are accepted. Tables use saved columns/rows; charts use checksum-verified saved PNG/SVG bytes, normalized to embedded PNG. The document's specified caption remains. Visible source/analysis notes retain input file versions, analysis/execution/output IDs and code SHA-256. The IR also retains the trusted latest operation for each tracked block: category, actor, operation IDs, revision, timestamp and its original metadata JSON. Client `originIntent` attributes never manufacture export provenance.
 
@@ -58,15 +58,15 @@ Analysis nodes resolve the exact `(analysisId, executionId, outputId, renderMode
 
 `V32__report_exports.sql` adds a workspace-owned queue with a composite document foreign key, state/size/schema checks and a trigger protecting snapshot identity and state transitions. No existing content is rewritten. Enqueue reads the document and block provenance in a repeatable-read transaction. The store commits the immutable snapshot in a separate short read-committed transaction, locking the workspace before checking its pending-job count; this serializes concurrent requests without holding a snapshot transaction open during rendering.
 
-`V33__latex_report_exports.sql` extends the format constraint to `LATEX` and gives the expanded constraint an explicit name. V32 and previously generated artifacts remain unchanged. LaTeX uses the same asynchronous queue, authorization checks, retention, failure codes and output limits. Source generation and ZIP packaging use existing Jackson and Java's standard library; no runtime or frontend dependency is added.
+`V33__latex_report_exports.sql` extends the format constraint to `LATEX`. `V48__citation_styles_and_metadata_lookup_quota.sql` persists the selected style and admits report schema 3. LaTeX uses the same asynchronous queue, authorization checks, retention, failure codes and output limits. `citeproc-java` 3.5.1 and CitationStyles 26.8 are pinned. The only selectable style IDs are the bundled `apa.csl` and `ieee.csl`; locale/style lookup is classpath-only and never uses a remote URL. Their notices are recorded in `frontend/THIRD_PARTY_NOTICES.md`.
 
 Claim uses `FOR UPDATE SKIP LOCKED`. The dedicated one-thread `exportScheduler` renders off HTTP and other module dispatchers. Membership is rechecked before and after rendering; every public read/download also authorizes the current caller. A claim older than ten minutes fails with `RENDER_INTERRUPTED`; a late worker cannot overwrite a terminal result. A restart preserves queued jobs. No generated code or URLs are executed or fetched.
 
-| Setting | Default | Purpose |
-| --- | --- | --- |
-| `researchhub.export.retention` / `EXPORT_RETENTION` | `PT168H` | Positive duration, at most 30 days |
-| `researchhub.export.dispatcher.enabled` / `EXPORT_DISPATCHER_ENABLED` | `true` | Disable automatic dispatch for deterministic tests |
-| `researchhub.export.dispatcher.fixed-delay` / `EXPORT_FIXED_DELAY` | `PT1S` | Poll delay on the dedicated scheduler |
+| Setting                                                               | Default  | Purpose                                            |
+| --------------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| `researchhub.export.retention` / `EXPORT_RETENTION`                   | `PT168H` | Positive duration, at most 30 days                 |
+| `researchhub.export.dispatcher.enabled` / `EXPORT_DISPATCHER_ENABLED` | `true`   | Disable automatic dispatch for deterministic tests |
+| `researchhub.export.dispatcher.fixed-delay` / `EXPORT_FIXED_DELAY`    | `PT1S`   | Poll delay on the dedicated scheduler              |
 
 Fixed MVP limits: four queued/running exports per workspace; nesting 64; 50,000 nodes; 20,000 total table cells; at most 20 logical columns per table; 8 MiB per image; 16 million raster pixels; 24 MiB serialized snapshot; 32 MiB output. Wide/malformed tables fail explicitly rather than generating clipped artifacts. SVGs reject scripts, external entities, external links/styles and resource URLs, and rasterize with external resource execution disabled. PDF rendering permits only generated embedded PNG resources. Filenames normalize Unicode, remove path/control characters, handle Windows device names, and bound the stem to 100 characters.
 
@@ -76,12 +76,13 @@ DOCX uses real OOXML heading styles, paragraphs, numbering, cell spans, repeatin
 
 Each UTF-8 ZIP contains:
 
-| Path | Content |
-| --- | --- |
-| `report.tex` | Editable `article` document, A4 page geometry, Unicode text, headings, styled paragraphs, ordered/unordered nested lists, tables, images, captions, numeric citations, references and export warnings |
-| `images/figure-001.png`, etc. | The exact normalized PNG bytes from the frozen IR. Identical images share one generated path; no user-supplied filenames or URLs become asset paths |
-| `report.json` | The complete schema `1.0` or `2.0` snapshot, including immutable source locations, analysis inputs/code hashes and trusted block-operation provenance |
-| `README.txt` | Extraction, required packages, local compilation instructions and limits |
+| Path                          | Content                                                                                                                                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `report.tex`                  | Editable `article` document, A4 page geometry, Unicode text, headings, styled paragraphs, ordered/unordered nested lists, tables, images, captions, selected-style citations, references and export warnings |
+| `report.bib`                  | Deterministic BibTeX entries keyed by the same citation keys as the frozen report                                                                                                                            |
+| `images/figure-001.png`, etc. | The exact normalized PNG bytes from the frozen IR. Identical images share one generated path; no user-supplied filenames or URLs become asset paths                                                          |
+| `report.json`                 | The complete schema `3.0` snapshot, including citation style, immutable source locations, analysis inputs/code hashes and trusted block-operation provenance                                                 |
+| `README.txt`                  | Extraction, required packages, local compilation instructions and limits                                                                                                                                     |
 
 Extract the complete archive and compile `report.tex` twice with `xelatex -no-shell-escape report.tex` or `lualatex -no-shell-escape report.tex` in a current TeX Live/MiKTeX installation. The generated preamble uses the standard Latin Modern OpenType font files via [fontspec](https://ctan.org/pkg/fontspec), and the packages geometry, graphicx, array, [longtable](https://ctan.org/pkg/longtable), [multirow](https://ctan.org/pkg/multirow), [enumitem](https://ctan.org/pkg/enumitem), and ulem. Fonts and packages are supplied by the user's TeX distribution; ResearchHub does not fetch them. Users can edit the preamble to choose journal templates, fonts and language-specific glyph coverage.
 

@@ -23,9 +23,9 @@ public class PostgresExportStore implements ExportStore {
         Integer count=jdbc.queryForObject("SELECT count(*) FROM report_exports WHERE workspace_id=? AND status IN ('QUEUED','RUNNING')",Integer.class,job.workspaceId());
         if (count!=null && count>=4) throw new ConflictException("This workspace already has four pending exports; wait for one to finish");
         jdbc.update("""
-            INSERT INTO report_exports(id,workspace_id,document_id,requested_by,revision,format,status,filename,warnings,
-                snapshot,created_at,expires_at) VALUES (?,?,?,?,?,?,'QUEUED',?,?::jsonb,?::jsonb,?,?)
-            """,job.id(),job.workspaceId(),job.documentId(),job.requestedBy(),job.revision(),job.format().name(),job.filename(),
+            INSERT INTO report_exports(id,workspace_id,document_id,requested_by,revision,format,citation_style,status,filename,warnings,
+                snapshot,created_at,expires_at) VALUES (?,?,?,?,?,?,?,'QUEUED',?,?::jsonb,?::jsonb,?,?)
+            """,job.id(),job.workspaceId(),job.documentId(),job.requestedBy(),job.revision(),job.format().name(),job.citationStyle().name(),job.filename(),
             json.writeValueAsString(job.warnings()),json.writeValueAsString(report),Timestamp.from(job.createdAt()),Timestamp.from(job.expiresAt()));
         return job;
     }
@@ -82,7 +82,7 @@ public class PostgresExportStore implements ExportStore {
         List<String> warnings=Arrays.asList(json.readValue(row.getString("warnings"),String[].class));
         return new ExportJob(row.getObject("id",UUID.class),row.getObject("workspace_id",UUID.class),row.getObject("document_id",UUID.class),
             row.getObject("requested_by",UUID.class),row.getLong("revision"),ExportFormat.valueOf(row.getString("format")),
-            ExportJob.Status.valueOf(row.getString("status")),row.getString("filename"),warnings,instant(row,"created_at"),
+            dev.researchhub.export.domain.CitationStyle.valueOf(row.getString("citation_style")),ExportJob.Status.valueOf(row.getString("status")),row.getString("filename"),warnings,instant(row,"created_at"),
             instant(row,"started_at"),instant(row,"finished_at"),instant(row,"expires_at"),row.getString("failure_code"),
             row.getString("sha256"),row.getLong("size_bytes"));
     }

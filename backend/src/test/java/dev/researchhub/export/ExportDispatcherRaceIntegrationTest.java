@@ -25,8 +25,8 @@ class ExportDispatcherRaceIntegrationTest extends DispatcherRaceDatabase {
             UUID id = UUID.randomUUID(); expected.add(id);
             var report = new Report("1.0", workspace, document, 1, id.toString(), clock.instant(), List.of(), List.of(), List.of(), List.of());
             jdbc.update("""
-                INSERT INTO report_exports(id,workspace_id,document_id,requested_by,revision,format,status,filename,warnings,snapshot,created_at,expires_at)
-                VALUES (?,?,?,?,1,'PDF','QUEUED','race.pdf','[]',?::jsonb,?,?)
+                INSERT INTO report_exports(id,workspace_id,document_id,requested_by,revision,format,citation_style,status,filename,warnings,snapshot,created_at,expires_at)
+                VALUES (?,?,?,?,1,'PDF','IEEE','QUEUED','race.pdf','[]',?::jsonb,?,?)
                 """, id, workspace, document, user, json.writeValueAsString(report), Timestamp.from(clock.instant()), Timestamp.from(clock.instant().plusSeconds(3600)));
         }
         race(context -> context.getBean(ExportDispatcher.class).dispatchAvailable());

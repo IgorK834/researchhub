@@ -7,11 +7,19 @@ import java.util.*;
 
 /** Versioned, browser-independent snapshot. Renderers consume only this contract, never editor JSON. */
 public record Report(String schemaVersion, UUID workspaceId, UUID documentId, long revision, String title,
-                     Instant capturedAt, List<Block> blocks, List<BibliographyEntry> bibliography,
+                     CitationStyle citationStyle, Instant capturedAt, List<Block> blocks, List<BibliographyEntry> bibliography,
                      List<Origin> origins, List<String> warnings) {
     public Report {
-        if (!Set.of("1.0","2.0").contains(schemaVersion) || revision < 1) throw new IllegalArgumentException("Invalid report version");
+        if (!Set.of("1.0","2.0","3.0").contains(schemaVersion) || revision < 1) throw new IllegalArgumentException("Invalid report version");
+        if (citationStyle == null) citationStyle = CitationStyle.IEEE;
         blocks=List.copyOf(blocks); bibliography=List.copyOf(bibliography); origins=List.copyOf(origins); warnings=List.copyOf(warnings);
+    }
+    /** Historical snapshots and internal fixtures used the original numeric bibliography. */
+    public Report(String schemaVersion, UUID workspaceId, UUID documentId, long revision, String title,
+                  Instant capturedAt, List<Block> blocks, List<BibliographyEntry> bibliography,
+                  List<Origin> origins, List<String> warnings) {
+        this(schemaVersion, workspaceId, documentId, revision, title, CitationStyle.IEEE, capturedAt, blocks,
+                bibliography, origins, warnings);
     }
     public enum Style { BOLD, ITALIC, UNDERLINE, STRIKE, CODE }
     @JsonTypeInfo(use=JsonTypeInfo.Id.NAME, property="kind")
@@ -27,7 +35,15 @@ public record Report(String schemaVersion, UUID workspaceId, UUID documentId, lo
         public Text { styles=Set.copyOf(styles); }
     }
     /** Every occurrence keeps its immutable location, even when several citations share one bibliography label. */
-    public record Citation(int number, SourceReference reference) implements Inline {}
+    public record Citation(int number, String citationKey, SourceReference reference) implements Inline {
+        public Citation {
+            if (number < 1 || citationKey == null || citationKey.isBlank()) throw new IllegalArgumentException("Invalid citation");
+        }
+        public Citation(int number, SourceReference reference) {
+            this(number, reference.bibliography() != null && reference.bibliography().citationKey() != null
+                    ? reference.bibliography().citationKey() : "rh-" + reference.sourceId(), reference);
+        }
+    }
     public record Span(String unitId, long characterStart, long characterEnd) {}
     public record SourceReference(UUID sourceId, UUID sourceVersionId, int versionNumber, String title, String sha256,
                                   String processingVersion, String chunkId, String citedContentHash, Integer pageStart, Integer pageEnd,

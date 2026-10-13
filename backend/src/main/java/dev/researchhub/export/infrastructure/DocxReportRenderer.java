@@ -15,17 +15,18 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 public final class DocxReportRenderer {
     public byte[] render(Report report) {
         try (var document=new XWPFDocument();var output=new ByteArrayOutputStream()) {
+            var bibliography=new CslBibliographyFormatter().format(report);
             configure(document,report);
             var title=document.createParagraph();title.setStyle("Title");
             var run=title.createRun();run.setText(report.title());run.setFontFamily("Times New Roman");run.setFontSize(24);run.setBold(true);
-            blocks(document,document,report.blocks(),0);
-            if (!report.bibliography().isEmpty()) {
-                heading(document,1,List.of(new Text("References",Set.of())));
-                report.bibliography().forEach(e -> paragraph(document,List.of(new Text(ReportText.bibliography(e),Set.of())),false));
+            blocks(document,document,report.blocks(),0,bibliography);
+            if (!bibliography.entries().isEmpty()) {
+                heading(document,1,List.of(new Text("References",Set.of())),bibliography);
+                bibliography.entries().forEach(e -> paragraph(document,List.of(new Text(e,Set.of())),false,bibliography));
             }
             if(!report.warnings().isEmpty()) {
-                heading(document,1,List.of(new Text("Export notes",Set.of())));
-                report.warnings().forEach(w -> paragraph(document,List.of(new Text(w,Set.of())),false));
+                heading(document,1,List.of(new Text("Export notes",Set.of())),bibliography);
+                report.warnings().forEach(w -> paragraph(document,List.of(new Text(w,Set.of())),false,bibliography));
             }
             document.write(output);return output.toByteArray();
         } catch (Exception failure) { throw new IllegalStateException("DOCX rendering failed",failure); }
@@ -54,24 +55,24 @@ public final class DocxReportRenderer {
     private static final class CTFontsBuilder {
         CTFonts font() { var f=CTFonts.Factory.newInstance();f.setAscii("Times New Roman");f.setHAnsi("Times New Roman");return f; }
     }
-    private void blocks(XWPFDocument doc,IBody body,List<Block> blocks,int depth) throws Exception {
+    private void blocks(XWPFDocument doc,IBody body,List<Block> blocks,int depth,FormattedBibliography bibliography) throws Exception {
         for (Block block:blocks) switch (block) {
-            case Paragraph p -> paragraph(body,p.content(),p.caption());
-            case Heading h -> heading(body,h.level(),h.content());
+            case Paragraph p -> paragraph(body,p.content(),p.caption(),bibliography);
+            case Heading h -> heading(body,h.level(),h.content(),bibliography);
             case ListBlock list -> {
                 BigInteger num=numbering(doc,list.ordered(),list.start());
                 for (var item:list.items()) {
                     var p=newParagraph(body);p.setNumID(num);p.setNumILvl(BigInteger.ZERO);
                     p.setIndentationLeft(360*(depth+1));p.setIndentationHanging(180);
                     if (!item.isEmpty() && item.getFirst() instanceof Paragraph first) {
-                        inlines(p,first.content());blocks(doc,body,item.subList(1,item.size()),depth+1);
-                    } else blocks(doc,body,item,depth+1);
+                        inlines(p,first.content(),bibliography);blocks(doc,body,item.subList(1,item.size()),depth+1,bibliography);
+                    } else blocks(doc,body,item,depth+1,bibliography);
                 }
             }
             case Table table -> {
-                if (!table.caption().isBlank()) paragraph(body,List.of(new Text(table.caption(),Set.of())),true);
-                table(doc,body,table,depth);
-                provenance(body,table.provenance());
+                if (!table.caption().isBlank()) paragraph(body,List.of(new Text(table.caption(),Set.of())),true,bibliography);
+                table(doc,body,table,depth,bibliography);
+                provenance(body,table.provenance(),bibliography);
             }
             case Image image -> {
                 var p=newParagraph(body);p.setAlignment(ParagraphAlignment.CENTER);
@@ -79,25 +80,25 @@ public final class DocxReportRenderer {
                 r.addPicture(new ByteArrayInputStream(Base64.getDecoder().decode(image.pngBase64())),Document.PICTURE_TYPE_PNG,
                     image.alt(),(int)(image.width()*scale*Units.EMU_PER_POINT),(int)(image.height()*scale*Units.EMU_PER_POINT));
                 p.setKeepNext(true);
-                if (!image.caption().isBlank()) paragraph(body,List.of(new Text(image.caption(),Set.of())),true);
-                provenance(body,image.provenance());
+                if (!image.caption().isBlank()) paragraph(body,List.of(new Text(image.caption(),Set.of())),true,bibliography);
+                provenance(body,image.provenance(),bibliography);
             }
             case Container container -> {
-                int first=body.getParagraphs().size();blocks(doc,body,container.blocks(),depth);
+                int first=body.getParagraphs().size();blocks(doc,body,container.blocks(),depth,bibliography);
                 if (container.quote()) for (int i=first;i<body.getParagraphs().size();i++) body.getParagraphs().get(i).setIndentationLeft(360);
             }
-            case Code code -> paragraph(body,List.of(new Text(code.text(),Set.of(Style.CODE))),false);
+            case Code code -> paragraph(body,List.of(new Text(code.text(),Set.of(Style.CODE))),false,bibliography);
             case Rule ignored -> { var p=newParagraph(body);p.setBorderBottom(Borders.SINGLE); }
             case Equation equation -> {
                 if(equation.math()!=null) {
                     var p=newParagraph(body);math(p,equation.math());
-                    paragraph(body,List.of(new Text(equation.math().accessibleText(),Set.of())),true);
-                } else paragraph(body,List.of(new Text(dev.researchhub.export.application.ReportMath.FALLBACK+" "+equation.source(),Set.of(Style.CODE))),false);
-                provenance(body,equation.provenance());
+                    paragraph(body,List.of(new Text(equation.math().accessibleText(),Set.of())),true,bibliography);
+                } else paragraph(body,List.of(new Text(dev.researchhub.export.application.ReportMath.FALLBACK+" "+equation.source(),Set.of(Style.CODE))),false,bibliography);
+                provenance(body,equation.provenance(),bibliography);
             }
         }
     }
-    private void table(XWPFDocument doc,IBody body,Table source,int depth) throws Exception {
+    private void table(XWPFDocument doc,IBody body,Table source,int depth,FormattedBibliography bibliography) throws Exception {
         var grid=TableGrid.of(source);
         XWPFTable table;
         if (body instanceof XWPFDocument d) table=d.createTable(grid.rows().size(),grid.columns());
@@ -119,7 +120,7 @@ public final class DocxReportRenderer {
                 if (cell.rowspan()>1) properties.addNewVMerge().setVal(slot.continuation() ? STMerge.CONTINUE : STMerge.RESTART);
                 if (cell.header()) target.setColor("F0EEE9");
                 if (!slot.continuation()) {
-                    blocks(doc,target,cell.blocks(),depth);
+                    blocks(doc,target,cell.blocks(),depth,bibliography);
                     if (cell.header()) target.getParagraphs().forEach(p -> p.getRuns().forEach(run -> run.setBold(true)));
                 }
                 // OOXML cells must end in a paragraph, including when their last block is a nested table.
@@ -127,22 +128,22 @@ public final class DocxReportRenderer {
             }
         }
     }
-    private void provenance(IBody body,AnalysisProvenance p) {
-        if (p!=null) paragraph(body,List.of(new Text(ReportText.provenance(p),Set.of())),true);
+    private void provenance(IBody body,AnalysisProvenance p,FormattedBibliography bibliography) {
+        if (p!=null) paragraph(body,List.of(new Text(ReportText.provenance(p),Set.of())),true,bibliography);
     }
     private XWPFParagraph newParagraph(IBody body) {
         var p=body instanceof XWPFDocument d ? d.createParagraph() : ((XWPFTableCell)body).addParagraph();
         p.setSpacingAfter(120);p.setSpacingBetween(1.15);return p;
     }
-    private void paragraph(IBody body,List<Inline> content,boolean caption) {
-        var p=newParagraph(body);inlines(p,content);
+    private void paragraph(IBody body,List<Inline> content,boolean caption,FormattedBibliography bibliography) {
+        var p=newParagraph(body);inlines(p,content,bibliography);
         if (caption) { p.setStyle("Caption");p.getRuns().forEach(r -> { r.setFontSize(10);r.setItalic(true); }); }
     }
-    private void heading(IBody body,int level,List<Inline> content) {
-        var p=newParagraph(body);p.setStyle("Heading"+level);p.setKeepNext(true);inlines(p,content);
+    private void heading(IBody body,int level,List<Inline> content,FormattedBibliography bibliography) {
+        var p=newParagraph(body);p.setStyle("Heading"+level);p.setKeepNext(true);inlines(p,content,bibliography);
         p.getRuns().forEach(r -> { r.setBold(true);r.setFontSize(Math.max(12,22-level*2)); });
     }
-    private void inlines(XWPFParagraph p,List<Inline> content) {
+    private void inlines(XWPFParagraph p,List<Inline> content,FormattedBibliography bibliography) {
         for (Inline inline:content) {
             if(inline instanceof InlineMath m) {math(p,m.math());continue;}
             var r=p.createRun();r.setFontFamily("Times New Roman");r.setFontSize(11);
@@ -152,7 +153,7 @@ public final class DocxReportRenderer {
                 if (text.styles().contains(Style.UNDERLINE)) r.setUnderline(UnderlinePatterns.SINGLE);
                 if (text.styles().contains(Style.CODE)) r.setFontFamily("Courier New");
             }
-            String[] lines=ReportText.inline(inline).split("\n",-1);
+            String[] lines=bibliography.inline(inline).split("\n",-1);
             for (int i=0;i<lines.length;i++) { if (i>0) r.addBreak();r.setText(lines[i]); }
         }
     }

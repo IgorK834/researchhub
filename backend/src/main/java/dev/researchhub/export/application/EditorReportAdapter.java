@@ -2,6 +2,7 @@ package dev.researchhub.export.application;
 
 import dev.researchhub.export.domain.Report;
 import dev.researchhub.export.domain.Report.*;
+import dev.researchhub.export.domain.CitationStyle;
 import dev.researchhub.shared.error.*;
 import java.time.Instant;
 import java.util.*;
@@ -13,12 +14,16 @@ public final class EditorReportAdapter {
     public EditorReportAdapter(ObjectMapper json) { this.json=json; }
     public Report convert(UUID workspace,UUID document,long revision,String title,String stored,Instant now,
                           ExportReferences references,List<Origin> origins) {
+        return convert(workspace,document,revision,title,CitationStyle.IEEE,stored,now,references,origins);
+    }
+    public Report convert(UUID workspace,UUID document,long revision,String title,CitationStyle citationStyle,String stored,Instant now,
+                          ExportReferences references,List<Origin> origins) {
         JsonNode root;
         try { root=json.readTree(stored); } catch (RuntimeException invalid) { throw invalid("Malformed document JSON"); }
         if (!root.isObject() || !"doc".equals(root.path("type").asString())) throw invalid("Unsupported document format");
         var state=new State(workspace,references);
         var blocks=state.blocks(root,0);
-        return new Report(state.version2 ? "2.0" : "1.0",workspace,document,revision,title,now,blocks,
+        return new Report("3.0",workspace,document,revision,title,citationStyle,now,blocks,
             new ArrayList<>(state.bibliography.values()),origins,new ArrayList<>(state.warnings));
     }
     private static final class State {
@@ -142,9 +147,16 @@ public final class EditorReportAdapter {
             if (start!=null && end!=null && end<start) throw invalid("Invalid citation page range");
             var source=references.source(uuid(c,"sourceId"),version,required(c,"processingVersion"),optional(c,"chunkId"),optional(c,"contentHash"),
                 start,end,optional(c,"sectionTitle"),spans);
-            String key=source.sourceId()+":"+source.sourceVersionId();
+            var metadata=source.bibliography();
+            String configured=metadata==null ? null : metadata.citationKey();
+            String marked=optional(c,"citationKey");
+            if (marked!=null && configured!=null && !marked.equals(configured)) throw invalid("Citation key does not match the source bibliography");
+            String key=configured==null ? "rh-"+source.sourceId() : configured;
+            if (metadata==null || metadata.title()==null && metadata.authors().isEmpty() && metadata.publicationYear()==null
+                    && metadata.doi()==null && metadata.venue()==null && metadata.url()==null && metadata.citationKey()==null)
+                warnings.add("Bibliographic metadata is missing for "+source.title()+"; the file name was used.");
             var entry=bibliography.computeIfAbsent(key,k -> new BibliographyEntry(bibliography.size()+1,source));
-            return new Citation(entry.number(),source);
+            return new Citation(entry.number(),key,source);
         }
         String plain(JsonNode node,int depth) {
             var content=inlines(node,depth);

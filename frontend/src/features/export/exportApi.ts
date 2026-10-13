@@ -1,6 +1,11 @@
 import { apiClient } from '../../shared/api';
 
 export type ExportFormat = 'DOCX' | 'PDF' | 'LATEX';
+export type CitationStyle = 'APA_7' | 'IEEE';
+export const citationStyleLabels: Readonly<Record<CitationStyle, string>> = {
+  APA_7: 'APA 7th edition',
+  IEEE: 'IEEE',
+};
 export const exportFormatLabels: Readonly<Record<ExportFormat, string>> = {
   DOCX: 'DOCX',
   PDF: 'PDF',
@@ -18,6 +23,7 @@ export interface ExportJob {
   readonly requestedBy: string;
   readonly revision: number;
   readonly format: ExportFormat;
+  readonly citationStyle: CitationStyle;
   readonly status: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'EXPIRED';
   readonly filename: string;
   readonly warnings: readonly string[];
@@ -35,9 +41,12 @@ export function createExport(
   workspace: string,
   document: string,
   format: ExportFormat,
+  citationStyle: CitationStyle,
   revision: number,
 ): Promise<ExportJob> {
-  return apiClient.post(path(workspace, document), { body: { format, revision } });
+  return apiClient.post(path(workspace, document), {
+    body: { format, citationStyle, revision },
+  });
 }
 export function fetchExport(
   workspace: string,

@@ -14,13 +14,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/documents/{documentId}/exports")
 public class ExportController {
-    public record Request(@NotNull ExportFormat format,@Min(1) long revision) {}
+    public record Request(@NotNull ExportFormat format,CitationStyle citationStyle,@Min(1) long revision) {
+        public Request { if (citationStyle == null) citationStyle = CitationStyle.APA_7; }
+    }
     private final ExportService exports;
     private final CurrentUserResolver users;
     public ExportController(ExportService exports,CurrentUserResolver users) { this.exports=exports;this.users=users; }
     @PostMapping
     ResponseEntity<ExportJob> create(@PathVariable UUID workspaceId,@PathVariable UUID documentId,@Valid @RequestBody Request input) {
-        var job=exports.enqueue(workspaceId,users.requireCurrentUser().id(),documentId,input.format(),input.revision());
+        var job=exports.enqueue(workspaceId,users.requireCurrentUser().id(),documentId,input.format(),input.citationStyle(),input.revision());
         return ResponseEntity.accepted().location(URI.create(path(workspaceId,documentId,job.id())))
             .cacheControl(CacheControl.noStore()).body(job);
     }

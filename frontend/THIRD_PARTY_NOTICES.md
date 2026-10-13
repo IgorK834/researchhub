@@ -1,4 +1,4 @@
-# Third-party font and icon notices
+# Third-party notices
 
 RH-265/RH-266 use the following exact dependencies, pinned in package-lock.json.
 No icon artwork was extracted from the raster design PDFs. The mapping is in
@@ -52,6 +52,29 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## citeproc-java 3.5.1
+
+Source: https://github.com/michel-kraemer/citeproc-java
+
+Copyright Michel Kraemer and contributors. Licensed under the Apache License,
+Version 2.0: https://www.apache.org/licenses/LICENSE-2.0
+
+## Citation Style Language styles and locale files 26.8
+
+Source: https://citationstyles.org/ and
+https://github.com/citation-style-language/styles
+
+The unmodified `apa.csl`, `ieee.csl`, and `locales-en-US.xml` files are
+bundled for report export. They are licensed under the Creative Commons
+Attribution-ShareAlike 3.0 Unported license:
+https://creativecommons.org/licenses/by-sa/3.0/
+
+APA Style 7th edition is authored by Brenton M. Wiernik and Andrew Dunning.
+The IEEE style is authored by Michael Berkowitz with the contributors named
+in its preserved CSL metadata. The English (US) locale translators and the
+complete style author/contributor listings remain intact in the bundled
+files. No changes were made to those CSL files.
 
 ## @fontsource-variable/plus-jakarta-sans 5.3.0
 

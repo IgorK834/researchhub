@@ -41,18 +41,22 @@ public class ExportService {
     /** A coherent revision and its provenance are frozen before expensive rendering is dispatched. */
     @Transactional(isolation=Isolation.REPEATABLE_READ)
     public ExportJob enqueue(UUID workspace,UUID caller,UUID document,ExportFormat format,long revision) {
+        return enqueue(workspace, caller, document, format, CitationStyle.APA_7, revision);
+    }
+    @Transactional(isolation=Isolation.REPEATABLE_READ)
+    public ExportJob enqueue(UUID workspace,UUID caller,UUID document,ExportFormat format,CitationStyle citationStyle,long revision) {
         var detail=documents.findOne(workspace,caller,document);
         if (revision!=detail.summary().revision()) throw new StaleRevisionException(detail.summary().revision(),revision);
         var origins=new ArrayList<Origin>();
         collectOrigins(json.readTree(detail.content()),workspace,caller,document,origins,0);
-        var report=new EditorReportAdapter(json).convert(workspace,document,revision,detail.summary().title(),detail.content(),clock.instant(),
+        var report=new EditorReportAdapter(json).convert(workspace,document,revision,detail.summary().title(),citationStyle,detail.content(),clock.instant(),
             new WorkspaceExportReferences(workspace,caller,sources,executions,solutions,problems),origins);
         // Reject malformed or impractically wide tables before creating a durable job.
         validateTables(report.blocks());
         if (json.writeValueAsString(report).getBytes(StandardCharsets.UTF_8).length>24*1024*1024)
             throw new dev.researchhub.shared.error.PayloadTooLargeException("Export snapshot exceeds 24 MiB");
         Instant now=clock.instant();
-        var job=new ExportJob(UUID.randomUUID(),workspace,document,caller,revision,format,ExportJob.Status.QUEUED,
+        var job=new ExportJob(UUID.randomUUID(),workspace,document,caller,revision,format,citationStyle,ExportJob.Status.QUEUED,
             ExportFilename.of(report.title(),format),report.warnings(),now,null,null,now.plus(retention),null,null,0);
         return store.enqueue(job,report);
     }

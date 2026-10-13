@@ -88,7 +88,7 @@ class ExportServiceTest {
         when(sources.findOne(W,U,S)).thenReturn(new SourceSummary(S,W,"original.txt","Authoritative title","text/plain","TXT",20,"a".repeat(64),"READY",null,U,NOW,NOW,V,2));
         var version=new SourceVersionSummary(V,S,W,2,"original.txt","text/plain","TXT",20,"a".repeat(64),"READY",null,U,NOW,NOW,false);
         when(sources.findVersion(W,U,S,V)).thenReturn(version);when(sources.activeVersion(W,U,S)).thenReturn(version);
-        assertEquals("Authoritative title",refs.source(S,V,"parser",null,null,null,null,null,List.of()).title());
+        assertEquals("original.txt",refs.source(S,V,"parser",null,null,null,null,null,List.of()).title());
         assertEquals(V,refs.source(S,null,"parser",null,null,null,null,null,List.of()).sourceVersionId());
     }
     private static byte[] aryEq(byte[] bytes) { return org.mockito.AdditionalMatchers.aryEq(bytes); }

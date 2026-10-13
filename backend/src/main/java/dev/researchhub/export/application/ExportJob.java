@@ -1,15 +1,23 @@
 package dev.researchhub.export.application;
 
 import dev.researchhub.export.domain.ExportFormat;
+import dev.researchhub.export.domain.CitationStyle;
 import dev.researchhub.export.domain.Report;
 import java.time.Instant;
 import java.util.*;
 
 public record ExportJob(UUID id,UUID workspaceId,UUID documentId,UUID requestedBy,long revision,
-                        ExportFormat format,Status status,String filename,List<String> warnings,
+                        ExportFormat format,CitationStyle citationStyle,Status status,String filename,List<String> warnings,
                         Instant createdAt,Instant startedAt,Instant finishedAt,Instant expiresAt,
                         String failureCode,String sha256,long sizeBytes) {
     public ExportJob { warnings=List.copyOf(warnings); }
+    public ExportJob(UUID id,UUID workspaceId,UUID documentId,UUID requestedBy,long revision,
+                     ExportFormat format,Status status,String filename,List<String> warnings,
+                     Instant createdAt,Instant startedAt,Instant finishedAt,Instant expiresAt,
+                     String failureCode,String sha256,long sizeBytes) {
+        this(id,workspaceId,documentId,requestedBy,revision,format,CitationStyle.IEEE,status,filename,warnings,
+                createdAt,startedAt,finishedAt,expiresAt,failureCode,sha256,sizeBytes);
+    }
     public enum Status { QUEUED, RUNNING, SUCCEEDED, FAILED, EXPIRED }
     public record Claimed(ExportJob job,Report report) {}
     public record Download(ExportJob job,byte[] bytes) {}

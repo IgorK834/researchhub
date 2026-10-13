@@ -16,6 +16,7 @@ const base: ExportJob = {
   requestedBy: 'u',
   revision: 3,
   format: 'DOCX',
+  citationStyle: 'APA_7',
   status: 'QUEUED',
   filename: 'report.docx',
   warnings: [],
@@ -81,7 +82,9 @@ it.each(['PDF', 'LATEX'] as const)(
     );
     if (format === 'LATEX') expect(screen.getByText(/Extract the ZIP/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Generate export' }));
-    await waitFor(() => expect(createExport).toHaveBeenCalledWith('w', 'd', format, 3));
+    await waitFor(() =>
+      expect(createExport).toHaveBeenCalledWith('w', 'd', format, 'APA_7', 3),
+    );
     await waitFor(() =>
       expect(screen.getByText(new RegExp(`Preparing ${label}`))).toBeTruthy(),
     );
@@ -103,6 +106,15 @@ it.each(['PDF', 'LATEX'] as const)(
     expect(screen.getByRole('button', { name: `Download ${label}` })).toBeTruthy();
   },
 );
+it('submits the selected IEEE citation style', async () => {
+  show();
+  open();
+  fireEvent.click(screen.getByRole('radio', { name: /IEEE/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Generate export' }));
+  await waitFor(() =>
+    expect(createExport).toHaveBeenCalledWith('w', 'd', 'DOCX', 'IEEE', 3),
+  );
+});
 it.each(['FAILED', 'EXPIRED'] as const)(
   'shows %s and allows regeneration',
   async (status) => {

@@ -38,7 +38,7 @@ class LatexReportRenderingTest {
         var report = rich();
         byte[] bytes = render(report);
         var files = unzip(bytes);
-        assertEquals(Set.of("report.tex", "README.txt", "report.json", "images/figure-001.png"), files.keySet());
+        assertEquals(Set.of("report.tex", "report.bib", "README.txt", "report.json", "images/figure-001.png"), files.keySet());
         assertArrayEquals(png(), files.get("images/figure-001.png"));
         assertEquals(report, JSON.readValue(files.get("report.json"), Report.class));
         assertArrayEquals(bytes, render(report));
@@ -46,9 +46,9 @@ class LatexReportRenderingTest {
         assertTrue(tex.contains("Zażółć gęślą jaźń"));
         assertTrue(tex.contains("\\includegraphics[width=\\linewidth,height=0.72\\textheight,keepaspectratio]{images/figure-001.png}"));
         assertTrue(tex.contains("Figure 1. Impedance"));
-        assertTrue(tex.contains("[1, p. 3-4]"));
+        assertTrue(tex.contains("[1, p. 3–4]"));
         assertTrue(tex.contains("\\section*{References}"));
-        assertTrue(tex.contains(V.toString()));
+        assertTrue(new String(files.get("report.bib"),StandardCharsets.UTF_8).contains("@misc{rh-"+S));
         assertTrue(tex.contains("code SHA-256: " + "d".repeat(64)));
         assertTrue(tex.contains("\\begin{enumerate}[start=3]"));
         assertEquals("application/zip", ExportFormat.LATEX.mediaType());

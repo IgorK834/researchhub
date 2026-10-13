@@ -46,7 +46,8 @@ public final class LatexReportRenderer {
         Extract the complete ZIP before editing or compiling.
         report.tex       Editable UTF-8 academic report.
         images/          Embedded, normalized PNG figures; keep their relative paths.
-        report.json      Frozen report schema 1.0/2.0, including full source and analysis provenance.
+        report.bib       BibTeX companion database for reference-manager workflows.
+        report.json      Frozen report schema 1.0/2.0/3.0, including full source and analysis provenance.
 
         Compile locally with a current TeX Live or MiKTeX installation:
           xelatex -no-shell-escape report.tex
@@ -55,23 +56,24 @@ public final class LatexReportRenderer {
         longtable, multirow, enumitem, ulem, and the Latin Modern OpenType fonts.
         ResearchHub generates sources only and does not compile LaTeX in its backend.
 
-        Citations use the same numeric labels as the exported report. Bibliography
-        entries retain immutable source versions. Captions keep the author's text.
+        Citations and references use the selected bundled APA 7 or IEEE style.
+        Bibliography entries retain immutable source versions. Captions keep the author's text.
         Controlled AST equations are editable mathematics. Legacy/oversized notation
         remains literal text with an explicit warning. User text is escaped throughout.
         """;
 
     public byte[] render(Report report) {
-        var writer = new Writer();
+        var bibliography = new CslBibliographyFormatter().format(report);
+        var writer = new Writer(bibliography);
         var tex = new StringBuilder(PREAMBLE);
         tex.append("\\title{").append(escape(report.title())).append("}\n\\begin{document}\n\\maketitle\n");
         tex.append("{\\small Document revision ").append(report.revision()).append("; captured at ")
             .append(escape(report.capturedAt().toString())).append(".}\\par\n");
         writer.blocks(tex, report.blocks(), false);
-        if (!report.bibliography().isEmpty()) {
+        if (!bibliography.entries().isEmpty()) {
             tex.append("\\section*{References}\n");
-            for (var entry : report.bibliography()) tex.append("{\\raggedright ")
-                .append(escape(ReportText.bibliography(entry))).append("\\par}\n");
+            for (var entry : bibliography.entries()) tex.append("{\\raggedright ")
+                .append(escape(entry)).append("\\par}\n");
         }
         if (!report.warnings().isEmpty()) {
             tex.append("\\section*{Export notes}\n\\begin{itemize}\n");
@@ -81,6 +83,7 @@ public final class LatexReportRenderer {
         tex.append("\\end{document}\n");
         try (var bytes = new ByteArrayOutputStream(); var zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
             add(zip, "report.tex", tex.toString().getBytes(StandardCharsets.UTF_8));
+            add(zip, "report.bib", new BibtexExporter().render(report).getBytes(StandardCharsets.UTF_8));
             add(zip, "README.txt", README.getBytes(StandardCharsets.UTF_8));
             add(zip, "report.json", json.writeValueAsBytes(report));
             for (var asset : writer.assets.entrySet()) add(zip, asset.getKey(), asset.getValue());
@@ -123,8 +126,10 @@ public final class LatexReportRenderer {
     }
 
     private static final class Writer {
+        private final FormattedBibliography bibliography;
         private final Map<String, byte[]> assets = new LinkedHashMap<>();
         private final Map<String, String> imageNames = new HashMap<>();
+        Writer(FormattedBibliography bibliography) { this.bibliography=bibliography; }
 
         void blocks(StringBuilder out, List<Block> blocks, boolean insideCell) {
             for (var block : blocks) {
@@ -190,10 +195,10 @@ public final class LatexReportRenderer {
             }
         }
 
-        private static String inlines(List<Inline> content) {
+        private String inlines(List<Inline> content) {
             var out = new StringBuilder();
             for (var inline : content) {
-                if (inline instanceof Citation citation) { out.append(escape(ReportText.citation(citation))); continue; }
+                if (inline instanceof Citation citation) { out.append(escape(bibliography.inline(citation))); continue; }
                 if(inline instanceof InlineMath math) {
                     if(math.math().warning()==null)out.append("\\(").append(dev.researchhub.export.application.ReportMath.tex(math.math().ast())).append("\\)");
                     else out.append(escape(math.math().warning()+" "+math.math().accessibleText()+"; source: "+math.math().source()));
