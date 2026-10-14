@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../../../shared/components/Button';
@@ -31,6 +32,7 @@ function WorkspaceSearchSession({
   readonly workspaceId?: string;
   readonly compact: boolean;
 }): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   const [beside, setBeside] = useState<WorkspaceSearchResult | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -63,11 +65,11 @@ function WorkspaceSearchSession({
         icon="search"
         className={styles.trigger}
         disabled={!workspaceId}
-        aria-label="Search workspace (Cmd or Ctrl K)"
+        aria-label={uiText('ui.WorkspaceCommandSearch.message001')}
         title={
           workspaceId
-            ? 'Search workspace (Cmd or Ctrl K)'
-            : 'Choose a workspace to search'
+            ? uiText('ui.WorkspaceCommandSearch.message001')
+            : uiText('ui.WorkspaceCommandSearch.message002')
         }
         onClick={(event) => {
           returnFocus.current = event.currentTarget;
@@ -76,7 +78,8 @@ function WorkspaceSearchSession({
       >
         {compact ? null : (
           <>
-            Search <Keycap>Cmd/Ctrl K</Keycap>
+            {uiText('ui.WorkspaceCommandSearch.message003')}
+            <Keycap>{uiText('ui.WorkspaceCommandSearch.message004')}</Keycap>
           </>
         )}
       </Button>
@@ -96,23 +99,23 @@ function WorkspaceSearchSession({
         <SlideOver
           open
           title={beside.title}
-          description="Search result · opened beside your current page"
+          description={uiText('ui.WorkspaceCommandSearch.message005')}
           onClose={() => setBeside(null)}
           returnFocusRef={returnFocus}
         >
           <p>{beside.snippet}</p>
-          <p>Version: {beside.sourceVersion ?? 'not versioned'}</p>
           <p>
-            This is a search preview, not citation evidence. Open the page to inspect the
-            object.
+            {uiText('ui.WorkspaceCommandSearch.message006')}{' '}
+            {beside.sourceVersion ?? uiText('ui.WorkspaceCommandSearch.message007')}
           </p>
+          <p>{uiText('ui.WorkspaceCommandSearch.message008')}</p>
           <Button
             onClick={() => {
               setBeside(null);
               void navigate(beside.location);
             }}
           >
-            Open page
+            {uiText('ui.GroundedAnswer.message006')}
           </Button>
         </SlideOver>
       ) : null}

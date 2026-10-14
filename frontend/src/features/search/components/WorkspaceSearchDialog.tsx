@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import {
   useEffect,
   useId,
@@ -22,11 +24,21 @@ import styles from './WorkspaceSearch.module.css';
 
 const TYPES = ['DOCUMENT', 'SOURCE', 'CONVERSATION', 'COMMENT', 'ANALYSIS'] as const;
 const labels: Record<WorkspaceSearchType, string> = {
-  DOCUMENT: 'Document',
-  SOURCE: 'Source',
-  CONVERSATION: 'Conversation',
-  COMMENT: 'Comment',
-  ANALYSIS: 'Analysis',
+  get DOCUMENT() {
+    return uiText('ui.InsertAnalysisResult.message004');
+  },
+  get SOURCE() {
+    return uiText('ui.AiDraftBlock.message007');
+  },
+  get CONVERSATION() {
+    return uiText('ui.ResearchPanel.message010');
+  },
+  get COMMENT() {
+    return uiText('ui.DocumentComments.message015');
+  },
+  get ANALYSIS() {
+    return uiText('ui.AnalysisOutputPicker.message003');
+  },
 };
 const icons: Record<WorkspaceSearchType, IconName> = {
   DOCUMENT: 'file',
@@ -71,6 +83,7 @@ export function WorkspaceSearchDialog({
   readonly onClose: () => void;
   readonly onOpen: (path: string, beside?: WorkspaceSearchResult) => void;
 }): ReactElement {
+  useUiLocale();
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
   const [type, setType] = useState<WorkspaceSearchType | 'ALL'>('ALL');
@@ -114,8 +127,8 @@ export function WorkspaceSearchDialog({
   return (
     <Dialog
       open
-      title="Search workspace"
-      description="Documents, sources, conversations, comments, and analyses in this workspace."
+      title={uiText('ui.WorkspaceSearchDialog.message001')}
+      description={uiText('ui.WorkspaceSearchDialog.message002')}
       onClose={onClose}
       initialFocusRef={inputRef}
       returnFocusRef={returnFocusRef}
@@ -123,10 +136,30 @@ export function WorkspaceSearchDialog({
       footer={
         <KeyboardHintBar
           hints={[
-            { keys: ['↑', '↓'], label: 'move' },
-            { keys: ['Enter'], label: 'open' },
-            { keys: ['Cmd/Ctrl', 'Enter'], label: 'preview beside' },
-            { keys: ['Esc'], label: 'close' },
+            {
+              keys: ['↑', '↓'],
+              get label() {
+                return uiText('ui.WorkspaceSearchDialog.message003');
+              },
+            },
+            {
+              keys: ['Enter'],
+              get label() {
+                return uiText('search.openHint');
+              },
+            },
+            {
+              keys: ['Cmd/Ctrl', 'Enter'],
+              get label() {
+                return uiText('ui.WorkspaceSearchDialog.message004');
+              },
+            },
+            {
+              keys: ['Esc'],
+              get label() {
+                return uiText('ui.WorkspaceSearchDialog.message005');
+              },
+            },
           ]}
         />
       }
@@ -158,20 +191,20 @@ export function WorkspaceSearchDialog({
             <input
               ref={inputRef}
               role="combobox"
-              aria-label="Search workspace"
+              aria-label={uiText('ui.WorkspaceSearchDialog.message001')}
               aria-expanded={results.length > 0}
               aria-controls={`${id}-results`}
               aria-activedescendant={
                 active ? `${id}-result-${String(selected)}` : undefined
               }
               maxLength={200}
-              placeholder="Search research work…"
+              placeholder={uiText('ui.WorkspaceSearchDialog.message006')}
               value={input}
               onChange={(event) => setInput(event.target.value)}
             />
           </div>
           <Select
-            label="Result type"
+            label={uiText('ui.WorkspaceSearchDialog.message007')}
             value={type}
             onChange={(event) => {
               setCursor(undefined);
@@ -179,7 +212,7 @@ export function WorkspaceSearchDialog({
               setType(event.target.value as WorkspaceSearchType | 'ALL');
             }}
           >
-            <option value="ALL">All types</option>
+            <option value="ALL">{uiText('ui.WorkspaceSearchDialog.message008')}</option>
             {TYPES.map((value) => (
               <option key={value} value={value}>
                 {labels[value]}
@@ -189,23 +222,23 @@ export function WorkspaceSearchDialog({
         </div>
         <p role="status" aria-live="polite">
           {searching
-            ? 'Searching this workspace…'
+            ? uiText('ui.WorkspaceSearchDialog.message009')
             : query && !search.error
-              ? `${String(results.length)} ${results.length === 1 ? 'result' : 'results'}`
-              : 'Enter a phrase to search this workspace.'}
+              ? uiText('counts.results', { count: results.length })
+              : uiText('ui.WorkspaceSearchDialog.message012')}
         </p>
         {search.error && !settling ? (
           <p role="alert">
-            Could not search this workspace: {describeError(search.error)}
+            {uiText('ui.WorkspaceSearchDialog.message013')} {describeError(search.error)}
           </p>
         ) : null}
         {query && !searching && !search.error && results.length === 0 ? (
           <EmptyState
             size="compact"
             tone="blue"
-            title={`Nothing matches “${query}”`}
-            description="Try fewer words or a different result type."
-            context="Workspace search · no results"
+            title={uiText('ui.WorkspaceSearchDialog.message014', { value0: query })}
+            description={uiText('ui.WorkspaceSearchDialog.message015')}
+            context={uiText('ui.WorkspaceSearchDialog.message016')}
           />
         ) : null}
         <div ref={listRef} role="listbox" id={`${id}-results`} className={styles.results}>
@@ -228,10 +261,14 @@ export function WorkspaceSearchDialog({
                   <MatchedText text={result.snippet} query={query} />
                 </p>
                 <small>
-                  {result.sourceVersion ? `Version ${result.sourceVersion} · ` : ''}
-                  {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
-                    new Date(result.updatedAt),
-                  )}
+                  {result.sourceVersion
+                    ? uiText('ui.WorkspaceSearchDialog.message017', {
+                        value0: result.sourceVersion,
+                      }) + ' '
+                    : ''}
+                  {new Intl.DateTimeFormat(getIntlLocale(), {
+                    dateStyle: 'medium',
+                  }).format(new Date(result.updatedAt))}
                 </small>
               </div>
             </div>
@@ -246,7 +283,7 @@ export function WorkspaceSearchDialog({
               setSelected(0);
             }}
           >
-            Next results
+            {uiText('ui.WorkspaceSearchDialog.message018')}
           </Button>
         ) : null}
       </div>
