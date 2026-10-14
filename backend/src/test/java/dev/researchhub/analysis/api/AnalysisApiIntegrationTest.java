@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
-@TestPropertySource(properties={"researchhub.sources.storage.adapter=in-memory","researchhub.processing.dispatcher.enabled=false","researchhub.analysis.execution.dispatcher.enabled=false"})
+@TestPropertySource(properties={"researchhub.sources.storage.adapter=in-memory","researchhub.processing.dispatcher.enabled=false","researchhub.analysis.execution.dispatcher.enabled=false","researchhub.notifications.dispatcher.enabled=false"})
 @Import({PostgresTestcontainersConfiguration.class,AnalysisApiIntegrationTest.Configuration.class})
 class AnalysisApiIntegrationTest {
     @TestConfiguration(proxyBeanMethods=false) static class Configuration {
@@ -331,7 +331,12 @@ class AnalysisApiIntegrationTest {
         var before=owner.json(owner.get(path+"/"+id+"/executions/"+execution));
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
-        // Remove V49/V50 projections and their triggers before reverting columns they depend on.
+        // Remove newer projections and their triggers before reverting columns they depend on.
+        jdbc.execute("DROP VIEW visible_notifications");
+        jdbc.execute("DROP TRIGGER product_notification_outbox ON product_audit_events");
+        jdbc.execute("DROP TRIGGER revoke_product_projections ON workspace_members");
+        jdbc.execute("DROP FUNCTION enqueue_product_notification(),revoke_product_projections(),review_target_exists(uuid,text,uuid,uuid,integer)");
+        jdbc.execute("DROP TABLE notifications,notification_outbox,notification_preferences,review_tasks");
         jdbc.execute("DROP TABLE document_template_creations");
         jdbc.execute("ALTER TABLE ai_messages DROP COLUMN answer_language");
         jdbc.execute("DROP FUNCTION research_search_json_text(jsonb),refresh_document_search(uuid,uuid),document_search_trigger(),refresh_source_search(uuid,uuid),source_search_trigger(),extraction_search_trigger(),refresh_conversation_search(uuid,uuid),conversation_search_trigger(),message_search_trigger(),refresh_comment_search(uuid,uuid),comment_search_trigger(),reply_search_trigger(),refresh_analysis_search(uuid,uuid),analysis_search_trigger(),execution_search_trigger() CASCADE");
