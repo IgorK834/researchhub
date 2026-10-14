@@ -1,0 +1,25 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.list {
+  list-style: none;
+  padding: 0;
+}
+.list li {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+}
+.list [data-unread='true'] {
+  border-inline-start: 3px solid var(--color-brand-blue-ink);
+}
+.preference {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
