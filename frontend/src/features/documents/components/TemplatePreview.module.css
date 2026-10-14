@@ -1,0 +1,19 @@
+.preview {
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+.structure {
+  max-height: 28vh;
+  overflow: auto;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+}
+.structure h3 {
+  font-size: var(--type-label-size);
+  margin: var(--space-3) 0 var(--space-1);
+}
+.structure p {
+  font-size: var(--type-label-size);
+  color: var(--color-text-secondary);
+}
