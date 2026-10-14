@@ -28,8 +28,11 @@ public class AccountExportService {
         limiter.admit(caller.toString(),SecurityOperationLimiter.Operation.ACCOUNT_EXPORT);
         var records=new TreeMap<String,List<JsonNode>>();
         var reader=new Reader(caller);
-        for(var entry:PersonalDataInventory.CONTRIBUTIONS.entrySet())
-            records.put(entry.getKey(),reader.rows(entry.getKey(),entry.getValue()+"=?",caller,entry.getKey().equals("report_exports") ? "ARRAY['content']" : "ARRAY[]::text[]"));
+        for(var entry:PersonalDataInventory.CONTRIBUTIONS.entrySet()) {
+            if(entry.getKey().equals("review_tasks")) records.put(entry.getKey(),reader.rows(entry.getKey(),"created_by=? OR assignee=?",new Object[]{caller,caller},"ARRAY[]::text[]"));
+            else records.put(entry.getKey(),reader.rows(entry.getKey(),entry.getValue()+"=?",caller,entry.getKey().equals("report_exports") ? "ARRAY['content']" : "ARRAY[]::text[]"));
+        }
+        for(String table:List.of("notifications","notification_preferences"))records.put(table,reader.rows(table,"user_id=?",caller,"ARRAY[]::text[]"));
         records.put("workspace_members",reader.rows("workspace_members","user_id=?",caller,"ARRAY[]::text[]"));
         records.put("workspaces",reader.rows("workspaces","created_by=?",caller,"ARRAY[]::text[]"));
         records.put("document_versions",reader.rows("document_versions","created_by=?",caller,"ARRAY['yjs_state']"));
@@ -58,7 +61,7 @@ public class AccountExportService {
         private List<JsonNode> rows(String table,String predicate,Object[] parameters,String excluded) {
             var bound=new ArrayList<>(Arrays.asList(parameters));
             // Exporting one's identity does not grant access to collaborators' retained research.
-            if(PersonalDataInventory.CONTRIBUTIONS.containsKey(table) || Set.of("document_content_operations","comment_audit_events","product_audit_events","source_version_extractions","source_extractions","analysis_inputs","analysis_plan_attempts","analysis_origins","analysis_execution_records","analysis_execution_artifacts","canvas_proposals","bibliography_import_records").contains(table)) {
+            if(PersonalDataInventory.CONTRIBUTIONS.containsKey(table) || Set.of("notifications","notification_preferences","document_content_operations","comment_audit_events","product_audit_events","source_version_extractions","source_extractions","analysis_inputs","analysis_plan_attempts","analysis_origins","analysis_execution_records","analysis_execution_artifacts","canvas_proposals","bibliography_import_records").contains(table)) {
                 predicate="("+predicate+") AND workspace_id IN (SELECT m.workspace_id FROM workspace_members m JOIN workspaces w ON w.id=m.workspace_id WHERE m.user_id=? AND w.erasure_requested_at IS NULL)";
                 bound.add(caller);
             } else if(table.equals("document_versions")) {

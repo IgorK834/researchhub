@@ -27,6 +27,7 @@ class AccountDataApiIntegrationTest {
   @Bean @Primary ErasureLedger erasureLedger(){return org.mockito.Mockito.mock(ErasureLedger.class);}
  }
  @Value("${local.server.port}") int port;
+ @Autowired dev.researchhub.notification.application.NotificationDispatcher notifications;
  @Autowired JdbcTemplate jdbc; @Autowired ObjectMapper json; @Autowired AccountErasureService erasure; @Autowired InMemorySourceStorage storage; @Autowired ErasureLedger ledger; @Autowired UserLookupService lookup;
  ApiBrowser owner,other; UUID caller,workspace; String root;
  static final String EMAIL="rh338-private-883@example.test",NAME="RH338 Private Identity 883",PASSWORD="correct-horse-battery-staple";
@@ -47,6 +48,12 @@ class AccountDataApiIntegrationTest {
   jdbc.update("UPDATE processing_jobs SET status='CANCELLED',finished_at=now(),next_attempt_at=NULL WHERE resource_id=?",UUID.fromString(source));
   var replacement=owner.postFile(root+"/sources/"+source+"/versions",EMAIL+".txt","text/plain",(EMAIL+" "+NAME+" replacement").getBytes(StandardCharsets.UTF_8));assertEquals(201,replacement.statusCode(),replacement.body());
   var document=owner.postJson(root+"/documents",json.writeValueAsString(Map.of("title",NAME,"content",Map.of("type","doc","content",List.of(Map.of("type","paragraph","content",List.of(Map.of("type","text","text",EMAIL+" "+NAME))))))));assertEquals(201,document.statusCode(),document.body());
+  UUID documentId=UUID.fromString(owner.json(document).path("id").asString());
+  jdbc.update("INSERT INTO review_tasks(id,workspace_id,title,description,target_type,target_id,assignee,status,revision,created_by,created_at,updated_at) VALUES(?,?,?,?,'DOCUMENT',?,?,'OPEN',1,?,now(),now())",
+      UUID.randomUUID(),workspace,NAME,EMAIL,documentId,caller,caller);
+  assertEquals(204,owner.sendWithMethod("PUT","/api/notifications/preferences/"+workspace,"{\"type\":\"MENTION\",\"muted\":true}").statusCode());
+  jdbc.update("INSERT INTO product_audit_events(id,workspace_id,event_type,resource_type,resource_id,metadata,created_at) VALUES(?,?,'MEMBER_ROLE_CHANGED','MEMBER',?,'{}',now())",UUID.randomUUID(),workspace,caller);
+  notifications.dispatchAvailable();assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM notifications WHERE user_id=?",Integer.class,caller));
   String hash=jdbc.queryForObject("SELECT password_hash FROM users WHERE id=?",String.class,caller);
   jdbc.update("INSERT INTO account_lifecycle_token VALUES (?,?, 'RESET',?,now()+interval '1 hour',NULL,now())",UUID.randomUUID(),EMAIL,"a".repeat(64));
   jdbc.update("INSERT INTO workspace_invitation VALUES (?,?,?,'VIEWER',?,?,now()+interval '1 hour',NULL,NULL,now())",UUID.randomUUID(),workspace,EMAIL,"b".repeat(64),caller);
