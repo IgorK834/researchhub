@@ -18,7 +18,7 @@ public class ProductAudit {
     public enum Type {
         INVITATION_CREATED, INVITATION_ACCEPTED, INVITATION_REVOKED, WORKSPACE_CREATED, MEMBER_ADDED, MEMBER_ROLE_CHANGED, MEMBER_REMOVED,
         SOURCE_UPLOADED, SOURCE_REPROCESSED, DOCUMENT_CREATED, AI_EVIDENCE_REQUESTED,
-        AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED, CANVAS_STAGE_COMPLETED, AUDIT_EXPORTED
+        AI_SUGGESTION_ACCEPTED, ANALYSIS_EXECUTED, ANALYSIS_BLOCK_INSERTED, CANVAS_STAGE_COMPLETED, AUDIT_EXPORTED, COMMENT_CREATED, COMMENT_REPLIED, COMMENT_EDITED, REVIEW_TASK_CREATED, REVIEW_TASK_CHANGED
     }
     public record Event(UUID id, UUID workspaceId, UUID actorUserId, Type eventType,
                         String resourceType, UUID resourceId, Map<String, Object> metadata, Instant createdAt) {}
@@ -89,6 +89,16 @@ public class ProductAudit {
             append(workspace, actor, Type.ANALYSIS_BLOCK_INSERTED, "DOCUMENT", document,
                     Map.of("revision", revision, "blockId", block.id(), "analysisId", block.analysis(), "executionId", block.execution()));
         }
+    }
+    public void comment(UUID workspace, UUID actor, UUID comment, UUID document, UUID reply, long revision, Type type, List<UUID> mentions) {
+        if(!Set.of(Type.COMMENT_CREATED,Type.COMMENT_REPLIED,Type.COMMENT_EDITED).contains(type))throw new IllegalArgumentException("Invalid comment event");
+        var metadata=new HashMap<String,Object>();metadata.put("documentId",document);metadata.put("revision",revision);
+        metadata.put("mentions",List.copyOf(mentions));if(reply!=null)metadata.put("replyId",reply);
+        append(workspace,actor,type,"COMMENT",comment,metadata);
+    }
+    public void reviewTask(UUID workspace, UUID actor, UUID task, UUID recipient, long revision, boolean created) {
+        var metadata=new HashMap<String,Object>();metadata.put("revision",revision);if(recipient!=null)metadata.put("recipientId",recipient);
+        append(workspace,actor,created ? Type.REVIEW_TASK_CREATED : Type.REVIEW_TASK_CHANGED,"REVIEW_TASK",task,metadata);
     }
     private record Block(UUID id, UUID analysis, UUID execution, String output) {}
     private Set<Block> blocks(String content) {
