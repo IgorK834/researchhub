@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement, type RefObject } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
@@ -27,6 +28,7 @@ export function CreateWorkspaceForm({
   readonly onCreated: () => void;
   readonly initialFocusRef: RefObject<HTMLInputElement | null>;
 }): ReactElement {
+  useUiLocale();
   const { mutate, isPending, error } = useCreateWorkspace();
 
   const [name, setName] = useState('');
@@ -69,7 +71,7 @@ export function CreateWorkspaceForm({
         <TextField
           id="workspace-name"
           name="workspace-name"
-          label="Name"
+          label={uiText('ui.CsvAssetProfile.message013')}
           type="text"
           size="large"
           ref={initialFocusRef}
@@ -82,8 +84,8 @@ export function CreateWorkspaceForm({
         <Textarea
           id="workspace-description"
           name="workspace-description"
-          label="Description"
-          hint="Optional"
+          label={uiText('ui.CreateWorkspaceForm.message001')}
+          hint={uiText('ui.CreateWorkspaceForm.message002')}
           value={description}
           error={descriptionError}
           onChange={(event) => setDescription(event.target.value)}
@@ -91,24 +93,29 @@ export function CreateWorkspaceForm({
 
         <div className={styles.formActions}>
           <Button type="button" variant="secondary" size="large" onClick={onCancel}>
-            Cancel
+            {uiText('ui.InsertAnalysisResult.message019')}
           </Button>
           <Button
             type="submit"
             size="large"
             busy={isPending}
-            busyLabel="Creating…"
-            aria-label={isPending ? 'Creating…' : undefined}
+            busyLabel={uiText('ui.CreateWorkspaceForm.message003')}
+            aria-label={
+              isPending ? uiText('ui.CreateWorkspaceForm.message003') : undefined
+            }
           >
-            Create workspace
+            {uiText('ui.CreateWorkspaceDialog.message001')}
           </Button>
         </div>
       </form>
-      <aside className={styles.preview} aria-label="Workspace preview">
-        <p className={styles.previewLabel}>Preview</p>
+      <aside
+        className={styles.preview}
+        aria-label={uiText('ui.CreateWorkspaceForm.message004')}
+      >
+        <p className={styles.previewLabel}>{uiText('ui.DocumentHistory.message022')}</p>
         <WorkspaceCard preview name={name} description={description} />
         <p className={styles.previewHelp}>
-          You&apos;ll add sources and invite people next.
+          {uiText('ui.CreateWorkspaceForm.message005')}
         </p>
       </aside>
     </div>

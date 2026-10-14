@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useId, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -16,9 +18,12 @@ type WorkspaceCardProps =
 
 /** The preview uses the same card chrome, without inventing stored accent, counts or people. */
 export function WorkspaceCard(props: WorkspaceCardProps): ReactElement {
+  useUiLocale();
   const id = useId();
   const preview = props.preview === true;
-  const name = preview ? props.name.trim() || 'Workspace name' : props.workspace.name;
+  const name = preview
+    ? props.name.trim() || uiText('ui.WorkspaceCard.message001')
+    : props.workspace.name;
   const description = preview ? props.description.trim() : props.workspace.description;
   return (
     <Card className={styles.workspaceCard} role="article" aria-labelledby={id}>
@@ -32,14 +37,14 @@ export function WorkspaceCard(props: WorkspaceCardProps): ReactElement {
       {description ? <p className={styles.description}>{description}</p> : null}
       <div className={styles.cardFooter}>
         <div className={styles.role}>
-          {preview ? <span>You · </span> : null}
+          {preview ? <span>{uiText('ui.WorkspaceCard.message002')} </span> : null}
           <RoleBadge role={preview ? 'OWNER' : props.workspace.role} />
         </div>
         {preview ? null : (
           <span className={styles.updated}>
-            Updated{' '}
+            {uiText('ui.DocumentList.message019')}{' '}
             <time dateTime={props.workspace.updatedAt}>
-              {new Intl.DateTimeFormat(undefined, {
+              {new Intl.DateTimeFormat(getIntlLocale(), {
                 dateStyle: 'medium',
                 timeStyle: 'short',
               }).format(new Date(props.workspace.updatedAt))}

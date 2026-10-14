@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useRef, useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,6 +19,7 @@ export function ArchiveWorkspaceButton({
   readonly workspaceId: string;
   readonly workspaceName: string;
 }): ReactElement {
+  useUiLocale();
   const navigate = useNavigate();
   const { mutate, isPending, error, reset } = useArchiveWorkspace(workspaceId);
   const [confirming, setConfirming] = useState(false);
@@ -26,13 +28,16 @@ export function ArchiveWorkspaceButton({
   return (
     <Card className={styles.archiveCard}>
       <div className={styles.archiveHeader}>
-        <h2 id="archive-workspace-heading">Archive workspace</h2>
-        <Badge label="Owner only" icon="lock" tone="ink" />
+        <h2 id="archive-workspace-heading">
+          {uiText('ui.ArchiveWorkspaceButton.message001')}
+        </h2>
+        <Badge
+          label={uiText('ui.ArchiveWorkspaceButton.message002')}
+          icon="lock"
+          tone="ink"
+        />
       </div>
-      <p>
-        Removes this workspace from everyone&apos;s active workspace list. Members keep
-        their access through its link. Nothing is deleted.
-      </p>
+      <p>{uiText('ui.ArchiveWorkspaceButton.message003')}</p>
       <Button
         ref={trigger}
         variant="danger-soft"
@@ -42,12 +47,12 @@ export function ArchiveWorkspaceButton({
           setConfirming(true);
         }}
       >
-        Archive workspace
+        {uiText('ui.ArchiveWorkspaceButton.message001')}
       </Button>
       <Dialog
         open={confirming}
-        title={`Archive ${workspaceName}?`}
-        description="Archiving removes this workspace from the active workspace list."
+        title={uiText('ui.ArchiveWorkspaceButton.message004', { value0: workspaceName })}
+        description={uiText('ui.ArchiveWorkspaceButton.message005')}
         initialFocusRef={cancel}
         returnFocusRef={trigger}
         dismissible={!isPending}
@@ -61,13 +66,15 @@ export function ArchiveWorkspaceButton({
               disabled={isPending}
               onClick={() => setConfirming(false)}
             >
-              Cancel
+              {uiText('ui.InsertAnalysisResult.message019')}
             </Button>
             <Button
               icon="archive"
               busy={isPending}
-              busyLabel="Archiving…"
-              aria-label={isPending ? 'Archiving…' : undefined}
+              busyLabel={uiText('ui.DocumentEditorForm.message020')}
+              aria-label={
+                isPending ? uiText('ui.DocumentEditorForm.message020') : undefined
+              }
               onClick={() => {
                 mutate(undefined, {
                   onSuccess: () => {
@@ -77,15 +84,14 @@ export function ArchiveWorkspaceButton({
                 });
               }}
             >
-              Archive workspace
+              {uiText('ui.ArchiveWorkspaceButton.message001')}
             </Button>
           </>
         }
       >
         <Card className={styles.retainedNotice}>
-          <strong>No files or documents will be deleted.</strong> Sources and every
-          document version are retained. Members keep their access, and the workspace
-          remains readable through its link. Its content can no longer be changed.
+          <strong>{uiText('ui.ArchiveWorkspaceButton.message006')}</strong>{' '}
+          {uiText('ui.ArchiveWorkspaceButton.message007')}
         </Card>
         {error !== null ? <Banner tone="error" lead={describeError(error)} /> : null}
       </Dialog>

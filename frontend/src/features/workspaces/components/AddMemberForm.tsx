@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
@@ -27,6 +28,7 @@ interface AddMemberFormProps {
  * Rendered only for an owner of an active workspace. The server enforces both conditions anyway.
  */
 export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement {
+  useUiLocale();
   const { mutate, isPending, error } = useAddWorkspaceMember(workspaceId);
 
   const [email, setEmail] = useState('');
@@ -56,7 +58,7 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
 
   return (
     <div id="add-member-heading">
-      <Panel title="Add a member">
+      <Panel title={uiText('ui.AddMemberForm.message001')}>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -69,7 +71,7 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
           <TextField
             id="add-member-email"
             name="add-member-email"
-            label="Email"
+            label={uiText('ui.PasswordRecovery.message007')}
             type="email"
             autoComplete="off"
             value={email}
@@ -81,14 +83,26 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
           <ChoiceCards<'EDITOR' | 'VIEWER'>
             id="add-member-role"
             name="add-member-role"
-            label="Role"
+            label={uiText('ui.AddMemberForm.message002')}
             value={role}
             error={roleError}
             onChange={setRole}
             disabled={isPending}
             options={[
-              { value: 'EDITOR', label: 'Editor', icon: 'pencil' },
-              { value: 'VIEWER', label: 'Viewer', icon: 'eye' },
+              {
+                value: 'EDITOR',
+                get label() {
+                  return uiText('ui.AddMemberForm.message003');
+                },
+                icon: 'pencil',
+              },
+              {
+                value: 'VIEWER',
+                get label() {
+                  return uiText('ui.AddMemberForm.message004');
+                },
+                icon: 'eye',
+              },
             ]}
           />
 
@@ -96,14 +110,14 @@ export function AddMemberForm({ workspaceId }: AddMemberFormProps): ReactElement
             type="submit"
             className={styles.addButton}
             busy={isPending}
-            busyLabel="Adding…"
-            aria-label={isPending ? 'Adding…' : undefined}
+            busyLabel={uiText('ui.AddMemberForm.message005')}
+            aria-label={isPending ? uiText('ui.AddMemberForm.message005') : undefined}
           >
-            Add member
+            {uiText('ui.AddMemberForm.message006')}
           </Button>
         </form>
 
-        <p>Only people who already have a ResearchHub account can be added.</p>
+        <p>{uiText('ui.AddMemberForm.message007')}</p>
       </Panel>
     </div>
   );

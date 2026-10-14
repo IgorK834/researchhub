@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 
 import { describeError, fieldErrorsByName } from '../../../shared/api';
@@ -28,6 +29,7 @@ export function EditWorkspaceForm({
   workspace,
   readOnly = false,
 }: EditWorkspaceFormProps): ReactElement {
+  useUiLocale();
   const { mutate, isPending, error, reset } = useUpdateWorkspace(workspace.id);
 
   const [name, setName] = useState(workspace.name);
@@ -60,19 +62,18 @@ export function EditWorkspaceForm({
 
   return (
     <div id="edit-workspace-heading">
-      <Panel title="General">
-        <p>Everyone in the workspace sees this name and description.</p>
+      <Panel title={uiText('ui.EditWorkspaceForm.message001')}>
+        <p>{uiText('ui.EditWorkspaceForm.message002')}</p>
         {readOnly ? (
           <>
-            <p>
-              Workspace settings are read-only. Only an owner of an active workspace can
-              change them.
-            </p>
+            <p>{uiText('ui.EditWorkspaceForm.message003')}</p>
             <dl className={styles.readOnly}>
-              <dt>Name</dt>
+              <dt>{uiText('ui.CsvAssetProfile.message013')}</dt>
               <dd>{workspace.name}</dd>
-              <dt>Description</dt>
-              <dd>{workspace.description ?? 'No description.'}</dd>
+              <dt>{uiText('ui.CreateWorkspaceForm.message001')}</dt>
+              <dd>
+                {workspace.description ?? uiText('ui.EditWorkspaceForm.message004')}
+              </dd>
             </dl>
           </>
         ) : (
@@ -84,12 +85,14 @@ export function EditWorkspaceForm({
             noValidate
           >
             {formMessage !== null ? <Banner tone="error" lead={formMessage} /> : null}
-            {saved && error === null ? <p role="status">Changes saved.</p> : null}
+            {saved && error === null ? (
+              <p role="status">{uiText('ui.EditWorkspaceForm.message005')}</p>
+            ) : null}
 
             <TextField
               id="edit-workspace-name"
               name="edit-workspace-name"
-              label="Name"
+              label={uiText('ui.CsvAssetProfile.message013')}
               type="text"
               autoComplete="off"
               value={name}
@@ -104,7 +107,7 @@ export function EditWorkspaceForm({
             <Textarea
               id="edit-workspace-description"
               name="edit-workspace-description"
-              label="Description"
+              label={uiText('ui.CreateWorkspaceForm.message001')}
               value={description}
               disabled={isPending}
               error={descriptionError}
@@ -126,15 +129,17 @@ export function EditWorkspaceForm({
                   reset();
                 }}
               >
-                Discard
+                {uiText('ui.AiDraftBlock.message015')}
               </Button>
               <Button
                 type="submit"
                 busy={isPending}
-                busyLabel="Saving…"
-                aria-label={isPending ? 'Saving…' : undefined}
+                busyLabel={uiText('ui.BibliographyLibrary.message022')}
+                aria-label={
+                  isPending ? uiText('ui.BibliographyLibrary.message022') : undefined
+                }
               >
-                Save changes
+                {uiText('ui.EditWorkspaceForm.message006')}
               </Button>
             </div>
           </form>

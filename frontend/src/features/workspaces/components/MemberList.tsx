@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 
 import { describeError } from '../../../shared/api';
@@ -22,6 +23,7 @@ export function MemberList({
   readonly workspaceId: string;
   readonly canManage: boolean;
 }): ReactElement {
+  useUiLocale();
   const { data: members, error, isPending } = useWorkspaceMembersQuery(workspaceId);
   const changeRole = useChangeWorkspaceMemberRole(workspaceId);
   const removeMember = useRemoveWorkspaceMember(workspaceId);
@@ -40,14 +42,14 @@ export function MemberList({
   }, [removing]);
   return (
     <section ref={sectionRef} tabIndex={-1} aria-labelledby="workspace-members-heading">
-      <h2 id="workspace-members-heading">Workspace members</h2>
+      <h2 id="workspace-members-heading">{uiText('ui.MemberList.message001')}</h2>
       {isPending ? (
         <p role="status" aria-live="polite">
-          Loading members…
+          {uiText('ui.MemberList.message002')}
         </p>
       ) : null}
       {error !== null && !isPending ? (
-        <Banner tone="error" lead="Could not load the members">
+        <Banner tone="error" lead={uiText('ui.MemberList.message013')}>
           {describeError(error)}
         </Banner>
       ) : null}
@@ -56,13 +58,15 @@ export function MemberList({
       ) : null}
       {members !== undefined && error === null ? (
         <DataTable
-          caption="Members"
+          caption={uiText('ui.MemberList.message003')}
           rows={members}
           rowKey={(member) => member.userId}
           columns={[
             {
               id: 'member',
-              header: 'Member',
+              get header() {
+                return uiText('ui.MemberList.message004');
+              },
               rowHeader: true,
               render: (member) => (
                 <div className={styles.member}>
@@ -76,18 +80,24 @@ export function MemberList({
             },
             {
               id: 'role',
-              header: 'Role',
+              get header() {
+                return uiText('ui.AddMemberForm.message002');
+              },
               render: (member) => <RoleBadge role={member.role} />,
             },
             ...(canManage
               ? [
                   {
                     id: 'actions',
-                    header: 'Actions',
+                    get header() {
+                      return uiText('ui.DocumentList.message020');
+                    },
                     render: (member: WorkspaceMember) => (
                       <div className={styles.actions}>
                         <Menu
-                          label={`Role for ${member.displayName}`}
+                          label={uiText('ui.MemberList.message005', {
+                            value0: member.displayName,
+                          })}
                           triggerIcon="sliders"
                           disabled={busy}
                           items={[
@@ -109,7 +119,9 @@ export function MemberList({
                             })),
                             {
                               id: 'OWNER',
-                              label: 'Make owner',
+                              get label() {
+                                return uiText('ui.MemberList.message006');
+                              },
                               icon: 'key',
                               separatorBefore: true,
                               disabled: busy || member.role === 'OWNER',
@@ -127,7 +139,9 @@ export function MemberList({
                           iconOnly
                           icon="x"
                           variant="danger-soft"
-                          aria-label={`Remove ${member.displayName}`}
+                          aria-label={uiText('ui.SourceComparisonPanel.message008', {
+                            value0: member.displayName,
+                          })}
                           disabled={busy}
                           onClick={(event) => {
                             triggerRef.current = event.currentTarget;
@@ -145,7 +159,9 @@ export function MemberList({
       ) : null}
       <Dialog
         open={removing !== null && canManage}
-        title={`Remove ${removing?.displayName ?? 'member'}?`}
+        title={uiText('ui.MemberList.message007', {
+          value0: removing?.displayName ?? uiText('ui.MemberList.message008'),
+        })}
         onClose={() => {
           if (!removeMember.isPending) setRemoving(null);
         }}
@@ -161,12 +177,12 @@ export function MemberList({
               disabled={removeMember.isPending}
               onClick={() => setRemoving(null)}
             >
-              Keep
+              {uiText('ui.MemberList.message009')}
             </Button>
             <Button
               variant="danger"
               busy={removeMember.isPending}
-              busyLabel="Removing…"
+              busyLabel={uiText('ui.MemberList.message010')}
               onClick={() => {
                 if (removing !== null && !busy)
                   removeMember.mutate(removing.userId, {
@@ -177,15 +193,12 @@ export function MemberList({
                   });
               }}
             >
-              Remove member
+              {uiText('ui.MemberList.message011')}
             </Button>
           </>
         }
       >
-        <p>
-          This person will lose access to the workspace. Their edits and contributions
-          will stay.
-        </p>
+        <p>{uiText('ui.MemberList.message012')}</p>
         {removeMember.error !== null ? (
           <Banner tone="error" lead={describeError(removeMember.error)} />
         ) : null}

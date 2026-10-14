@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import {
   createContext,
   useContext,
@@ -32,6 +33,7 @@ export function CreateWorkspaceDialogProvider({
 }: {
   readonly children: ReactNode;
 }): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   const returnFocusRef = useRef<HTMLElement>(null);
   const defaultTriggerRef = useRef<HTMLButtonElement>(null);
@@ -58,8 +60,8 @@ export function CreateWorkspaceDialogProvider({
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Create workspace"
-        description="A shared home for sources, documents and analyses."
+        title={uiText('ui.CreateWorkspaceDialog.message001')}
+        description={uiText('ui.CreateWorkspaceDialog.message002')}
         className={styles.createDialog}
         initialFocusRef={initialFocusRef}
         returnFocusRef={returnFocusRef}

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 
 import type { Workspace } from '../api/workspaceApi';
@@ -20,8 +21,9 @@ interface WorkspaceListProps {
  * (`WorkspaceAuthorizationService`).
  */
 export function WorkspaceList({ workspaces }: WorkspaceListProps): ReactElement {
+  useUiLocale();
   return (
-    <ul className={styles.grid} aria-label="Your workspaces">
+    <ul className={styles.grid} aria-label={uiText('ui.WorkspaceList.message001')}>
       {workspaces.map((workspace) => (
         <li key={workspace.id}>
           <WorkspaceCard workspace={workspace} />

@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../../shared/components/Button';
@@ -15,6 +17,7 @@ export function InvitationPanel({
 }: {
   readonly workspaceId: string;
 }): ReactElement {
+  useUiLocale();
   const cache = useQueryClient();
   const key = ['workspaces', workspaceId, 'invitations'];
   const [email, setEmail] = useState('');
@@ -50,8 +53,8 @@ export function InvitationPanel({
   });
   return (
     <section aria-labelledby="invitation-heading">
-      <h2 id="invitation-heading">Invite by link</h2>
-      <p>Invite someone with or without an account. Links expire after 7 days.</p>
+      <h2 id="invitation-heading">{uiText('ui.InvitationPanel.message001')}</h2>
+      <p>{uiText('ui.InvitationPanel.message002')}</p>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -60,75 +63,83 @@ export function InvitationPanel({
       >
         <TextField
           id="invitation-email"
-          label="Invite email"
+          label={uiText('ui.InvitationPanel.message003')}
           type="email"
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
         />
-        <label htmlFor="invitation-role">Invited role</label>
+        <label htmlFor="invitation-role">{uiText('ui.InvitationPanel.message004')}</label>
         <select
           id="invitation-role"
           value={role}
           onChange={(event) => setRole(event.target.value as Invitation['role'])}
         >
-          <option value="VIEWER">Viewer</option>
-          <option value="EDITOR">Editor</option>
-          <option value="OWNER">Owner</option>
+          <option value="VIEWER">{uiText('ui.AddMemberForm.message004')}</option>
+          <option value="EDITOR">{uiText('ui.AddMemberForm.message003')}</option>
+          <option value="OWNER">{uiText('ui.InvitationPanel.message005')}</option>
         </select>
         <Button type="submit" busy={create.isPending}>
-          Create invitation
+          {uiText('ui.InvitationPanel.message006')}
         </Button>
       </form>
       {link ? (
         <div>
-          <TextField id="invitation-link" label="Invitation link" value={link} readOnly />
+          <TextField
+            id="invitation-link"
+            label={uiText('ui.InvitationPanel.message007')}
+            value={link}
+            readOnly
+          />
           <Button
             onClick={() => {
               void navigator.clipboard.writeText(link).then(
                 () => setCopied(true),
-                () => setCopyError('Could not copy. Select and copy the link above.'),
+                () => setCopyError(uiText('auth.copyError')),
               );
             }}
           >
-            Copy invitation link
+            {uiText('ui.InvitationPanel.message008')}
           </Button>
-          {copied ? <p role="status">Link copied.</p> : null}
+          {copied ? <p role="status">{uiText('ui.InvitationPanel.message009')}</p> : null}
           {copyError ? <p role="alert">{copyError}</p> : null}
-          <p>The link is shown once. Copy it before leaving this page.</p>
+          <p>{uiText('ui.InvitationPanel.message010')}</p>
         </div>
       ) : null}
       {create.error || revoke.error ? (
         <p role="alert">{describeError(create.error ?? revoke.error)}</p>
       ) : null}
-      {revoke.isSuccess ? <p role="status">Invitation revoked.</p> : null}
+      {revoke.isSuccess ? (
+        <p role="status">{uiText('ui.InvitationPanel.message011')}</p>
+      ) : null}
       {invitations.isPending ? (
-        <p role="status">Loading invitations…</p>
+        <p role="status">{uiText('ui.InvitationPanel.message012')}</p>
       ) : invitations.error ? (
         <p role="alert">{describeError(invitations.error)}</p>
       ) : invitations.data?.length === 0 ? (
-        <p>No invitations yet.</p>
+        <p>{uiText('ui.InvitationPanel.message013')}</p>
       ) : (
         <ul>
           {invitations.data?.map((invitation) => {
             const state = invitation.acceptedAt
-              ? 'Accepted'
+              ? uiText('ui.InvitationPanel.message014')
               : invitation.revokedAt
-                ? 'Revoked'
+                ? uiText('ui.InvitationPanel.message015')
                 : invitation.expired
-                  ? 'Expired'
-                  : 'Pending';
+                  ? uiText('ui.InvitationPanel.message016')
+                  : uiText('ui.InvitationPanel.message017');
             return (
               <li key={invitation.id}>
-                {invitation.email} · {invitation.role} · {state} · Expires{' '}
-                {new Date(invitation.expiresAt).toLocaleDateString()}
+                {invitation.email} · {invitation.role} · {state}{' '}
+                {uiText('ui.InvitationPanel.message018')}{' '}
+                {new Date(invitation.expiresAt).toLocaleDateString(getIntlLocale())}
                 {state === 'Pending' ? (
                   <Button
                     onClick={() => revoke.mutate(invitation.id)}
                     disabled={revoke.isPending}
                   >
-                    Revoke invitation
+                    {uiText('ui.InvitationPanel.message019')}
                   </Button>
                 ) : null}
               </li>

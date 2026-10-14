@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { describeError } from '../../../shared/api';
@@ -9,6 +11,7 @@ export function WorkspaceGovernance({
 }: {
   readonly workspaceId: string;
 }): ReactElement {
+  useUiLocale();
   const [days, setDays] = useState(30);
   const usage = useQuery({
     queryKey: ['workspace-ai-usage', workspaceId, days],
@@ -19,35 +22,39 @@ export function WorkspaceGovernance({
     mutationFn: (format: 'csv' | 'json') => downloadAudit(workspaceId, format),
   });
   return (
-    <section aria-label="Workspace governance">
-      <h2>AI consumption and audit</h2>
+    <section aria-label={uiText('ui.WorkspaceGovernance.message001')}>
+      <h2>{uiText('ui.WorkspaceGovernance.message002')}</h2>
       <label>
-        Usage window{' '}
+        {uiText('ui.WorkspaceGovernance.message003')}{' '}
         <select value={days} onChange={(event) => setDays(Number(event.target.value))}>
-          <option value={7}>Last 7 days</option>
-          <option value={30}>Last 30 days</option>
-          <option value={90}>Last 90 days</option>
+          <option value={7}>{uiText('ui.WorkspaceGovernance.message004')}</option>
+          <option value={30}>{uiText('ui.WorkspaceGovernance.message005')}</option>
+          <option value={90}>{uiText('ui.WorkspaceGovernance.message006')}</option>
         </select>
       </label>
-      {usage.isPending ? <p role="status">Loading AI usage…</p> : null}
+      {usage.isPending ? (
+        <p role="status">{uiText('ui.WorkspaceGovernance.message007')}</p>
+      ) : null}
       {usage.error ? (
-        <p role="alert">Could not load AI usage: {describeError(usage.error)}</p>
+        <p role="alert">
+          {uiText('ui.WorkspaceGovernance.message008')} {describeError(usage.error)}
+        </p>
       ) : null}
       {usage.data ? (
         <>
           {usage.data.features.length === 0 ? (
-            <p>No AI requests in this window.</p>
+            <p>{uiText('ui.WorkspaceGovernance.message009')}</p>
           ) : (
             <table>
-              <caption>AI usage by feature</caption>
+              <caption>{uiText('ui.WorkspaceGovernance.message010')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Feature</th>
-                  <th scope="col">Requests</th>
-                  <th scope="col">Failures</th>
-                  <th scope="col">Input tokens</th>
-                  <th scope="col">Output tokens</th>
-                  <th scope="col">Known usage</th>
+                  <th scope="col">{uiText('ui.WorkspaceGovernance.message011')}</th>
+                  <th scope="col">{uiText('ui.WorkspaceGovernance.message012')}</th>
+                  <th scope="col">{uiText('ui.WorkspaceGovernance.message013')}</th>
+                  <th scope="col">{uiText('ui.WorkspaceGovernance.message014')}</th>
+                  <th scope="col">{uiText('ui.WorkspaceGovernance.message015')}</th>
+                  <th scope="col">{uiText('ui.WorkspaceGovernance.message016')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -56,36 +63,34 @@ export function WorkspaceGovernance({
                     <th scope="row">{f.feature}</th>
                     <td>{f.requests}</td>
                     <td>{f.failures}</td>
-                    <td>{f.inputTokens ?? 'Unknown'}</td>
-                    <td>{f.outputTokens ?? 'Unknown'}</td>
+                    <td>{f.inputTokens ?? uiText('ui.ProblemForm.message012')}</td>
+                    <td>{f.outputTokens ?? uiText('ui.ProblemForm.message012')}</td>
                     <td>
-                      {f.usageKnown} of {f.requests}
+                      {f.usageKnown} {uiText('ui.AnalysisWidgets.message012')}{' '}
+                      {f.requests}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-          <p>
-            Token totals include requests with known usage. Missing provider usage is
-            shown as unknown.
-          </p>
-          <h3>Current request quotas</h3>
+          <p>{uiText('ui.WorkspaceGovernance.message017')}</p>
+          <h3>{uiText('ui.WorkspaceGovernance.message018')}</h3>
           <ul>
             {usage.data.quotas.map((q) => (
               <li key={q.category}>
-                {q.category}: {q.requests} / {q.limit} workspace requests · resets{' '}
-                <time dateTime={q.resetsAt}>{new Date(q.resetsAt).toLocaleString()}</time>
+                {q.category}: {q.requests} / {q.limit}{' '}
+                {uiText('ui.WorkspaceGovernance.message019')}{' '}
+                <time dateTime={q.resetsAt}>
+                  {new Date(q.resetsAt).toLocaleString(getIntlLocale())}
+                </time>
               </li>
             ))}
           </ul>
         </>
       ) : null}
-      <h3>Export audit trail</h3>
-      <p>
-        Includes product, review and AI call event headers. Exports contain no prompts or
-        document text. Maximum 100,000 events per export.
-      </p>
+      <h3>{uiText('ui.WorkspaceGovernance.message020')}</h3>
+      <p>{uiText('ui.WorkspaceGovernance.message021')}</p>
       {(['csv', 'json'] as const).map((format) => (
         <Button
           key={format}
@@ -93,12 +98,16 @@ export function WorkspaceGovernance({
           disabled={download.isPending}
           onClick={() => download.mutate(format)}
         >
-          Export {format.toUpperCase()}
+          {uiText('ui.ExportDocument.message001')} {format.toUpperCase()}
         </Button>
       ))}
-      {download.isPending ? <p role="status">Preparing audit export…</p> : null}
+      {download.isPending ? (
+        <p role="status">{uiText('ui.WorkspaceGovernance.message022')}</p>
+      ) : null}
       {download.error ? (
-        <p role="alert">Could not export audit: {describeError(download.error)}</p>
+        <p role="alert">
+          {uiText('ui.WorkspaceGovernance.message023')} {describeError(download.error)}
+        </p>
       ) : null}
     </section>
   );
