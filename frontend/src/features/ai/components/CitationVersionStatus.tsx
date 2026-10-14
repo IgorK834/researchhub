@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { validateCitationVersion } from '../api/generationApi';
@@ -12,6 +13,7 @@ export function CitationVersionStatus({
   readonly sourceId: string;
   readonly processingVersion: string;
 }): ReactElement | null {
+  useUiLocale();
   const { error, isPending, data } = useQuery({
     queryKey: ['ai-citation-version', workspaceId, sourceId, processingVersion],
     queryFn: ({ signal }) =>
@@ -19,13 +21,9 @@ export function CitationVersionStatus({
     retry: false,
     staleTime: 0,
   });
-  if (isPending) return <p role="status">Checking cited source version…</p>;
+  if (isPending)
+    return <p role="status">{uiText('ui.CitationVersionStatus.message001')}</p>;
   if (error !== null || data === false)
-    return (
-      <p role="alert">
-        The cited source version is unavailable or has changed. The preview below shows
-        the current source.
-      </p>
-    );
+    return <p role="alert">{uiText('ui.CitationVersionStatus.message002')}</p>;
   return null;
 }

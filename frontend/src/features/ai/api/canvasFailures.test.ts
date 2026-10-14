@@ -1,5 +1,8 @@
 import { canvasFailure, canvasPollDelay, describeCanvasFailure } from './canvasFailures';
 import { ApiError } from '../../../shared/api';
+import { setLocale } from '../../../shared/i18n';
+beforeEach(() => setLocale('pl'));
+afterEach(() => setLocale('en'));
 
 test.each([
   'RATE_LIMIT_EXCEEDED',

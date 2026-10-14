@@ -1,23 +1,24 @@
+import { t as uiText } from '../../../shared/i18n';
 import { ApiError, type ApiErrorCode } from '../../../shared/api';
 
 export function canvasFailure(code: ApiErrorCode | null | undefined): string {
   switch (code) {
     case 'AI_OUTPUT_INVALID':
-      return 'AI zwróciło odpowiedź w nieprawidłowym formacie. Dokument nie został zmieniony. Spróbuj ponownie.';
+      return uiText('ui.canvasFailures.message001');
     case 'RATE_LIMIT_EXCEEDED':
-      return 'Osiągnięto limit żądań. Poczekaj na odnowienie limitu i ponów zapisane polecenie. Dokument nie został zmieniony.';
+      return uiText('ui.canvasFailures.message002');
     case 'FORBIDDEN':
     case 'RESOURCE_NOT_FOUND':
     case 'UNAUTHENTICATED':
-      return 'Brak dostępu do dokumentu lub wybranych danych. Sprawdź uprawnienia i zaloguj się ponownie. Polecenie pozostaje w historii.';
+      return uiText('ui.canvasFailures.message003');
     case 'AI_UNAVAILABLE':
-      return 'AI nie odpowiedziało w wymaganym czasie lub jest chwilowo niedostępne. Dokument nie został zmieniony. Ponowne wysłanie może naliczyć nowy koszt.';
+      return uiText('ui.canvasFailures.message004');
     case 'AI_REFUSED':
-      return 'AI odmówiło wykonania polecenia. Doprecyzuj zadanie lub wybierz odpowiednie źródła. Dokument nie został zmieniony.';
+      return uiText('ui.canvasFailures.message005');
     case 'CONFLICT':
-      return 'Kontekst dokumentu uległ zmianie. Wybierz aktualny fragment i ponów zapisane polecenie.';
+      return uiText('ui.canvasFailures.message006');
     default:
-      return 'Nie udało się ukończyć polecenia. Dokument nie został zmieniony. Polecenie można przywrócić z historii.';
+      return uiText('ui.canvasFailures.message007');
   }
 }
 export function describeCanvasFailure(error: unknown): string {

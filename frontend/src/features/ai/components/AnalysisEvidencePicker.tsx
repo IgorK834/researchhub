@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { AnalysisOutputPicker } from '../../analysis/components/AnalysisOutputPicker';
 import type { AnalysisEvidenceReference } from '../api/generationApi';
@@ -14,38 +15,39 @@ export function AnalysisEvidencePicker({
   readonly onChange: (value: readonly AnalysisEvidenceReference[]) => void;
   readonly disabled: boolean;
 }): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   return (
-    <section aria-label="Computed evidence scope">
-      <h3>Computed evidence</h3>
-      <p>
-        Choose saved successful outputs to compare with sources. Asking a question does
-        not run a calculation.
-      </p>
+    <section aria-label={uiText('ui.AnalysisEvidencePicker.message001')}>
+      <h3>{uiText('ui.AnalysisEvidencePicker.message002')}</h3>
+      <p>{uiText('ui.AnalysisEvidencePicker.message003')}</p>
       {value.length ? (
         <ul>
           {value.map((ref) => (
             <li key={`${ref.analysisId}:${ref.executionId}:${ref.outputId}`}>
-              Execution {ref.executionId.slice(0, 8)} · {ref.outputId}{' '}
+              {uiText('ui.AnalysisEvidencePicker.message004')}{' '}
+              {ref.executionId.slice(0, 8)} · {ref.outputId}{' '}
               <Button
                 variant="ghost"
                 disabled={disabled}
                 onClick={() => onChange(value.filter((item) => item !== ref))}
               >
-                Remove output {ref.outputId}
+                {uiText('ui.AnalysisEvidencePicker.message005')} {ref.outputId}
               </Button>
             </li>
           ))}
         </ul>
       ) : (
-        <p>No computed outputs selected.</p>
+        <p>{uiText('ui.AnalysisEvidencePicker.message006')}</p>
       )}
       <Button
         variant="secondary"
         disabled={disabled || value.length >= 6}
         onClick={() => setOpen(!open)}
       >
-        {open ? 'Hide saved outputs' : 'Choose computed output'}
+        {open
+          ? uiText('ui.AnalysisEvidencePicker.message007')
+          : uiText('ui.AnalysisEvidencePicker.message008')}
       </Button>
       {open ? (
         <AnalysisOutputPicker

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useRef, useState, type ReactElement } from 'react';
 import { AnalysisOutputPicker } from '../../analysis/components/AnalysisOutputPicker';
 import type { AnalysisReference } from '../../documents/api/analysisReference';
@@ -29,6 +30,7 @@ export function CalculationPackagePicker({
   readonly onApplying?: (value: boolean) => void;
   readonly onApplied?: () => Promise<void>;
 }): ReactElement {
+  useUiLocale();
   const [reference, setReference] = useState<AnalysisReference | null>(null);
   const [selection, setSelection] = useState<'FULL' | 'TABLE' | 'CHART'>('FULL');
   const [proposal, setProposal] = useState<CanvasProposal | null>(null);
@@ -36,12 +38,9 @@ export function CalculationPackagePicker({
   const [error, setError] = useState<unknown>(null);
   const identity = useRef(crypto.randomUUID());
   return (
-    <section aria-label="Insert saved calculation package">
-      <h3>Insert a saved result package</h3>
-      <p>
-        Choose the exact saved execution. Review the complete solution, table or chart
-        before one atomic insertion.
-      </p>
+    <section aria-label={uiText('ui.CalculationPackagePicker.message001')}>
+      <h3>{uiText('ui.CalculationPackagePicker.message002')}</h3>
+      <p>{uiText('ui.CalculationPackagePicker.message003')}</p>
       <AnalysisOutputPicker
         workspaceId={workspaceId}
         disabled={busy || !canApply}
@@ -55,7 +54,7 @@ export function CalculationPackagePicker({
       {reference ? (
         <>
           <Select
-            label="Package contents"
+            label={uiText('ui.CalculationPackagePicker.message004')}
             value={selection}
             disabled={busy}
             onChange={(e) => {
@@ -64,12 +63,18 @@ export function CalculationPackagePicker({
               identity.current = crypto.randomUUID();
             }}
           >
-            <option value="FULL">Complete saved package</option>
+            <option value="FULL">
+              {uiText('ui.CalculationPackagePicker.message005')}
+            </option>
             {reference.renderMode === 'TABLE' ? (
-              <option value="TABLE">Selected table only</option>
+              <option value="TABLE">
+                {uiText('ui.CalculationPackagePicker.message006')}
+              </option>
             ) : null}
             {reference.renderMode === 'CHART' ? (
-              <option value="CHART">Selected chart only</option>
+              <option value="CHART">
+                {uiText('ui.CalculationPackagePicker.message007')}
+              </option>
             ) : null}
           </Select>
           <Button
@@ -92,7 +97,7 @@ export function CalculationPackagePicker({
                 .finally(() => setBusy(false));
             }}
           >
-            Preview saved package
+            {uiText('ui.CalculationPackagePicker.message008')}
           </Button>
         </>
       ) : null}

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement, ReactNode } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { Card, Panel } from '../../../shared/components/content';
@@ -22,9 +23,12 @@ export interface AnswerEvidence {
   readonly sourceType?: string;
 }
 const reasons: Record<NonNullable<QuestionResponse['reason']>, string> = {
-  NO_RETRIEVED_EVIDENCE: 'No evidence was retrieved from the selected sources.',
-  INSUFFICIENT_RETRIEVED_EVIDENCE:
-    'The retrieved evidence is insufficient to answer this question.',
+  get NO_RETRIEVED_EVIDENCE() {
+    return uiText('ui.GroundedAnswer.message024');
+  },
+  get INSUFFICIENT_RETRIEVED_EVIDENCE() {
+    return uiText('ui.GroundedAnswer.message025');
+  },
 };
 
 /** Presentation only: never writes to a document or produces citations from streaming text. */
@@ -34,8 +38,8 @@ export function AnswerState({
   preview,
   onStop,
   onRetry,
-  stopLabel = 'Stop',
-  retryLabel = 'Try again',
+  stopLabel = uiText('ui.GroundedAnswer.message022'),
+  retryLabel = uiText('ui.AnalysisChart.message004'),
 }: {
   readonly state: 'thinking' | 'streaming' | 'failed';
   readonly message: string;
@@ -45,6 +49,7 @@ export function AnswerState({
   readonly stopLabel?: string;
   readonly retryLabel?: string;
 }): ReactElement {
+  useUiLocale();
   if (state === 'failed')
     return (
       <div className={styles.failure}>
@@ -63,7 +68,7 @@ export function AnswerState({
         {message}
       </p>
       {state === 'streaming' ? (
-        <p aria-label="Answer preview" aria-live="polite">
+        <p aria-label={uiText('ui.GroundedAnswer.message001')} aria-live="polite">
           {preview}
         </p>
       ) : null}
@@ -89,9 +94,16 @@ export function EvidenceList<Support extends AnswerEvidence>({
   readonly sourceView?: boolean;
   readonly fullLocation?: boolean;
 }): ReactElement | null {
+  useUiLocale();
   if (evidence.length === 0) return null;
   return (
-    <Panel title={sourceView ? 'Where it says so' : 'Evidence'}>
+    <Panel
+      title={
+        sourceView
+          ? uiText('ui.GroundedAnswer.message002')
+          : uiText('ui.GroundedAnswer.message003')
+      }
+    >
       <ol className={styles.evidence}>
         {evidence.map((support) => {
           const { citation, label } = support;
@@ -110,7 +122,9 @@ export function EvidenceList<Support extends AnswerEvidence>({
                 onInspect={onInspect === undefined ? undefined : () => onInspect(support)}
               >
                 {label ? `[${label}] ` : ''}
-                {citation.title ?? citation.sectionTitle ?? 'Source'}
+                {citation.title ??
+                  citation.sectionTitle ??
+                  uiText('ui.AiDraftBlock.message007')}
                 {!fullLocation && citation.pageStart === null
                   ? ''
                   : ` · ${citationLocation(citation)}`}
@@ -123,9 +137,9 @@ export function EvidenceList<Support extends AnswerEvidence>({
                   variant="secondary"
                   size="compact"
                   icon="eye"
-                  aria-label={`Inspect citation ${label}`}
+                  aria-label={uiText('ui.GroundedAnswer.message004', { value0: label })}
                 >
-                  Inspect
+                  {uiText('ui.GroundedAnswer.message005')}
                 </Button>
                 {sourceView ? (
                   <Button
@@ -134,7 +148,7 @@ export function EvidenceList<Support extends AnswerEvidence>({
                     size="compact"
                     icon="external"
                   >
-                    Open page
+                    {uiText('ui.GroundedAnswer.message006')}
                   </Button>
                 ) : null}
               </div>
@@ -151,19 +165,23 @@ export function GenerationDetails({
 }: {
   readonly generation: GeneratedResponse;
 }): ReactElement {
+  useUiLocale();
   const { model, usage } = generation.result;
   return (
     <details className={styles.provenance}>
-      <summary>Generation details</summary>
+      <summary>{uiText('ui.GroundedAnswer.message007')}</summary>
       <p>
         {model.provider === 'deterministic'
-          ? 'Fixture AI (deterministic)'
-          : `Live model: ${model.name}`}{' '}
+          ? uiText('ui.AiModeChip.message002')
+          : uiText('ui.GroundedAnswer.message008', { value0: model.name })}{' '}
         ({model.version}) · {model.provider}
       </p>
       <p>
-        {usage.estimated ? 'Estimated tokens' : 'Tokens'}: {usage.totalTokens} · Input:{' '}
-        {usage.inputTokens} · Output: {usage.outputTokens}
+        {usage.estimated
+          ? uiText('ui.GroundedAnswer.message009')
+          : uiText('ui.GroundedAnswer.message010')}
+        : {usage.totalTokens} {uiText('ui.GroundedAnswer.message011')} {usage.inputTokens}{' '}
+        {uiText('ui.GroundedAnswer.message012')} {usage.outputTokens}
       </p>
     </details>
   );
@@ -194,8 +212,12 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
   readonly fullLocation?: boolean;
   readonly analysisEvidence?: readonly AnalysisCitation[];
 }): ReactElement {
+  useUiLocale();
   return (
-    <section aria-label="Source-grounded response" className={styles.response}>
+    <section
+      aria-label={uiText('ui.GroundedAnswer.message013')}
+      className={styles.response}
+    >
       {status === 'INSUFFICIENT_EVIDENCE' ? (
         <div className={styles.insufficient}>
           {reason === 'NO_RETRIEVED_EVIDENCE' &&
@@ -203,10 +225,7 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
           analysisEvidence.length === 0 ? (
             <Illustration scene="evidence" size="compact" />
           ) : null}
-          <Banner
-            tone="note"
-            lead="There is insufficient evidence to answer this request."
-          >
+          <Banner tone="note" lead={uiText('ui.GroundedAnswer.message023')}>
             {reason === null || reason === undefined ? null : <p>{reasons[reason]}</p>}
             {answer ? <p>{answer}</p> : null}
             {insufficientAction}
@@ -214,7 +233,7 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
         </div>
       ) : (
         <Card className={styles.answer}>
-          <h3>Grounded answer</h3>
+          <h3>{uiText('ui.GroundedAnswer.message014')}</h3>
           {generation === null ? (
             <p>{answer}</p>
           ) : (
@@ -237,7 +256,9 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
                           key={id}
                           to={analysisCitationPath(computed)}
                           className={styles.analysisCitation}
-                          aria-label={`Open analysis evidence ${label}`}
+                          aria-label={uiText('ui.GroundedAnswer.message015', {
+                            value0: label,
+                          })}
                         >
                           [{label}]
                         </Link>
@@ -245,7 +266,7 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
                     }
                     return (
                       <span key={id} role="alert">
-                        Source reference is unavailable.
+                        {uiText('ui.GroundedAnswer.message016')}
                       </span>
                     );
                   }
@@ -256,7 +277,10 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
                       citation={support.citation}
                       number={support.label || evidence.indexOf(support) + 1}
                       variant={citationVariant(support.sourceType)}
-                      label={`Show support for claim ${String(index + 1)}, ${support.label || String(evidence.indexOf(support) + 1)}`}
+                      label={uiText('ui.GroundedAnswer.message017', {
+                        value0: String(index + 1),
+                        value1: support.label || String(evidence.indexOf(support) + 1),
+                      })}
                       onInspect={
                         onInspect === undefined ? undefined : () => onInspect(support)
                       }
@@ -276,11 +300,8 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
         fullLocation={fullLocation}
       />
       {analysisEvidence.length ? (
-        <Panel title="Computed evidence">
-          <p>
-            Values were supplied from saved execution outputs. This answer did not run a
-            new calculation.
-          </p>
+        <Panel title={uiText('ui.AnalysisEvidencePicker.message002')}>
+          <p>{uiText('ui.GroundedAnswer.message018')}</p>
           <ol>
             {analysisEvidence.map((citation, index) => (
               <li key={citation.evidenceId}>
@@ -291,22 +312,21 @@ export function GroundedAnswer<Support extends AnswerEvidence>({
                   · {citation.title}
                 </strong>
                 <p>
-                  Execution {citation.executionId} · {citation.outputId} ·{' '}
-                  {citation.executedAt}
+                  {uiText('ui.AnalysisEvidencePicker.message004')} {citation.executionId}{' '}
+                  · {citation.outputId} · {citation.executedAt}
                 </p>
                 <p>
-                  Inputs:{' '}
+                  {uiText('ui.GroundedAnswer.message019')}{' '}
                   {citation.inputSources
                     .map((input) => `${input.originalFilename} · v${input.versionNumber}`)
                     .join('; ')}
                 </p>
                 {citation.truncated ? (
-                  <p>
-                    Only a bounded subset of saved rows was supplied. Missing rows and
-                    statistics were not inferred.
-                  </p>
+                  <p>{uiText('ui.GroundedAnswer.message020')}</p>
                 ) : null}
-                <Link to={analysisCitationPath(citation)}>Open analysis provenance</Link>
+                <Link to={analysisCitationPath(citation)}>
+                  {uiText('ui.GroundedAnswer.message021')}
+                </Link>
               </li>
             ))}
           </ol>

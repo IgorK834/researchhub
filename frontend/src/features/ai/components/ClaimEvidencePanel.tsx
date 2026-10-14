@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import type { AuthoringSuggestion } from '../api/authoringApi';
 import { citationPath } from '../api/generationApi';
@@ -7,9 +8,15 @@ import { CitationReference, citationLocation, citationVariant } from './Citation
 import styles from './AuthoringReview.module.css';
 
 const categories = {
-  supporting: 'Supporting evidence',
-  related: 'Related / partial evidence',
-  insufficient: 'Insufficient evidence',
+  get supporting() {
+    return uiText('ui.ClaimEvidencePanel.message012');
+  },
+  get related() {
+    return uiText('ui.ClaimEvidencePanel.message013');
+  },
+  get insufficient() {
+    return uiText('ui.AuthoringPanel.message035');
+  },
 };
 
 export function ClaimEvidencePanel({
@@ -29,34 +36,34 @@ export function ClaimEvidencePanel({
   readonly onAddCitation: (chunkId: string) => void;
   readonly onReject: () => void;
 }): ReactElement {
+  useUiLocale();
   const noEvidence = !suggestion.candidates.some(
     (candidate) => candidate.category !== 'insufficient',
   );
   return (
-    <section aria-label="AI suggestion" className={styles.evidencePanel}>
+    <section
+      aria-label={uiText('ui.AiSuggestionCard.message003')}
+      className={styles.evidencePanel}
+    >
       <div className={styles.claim}>
-        <span className={styles.eyebrow}>Claim</span>
+        <span className={styles.eyebrow}>
+          {uiText('ui.ClaimEvidencePanel.message001')}
+        </span>
         <blockquote>{suggestion.originalText}</blockquote>
       </div>
-      <p className={styles.note}>
-        Review the source passage in context before adding a citation. Your claim stays
-        unchanged.
-      </p>
+      <p className={styles.note}>{uiText('ui.ClaimEvidencePanel.message002')}</p>
       {noEvidence ? (
         <div className={styles.noEvidence} role="status">
           <Illustration scene="evidence" size="compact" />
-          <strong>No supporting evidence found.</strong>
-          <p>
-            The returned excerpts do not support this claim. You can keep the claim as it
-            is.
-          </p>
+          <strong>{uiText('ui.ClaimEvidencePanel.message003')}</strong>
+          <p>{uiText('ui.ClaimEvidencePanel.message004')}</p>
           <Button
             variant="secondary"
             size="compact"
             disabled={busy || frozenChunkId !== null}
             onClick={onReject}
           >
-            Keep claim as it is
+            {uiText('ui.ClaimEvidencePanel.message005')}
           </Button>
         </div>
       ) : null}
@@ -64,10 +71,12 @@ export function ClaimEvidencePanel({
         <article
           key={candidate.citation.chunkId}
           className={styles.evidenceCard}
-          aria-label={`Evidence ${index + 1}`}
+          aria-label={uiText('ui.ClaimEvidencePanel.message006', { value0: index + 1 })}
         >
           <div className={styles.heading}>
-            <strong>{candidate.citation.title ?? 'Source'}</strong>
+            <strong>
+              {candidate.citation.title ?? uiText('ui.AiDraftBlock.message007')}
+            </strong>
             <span className={styles.category} data-category={candidate.category}>
               {categories[candidate.category]}
             </span>
@@ -87,7 +96,10 @@ export function ClaimEvidencePanel({
               number={index + 1}
               quote={candidate.snippet}
               variant={citationVariant(sourceTypes.get(candidate.citation.sourceId))}
-              label={`Inspect evidence ${index + 1}: ${candidate.citation.title ?? 'Source'}`}
+              label={uiText('ui.ClaimEvidencePanel.message007', {
+                value0: index + 1,
+                value1: candidate.citation.title ?? uiText('ui.AiDraftBlock.message007'),
+              })}
             />
           </div>
           <div className={styles.actions}>
@@ -101,19 +113,19 @@ export function ClaimEvidencePanel({
               onClick={() => onAddCitation(candidate.citation.chunkId)}
             >
               {frozenChunkId === candidate.citation.chunkId
-                ? 'Retry citation'
-                : 'Add citation'}
+                ? uiText('ui.ClaimEvidencePanel.message008')
+                : uiText('ui.ClaimEvidencePanel.message009')}
             </Button>
             <Button
               href={citationPath(candidate.citation)}
               target="_blank"
               rel="noopener noreferrer"
-              title="Open source in a new tab"
+              title={uiText('ui.ClaimEvidencePanel.message010')}
               size="compact"
               variant="ghost"
               icon="external"
             >
-              Open
+              {uiText('ui.ClaimEvidencePanel.message011')}
             </Button>
           </div>
         </article>
@@ -130,7 +142,7 @@ export function ClaimEvidencePanel({
           disabled={busy || frozenChunkId !== null}
           onClick={onReject}
         >
-          Reject
+          {uiText('ui.AiSuggestionCard.message012')}
         </Button>
       ) : null}
     </section>

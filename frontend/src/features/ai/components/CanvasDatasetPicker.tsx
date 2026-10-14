@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import type { WorkspaceSource } from '../../sources/api/sourceApi';
 import type { AnalysisInput } from '../../analysis/api/analysisApi';
@@ -19,6 +20,7 @@ function DatasetFields({
   readonly disabled: boolean;
   readonly onChoose: (input: AnalysisInput | null) => void;
 }): ReactElement {
+  useUiLocale();
   const preview = useDatasetPreviewQuery(workspaceId, source.id, source.activeVersionId);
   const [sheetName, setSheet] = useState(initial?.sheetName ?? '');
   const [columns, setColumns] = useState<readonly number[]>(initial?.columns ?? []);
@@ -39,14 +41,17 @@ function DatasetFields({
   return (
     <fieldset disabled={disabled}>
       <legend>
-        {source.displayName} · version {source.activeVersionId.slice(0, 8)}
+        {source.displayName} {uiText('ui.CanvasDatasetPicker.message001')}{' '}
+        {source.activeVersionId.slice(0, 8)}
       </legend>
       {preview.isPending ? (
-        <p role="status">Loading immutable dataset structure…</p>
+        <p role="status">{uiText('ui.CanvasDatasetPicker.message002')}</p>
       ) : null}
       {preview.error ? <p role="alert">{describeError(preview.error)}</p> : null}
       <Select
-        label={`Dataset sheet ${source.displayName}`}
+        label={uiText('ui.CanvasDatasetPicker.message003', {
+          value0: source.displayName,
+        })}
         value={sheetName}
         onChange={(e) => {
           setSheet(e.target.value);
@@ -54,7 +59,7 @@ function DatasetFields({
           onChoose(null);
         }}
       >
-        <option value="">Choose a sheet explicitly</option>
+        <option value="">{uiText('ui.CanvasDatasetPicker.message004')}</option>
         {preview.data?.sheets.map((s) => (
           <option key={s.name} value={s.name}>
             {s.name}
@@ -63,10 +68,7 @@ function DatasetFields({
       </Select>
       {sheet ? (
         <>
-          <p>
-            Select the physical columns to provide to the plan. The sandbox reads the full
-            frozen file.
-          </p>
+          <p>{uiText('ui.CanvasDatasetPicker.message005')}</p>
           {sheet.columns.map((c) => (
             <label key={c.index}>
               <input
@@ -80,14 +82,14 @@ function DatasetFields({
                   )
                 }
               />
-              {c.name} (column {c.index})
+              {c.name} {uiText('ui.CanvasDatasetPicker.message006')} {c.index})
             </label>
           ))}
           <Button
             variant="secondary"
             onClick={() => choose(sheet.columns.map((c) => c.index))}
           >
-            Select all inspected columns
+            {uiText('ui.CanvasDatasetPicker.message007')}
           </Button>
           {preview.data?.warnings.map((w, i) => (
             <p key={i}>{w.message}</p>
@@ -110,6 +112,7 @@ export function CanvasDatasetPicker({
   readonly onChange: (value: readonly AnalysisInput[]) => void;
   readonly disabled: boolean;
 }): ReactElement {
+  useUiLocale();
   const [versions, setVersions] = useState<readonly string[]>(
     value.map((i) => i.sourceVersionId),
   );
@@ -117,21 +120,18 @@ export function CanvasDatasetPicker({
     (s) => s.status === 'READY' && ['CSV', 'XLSX'].includes(s.sourceType),
   );
   return (
-    <section aria-label="Dataset calculation inputs">
-      <h3>Frozen calculation inputs</h3>
-      <p>
-        Choose an exact dataset version, sheet and columns. No dataset is selected
-        automatically.
-      </p>
+    <section aria-label={uiText('ui.CanvasDatasetPicker.message008')}>
+      <h3>{uiText('ui.CanvasDatasetPicker.message009')}</h3>
+      <p>{uiText('ui.CanvasDatasetPicker.message010')}</p>
       <Select
-        label="Calculation dataset version"
+        label={uiText('ui.CanvasDatasetPicker.message011')}
         value=""
         disabled={disabled || versions.length >= 5}
         onChange={(e) => {
           if (e.target.value) setVersions([...versions, e.target.value]);
         }}
       >
-        <option value="">Add dataset version</option>
+        <option value="">{uiText('ui.CanvasDatasetPicker.message012')}</option>
         {datasets
           .filter((s) => !versions.includes(s.activeVersionId))
           .map((s) => (
@@ -168,13 +168,12 @@ export function CanvasDatasetPicker({
                 onChange(value.filter((i) => i.sourceVersionId !== version));
               }}
             >
-              Remove dataset {source.displayName}
+              {uiText('ui.CanvasDatasetPicker.message013')} {source.displayName}
             </Button>
           </div>
         ) : (
           <p key={version} role="alert">
-            This selected version is no longer listed. Choose an available immutable
-            version explicitly.
+            {uiText('ui.CanvasDatasetPicker.message014')}
             <Button
               variant="ghost"
               onClick={() => {
@@ -182,15 +181,13 @@ export function CanvasDatasetPicker({
                 onChange(value.filter((i) => i.sourceVersionId !== version));
               }}
             >
-              Remove unavailable version
+              {uiText('ui.CanvasDatasetPicker.message015')}
             </Button>
           </p>
         );
       })}
       {!value.length ? (
-        <p role="status">
-          Choose a sheet and at least one column before sending Analyze.
-        </p>
+        <p role="status">{uiText('ui.CanvasDatasetPicker.message016')}</p>
       ) : null}
     </section>
   );

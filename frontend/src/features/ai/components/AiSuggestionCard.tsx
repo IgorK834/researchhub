@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, type ReactElement } from 'react';
 import type { AuthoringSuggestion } from '../api/authoringApi';
 import { REWRITE_ACTIONS } from '../api/authoringActions';
@@ -32,6 +33,7 @@ export function AiSuggestionCard({
   readonly onReject: () => void;
   readonly onEdit: () => void;
 }): ReactElement {
+  useUiLocale();
   const input = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (editing) input.current?.focus();
@@ -41,20 +43,23 @@ export function AiSuggestionCard({
     cited > 0
       ? `Uses your document text and ${cited} cited ${cited === 1 ? 'source' : 'sources'}.`
       : (suggestion.command.selectedSourceIds?.length ?? 0) > 0
-        ? 'Uses your document text; no source citations were returned.'
-        : 'Uses only your document text.';
+        ? uiText('ui.AiSuggestionCard.message001')
+        : uiText('ui.AiSuggestionCard.message002');
   return (
-    <section aria-label="AI suggestion" className={styles.suggestion}>
+    <section
+      aria-label={uiText('ui.AiSuggestionCard.message003')}
+      className={styles.suggestion}
+    >
       <header className={styles.heading}>
         <strong>
-          <Icon name="sparkle" /> Suggestion ·{' '}
+          <Icon name="sparkle" /> {uiText('ui.AiSuggestionCard.message004')}{' '}
           {REWRITE_ACTIONS.find(
             ([action]) => action === suggestion.command.action,
-          )?.[1] ?? 'Rewrite selection'}
+          )?.[1] ?? uiText('ui.AiSuggestionCard.message005')}
         </strong>
         <span className={styles.used}>{used}</span>
       </header>
-      <div aria-label="Suggestion diff" className={styles.diff}>
+      <div aria-label={uiText('ui.AiSuggestionCard.message006')} className={styles.diff}>
         {suggestion.originalText ? (
           <p>
             <del>{suggestion.originalText}</del>
@@ -65,14 +70,12 @@ export function AiSuggestionCard({
             <ins>{text}</ins>
           </p>
         ) : (
-          <p role="status">
-            No replacement text was returned. Keep your text or try another request.
-          </p>
+          <p role="status">{uiText('ui.AiSuggestionCard.message007')}</p>
         )}
       </div>
       {editing ? (
         <label className={styles.edit}>
-          Edit suggestion
+          {uiText('ui.AiSuggestionCard.message008')}
           <textarea
             ref={input}
             value={text}
@@ -83,7 +86,10 @@ export function AiSuggestionCard({
         </label>
       ) : null}
       {suggestion.citations.length > 0 ? (
-        <div className={styles.citations} aria-label="Suggestion sources">
+        <div
+          className={styles.citations}
+          aria-label={uiText('ui.AiSuggestionCard.message009')}
+        >
           {suggestion.citations.map((citation, index) => (
             <CitationReference
               key={citation.chunkId}
@@ -91,7 +97,8 @@ export function AiSuggestionCard({
               number={index + 1}
               variant={citationVariant(sourceTypes.get(citation.sourceId))}
             >
-              {citation.title ?? 'Source'} · {citationLocation(citation)}
+              {citation.title ?? uiText('ui.AiDraftBlock.message007')} ·{' '}
+              {citationLocation(citation)}
             </CitationReference>
           ))}
         </div>
@@ -101,12 +108,12 @@ export function AiSuggestionCard({
           {warning}
         </p>
       ))}
-      <p className={styles.note}>
-        Your document is unchanged until you accept this suggestion.
-      </p>
+      <p className={styles.note}>{uiText('ui.AiSuggestionCard.message010')}</p>
       <div className={styles.actions}>
         <Button size="compact" disabled={blocked || !text.trim()} onClick={onAccept}>
-          {frozen ? 'Retry acceptance' : 'Accept'}
+          {frozen
+            ? uiText('ui.AiDraftBlock.message011')
+            : uiText('ui.AiSuggestionCard.message011')}
         </Button>
         <Button
           size="compact"
@@ -114,7 +121,7 @@ export function AiSuggestionCard({
           disabled={busy || frozen}
           onClick={onReject}
         >
-          Reject
+          {uiText('ui.AiSuggestionCard.message012')}
         </Button>
         <Button
           size="compact"
@@ -122,7 +129,7 @@ export function AiSuggestionCard({
           disabled={blocked || frozen || !suggestion.generatedText}
           onClick={onEdit}
         >
-          Edit
+          {uiText('ui.AiSuggestionCard.message013')}
         </Button>
       </div>
     </section>

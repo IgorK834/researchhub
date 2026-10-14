@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { SourcePicker } from './SourcePicker';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
@@ -66,6 +67,7 @@ export function AuthoringPanel({
   readonly onAccepted: (document: WorkspaceDocument, focusBlock?: number) => void;
   readonly onReload: () => void;
 }): ReactElement {
+  useUiLocale();
   const client = useQueryClient();
   const sources = useSourcesQuery(workspaceId);
   const [kind, setKind] = useState<AuthoringKind>('DRAFT');
@@ -118,19 +120,19 @@ export function AuthoringPanel({
           : request.action;
       const snapshot = request?.selection ?? selection;
       if (!settled || (request !== undefined && request.revision !== revision)) {
-        setError('Save your changes before generating a suggestion.');
+        setError(uiText('ui.AuthoringPanel.message046'));
         return;
       }
       if (sources.isPending || sources.error !== null) return;
       if (requestKind === 'DRAFT' && (selected.length === 0 || !instruction.trim())) {
-        setError('Enter a title/instruction and select sources.');
+        setError(uiText('ui.AuthoringPanel.message047'));
         return;
       }
       if (
         requestKind !== 'DRAFT' &&
         (snapshot.text.trim().length === 0 || snapshot.text.length > 2000)
       ) {
-        setError('Select 1–2000 characters of prose in the document.');
+        setError(uiText('ui.AuthoringPanel.message048'));
         return;
       }
       const command = authoringCommand({
@@ -280,9 +282,13 @@ export function AuthoringPanel({
   }
   const approvalBlocked = busy || !settled || stale;
   const draft = generatingDraft ? (
-    <section className={styles.draft} aria-label="AI draft" aria-busy="true">
-      <p role="status">Generating a source-grounded draft…</p>
-      <p>Your document is unchanged.</p>
+    <section
+      className={styles.draft}
+      aria-label={uiText('ui.AiDraftBlock.message001')}
+      aria-busy="true"
+    >
+      <p role="status">{uiText('ui.AuthoringPanel.message001')}</p>
+      <p>{uiText('ui.AuthoringPanel.message002')}</p>
     </section>
   ) : suggestion?.command.kind === 'DRAFT' ? (
     <AiDraftBlock
@@ -326,21 +332,21 @@ export function AuthoringPanel({
       }}
     >
       <fieldset disabled={busy || suggestion !== null || !settled}>
-        <legend>Authoring request</legend>
+        <legend>{uiText('ui.AuthoringPanel.message003')}</legend>
         <label>
-          Operation{' '}
+          {uiText('ui.AuthoringPanel.message004')}{' '}
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value as AuthoringKind)}
           >
-            <option value="DRAFT">Draft section</option>
-            <option value="REWRITE">Rewrite selection</option>
-            <option value="EVIDENCE">Find evidence for claim</option>
+            <option value="DRAFT">{uiText('ui.AuthoringPanel.message005')}</option>
+            <option value="REWRITE">{uiText('ui.AiSuggestionCard.message005')}</option>
+            <option value="EVIDENCE">{uiText('ui.AuthoringPanel.message006')}</option>
           </select>
         </label>
         {kind === 'REWRITE' ? (
           <label>
-            Rewrite action{' '}
+            {uiText('ui.AuthoringPanel.message007')}{' '}
             <select
               value={action}
               onChange={(event) => setAction(event.target.value as RewriteAction)}
@@ -354,26 +360,29 @@ export function AuthoringPanel({
           </label>
         ) : null}
         {kind !== 'DRAFT' ? (
-          <p>Selected text: {selection.text || 'Select prose in the editor.'}</p>
+          <p>
+            {uiText('ui.AuthoringPanel.message008')}{' '}
+            {selection.text || uiText('ui.AuthoringPanel.message009')}
+          </p>
         ) : (
           <label>
-            Insert section{' '}
+            {uiText('ui.AuthoringPanel.message010')}{' '}
             <select
               value={placement}
               onChange={(event) => setPlacement(event.target.value)}
             >
-              <option value="selection">After current block</option>
-              <option value="0">At the start</option>
+              <option value="selection">{uiText('ui.AuthoringPanel.message011')}</option>
+              <option value="0">{uiText('ui.AuthoringPanel.message012')}</option>
               {Array.from({ length: blockCount }, (_, index) => (
                 <option key={index} value={index + 1}>
-                  After block {index + 1}
+                  {uiText('ui.AuthoringPanel.message013')} {index + 1}
                 </option>
               ))}
             </select>
           </label>
         )}
         <label>
-          Title or instruction{' '}
+          {uiText('ui.AuthoringPanel.message014')}{' '}
           <textarea
             maxLength={1000}
             value={instruction}
@@ -383,9 +392,11 @@ export function AuthoringPanel({
         {kind !== 'REWRITE' || action === 'EXPAND' ? (
           <SourcePicker
             legend={
-              kind === 'REWRITE' ? 'Optional sources for expansion' : 'Sources to use'
+              kind === 'REWRITE'
+                ? uiText('ui.AuthoringPanel.message015')
+                : uiText('ui.AuthoringPanel.message016')
             }
-            action="Author using"
+            action={uiText('ui.AuthoringPanel.message045')}
             sources={(sources.data ?? []).map((source) => ({
               id: source.id,
               title: source.displayName,
@@ -402,24 +413,26 @@ export function AuthoringPanel({
         {kind !== 'EVIDENCE' ? (
           <>
             <label>
-              Length target (words){' '}
+              {uiText('ui.AuthoringPanel.message017')}{' '}
               <input
                 type="range"
-                aria-label="Length target (words)"
+                aria-label={uiText('ui.AuthoringPanel.message017')}
                 min={20}
                 max={1000}
                 value={length}
                 aria-valuetext={`About ${length} words`}
                 onChange={(event) => setLength(Number(event.target.value))}
               />
-              <output>~{length} words</output>
+              <output>
+                ~{length} {uiText('ui.AuthoringPanel.message018')}
+              </output>
             </label>
             <label>
-              Tone{' '}
+              {uiText('ui.AuthoringPanel.message019')}{' '}
               <select value={style} onChange={(event) => setStyle(event.target.value)}>
-                <option value="ACADEMIC">Academic</option>
-                <option value="CONCISE">Concise</option>
-                <option value="PLAIN">Plain language</option>
+                <option value="ACADEMIC">{uiText('ui.AuthoringPanel.message020')}</option>
+                <option value="CONCISE">{uiText('ui.AuthoringPanel.message021')}</option>
+                <option value="PLAIN">{uiText('ui.AuthoringPanel.message022')}</option>
               </select>
             </label>
             <label>
@@ -429,7 +442,7 @@ export function AuthoringPanel({
                 disabled={kind === 'DRAFT'}
                 onChange={(event) => setRequired(event.target.checked)}
               />
-              Require citations for source-grounded output
+              {uiText('ui.AuthoringPanel.message023')}
             </label>
           </>
         ) : (
@@ -439,7 +452,7 @@ export function AuthoringPanel({
               checked={all}
               onChange={(event) => setAll(event.target.checked)}
             />
-            Search all workspace sources
+            {uiText('ui.AuthoringPanel.message024')}
           </label>
         )}
         <Button
@@ -447,23 +460,25 @@ export function AuthoringPanel({
           type="submit"
           disabled={!settled || sources.isPending || sources.error !== null}
         >
-          {kind === 'DRAFT' ? 'Generate draft' : 'Generate suggestion'}
+          {kind === 'DRAFT'
+            ? uiText('ui.AuthoringPanel.message025')
+            : uiText('ui.AuthoringPanel.message026')}
         </Button>
       </fieldset>
     </form>
   );
   return (
-    <section aria-label="AI-assisted authoring" className={styles.panel}>
+    <section aria-label={uiText('ui.AuthoringPanel.message027')} className={styles.panel}>
       <AiModeChip />
       <h2>
         <Icon name="sparkle" />{' '}
         {kind === 'DRAFT'
-          ? 'Generate section'
+          ? uiText('ui.AuthoringPanel.message028')
           : kind === 'EVIDENCE'
-            ? 'Find evidence'
+            ? uiText('ui.AuthoringPanel.message029')
             : REWRITE_ACTIONS.find(([value]) => value === action)?.[1]}
       </h2>
-      <p>Suggestions change the document only after you accept them.</p>
+      <p>{uiText('ui.AuthoringPanel.message030')}</p>
       {suggestion === null &&
       !busy &&
       !sources.isPending &&
@@ -472,14 +487,12 @@ export function AuthoringPanel({
       kind !== 'REWRITE' ? (
         <Illustration scene={kind === 'DRAFT' ? 'laptop' : 'magnifier'} size="compact" />
       ) : null}
-      {!settled ? (
-        <p role="status">Save your changes before using AI authoring.</p>
-      ) : null}
+      {!settled ? <p role="status">{uiText('ui.AuthoringPanel.message031')}</p> : null}
       {sources.error !== null ? <p role="alert">{describeError(sources.error)}</p> : null}
       {error !== null ? <p role="alert">{error}</p> : null}
       {attempt !== null && error !== null ? (
         <button type="button" onClick={onReload}>
-          Load latest document
+          {uiText('ui.AuthoringPanel.message032')}
         </button>
       ) : null}
       {busy ? (
@@ -487,8 +500,8 @@ export function AuthoringPanel({
           <Illustration scene="thinking" size="compact" />
           <p role="status">
             {generatingDraft
-              ? 'Generating a source-grounded draft…'
-              : 'Working on your request…'}
+              ? uiText('ui.AuthoringPanel.message001')
+              : uiText('ui.AuthoringPanel.message033')}
           </p>
         </div>
       ) : null}
@@ -496,19 +509,22 @@ export function AuthoringPanel({
         <div className={styles.result} role="status">
           <strong>
             {suggestion.generatedText.trim() && suggestion.citations.length > 0
-              ? `Draft ready — ${suggestion.generatedText.trim().split(/\s+/).length} words`
-              : 'Insufficient evidence'}
+              ? uiText('ui.AuthoringPanel.message034', {
+                  value0: suggestion.generatedText.trim().split(/\s+/).length,
+                })
+              : uiText('ui.AuthoringPanel.message035')}
           </strong>
           <p>
-            {suggestion.citations.length} citations. The draft is a suggestion; your
-            document is unchanged.
+            {suggestion.citations.length} {uiText('ui.AuthoringPanel.message036')}
           </p>
         </div>
       ) : null}
-      {kind === 'REWRITE' && action !== 'EXPAND' ? <p>Uses your document text.</p> : null}
+      {kind === 'REWRITE' && action !== 'EXPAND' ? (
+        <p>{uiText('ui.AuthoringPanel.message037')}</p>
+      ) : null}
       {suggestion !== null && suggestion.command.kind !== 'DRAFT' ? (
         <details className={reviewStyles.settings}>
-          <summary>Request settings</summary>
+          <summary>{uiText('ui.AuthoringPanel.message038')}</summary>
           {requestForm}
         </details>
       ) : (
@@ -520,21 +536,21 @@ export function AuthoringPanel({
           disabled={busy || !settled}
           onClick={() => onExplainSuggestion(suggestion)}
         >
-          Explain this proposal in chat
+          {uiText('ui.AuthoringPanel.message039')}
         </Button>
       ) : null}
       {draftHost === undefined ? review : createPortal(review, draftHost)}
       {suggestion?.command.kind === 'REWRITE' ? (
         <div className={reviewStyles.claim}>
-          <span className={reviewStyles.eyebrow}>Selected text</span>
+          <span className={reviewStyles.eyebrow}>
+            {uiText('ui.AuthoringPanel.message040')}
+          </span>
           <blockquote>{suggestion.originalText}</blockquote>
-          <p>Review the suggestion in your document, then accept, reject or edit.</p>
+          <p>{uiText('ui.AuthoringPanel.message041')}</p>
         </div>
       ) : null}
       {suggestion !== null && stale && suggestion.command.kind !== 'DRAFT' ? (
-        <p role="alert">
-          The document changed. Reject this suggestion and generate a new one.
-        </p>
+        <p role="alert">{uiText('ui.AuthoringPanel.message042')}</p>
       ) : null}
       {suggestion?.command.kind === 'EVIDENCE' ? (
         <ClaimEvidencePanel
@@ -548,14 +564,9 @@ export function AuthoringPanel({
         />
       ) : null}
       {suggestion?.command.kind === 'DRAFT' && stale ? (
-        <p role="alert">
-          The document changed. Discard this draft and generate a new one.
-        </p>
+        <p role="alert">{uiText('ui.AuthoringPanel.message043')}</p>
       ) : null}
-      <p className={styles.note}>
-        You stay in control. Review source support before accepting a suggestion.
-        Suggestions change your document only after approval.
-      </p>
+      <p className={styles.note}>{uiText('ui.AuthoringPanel.message044')}</p>
     </section>
   );
 }

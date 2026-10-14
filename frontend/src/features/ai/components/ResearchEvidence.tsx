@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { Card, Panel } from '../../../shared/components/content';
@@ -20,20 +21,21 @@ export function CitationPanel({
 }: {
   readonly selected: SelectedCitation | null;
 }): ReactElement {
+  useUiLocale();
   if (selected === null)
     return (
-      <Panel title="Citation">
+      <Panel title={uiText('ui.ResearchEvidence.message001')}>
         <Illustration scene="magnifier" size="compact" />
-        <p>Select Inspect on an evidence card to see its source, location and quote.</p>
+        <p>{uiText('ui.ResearchEvidence.message002')}</p>
       </Panel>
     );
   const { citation, label, sourceType } = selected;
   return (
-    <Panel title="Citation">
+    <Panel title={uiText('ui.ResearchEvidence.message001')}>
       <div className={styles.sourceHeading}>
         <SourceTypeTile sourceType={sourceType} />
         <div>
-          <strong>{citation.title ?? 'Source'}</strong>
+          <strong>{citation.title ?? uiText('ui.AiDraftBlock.message007')}</strong>
           <SourceTypeBadge sourceType={sourceType} />
         </div>
       </div>
@@ -44,7 +46,7 @@ export function CitationPanel({
       </Card>
       <CitationQuote citation={citation} />
       <Button href={citationPath(citation)} icon="external">
-        Open source
+        {uiText('ui.ResearchEvidence.message003')}
       </Button>
     </Panel>
   );
@@ -66,6 +68,7 @@ export function ResearchAnswer({
   readonly onAskAll: () => void;
   readonly disabled: boolean;
 }): ReactElement {
+  useUiLocale();
   return (
     <GroundedAnswer
       status={response.status}
@@ -89,7 +92,7 @@ export function ResearchAnswer({
       insufficientAction={
         sourceView ? (
           <Button variant="secondary" disabled={disabled} onClick={onAskAll}>
-            Ask all sources instead
+            {uiText('ui.ResearchEvidence.message004')}
           </Button>
         ) : undefined
       }

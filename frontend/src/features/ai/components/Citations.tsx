@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
@@ -25,7 +26,7 @@ export function citationLocation(citation: PreviewCitation): string {
     return citation.pageEnd !== null && citation.pageEnd !== citation.pageStart
       ? `Pages ${String(citation.pageStart)}–${String(citation.pageEnd)}`
       : `Page ${String(citation.pageStart)}`;
-  return citation.sectionTitle ?? 'Source fragment';
+  return citation.sectionTitle ?? uiText('ui.Citations.message001');
 }
 export function citationVariant(sourceType?: string): CitationVariant {
   return sourceType === 'CSV' || sourceType === 'XLSX' ? 'dataset' : 'document';
@@ -37,12 +38,14 @@ export function CitationQuote({
   readonly citation: PreviewCitation;
   readonly quote?: string;
 }): ReactElement {
+  useUiLocale();
   if (quote !== undefined)
     return <blockquote className={styles.quote}>{quote}</blockquote>;
-  if (!citation.chunkId) return <p>No quoted passage is available for this citation.</p>;
+  if (!citation.chunkId) return <p>{uiText('ui.Citations.message002')}</p>;
   return <StoredQuote citation={{ ...citation, chunkId: citation.chunkId }} />;
 }
 function StoredQuote({ citation }: { readonly citation: Citation }): ReactElement {
+  useUiLocale();
   const fragment = useQuery({
     queryKey: queryKeys.citationFragment(
       citation.workspaceId,
@@ -55,11 +58,11 @@ function StoredQuote({ citation }: { readonly citation: Citation }): ReactElemen
     queryFn: ({ signal }) => fetchCitationFragment(citation, signal),
     staleTime: 0,
   });
-  if (fragment.isPending) return <p role="status">Loading cited passage…</p>;
+  if (fragment.isPending) return <p role="status">{uiText('ui.Citations.message003')}</p>;
   if (fragment.error !== null)
     return (
       <p role="alert">
-        Could not load the cited passage: {describeError(fragment.error)}
+        {uiText('ui.Citations.message004')} {describeError(fragment.error)}
       </p>
     );
   return <blockquote className={styles.quote}>{fragment.data.content}</blockquote>;
@@ -79,6 +82,7 @@ export function CitationPopover({
   readonly onNavigate?: (path: string) => void;
   readonly quote?: string;
 }): ReactElement {
+  useUiLocale();
   const path = citationPath({ ...citation, chunkId: citation.chunkId ?? '' });
   const openProvenance = useOpenProvenance();
   const [provenanceOpen, setProvenanceOpen] = useState(false);
@@ -86,15 +90,19 @@ export function CitationPopover({
     <>
       <AnchoredPopover
         anchor={anchor}
-        title={`Citation ${String(number)}`}
+        title={uiText('ui.Citations.message005', { value0: String(number) })}
         onClose={onClose}
         className={styles.popover}
       >
         <strong>
-          {citation.label ?? citation.title ?? citation.sectionTitle ?? 'Source'}
+          {citation.label ??
+            citation.title ??
+            citation.sectionTitle ??
+            uiText('ui.AiDraftBlock.message007')}
         </strong>
         <p className={styles.location}>
-          {citation.title ?? 'Source'} · {citationLocation(citation)}
+          {citation.title ?? uiText('ui.AiDraftBlock.message007')} ·{' '}
+          {citationLocation(citation)}
         </p>
         <CitationQuote citation={citation} quote={quote} />
         <div className={styles.actions}>
@@ -107,7 +115,7 @@ export function CitationPopover({
               } else setProvenanceOpen(true);
             }}
           >
-            Show provenance
+            {uiText('ui.Citations.message006')}
           </Button>
           {(['Open source', 'View context'] as const).map((label) => (
             <Button

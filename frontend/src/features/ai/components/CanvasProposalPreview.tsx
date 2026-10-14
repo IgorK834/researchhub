@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useRef, useState, type ReactElement } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
@@ -30,6 +31,7 @@ export function CanvasProposalPreview({
   readonly onApplying?: (value: boolean) => void;
   readonly onApplied?: () => Promise<void>;
 }): ReactElement {
+  useUiLocale();
   const cache = useQueryClient();
   const key = ['canvas-proposal', workspaceId, documentId, proposalId];
   const proposal = useQuery({
@@ -87,8 +89,10 @@ export function CanvasProposalPreview({
   };
   const p = proposal.data;
   return (
-    <section aria-label="AI edit proposal">
-      {proposal.isPending ? <p role="status">Loading proposal…</p> : null}
+    <section aria-label={uiText('ui.CanvasProposalPreview.message001')}>
+      {proposal.isPending ? (
+        <p role="status">{uiText('ui.CanvasProposalPreview.message002')}</p>
+      ) : null}
       {proposal.error || error ? (
         <p role="alert">{describeError(error ?? proposal.error)}</p>
       ) : null}
@@ -99,19 +103,19 @@ export function CanvasProposalPreview({
             void proposal.refetch();
           }}
         >
-          Reload proposal
+          {uiText('ui.CanvasProposalPreview.message003')}
         </Button>
       ) : null}
       {p ? (
         <>
           <strong>
             {p.mode === 'INSERT_AT_ANCHOR'
-              ? 'Insert at the captured target'
-              : 'Replace the captured selection'}
+              ? uiText('ui.CanvasProposalPreview.message004')
+              : uiText('ui.CanvasProposalPreview.message005')}
           </strong>
           {p.mode === 'REPLACE_RANGE' ? (
             <details>
-              <summary>Original selection</summary>
+              <summary>{uiText('ui.CanvasProposalPreview.message006')}</summary>
               <p>{p.originalText}</p>
             </details>
           ) : null}
@@ -142,7 +146,7 @@ export function CanvasProposalPreview({
               key={c.chunkId}
               href={`${citationPath(c)}${c.sourceVersionId ? `&version=${encodeURIComponent(c.sourceVersionId)}` : ''}`}
             >
-              {c.title ?? 'Source'}{' '}
+              {c.title ?? uiText('ui.AiDraftBlock.message007')}{' '}
             </a>
           ))}
           {p.warnings.map((w) => (
@@ -150,21 +154,23 @@ export function CanvasProposalPreview({
           ))}
           <p role="status">
             {undone || p.compensationId
-              ? 'AI insertion undone'
-              : `Proposal: ${p.state.toLowerCase()}`}
+              ? uiText('ui.CanvasProposalPreview.message007')
+              : uiText('ui.CanvasProposalPreview.message008', {
+                  value0: p.state.toLowerCase(),
+                })}
           </p>
           {canEdit && p.state === 'PENDING' ? (
             <>
-              {!canApply ? (
-                <p>Wait for document changes to save and synchronize before applying.</p>
-              ) : null}
+              {!canApply ? <p>{uiText('ui.CanvasProposalPreview.message009')}</p> : null}
               <Button
                 disabled={busy || !canApply}
                 onClick={() => {
                   void act('ACCEPT');
                 }}
               >
-                {p.mode === 'INSERT_AT_ANCHOR' ? 'Insert proposal' : 'Replace selection'}
+                {p.mode === 'INSERT_AT_ANCHOR'
+                  ? uiText('ui.CanvasProposalPreview.message010')
+                  : uiText('ui.CanvasProposalPreview.message011')}
               </Button>{' '}
               <Button
                 variant="secondary"
@@ -173,7 +179,7 @@ export function CanvasProposalPreview({
                   void act('REJECT');
                 }}
               >
-                Reject proposal
+                {uiText('ui.CanvasProposalPreview.message012')}
               </Button>
             </>
           ) : null}
@@ -189,7 +195,7 @@ export function CanvasProposalPreview({
                 void act('UNDO');
               }}
             >
-              Undo AI insertion
+              {uiText('ui.CanvasProposalPreview.message013')}
             </Button>
           ) : null}
         </>

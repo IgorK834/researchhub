@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useId, type ReactElement } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { ScopeChip } from '../../../shared/components/ScopeChip';
@@ -29,10 +30,11 @@ export function SourcePicker({
   value,
   onChange,
   disabled = false,
-  legend = 'Source selection',
+  legend = uiText('ui.SourcePicker.message009'),
   action,
   maxSelected,
 }: SourcePickerProps): ReactElement {
+  useUiLocale();
   const id = useId();
   const ready = sources.filter((source) => source.status === 'READY');
   return (
@@ -76,28 +78,31 @@ export function SourcePicker({
                   size="default"
                 />
                 <span className={styles.title}>{source.title}</span>
-                <span aria-hidden="true">{source.sourceType ?? 'Source'}</span>
+                <span aria-hidden="true">
+                  {source.sourceType ?? uiText('ui.AiDraftBlock.message007')}
+                </span>
               </label>
               <SourceStatusChip status={source.status} />
               {!selectable ? (
                 <p id={explanation}>
                   {source.status === 'PROCESSING' || source.status === 'UPLOADED'
-                    ? 'This source is still processing. It can be selected when ready.'
-                    : 'This source is not ready. It cannot be selected as evidence.'}
+                    ? uiText('ui.SourcePicker.message001')
+                    : uiText('ui.SourcePicker.message002')}
                 </p>
               ) : null}
             </li>
           );
         })}
       </ul>
-      {ready.length === 0 ? <p>No ready sources available.</p> : null}
+      {ready.length === 0 ? <p>{uiText('ui.SourcePicker.message003')}</p> : null}
       {maxSelected !== undefined ? (
         <p>
-          Choose up to {maxSelected} sources. Remove a selected source to choose another.
+          {uiText('ui.SourcePicker.message004')} {maxSelected}{' '}
+          {uiText('ui.SourcePicker.message005')}
         </p>
       ) : null}
       {value !== null && value.length === 0 ? (
-        <p>No sources selected. The answer will have no evidence.</p>
+        <p>{uiText('ui.SourcePicker.message006')}</p>
       ) : null}
       <div className={styles.actions}>
         <Button
@@ -109,10 +114,10 @@ export function SourcePicker({
             )
           }
         >
-          Select all ready
+          {uiText('ui.SourcePicker.message007')}
         </Button>
         <Button variant="ghost" size="compact" onClick={() => onChange([])}>
-          Clear
+          {uiText('ui.SourcePicker.message008')}
         </Button>
       </div>
     </fieldset>

@@ -1,3 +1,4 @@
+import { t as uiText, type MessageKey } from '../../../shared/i18n';
 import type { AuthoringSelection } from '../../documents/components/DocumentBodyEditor';
 import type { AuthoringCommand, AuthoringKind, RewriteAction } from './authoringApi';
 
@@ -9,19 +10,27 @@ export interface SelectionAuthoringRequest {
   readonly revision: number;
 }
 
+function actionLabel<K extends SelectionAction>(
+  action: K,
+  key: MessageKey,
+): readonly [K, string] {
+  const entry: [K, string] = [action, ''];
+  Object.defineProperty(entry, '1', { get: () => uiText(key) });
+  return Object.freeze(entry);
+}
 export const REWRITE_ACTIONS: readonly (readonly [RewriteAction, string])[] = [
-  ['IMPROVE_ACADEMIC_STYLE', 'Improve writing'],
-  ['SHORTEN', 'Shorten'],
-  ['EXPAND', 'Expand'],
-  ['CLARIFY', 'Clarify'],
-  ['FIX_GRAMMAR', 'Fix grammar'],
-  ['EXPLAIN', 'Explain'],
+  actionLabel('IMPROVE_ACADEMIC_STYLE', 'editor.improve'),
+  actionLabel('SHORTEN', 'editor.shorten'),
+  actionLabel('EXPAND', 'editor.expand'),
+  actionLabel('CLARIFY', 'editor.clarify'),
+  actionLabel('FIX_GRAMMAR', 'editor.grammar'),
+  actionLabel('EXPLAIN', 'editor.explain'),
 ];
 export const SELECTION_ACTIONS: readonly (readonly [SelectionAction, string])[] = [
   ...REWRITE_ACTIONS.filter(
     ([action]) => action !== 'CLARIFY' && action !== 'FIX_GRAMMAR',
   ),
-  ['FIND_EVIDENCE', 'Find evidence'],
+  actionLabel('FIND_EVIDENCE', 'ui.AuthoringPanel.message029'),
 ];
 
 /** One public command builder for the panel and selection toolbar. */

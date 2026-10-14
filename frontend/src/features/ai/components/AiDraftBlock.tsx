@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import type { AuthoringSuggestion } from '../api/authoringApi';
 import { CitationReference, citationVariant } from './Citations';
@@ -27,27 +28,31 @@ export function AiDraftBlock({
   readonly onRegenerate: () => void;
   readonly onDiscard: () => void;
 }): ReactElement {
+  useUiLocale();
   const grounded = new Set(suggestion.citations.map((citation) => citation.sourceId))
     .size;
   const ready = Boolean(suggestion.generatedText.trim()) && grounded > 0;
   return (
-    <section aria-label="AI draft" className={styles.draft}>
+    <section aria-label={uiText('ui.AiDraftBlock.message001')} className={styles.draft}>
       <header className={styles.draftHeader}>
         <strong>
-          <Icon name="sparkle" /> AI draft — not in your document yet
+          <Icon name="sparkle" /> {uiText('ui.AiDraftBlock.message002')}
         </strong>
-        <span className={styles.grounded}>Grounded in {grounded} sources</span>
+        <span className={styles.grounded}>
+          {uiText('ui.AiDraftBlock.message003')} {grounded}{' '}
+          {uiText('ui.AiDraftBlock.message004')}
+        </span>
       </header>
       {ready ? (
         <div className={styles.draftText}>{suggestion.generatedText}</div>
       ) : (
-        <p role="status">
-          Insufficient evidence. Choose additional ready sources or refine the instruction
-          and generate a new draft.
-        </p>
+        <p role="status">{uiText('ui.AiDraftBlock.message005')}</p>
       )}
       {suggestion.citations.length > 0 ? (
-        <div className={styles.citations} aria-label="Draft sources">
+        <div
+          className={styles.citations}
+          aria-label={uiText('ui.AiDraftBlock.message006')}
+        >
           {suggestion.citations.map((citation, index) => (
             <CitationReference
               key={citation.chunkId}
@@ -57,10 +62,12 @@ export function AiDraftBlock({
                 sources.find((source) => source.id === citation.sourceId)?.sourceType,
               )}
             >
-              {citation.title ?? 'Source'} —{' '}
+              {citation.title ?? uiText('ui.AiDraftBlock.message007')} —{' '}
               {citation.pageStart === null
-                ? (citation.sectionTitle ?? citation.spans[0]?.unitId ?? 'location')
-                : `page ${citation.pageStart}`}
+                ? (citation.sectionTitle ??
+                  citation.spans[0]?.unitId ??
+                  uiText('ui.AiDraftBlock.message008'))
+                : uiText('ui.AiDraftBlock.message009', { value0: citation.pageStart })}
             </CitationReference>
           ))}
         </div>
@@ -70,16 +77,16 @@ export function AiDraftBlock({
           {warning}
         </p>
       ))}
-      <p className={styles.resultNote}>
-        This draft is a suggestion; your document is unchanged.
-      </p>
+      <p className={styles.resultNote}>{uiText('ui.AiDraftBlock.message010')}</p>
       <div className={styles.actions}>
         <Button
           size="compact"
           disabled={blocked || !ready}
           onClick={() => onInsert(false)}
         >
-          {retry ? 'Retry acceptance' : 'Insert draft'}
+          {retry
+            ? uiText('ui.AiDraftBlock.message011')
+            : uiText('ui.AiDraftBlock.message012')}
         </Button>
         <Button
           size="compact"
@@ -87,7 +94,7 @@ export function AiDraftBlock({
           disabled={blocked || retry || !ready}
           onClick={() => onInsert(true)}
         >
-          Insert and edit
+          {uiText('ui.AiDraftBlock.message013')}
         </Button>
         <Button
           size="compact"
@@ -96,7 +103,7 @@ export function AiDraftBlock({
           disabled={blocked || retry}
           onClick={onRegenerate}
         >
-          Regenerate
+          {uiText('ui.AiDraftBlock.message014')}
         </Button>
         <Button
           size="compact"
@@ -104,7 +111,7 @@ export function AiDraftBlock({
           disabled={busy || retry}
           onClick={onDiscard}
         >
-          Discard
+          {uiText('ui.AiDraftBlock.message015')}
         </Button>
       </div>
     </section>

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { SourcePicker } from './SourcePicker';
 import { useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -27,6 +28,7 @@ export function SourceComparisonPanel({
   return <ComparisonForm key={workspaceId} workspaceId={workspaceId} />;
 }
 function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): ReactElement {
+  useUiLocale();
   const sources = useSourcesQuery(workspaceId);
   const [selected, setSelected] = useState<readonly string[]>([]);
   const [picking, setPicking] = useState(false);
@@ -56,30 +58,36 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
   return (
     <section aria-labelledby="source-comparison-heading" className={styles.panel}>
       <h2 id="source-comparison-heading">
-        <Icon name="columns" /> Compare sources
+        <Icon name="columns" /> {uiText('ui.SourceComparisonPanel.message001')}
       </h2>
-      <p>
-        AI-assisted interpretation of selected source excerpts. Review the cited passages;
-        missing information remains missing.
-      </p>
-      {sources.isPending ? <p role="status">Loading comparison sources…</p> : null}
+      <p>{uiText('ui.SourceComparisonPanel.message002')}</p>
+      {sources.isPending ? (
+        <p role="status">{uiText('ui.SourceComparisonPanel.message003')}</p>
+      ) : null}
       {sources.error !== null ? (
         <p role="alert">
-          Could not load comparison sources: {describeError(sources.error)}
+          {uiText('ui.SourceComparisonPanel.message004')} {describeError(sources.error)}
         </p>
       ) : null}
-      <div className={styles.selected} aria-label="Compared sources">
-        <span>Comparing</span>
+      <div
+        className={styles.selected}
+        aria-label={uiText('ui.SourceComparisonPanel.message005')}
+      >
+        <span>{uiText('ui.SourceComparisonPanel.message006')}</span>
         {selected.map((id) => (
           <span key={id} className={styles.sourceChip}>
             {sources.data?.find((source) => source.id === id)?.displayName ??
-              'Unavailable source'}
+              uiText('ui.SourceComparisonPanel.message007')}
             <Button
               iconOnly
               icon="x"
               size="compact"
               variant="ghost"
-              aria-label={`Remove ${sources.data?.find((source) => source.id === id)?.displayName ?? 'unavailable source'}`}
+              aria-label={uiText('ui.SourceComparisonPanel.message008', {
+                value0:
+                  sources.data?.find((source) => source.id === id)?.displayName ??
+                  uiText('ui.SourceComparisonPanel.message009'),
+              })}
               disabled={busy}
               onClick={() => {
                 setSelected(selected.filter((item) => item !== id));
@@ -102,10 +110,10 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
           aria-controls="comparison-source-picker"
           onClick={() => setPicking(!picking)}
         >
-          Add source
+          {uiText('ui.SourceComparisonPanel.message010')}
         </Button>
         <span className={styles.note}>
-          {selected.length} of 5 selected · choose at least 2
+          {selected.length} {uiText('ui.SourceComparisonPanel.message011')}
         </span>
       </div>
       <form
@@ -124,7 +132,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
               (id) => !sources.data?.some((s) => s.id === id && s.status === 'READY'),
             )
           ) {
-            setValidation('Select 2–5 sources from this workspace.');
+            setValidation(uiText('ui.SourceComparisonPanel.message051'));
             return;
           }
           if (
@@ -133,9 +141,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
             fields.some((field) => field.length > 64) ||
             new Set(fields.map((field) => field.toLowerCase())).size !== fields.length
           ) {
-            setValidation(
-              'Enter 1–5 distinct criteria, one per line (up to 64 characters each).',
-            );
+            setValidation(uiText('ui.SourceComparisonPanel.message052'));
             return;
           }
           setValidation(null);
@@ -158,12 +164,12 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
         }}
       >
         <fieldset disabled={busy || sources.isPending || sources.error !== null}>
-          <legend>Select 2–5 sources to compare</legend>
+          <legend>{uiText('ui.SourceComparisonPanel.message012')}</legend>
           {picking ? (
             <div id="comparison-source-picker" className={styles.picker}>
               <SourcePicker
-                legend="Comparison sources"
-                action="Compare"
+                legend={uiText('ui.SourceComparisonPanel.message049')}
+                action={uiText('ui.SourceComparisonPanel.message050')}
                 sources={(sources.data ?? []).map((source) => ({
                   id: source.id,
                   title: source.displayName,
@@ -184,20 +190,20 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
                 size="compact"
                 onClick={() => setPicking(false)}
               >
-                Done choosing sources
+                {uiText('ui.SourceComparisonPanel.message013')}
               </Button>
             </div>
           ) : null}
           {!sources.isPending && sources.error === null && sources.data?.length === 0 ? (
             <div>
               <Illustration scene="sources" size="compact" />
-              <p>No sources available for comparison.</p>
+              <p>{uiText('ui.SourceComparisonPanel.message014')}</p>
             </div>
           ) : null}
           <details className={styles.settings} open={compare.data === undefined}>
-            <summary>Comparison settings</summary>
+            <summary>{uiText('ui.SourceComparisonPanel.message015')}</summary>
             <label>
-              Comparison criteria (one per line)
+              {uiText('ui.SourceComparisonPanel.message016')}
               <textarea
                 maxLength={324}
                 value={criteria}
@@ -205,7 +211,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
               />
             </label>
             <label>
-              Comparison instruction (optional)
+              {uiText('ui.SourceComparisonPanel.message017')}
               <textarea
                 maxLength={1000}
                 value={instruction}
@@ -217,30 +223,29 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
             icon="columns"
             type="submit"
             busy={compare.isPending}
-            busyLabel="Comparing…"
+            busyLabel={uiText('ui.SourceComparisonPanel.message018')}
           >
-            Compare selected sources
+            {uiText('ui.SourceComparisonPanel.message019')}
           </Button>
         </fieldset>
       </form>
       {validation === null ? null : <p role="alert">{validation}</p>}
       {compare.error === null ? null : (
-        <p role="alert">Comparison failed: {describeError(compare.error)}</p>
+        <p role="alert">
+          {uiText('ui.SourceComparisonPanel.message020')} {describeError(compare.error)}
+        </p>
       )}
       {compare.data !== undefined && !compare.isPending ? (
         <>
           <ComparisonResult analysis={compare.data} />
           <section
             className={styles.differencesCard}
-            aria-label="Differences worth a look"
+            aria-label={uiText('ui.SourceComparisonPanel.message021')}
           >
             <h3>
-              <Icon name="warn" /> Differences worth a look
+              <Icon name="warn" /> {uiText('ui.SourceComparisonPanel.message021')}
             </h3>
-            <p>
-              Check whether the reported results or experimental conditions differ. Review
-              the cited passages before drawing conclusions.
-            </p>
+            <p>{uiText('ui.SourceComparisonPanel.message022')}</p>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -273,7 +278,7 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
                 onChange={setVersionSelection}
               />
               <label>
-                Disagreement analysis focus (optional)
+                {uiText('ui.SourceComparisonPanel.message023')}
                 <textarea
                   disabled={busy}
                   maxLength={1000}
@@ -285,9 +290,9 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
                 type="submit"
                 disabled={busy}
                 busy={differences.isPending}
-                busyLabel="Checking potential disagreements…"
+                busyLabel={uiText('ui.SourceComparisonPanel.message024')}
               >
-                Find potential disagreements
+                {uiText('ui.SourceComparisonPanel.message025')}
               </Button>
             </form>
           </section>
@@ -295,7 +300,8 @@ function ComparisonForm({ workspaceId }: { readonly workspaceId: string }): Reac
       ) : null}
       {differences.error === null ? null : (
         <p role="alert">
-          Disagreement analysis failed: {describeError(differences.error)}
+          {uiText('ui.SourceComparisonPanel.message026')}{' '}
+          {describeError(differences.error)}
         </p>
       )}
       {differences.data !== undefined && !differences.isPending ? (
@@ -321,6 +327,7 @@ function VersionChoice({
   readonly disabled: boolean;
   readonly onChange: (value: VersionSelection) => void;
 }): ReactElement {
+  useUiLocale();
   const newer = analysis.sources.filter((source) => {
     const current = currentVersionIds.get(source.id);
     return (
@@ -331,10 +338,10 @@ function VersionChoice({
   });
   return (
     <fieldset disabled={disabled} className={styles.versions}>
-      <legend>Source versions for this analysis</legend>
+      <legend>{uiText('ui.SourceComparisonPanel.message027')}</legend>
       {newer.length === 0 ? null : (
         <p role="status">
-          A newer version was uploaded after this comparison:{' '}
+          {uiText('ui.SourceComparisonPanel.message028')}{' '}
           {newer.map((source) => source.title).join(', ')}.
         </p>
       )}
@@ -346,7 +353,7 @@ function VersionChoice({
           checked={value === 'ORIGINAL'}
           onChange={() => onChange('ORIGINAL')}
         />
-        Use the original versions from the comparison
+        {uiText('ui.SourceComparisonPanel.message029')}
       </label>
       <label>
         <input
@@ -356,7 +363,7 @@ function VersionChoice({
           checked={value === 'LATEST'}
           onChange={() => onChange('LATEST')}
         />
-        Use the latest versions (re-reads the sources)
+        {uiText('ui.SourceComparisonPanel.message030')}
       </label>
     </fieldset>
   );
@@ -368,6 +375,7 @@ function EvidenceLinks({
   readonly ids: readonly string[];
   readonly analysis: SourceAnalysis;
 }): ReactElement {
+  useUiLocale();
   return (
     <span className={styles.citations}>
       {ids.map((id) => {
@@ -375,7 +383,7 @@ function EvidenceLinks({
         if (citation === undefined)
           return (
             <span key={id} className={styles.missing}>
-              [Unavailable reference]
+              {uiText('ui.SourceComparisonPanel.message031')}
             </span>
           );
         return (
@@ -383,11 +391,11 @@ function EvidenceLinks({
             key={id}
             citation={citation}
             number={analysis.evidence.indexOf(citation) + 1}
-            label={`${citation.title ?? 'Source'} · ${citationLocation(citation)}`}
+            label={`${citation.title ?? uiText('ui.AiDraftBlock.message007')} · ${citationLocation(citation)}`}
           >
             {citation.pageStart !== null
               ? `p. ${citation.pageStart}${citation.pageEnd !== null && citation.pageEnd !== citation.pageStart ? `–${citation.pageEnd}` : ''}`
-              : (citation.sectionTitle ?? 'Source fragment')}
+              : (citation.sectionTitle ?? uiText('ui.Citations.message001'))}
           </CitationReference>
         );
       })}
@@ -417,24 +425,28 @@ export function ComparisonResult({
 }: {
   readonly analysis: SourceAnalysis;
 }): ReactElement {
+  useUiLocale();
   return (
-    <section aria-label="Source comparison result" className={styles.result}>
-      <h3 className="visually-hidden">AI-assisted comparison</h3>
+    <section
+      aria-label={uiText('ui.SourceComparisonPanel.message032')}
+      className={styles.result}
+    >
+      <h3 className="visually-hidden">{uiText('ui.SourceComparisonPanel.message033')}</h3>
       <Provenance analysis={analysis} />
       {analysis.answer.status === 'INSUFFICIENT_EVIDENCE' ? (
-        <p>Insufficient evidence in retrieved excerpts.</p>
+        <p>{uiText('ui.SourceComparisonPanel.message034')}</p>
       ) : null}
       <div
         className={styles.grid}
         role="region"
-        aria-label="Comparison grid"
+        aria-label={uiText('ui.SourceComparisonPanel.message035')}
         tabIndex={0}
       >
         <table>
-          <caption>Research criteria in selected source excerpts</caption>
+          <caption>{uiText('ui.SourceComparisonPanel.message036')}</caption>
           <thead>
             <tr>
-              <th scope="col">Criterion</th>
+              <th scope="col">{uiText('ui.SourceComparisonPanel.message037')}</th>
               {analysis.sources.map((source) => {
                 const citation = analysis.evidence.find(
                   (item) => item.sourceId === source.id,
@@ -444,7 +456,10 @@ export function ComparisonResult({
                     <span>
                       {source.title}
                       {source.versionNumber > 0
-                        ? ` (version ${String(source.versionNumber)})`
+                        ? ' ' +
+                          uiText('ui.SourceComparisonPanel.message038', {
+                            value0: String(source.versionNumber),
+                          })
                         : ''}
                     </span>
                     {citation !== undefined ? (
@@ -455,7 +470,7 @@ export function ComparisonResult({
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        Open
+                        {uiText('ui.ClaimEvidencePanel.message011')}
                       </Button>
                     ) : null}
                   </th>
@@ -480,7 +495,7 @@ export function ComparisonResult({
                         </>
                       ) : (
                         <span className={styles.missing}>
-                          Missing in retrieved excerpts
+                          {uiText('ui.SourceComparisonPanel.message039')}
                         </span>
                       )}
                     </td>
@@ -491,12 +506,17 @@ export function ComparisonResult({
           </tbody>
         </table>
       </div>
-      <section className={styles.summary} aria-label="Comparison summary">
+      <section
+        className={styles.summary}
+        aria-label={uiText('ui.SourceComparisonPanel.message040')}
+      >
         <h4>
-          <Icon name="sparkle" /> Suggested summary
+          <Icon name="sparkle" /> {uiText('ui.SourceComparisonPanel.message041')}
         </h4>
         {analysis.answer.summary.length === 0 ? (
-          <p className={styles.missing}>No supported summary was returned.</p>
+          <p className={styles.missing}>
+            {uiText('ui.SourceComparisonPanel.message042')}
+          </p>
         ) : null}
         {analysis.answer.summary.map((statement, index) => (
           <p key={index}>
@@ -509,27 +529,34 @@ export function ComparisonResult({
   );
 }
 const categories = {
-  POTENTIAL_DISAGREEMENT: 'Potential disagreement',
-  DIFFERENT_REPORTED_RESULT: 'Different reported result',
-  DIFFERENT_EXPERIMENTAL_CONDITIONS: 'Different experimental conditions',
+  get POTENTIAL_DISAGREEMENT() {
+    return uiText('ui.SourceComparisonPanel.message053');
+  },
+  get DIFFERENT_REPORTED_RESULT() {
+    return uiText('ui.SourceComparisonPanel.message054');
+  },
+  get DIFFERENT_EXPERIMENTAL_CONDITIONS() {
+    return uiText('ui.SourceComparisonPanel.message055');
+  },
 };
 export function DisagreementResult({
   analysis,
 }: {
   readonly analysis: SourceAnalysis;
 }): ReactElement {
+  useUiLocale();
   return (
-    <section aria-label="Potential disagreement result" className={styles.findings}>
-      <h3>AI-assisted interpretation: potential disagreements</h3>
+    <section
+      aria-label={uiText('ui.SourceComparisonPanel.message043')}
+      className={styles.findings}
+    >
+      <h3>{uiText('ui.SourceComparisonPanel.message044')}</h3>
       <Provenance analysis={analysis} />
       {analysis.answer.status === 'NO_POTENTIAL_DISAGREEMENT' ? (
-        <p>
-          No potential disagreement identified in these excerpts. This does not establish
-          agreement between the full sources.
-        </p>
+        <p>{uiText('ui.SourceComparisonPanel.message045')}</p>
       ) : null}
       {analysis.answer.status === 'INSUFFICIENT_EVIDENCE' ? (
-        <p>Insufficient evidence from at least two sources.</p>
+        <p>{uiText('ui.SourceComparisonPanel.message046')}</p>
       ) : null}
       {analysis.answer.findings.map((finding, index) => (
         <article key={index} className={styles.finding}>
@@ -539,7 +566,7 @@ export function DisagreementResult({
             <p key={side.sourceId}>
               <strong>
                 {analysis.sources.find((source) => source.id === side.sourceId)?.title ??
-                  'Source'}
+                  uiText('ui.AiDraftBlock.message007')}
                 :{' '}
               </strong>
               {side.text}
@@ -547,9 +574,9 @@ export function DisagreementResult({
             </p>
           ))}
           <p>
-            <strong>Methodological/context differences: </strong>
+            <strong>{uiText('ui.SourceComparisonPanel.message047')} </strong>
             {finding.methodologicalContext.status === 'MISSING'
-              ? 'Unavailable in retrieved excerpts; assess comparability in the original sources.'
+              ? uiText('ui.SourceComparisonPanel.message048')
               : finding.methodologicalContext.text}
             <EvidenceLinks
               ids={finding.methodologicalContext.evidenceIds}

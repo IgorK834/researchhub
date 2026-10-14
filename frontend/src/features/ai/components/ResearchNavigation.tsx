@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { ListRow, Panel } from '../../../shared/components/content';
@@ -17,7 +19,8 @@ export function scopeLabel(
     return `All workspace sources · ${String(sources.sources.filter((source) => source.ready).length)} ready`;
   if (scope === 'source')
     return (
-      sources.sources.find((source) => source.id === sourceId)?.title ?? 'This source'
+      sources.sources.find((source) => source.id === sourceId)?.title ??
+      uiText('ui.ResearchNavigation.message001')
     );
   return `Selected sources · ${String(selected.length)}`;
 }
@@ -53,19 +56,22 @@ export function Investigations({
   readonly morePending: boolean;
   readonly onMore: () => void;
 }): ReactElement {
+  useUiLocale();
   return (
     <div className={styles.investigations}>
-      <h2>Investigations</h2>
+      <h2>{uiText('ui.ResearchNavigation.message002')}</h2>
       <Button icon="plus" onClick={() => onChoose(null)}>
-        New question
+        {uiText('ui.ResearchNavigation.message003')}
       </Button>
-      {loading ? <p role="status">Loading research conversations…</p> : null}
+      {loading ? <p role="status">{uiText('ui.ResearchNavigation.message004')}</p> : null}
       {error !== null ? (
-        <p role="alert">Could not load conversations: {error}</p>
+        <p role="alert">
+          {uiText('ui.ResearchNavigation.message005')} {error}
+        </p>
       ) : (
         <>
           {items.length === 0 && !loading ? (
-            <p>Your research conversations will appear here.</p>
+            <p>{uiText('ui.ResearchNavigation.message006')}</p>
           ) : null}
           {(['Today', 'Yesterday', 'Earlier'] as const).map((group) => {
             const conversations = items.filter(
@@ -91,10 +97,13 @@ export function Investigations({
                       meta={
                         <>
                           {item.origin ? (
-                            <span>Document: {item.origin.documentTitle} · </span>
+                            <span>
+                              {uiText('ui.ResearchNavigation.message007')}{' '}
+                              {item.origin.documentTitle} ·{' '}
+                            </span>
                           ) : null}
                           <time dateTime={item.updatedAt}>
-                            {new Date(item.updatedAt).toLocaleDateString()}
+                            {new Date(item.updatedAt).toLocaleDateString(getIntlLocale())}
                           </time>
                         </>
                       }
@@ -106,7 +115,7 @@ export function Investigations({
           })}
           {hasMore ? (
             <Button variant="ghost" disabled={morePending} onClick={onMore}>
-              More conversations
+              {uiText('ui.ResearchNavigation.message008')}
             </Button>
           ) : null}
         </>
@@ -135,11 +144,12 @@ export function ResearchScopePanel({
   readonly onApply: () => void;
   readonly canApply: boolean;
 }): ReactElement {
+  useUiLocale();
   const source = sources.sources.find((item) => item.id === sourceId);
   return (
-    <Panel title="Scope">
+    <Panel title={uiText('ui.ResearchNavigation.message009')}>
       <fieldset className={styles.scope} disabled={disabled}>
-        <legend>Research scope</legend>
+        <legend>{uiText('ui.ResearchNavigation.message010')}</legend>
         <div className={styles.scopeOptions}>
           {sourceId !== undefined ? (
             <label>
@@ -150,7 +160,7 @@ export function ResearchScopePanel({
                 disabled={!source?.ready}
                 onChange={() => onScope('source')}
               />
-              This source
+              {uiText('ui.ResearchNavigation.message001')}
             </label>
           ) : null}
           <label>
@@ -160,7 +170,7 @@ export function ResearchScopePanel({
               checked={scope === 'selected'}
               onChange={() => onScope('selected')}
             />
-            Selected sources
+            {uiText('ui.ResearchNavigation.message011')}
           </label>
           <label>
             <input
@@ -169,7 +179,7 @@ export function ResearchScopePanel({
               checked={scope === 'all'}
               onChange={() => onScope('all')}
             />
-            All workspace sources
+            {uiText('ui.ResearchNavigation.message012')}
           </label>
         </div>
         <SourcePicker
@@ -188,13 +198,10 @@ export function ResearchScopePanel({
         />
         {scope === 'selected' && canApply ? (
           <Button variant="secondary" size="compact" onClick={onApply}>
-            Apply scope
+            {uiText('ui.ResearchNavigation.message013')}
           </Button>
         ) : null}
-        <p>
-          Workspace sources only. Only ready uploaded sources can be used as evidence.
-          External web references are kept separately and are not included in answers.
-        </p>
+        <p>{uiText('ui.ResearchNavigation.message014')}</p>
       </fieldset>
     </Panel>
   );
