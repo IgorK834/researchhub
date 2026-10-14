@@ -17,6 +17,10 @@ module.exports = {
   },
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   collectCoverageFrom: [
+    'src/shared/i18n/{locale,LanguageSwitcher}.{ts,tsx}',
+    'src/features/documents/api/documentTemplateApi.ts',
+    'src/features/documents/components/{CreateDocumentForm,CreateDocumentDialog,TemplatePreview}.tsx',
+    'src/features/ai/components/AnswerLanguageSelect.tsx',
     'security/browserPolicy.cjs',
     'src/shared/api/**/*.ts',
     '!src/shared/api/index.ts',
@@ -48,6 +52,10 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/shared/i18n/{locale,LanguageSwitcher}.{ts,tsx}': { lines: 80, branches: 80 },
+    'src/features/documents/api/documentTemplateApi.ts': { lines: 80, branches: 80 },
+    'src/features/documents/components/{CreateDocumentForm,CreateDocumentDialog,TemplatePreview}.tsx':
+      { lines: 80, branches: 80 },
     'src/features/search/': { lines: 80, branches: 80 },
     'src/features/sources/api/bibliographyImportApi.ts': { lines: 80, branches: 80 },
     'src/features/sources/components/BibliographyImportDialog.tsx': {
