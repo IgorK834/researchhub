@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -5,6 +6,7 @@ import { Sticker } from '../../../shared/components/identity';
 import { Illustration } from '../../../shared/components/Illustration';
 import { ResearchHubMark } from '../../../shared/components/shell/AppShell';
 import styles from './AuthLayout.module.css';
+import { LanguageSwitcher } from '../../../shared/i18n';
 
 export interface AuthLayoutProps {
   readonly variant: 'login' | 'register';
@@ -25,6 +27,7 @@ export function AuthLayout({
   footer,
   art,
 }: AuthLayoutProps): ReactElement {
+  useUiLocale();
   const login = variant === 'login';
   return (
     <main className={[styles.layout, styles[variant]].join(' ')}>
@@ -38,12 +41,19 @@ export function AuthLayout({
           <p className={styles.subtitle}>{subtitle}</p>
           {children}
         </div>
-        <footer className={styles.legal}>{footer}</footer>
+        <footer className={styles.legal}>
+          {footer}
+          <LanguageSwitcher />
+        </footer>
       </section>
       <div className={styles.artPanel} aria-hidden="true">
         <div className={styles.topSticker}>
           <Sticker
-            label={login ? 'Grounded in your sources' : 'Shared sources'}
+            label={
+              login
+                ? uiText('ui.AuthLayout.message001')
+                : uiText('ui.AuthLayout.message002')
+            }
             tone={login ? 'yellow' : 'blue'}
           />
         </div>
@@ -51,11 +61,17 @@ export function AuthLayout({
           {art ?? <Illustration scene={login ? 'reading' : 'team'} size="hero" />}
         </div>
         <p className={styles.caption}>
-          {login ? 'Read. Question. Cite.' : 'Better together.'}
+          {login
+            ? uiText('ui.AuthLayout.message003')
+            : uiText('ui.AuthLayout.message004')}
         </p>
         <div className={styles.bottomSticker}>
           <Sticker
-            label={login ? '3 collaborators' : 'One report, many hands'}
+            label={
+              login
+                ? uiText('ui.AuthLayout.message005')
+                : uiText('ui.AuthLayout.message006')
+            }
             tone={login ? 'mint' : 'coral'}
           />
         </div>

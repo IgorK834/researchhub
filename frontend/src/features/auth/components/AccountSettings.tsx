@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +11,7 @@ import styles from './AccountSettings.module.css';
 import { AccountDataSettings } from './AccountDataSettings';
 
 export function AccountSettings(): ReactElement {
+  useUiLocale();
   const cache = useQueryClient();
   const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -36,7 +39,7 @@ export function AccountSettings(): ReactElement {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmation('');
-      setMessage('Password changed. Other sessions have been signed out.');
+      setMessage(uiText('ui.AccountSettings.message017'));
       void cache.invalidateQueries({ queryKey: ['auth', 'sessions'] });
     },
   });
@@ -45,7 +48,7 @@ export function AccountSettings(): ReactElement {
     onSuccess: (_, session) => {
       if (session.current) signedOut();
       else {
-        setMessage('Session revoked.');
+        setMessage(uiText('ui.AccountSettings.message018'));
         void cache.invalidateQueries({ queryKey: ['auth', 'sessions'] });
       }
     },
@@ -56,39 +59,39 @@ export function AccountSettings(): ReactElement {
   });
   const verify = useMutation({
     mutationFn: api.requestVerification,
-    onSuccess: () => setMessage('Verification link requested. Check your email.'),
+    onSuccess: () => setMessage(uiText('ui.AccountLink.message013')),
   });
   const error = password.error ?? revoke.error ?? revokeAll.error ?? verify.error;
   return (
     <section className={styles.page}>
-      <h1>Account settings</h1>
+      <h1>{uiText('ui.AccountLink.message017')}</h1>
       <AccountDataSettings />
       {message ? <p role="status">{message}</p> : null}
       {error ? <p role="alert">{describeError(error)}</p> : null}
       <section>
-        <h2>Email verification</h2>
+        <h2>{uiText('ui.AccountSettings.message001')}</h2>
         {verification.isPending ? (
-          <p role="status">Loading email status…</p>
+          <p role="status">{uiText('ui.AccountSettings.message002')}</p>
         ) : verification.error ? (
           <p role="alert">{describeError(verification.error)}</p>
         ) : verification.data?.emailVerifiedAt ? (
-          <p>Email verified.</p>
+          <p>{uiText('ui.AccountSettings.message003')}</p>
         ) : (
           <>
-            <p>Verify your email before accepting workspace invitations.</p>
+            <p>{uiText('ui.AccountSettings.message004')}</p>
             <Button onClick={() => verify.mutate()} busy={verify.isPending}>
-              Send verification link
+              {uiText('ui.AccountLink.message011')}
             </Button>
           </>
         )}
       </section>
       <section>
-        <h2>Change password</h2>
+        <h2>{uiText('ui.AccountSettings.message005')}</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault();
             if (newPassword !== confirmation) {
-              setFormError('Passwords do not match.');
+              setFormError(uiText('ui.RegisterPage.message001'));
               return;
             }
             setFormError('');
@@ -98,7 +101,7 @@ export function AccountSettings(): ReactElement {
         >
           <TextField
             id="account-current-password"
-            label="Current password"
+            label={uiText('ui.AccountSettings.message006')}
             type="password"
             autoComplete="current-password"
             value={currentPassword}
@@ -107,7 +110,7 @@ export function AccountSettings(): ReactElement {
           />
           <TextField
             id="account-new-password"
-            label="New password"
+            label={uiText('ui.AccountSettings.message007')}
             type="password"
             autoComplete="new-password"
             value={newPassword}
@@ -116,7 +119,7 @@ export function AccountSettings(): ReactElement {
           />
           <TextField
             id="account-confirm-password"
-            label="Confirm new password"
+            label={uiText('ui.AccountSettings.message008')}
             type="password"
             autoComplete="new-password"
             value={confirmation}
@@ -125,14 +128,14 @@ export function AccountSettings(): ReactElement {
           />
           {formError ? <p role="alert">{formError}</p> : null}
           <Button type="submit" busy={password.isPending}>
-            Change password
+            {uiText('ui.AccountSettings.message005')}
           </Button>
         </form>
       </section>
       <section>
-        <h2>Active sessions</h2>
+        <h2>{uiText('ui.AccountSettings.message009')}</h2>
         {sessions.isPending ? (
-          <p role="status">Loading sessions…</p>
+          <p role="status">{uiText('ui.AccountSettings.message010')}</p>
         ) : sessions.error ? (
           <>
             <p role="alert">{describeError(sessions.error)}</p>
@@ -141,26 +144,28 @@ export function AccountSettings(): ReactElement {
                 void sessions.refetch();
               }}
             >
-              Try again
+              {uiText('ui.AnalysisChart.message004')}
             </Button>
           </>
         ) : sessions.data?.length === 0 ? (
-          <p>No active sessions.</p>
+          <p>{uiText('ui.AccountSettings.message011')}</p>
         ) : (
           <ul>
             {sessions.data?.map((session) => (
               <li key={session.handle}>
                 <strong>{session.userAgent}</strong>
-                {session.current ? ' — Current session' : ''}
+                {session.current ? ' ' + uiText('ui.AccountSettings.message012') : ''}
                 <p>
-                  Created {new Date(session.createdAt).toLocaleString()} · Last active{' '}
-                  {new Date(session.lastAccessedAt).toLocaleString()}
+                  {uiText('ui.AccountSettings.message013')}{' '}
+                  {new Date(session.createdAt).toLocaleString(getIntlLocale())}{' '}
+                  {uiText('ui.AccountSettings.message014')}{' '}
+                  {new Date(session.lastAccessedAt).toLocaleString(getIntlLocale())}
                 </p>
                 <Button
                   onClick={() => revoke.mutate(session)}
                   disabled={revoke.isPending || revokeAll.isPending}
                 >
-                  Revoke session
+                  {uiText('ui.AccountSettings.message015')}
                 </Button>
               </li>
             ))}
@@ -171,7 +176,7 @@ export function AccountSettings(): ReactElement {
           busy={revokeAll.isPending}
           disabled={revoke.isPending}
         >
-          Sign out all sessions
+          {uiText('ui.AccountSettings.message016')}
         </Button>
       </section>
     </section>

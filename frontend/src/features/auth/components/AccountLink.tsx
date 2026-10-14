@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -13,6 +14,7 @@ export function AccountLink({
 }: {
   readonly kind: 'invite' | 'verify';
 }): ReactElement {
+  useUiLocale();
   const { hash } = useLocation();
   const token = hash.slice(1);
   const cache = useQueryClient();
@@ -43,49 +45,57 @@ export function AccountLink({
   return (
     <AuthLayout
       variant="login"
-      title={kind === 'invite' ? 'Workspace invitation' : 'Verify email'}
+      title={
+        kind === 'invite'
+          ? uiText('ui.AccountLink.message001')
+          : uiText('ui.AccountLink.message002')
+      }
       footer="ResearchHub"
       subtitle={
         kind === 'invite'
-          ? 'Sign in with the invited email address to join.'
-          : 'Confirm your email address.'
+          ? uiText('ui.AccountLink.message003')
+          : uiText('ui.AccountLink.message004')
       }
     >
       {!token ? (
-        <p role="alert">This link is incomplete.</p>
+        <p role="alert">{uiText('ui.AccountLink.message005')}</p>
       ) : user.isPending ? (
-        <p role="status">Checking your session…</p>
+        <p role="status">{uiText('ui.AccountLink.message006')}</p>
       ) : user.error ? (
         <p role="alert">{describeError(user.error)}</p>
       ) : !user.data ? (
         <>
           <p>
-            <Link to={`/login#${kind}:${token}`}>Log in</Link>
+            <Link to={`/login#${kind}:${token}`}>
+              {uiText('ui.AccountLink.message007')}
+            </Link>
           </p>
           {kind === 'invite' ? (
             <p>
-              <Link to={`/register#${token}`}>Create account with this invitation</Link>
+              <Link to={`/register#${token}`}>{uiText('ui.AccountLink.message008')}</Link>
             </p>
           ) : null}
         </>
       ) : (
         <>
-          <p>Signed in as {user.data.email}.</p>
+          <p>
+            {uiText('ui.AccountLink.message009')} {user.data.email}.
+          </p>
           {kind === 'invite' && status.data?.emailVerifiedAt === null ? (
             <>
-              <p>Verify your email first, then return to this invitation.</p>
+              <p>{uiText('ui.AccountLink.message010')}</p>
               <Button onClick={() => verify.mutate()} busy={verify.isPending}>
-                Send verification link
+                {uiText('ui.AccountLink.message011')}
               </Button>
               <Button
                 onClick={() => {
                   void status.refetch();
                 }}
               >
-                I have verified my email
+                {uiText('ui.AccountLink.message012')}
               </Button>
               {verify.isSuccess ? (
-                <p role="status">Verification link requested. Check your email.</p>
+                <p role="status">{uiText('ui.AccountLink.message013')}</p>
               ) : null}
             </>
           ) : (
@@ -94,13 +104,15 @@ export function AccountLink({
               busy={action.isPending}
               disabled={action.isSuccess || status.isPending}
             >
-              {kind === 'invite' ? 'Accept invitation' : 'Verify email'}
+              {kind === 'invite'
+                ? uiText('ui.AccountLink.message014')
+                : uiText('ui.AccountLink.message002')}
             </Button>
           )}
           {action.isSuccess && kind === 'verify' ? (
             <p role="status">
-              Email verified. You can return to your invitation or{' '}
-              <Link to="/app/account">account settings</Link>.
+              {uiText('ui.AccountLink.message015')}{' '}
+              <Link to="/app/account">{uiText('ui.AccountLink.message016')}</Link>.
             </p>
           ) : null}
           {status.error ? <p role="alert">{describeError(status.error)}</p> : null}
@@ -108,7 +120,7 @@ export function AccountLink({
             <p role="alert">{describeError(action.error ?? verify.error)}</p>
           ) : null}
           <p>
-            <Link to="/app/account">Account settings</Link>
+            <Link to="/app/account">{uiText('ui.AccountLink.message017')}</Link>
           </p>
         </>
       )}

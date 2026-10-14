@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
@@ -20,12 +21,13 @@ import { useCurrentUser } from '../api/useAuth';
  *   real problem.
  */
 export function RequireAuthenticatedUser(): ReactElement {
+  useUiLocale();
   const { data: user, error, isPending } = useCurrentUser();
 
   if (isPending) {
     return (
       <main>
-        <p role="status">Checking your session…</p>
+        <p role="status">{uiText('ui.AccountLink.message006')}</p>
       </main>
     );
   }
@@ -34,7 +36,9 @@ export function RequireAuthenticatedUser(): ReactElement {
   if (error !== null) {
     return (
       <main>
-        <p role="alert">Could not check your session: {describeError(error)}</p>
+        <p role="alert">
+          {uiText('ui.RequireAuthenticatedUser.message001')} {describeError(error)}
+        </p>
       </main>
     );
   }

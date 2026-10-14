@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
@@ -12,6 +13,7 @@ export function PasswordRecovery({
 }: {
   readonly complete?: boolean;
 }): ReactElement {
+  useUiLocale();
   const { hash } = useLocation();
   const token = hash.slice(1);
   const [email, setEmail] = useState('');
@@ -28,24 +30,28 @@ export function PasswordRecovery({
   return (
     <AuthLayout
       variant="login"
-      title={complete ? 'Reset password' : 'Forgot password'}
-      subtitle="Recover access to your account."
+      title={
+        complete
+          ? uiText('ui.PasswordRecovery.message001')
+          : uiText('ui.PasswordRecovery.message002')
+      }
+      subtitle={uiText('ui.PasswordRecovery.message003')}
       footer="ResearchHub"
     >
       {action.isSuccess ? (
         <p role="status">
           {complete
-            ? 'Password reset. All sessions have been signed out.'
-            : 'If an account is eligible, a reset link will be sent.'}
+            ? uiText('ui.PasswordRecovery.message004')
+            : uiText('ui.PasswordRecovery.message005')}
         </p>
       ) : complete && !token ? (
-        <p role="alert">A password reset link is required.</p>
+        <p role="alert">{uiText('ui.PasswordRecovery.message006')}</p>
       ) : (
         <form
           onSubmit={(event) => {
             event.preventDefault();
             if (complete && password !== confirmation) {
-              setFormError('Passwords do not match.');
+              setFormError(uiText('ui.RegisterPage.message001'));
               return;
             }
             setFormError('');
@@ -56,7 +62,7 @@ export function PasswordRecovery({
             <>
               <TextField
                 id="reset-password"
-                label="New password"
+                label={uiText('ui.AccountSettings.message007')}
                 type="password"
                 autoComplete="new-password"
                 value={password}
@@ -65,7 +71,7 @@ export function PasswordRecovery({
               />
               <TextField
                 id="reset-confirm"
-                label="Confirm new password"
+                label={uiText('ui.AccountSettings.message008')}
                 type="password"
                 autoComplete="new-password"
                 value={confirmation}
@@ -76,7 +82,7 @@ export function PasswordRecovery({
           ) : (
             <TextField
               id="reset-email"
-              label="Email"
+              label={uiText('ui.PasswordRecovery.message007')}
               type="email"
               autoComplete="email"
               value={email}
@@ -87,12 +93,14 @@ export function PasswordRecovery({
           {formError ? <p role="alert">{formError}</p> : null}
           {action.error ? <p role="alert">{describeError(action.error)}</p> : null}
           <Button type="submit" busy={action.isPending}>
-            {complete ? 'Reset password' : 'Send reset link'}
+            {complete
+              ? uiText('ui.PasswordRecovery.message001')
+              : uiText('ui.PasswordRecovery.message008')}
           </Button>
         </form>
       )}
       <p>
-        <Link to="/login">Back to login</Link>
+        <Link to="/login">{uiText('ui.PasswordRecovery.message009')}</Link>
       </p>
     </AuthLayout>
   );

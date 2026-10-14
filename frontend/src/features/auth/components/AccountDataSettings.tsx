@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../../shared/components/Button';
@@ -8,6 +9,7 @@ import { describeError } from '../../../shared/api';
 import * as api from '../api/accountDataApi';
 
 export function AccountDataSettings(): ReactElement {
+  useUiLocale();
   const cache = useQueryClient();
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
@@ -28,27 +30,23 @@ export function AccountDataSettings(): ReactElement {
     },
   });
   return (
-    <section aria-label="Account data">
-      <h2>Your data</h2>
+    <section aria-label={uiText('ui.AccountDataSettings.message001')}>
+      <h2>{uiText('ui.AccountDataSettings.message002')}</h2>
       <Button
         variant="secondary"
         busy={download.isPending}
         onClick={() => download.mutate()}
       >
-        Export personal data (JSON)
+        {uiText('ui.AccountDataSettings.message003')}
       </Button>
       {download.error ? (
         <p role="alert">
-          Could not export personal data: {describeError(download.error)}
+          {uiText('ui.AccountDataSettings.message004')} {describeError(download.error)}
         </p>
       ) : null}
-      <p>
-        Deletion erases your private workspaces and replaces your identity with a
-        pseudonymous actor in retained history. Shared workspace ownership and retained
-        research contributions must be resolved first.
-      </p>
+      <p>{uiText('ui.AccountDataSettings.message005')}</p>
       <Button variant="danger" onClick={() => setOpen(true)}>
-        Delete account
+        {uiText('ui.AccountDataSettings.message006')}
       </Button>
       <Dialog
         open={open}
@@ -59,14 +57,11 @@ export function AccountDataSettings(): ReactElement {
             deletion.reset();
           }
         }}
-        title="Delete your account"
+        title={uiText('ui.AccountDataSettings.message007')}
         closeDisabled={deletion.isPending}
         dismissible={!deletion.isPending}
       >
-        <p>
-          This permanently erases active personal data and private workspace content.
-          Export anything you want to keep first.
-        </p>
+        <p>{uiText('ui.AccountDataSettings.message008')}</p>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -74,7 +69,7 @@ export function AccountDataSettings(): ReactElement {
           }}
         >
           <TextField
-            label="Confirm your password"
+            label={uiText('ui.AccountDataSettings.message009')}
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -83,7 +78,7 @@ export function AccountDataSettings(): ReactElement {
           />
           {deletion.error ? <p role="alert">{describeError(deletion.error)}</p> : null}
           <Button type="submit" variant="danger" busy={deletion.isPending}>
-            Permanently delete account
+            {uiText('ui.AccountDataSettings.message010')}
           </Button>
         </form>
       </Dialog>
@@ -92,6 +87,7 @@ export function AccountDataSettings(): ReactElement {
 }
 
 export function AccountDeletionReceipt(): ReactElement {
+  useUiLocale();
   const location = useLocation();
   const state = location.state as {
     receipt?: api.ErasureReceipt;
@@ -100,14 +96,14 @@ export function AccountDeletionReceipt(): ReactElement {
   if (!state?.receipt)
     return (
       <main>
-        <h1>Account deletion receipt</h1>
-        <p>No receipt is available in this browser session.</p>
-        <Link to="/login">Return to sign in</Link>
+        <h1>{uiText('ui.AccountDataSettings.message011')}</h1>
+        <p>{uiText('ui.AccountDataSettings.message012')}</p>
+        <Link to="/login">{uiText('ui.AccountDataSettings.message013')}</Link>
       </main>
     );
   return (
     <main>
-      <h1>Account deletion</h1>
+      <h1>{uiText('ui.AccountDataSettings.message014')}</h1>
       <DeletionProgress receipt={state.receipt} offlineCleared={state.offlineCleared} />
     </main>
   );
@@ -119,6 +115,7 @@ function DeletionProgress({
   readonly receipt: api.ErasureReceipt;
   readonly offlineCleared?: boolean;
 }): ReactElement {
+  useUiLocale();
   const status = useQuery({
     queryKey: ['account-erasure-status', receipt.jobId],
     queryFn: ({ signal }) => api.fetchErasureStatus(receipt, signal),
@@ -127,41 +124,33 @@ function DeletionProgress({
     retry: false,
   });
   return (
-    <section aria-label="Account deletion receipt">
-      <h2>Account deletion requested</h2>
+    <section aria-label={uiText('ui.AccountDataSettings.message011')}>
+      <h2>{uiText('ui.AccountDataSettings.message015')}</h2>
+      <p>{uiText('ui.AccountDataSettings.message016')}</p>
       <p>
-        Your account is blocked and sessions have been revoked. Live-store deletion
-        continues as a durable job.
-      </p>
-      <p>
-        Request: <code>{receipt.jobId}</code>
+        {uiText('ui.AccountDataSettings.message017')} <code>{receipt.jobId}</code>
       </p>
       {status.data?.status === 'SUCCEEDED' ? (
-        <p role="status">Live-store data erased.</p>
+        <p role="status">{uiText('ui.AccountDataSettings.message018')}</p>
       ) : (
         <p role="status">
-          Deletion pending
-          {status.data?.errorCode ? ' — storage cleanup is being retried.' : '.'}
+          {uiText('ui.AccountDataSettings.message019')}
+          {status.data?.errorCode
+            ? ' ' + uiText('ui.AccountDataSettings.message020')
+            : '.'}
         </p>
       )}
       {status.error ? (
         <p role="alert">
-          Could not refresh deletion status: {describeError(status.error)}
+          {uiText('ui.AccountDataSettings.message021')} {describeError(status.error)}
         </p>
       ) : null}
-      <p>
-        Backups, offline devices and copies you or collaborators downloaded are outside
-        this live-store receipt. Backup erasure is complete only after the retention
-        window is separately verified.
-      </p>
+      <p>{uiText('ui.AccountDataSettings.message022')}</p>
       {offlineCleared === false ? (
-        <p role="alert">
-          This browser could not clear all offline copies. Close other ResearchHub tabs
-          and clear the site’s local data.
-        </p>
+        <p role="alert">{uiText('ui.AccountDataSettings.message023')}</p>
       ) : null}
       <Link to="/login" replace state={null}>
-        Return to sign in
+        {uiText('ui.AccountDataSettings.message013')}
       </Link>
     </section>
   );

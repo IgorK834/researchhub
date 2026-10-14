@@ -1,27 +1,29 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { usePublicConfig } from '../../../app/PublicConfig';
 import { AuthLayout } from './AuthLayout';
 
 export function RegistrationNotice(): ReactElement {
+  useUiLocale();
   const { config, failed } = usePublicConfig();
   const message =
     config?.registrationMode === 'disabled'
-      ? 'Account registration is disabled in this environment.'
+      ? uiText('ui.RegistrationNotice.message001')
       : config?.registrationMode === 'invite-only'
-        ? 'Registration is by invitation only. Contact the operator for access.'
+        ? uiText('ui.RegistrationNotice.message002')
         : failed
-          ? 'Registration settings could not be loaded. Please try again later.'
-          : 'Loading registration settings…';
+          ? uiText('ui.RegistrationNotice.message003')
+          : uiText('ui.RegistrationNotice.message004');
   return (
     <AuthLayout
       variant="register"
-      title="Registration unavailable"
+      title={uiText('ui.RegistrationNotice.message005')}
       subtitle={message}
-      footer="© ResearchHub"
+      footer={uiText('ui.RegistrationNotice.message006')}
     >
       <p role="status">{message}</p>
-      <Link to="/login">Log in</Link>
+      <Link to="/login">{uiText('ui.AccountLink.message007')}</Link>
     </AuthLayout>
   );
 }

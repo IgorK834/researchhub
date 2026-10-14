@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import { useLogout } from '../api/useAuth';
  * any other mutating request — a third-party page cannot sign the user out by embedding a form.
  */
 export function LogoutButton(): ReactElement {
+  useUiLocale();
   const navigate = useNavigate();
   const { mutate, isPending, error } = useLogout();
 
@@ -28,17 +30,27 @@ export function LogoutButton(): ReactElement {
   return (
     <>
       <Button
-        aria-label={isPending ? 'Logging out…' : 'Log out'}
+        aria-label={
+          isPending
+            ? uiText('ui.LogoutButton.message001')
+            : uiText('ui.LogoutButton.message002')
+        }
         variant="ghost"
         size="compact"
         icon="logout"
         onClick={submit}
         disabled={isPending}
       >
-        <span data-rh-label="">{isPending ? 'Logging out…' : 'Log out'}</span>
+        <span data-rh-label="">
+          {isPending
+            ? uiText('ui.LogoutButton.message001')
+            : uiText('ui.LogoutButton.message002')}
+        </span>
       </Button>
       {error !== null ? (
-        <span role="alert">Could not log out: {describeError(error)}</span>
+        <span role="alert">
+          {uiText('ui.LogoutButton.message003')} {describeError(error)}
+        </span>
       ) : null}
     </>
   );

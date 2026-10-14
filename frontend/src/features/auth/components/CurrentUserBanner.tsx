@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 
 import { useCurrentUser } from '../api/useAuth';
@@ -14,6 +15,7 @@ import { useCurrentUser } from '../api/useAuth';
  * guard.
  */
 export function CurrentUserBanner(): ReactElement | null {
+  useUiLocale();
   const { data: user } = useCurrentUser();
 
   if (user === null || user === undefined) {
@@ -22,7 +24,7 @@ export function CurrentUserBanner(): ReactElement | null {
 
   return (
     <p role="status">
-      Signed in as {user.displayName} ({user.email})
+      {uiText('ui.AccountLink.message009')} {user.displayName} ({user.email})
     </p>
   );
 }
