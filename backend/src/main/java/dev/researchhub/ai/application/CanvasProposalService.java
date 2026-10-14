@@ -149,13 +149,14 @@ public class CanvasProposalService {
         fields.put("lengthTarget", 400);
         fields.put("stylePreset", "ACADEMIC");
         fields.put("citationRequired", evidence);
+        var localized=LocalizedGenerationPolicy.template("canvas-edit:2",instruction,new Parameters(0.0,4096),work.request().answerLanguage());
         var request =
                 new Request(
                         "1.0",
                         work.turnId(),
-                        "canvas-edit:2",
-                        RetrievalIdentity.hash(instruction),
-                        instruction,
+                        localized.templateId(),
+                        localized.templateHash(),
+                        localized.systemInstruction(),
                         json.writeValueAsString(fields),
                         new Parameters(0.0, 4096),
                         selected.stream()

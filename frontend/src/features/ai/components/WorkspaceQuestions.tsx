@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { SourcePicker } from './SourcePicker';
 import { ScopeChip } from '../../../shared/components/ScopeChip';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
@@ -12,6 +13,8 @@ import { IconTile } from '../../../shared/components/content';
 import styles from './WorkspaceQuestions.module.css';
 import { AnalysisEvidencePicker } from './AnalysisEvidencePicker';
 import type { AnalysisEvidenceReference } from '../api/generationApi';
+import type { Locale } from '../../../shared/i18n';
+import { AnswerLanguageSelect } from './AnswerLanguageSelect';
 
 /** A dataset the user chose to analyze: the question starts scoped to that source. */
 export interface QuestionFocus {
@@ -77,9 +80,13 @@ function QuestionForm({
   readonly onInitialQuestionUsed?: () => void;
   readonly initialSourceId?: string;
 }): ReactElement {
+  useUiLocale();
   const sources = useSourcesQuery(workspaceId);
   const [question, setQuestion] = useState(
     () => initialQuestion?.question ?? starterQuestion(focus),
+  );
+  const [answerLanguage, setAnswerLanguage] = useState<Locale>(
+    initialQuestion?.answerLanguage ?? 'en',
   );
   const [scope, setScope] = useState(
     (initialQuestion?.selectedSourceIds !== undefined &&
@@ -137,7 +144,9 @@ function QuestionForm({
       ? {
           iconOnly: true as const,
           icon: 'arrowUp' as const,
-          'aria-label': 'Ask question',
+          get 'aria-label'() {
+            return uiText('ui.WorkspaceQuestions.message001');
+          },
         }
       : { icon: 'sparkle' as const, children: 'Ask question' };
 
@@ -150,35 +159,36 @@ function QuestionForm({
         id="workspace-questions-heading"
         className={variant === 'overview' ? 'visually-hidden' : undefined}
       >
-        {variant === 'overview' ? 'Ask across this workspace' : 'Ask workspace sources'}
+        {variant === 'overview'
+          ? uiText('ui.WorkspaceQuestions.message002')
+          : uiText('ui.WorkspaceQuestions.message003')}
       </h2>
       <p className={variant === 'overview' ? 'visually-hidden' : undefined}>
-        Answers use searchable sources in this workspace and include links to supporting
-        passages.
+        {uiText('ui.WorkspaceQuestions.message004')}
       </p>
-      {sources.isPending ? <p role="status">Loading sources for questions…</p> : null}
+      {sources.isPending ? (
+        <p role="status">{uiText('ui.WorkspaceQuestions.message005')}</p>
+      ) : null}
       {sources.error !== null ? (
         <p role="alert">
-          Could not load question sources: {describeError(sources.error)}
+          {uiText('ui.WorkspaceQuestions.message006')} {describeError(sources.error)}
         </p>
       ) : null}
       {!sources.isPending && sources.error === null && ready.length === 0 ? (
-        <p>
-          No ready sources are available. You can select saved analysis outputs as
-          computed evidence.
-        </p>
+        <p>{uiText('ui.WorkspaceQuestions.message007')}</p>
       ) : null}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           if (ask.isPending) return;
           if (!question.trim()) {
-            setValidation('Enter a question.');
+            setValidation(uiText('ui.WorkspaceQuestions.message015'));
             return;
           }
           setValidation(null);
           const input: WorkspaceQuestion = {
             question: question.trim(),
+            answerLanguage,
             ...(scope === 'selected' ? { selectedSourceIds: selected } : {}),
             ...(computed.length ? { selectedAnalysisOutputs: computed } : {}),
           };
@@ -192,14 +202,21 @@ function QuestionForm({
           </span>
         ) : null}
         <div className={styles.question}>
+          <AnswerLanguageSelect
+            value={answerLanguage}
+            onChange={setAnswerLanguage}
+            disabled={ask.isPending}
+          />
           <Textarea
-            label="Question"
+            label={uiText('ui.ResearchPanel.message028')}
             id="workspace-question"
             ref={questionInput}
             maxLength={2000}
             value={question}
             placeholder={
-              variant === 'overview' ? 'Ask across this workspace…' : undefined
+              variant === 'overview'
+                ? uiText('ui.WorkspaceQuestions.message008')
+                : undefined
             }
             aria-invalid={validation !== null}
             aria-describedby={
@@ -216,9 +233,9 @@ function QuestionForm({
           />
         </div>
         <details className={styles.scopeOptions} open={variant === 'full'}>
-          <summary>Choose source scope</summary>
+          <summary>{uiText('ui.WorkspaceQuestions.message009')}</summary>
           <fieldset disabled={ask.isPending}>
-            <legend>Sources to search</legend>
+            <legend>{uiText('ui.WorkspaceQuestions.message010')}</legend>
             <label>
               <input
                 type="radio"
@@ -227,7 +244,7 @@ function QuestionForm({
                 checked={scope === 'all'}
                 onChange={() => setScope('all')}
               />
-              All workspace sources
+              {uiText('ui.ResearchNavigation.message012')}
             </label>
             <label>
               <input
@@ -237,7 +254,7 @@ function QuestionForm({
                 checked={scope === 'selected'}
                 onChange={() => setScope('selected')}
               />
-              Selected sources
+              {uiText('ui.ResearchNavigation.message011')}
             </label>
             <SourcePicker
               sources={(sources.data ?? []).map((source) => ({
@@ -277,7 +294,10 @@ function QuestionForm({
           />
         ) : null}
         {ask.isPending ? (
-          <AnswerState state="thinking" message="Searching sources and answering…" />
+          <AnswerState
+            state="thinking"
+            message={uiText('ui.WorkspaceQuestions.message011')}
+          />
         ) : null}
         <Button
           {...submitContent}
@@ -285,13 +305,22 @@ function QuestionForm({
           type="submit"
           disabled={ask.isPending || sources.isPending || sources.error !== null}
           busy={ask.isPending}
-          busyLabel="Answering…"
-          aria-label={ask.isPending ? 'Answering…' : 'Ask question'}
+          busyLabel={uiText('ui.WorkspaceQuestions.message012')}
+          aria-label={
+            ask.isPending
+              ? uiText('ui.WorkspaceQuestions.message012')
+              : uiText('ui.WorkspaceQuestions.message001')
+          }
         />
       </form>
       {ask.data !== undefined && !ask.isPending && ask.error === null ? (
-        <section aria-label="Workspace answer" aria-live="polite">
-          <p>Question: {ask.variables?.question}</p>
+        <section
+          aria-label={uiText('ui.WorkspaceQuestions.message013')}
+          aria-live="polite"
+        >
+          <p>
+            {uiText('ui.WorkspaceQuestions.message014')} {ask.variables?.question}
+          </p>
           <GroundedAnswer
             status={ask.data.status}
             reason={ask.data.reason}

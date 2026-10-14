@@ -299,6 +299,7 @@ it.each([false, true])(
     );
     expect(stream).toHaveBeenCalledTimes(1);
     expect(stream.mock.calls[0]?.[2]).toEqual({
+      answerLanguage: 'en',
       clientRequestId: expect.any(String),
       question: 'What does the paper support?',
       ...(selected ? { selectedSourceIds: ['s1'] } : {}),

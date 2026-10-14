@@ -28,3 +28,7 @@ historical analysis details. No claim is a client-side calculation. Identity, au
 enforced; semantic agreement and entailment still require evaluation of the configured production model.
 
 `request.json`, `model-request.json` and `response.json` are shared Java/Python/TypeScript fixtures.
+
+## Explicit content language (Task 35.10)
+
+Workspace questions and conversation sends accept optional `answerLanguage: "en" | "pl"`. It is independent of the interface/session locale. The server freezes it in conversation retry identity and applies a controlled language constraint to the existing model template family; the actual system prompt SHA-256 records the variation. The normal context/token budget applies. Omitting it preserves the legacy prompt identity. Scientific values, source quotations, titles and citation keys are not translated.

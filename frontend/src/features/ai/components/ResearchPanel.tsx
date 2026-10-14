@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { SourceTypeTile } from '../../sources/components/SourceVisuals';
 import {
   useCallback,
@@ -44,6 +46,8 @@ import type { WorkspaceQuestion } from '../api/questionApi';
 import styles from './Research.module.css';
 import { CanvasAiChat } from './CanvasAiChat';
 import { AiModeChip } from './AiModeChip';
+import { AnswerLanguageSelect } from './AnswerLanguageSelect';
+import type { Locale } from '../../../shared/i18n';
 
 export interface ResearchSources {
   readonly sources: readonly {
@@ -92,6 +96,7 @@ function Panel({
   initialConversationId,
   canEdit,
 }: ResearchPanelProps): ReactElement {
+  useUiLocale();
   const cache = useQueryClient();
   const [chosen, setChosen] = useState<string | null | undefined>(
     initialConversationId ??
@@ -99,6 +104,9 @@ function Panel({
   );
   const [question, setQuestion] = useState(
     initialQuestion?.question ?? starterQuestion ?? '',
+  );
+  const [answerLanguage, setAnswerLanguage] = useState<Locale>(
+    initialQuestion?.answerLanguage ?? 'en',
   );
   const [scopeChoice, setScope] = useState<ResearchScope | null>(
     initialSourceId !== undefined
@@ -228,9 +236,9 @@ function Panel({
               setProgress(
                 event.data.chunkCount === 0
                   ? input.question.selectedAnalysisOutputs?.length
-                    ? 'Preparing saved computation evidence…'
-                    : 'No relevant passages found.'
-                  : 'Preparing a grounded answer…',
+                    ? uiText('ui.ResearchPanel.message001')
+                    : uiText('ui.ResearchPanel.message002')
+                  : uiText('ui.CanvasAiChat.message038'),
               );
             if (event.event === 'delta') setDelta((text) => text + event.data.text);
           },
@@ -330,6 +338,7 @@ function Panel({
       question: {
         clientRequestId: crypto.randomUUID(),
         question: text.trim(),
+        answerLanguage,
         ...((
           computedChoice ??
           [...messages].reverse().find((message) => message.role === 'USER')
@@ -406,7 +415,7 @@ function Panel({
   );
   const content = (
     <section
-      aria-label="AI research panel"
+      aria-label={uiText('ui.ResearchPanel.message003')}
       className={variant === 'page' ? styles.page : styles.panel}
     >
       {variant === 'page' ? (
@@ -418,11 +427,11 @@ function Panel({
                   <div className={styles.sourceHeading}>
                     <SourceTypeTile sourceType={source.sourceType ?? 'Source'} />
                     <div>
-                      <small>ASKING</small>
+                      <small>{uiText('ui.ResearchPanel.message004')}</small>
                       <strong>{source.title}</strong>
                     </div>
                   </div>
-                  <p>Only this source is used.</p>
+                  <p>{uiText('ui.ResearchPanel.message005')}</p>
                 </>
               ) : (
                 <ScopeChip
@@ -436,39 +445,38 @@ function Panel({
               size="compact"
               onClick={() => setContextOpen(true)}
             >
-              Change scope
+              {uiText('ui.ResearchPanel.message006')}
             </Button>
           </div>
           <div className={styles.actions}>
-            <h1>{lastQuestion ?? 'Ask AI'}</h1>
+            <h1>{lastQuestion ?? uiText('ui.ResearchPanel.message007')}</h1>
             <AiModeChip />
             {actions}
           </div>
         </>
       ) : (
         <>
-          <h2>Research conversation</h2>
+          <h2>{uiText('ui.ResearchPanel.message008')}</h2>
           <AiModeChip />
-          <p>
-            Ask about workspace sources. Answers link to the passages that support them.
-          </p>
+          <p>{uiText('ui.ResearchPanel.message009')}</p>
           {conversations.isPending ? (
-            <p role="status">Loading research conversations…</p>
+            <p role="status">{uiText('ui.ResearchNavigation.message004')}</p>
           ) : null}
           {conversations.error !== null ? (
             <p role="alert">
-              Could not load conversations: {describeError(conversations.error)}
+              {uiText('ui.ResearchNavigation.message005')}{' '}
+              {describeError(conversations.error)}
             </p>
           ) : (
             <>
               <Select
-                label="Conversation"
+                label={uiText('ui.ResearchPanel.message010')}
                 id="research-conversation"
                 value={conversationId ?? ''}
                 disabled={pending}
                 onChange={(event) => choose(event.target.value || null)}
               >
-                <option value="">New conversation</option>
+                <option value="">{uiText('ui.ResearchPanel.message011')}</option>
                 {items.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.title}
@@ -476,7 +484,7 @@ function Panel({
                 ))}
               </Select>
               <Button variant="secondary" icon="plus" onClick={() => choose(null)}>
-                New conversation
+                {uiText('ui.ResearchPanel.message011')}
               </Button>
               {conversations.hasNextPage ? (
                 <Button
@@ -486,14 +494,14 @@ function Panel({
                     void conversations.fetchNextPage();
                   }}
                 >
-                  More conversations
+                  {uiText('ui.ResearchNavigation.message008')}
                 </Button>
               ) : null}
             </>
           )}
         </>
       )}
-      <div aria-label="Conversation history" className={styles.history}>
+      <div aria-label={uiText('ui.ResearchPanel.message012')} className={styles.history}>
         {!conversations.isPending &&
         conversations.error === null &&
         !sources.loading &&
@@ -506,8 +514,8 @@ function Panel({
         error === null &&
         !notice ? (
           <EmptyState
-            title="Start with a research question"
-            description="Ask about your sources, then inspect the passages behind each answer."
+            title={uiText('ui.ResearchPanel.message013')}
+            description={uiText('ui.ResearchPanel.message014')}
             art={
               <Illustration
                 scene={variant === 'page' ? 'hero' : 'magnifier'}
@@ -520,10 +528,12 @@ function Panel({
           />
         ) : null}
         {conversationId !== null && history.isPending ? (
-          <p role="status">Loading conversation history…</p>
+          <p role="status">{uiText('ui.ResearchPanel.message015')}</p>
         ) : null}
         {history.error !== null ? (
-          <p role="alert">Could not load history: {describeError(history.error)}</p>
+          <p role="alert">
+            {uiText('ui.ResearchPanel.message016')} {describeError(history.error)}
+          </p>
         ) : (
           <>
             {history.hasNextPage ? (
@@ -534,7 +544,7 @@ function Panel({
                   void history.fetchNextPage();
                 }}
               >
-                Load older messages
+                {uiText('ui.CanvasAiChat.message020')}
               </Button>
             ) : null}
             {messages.map(messageView)}
@@ -549,26 +559,28 @@ function Panel({
           </>
         )}
       </div>
-      {sources.loading ? <p role="status">Loading sources for research…</p> : null}
+      {sources.loading ? (
+        <p role="status">{uiText('ui.ResearchPanel.message017')}</p>
+      ) : null}
       {sources.error !== null ? <p role="alert">{sources.error}</p> : null}
       {!sources.loading &&
       sources.error === null &&
       !sources.sources.some((item) => item.ready) ? (
-        <p>No ready sources are available yet.</p>
+        <p>{uiText('ui.ResearchPanel.message018')}</p>
       ) : null}
       {initialSourceId !== undefined &&
       scope === 'source' &&
       !sources.loading &&
       !source?.ready ? (
-        <Banner tone="note" lead="This source is not ready for questions.">
-          Change scope to ask other ready sources.
+        <Banner tone="note" lead={uiText('ui.ResearchPanel.message036')}>
+          {uiText('ui.ResearchPanel.message019')}
         </Banner>
       ) : null}
       {error !== null ? (
         <AnswerState
           state="failed"
           message={describeError(error)}
-          retryLabel="Retry answer"
+          retryLabel={uiText('ui.ResearchPanel.message024')}
           onRetry={
             retryable && attempt !== null
               ? () => {
@@ -584,12 +596,10 @@ function Panel({
           state={delta ? 'streaming' : 'thinking'}
           message={progress}
           preview={delta}
-          stopLabel="Stop answer"
+          stopLabel={uiText('ui.ResearchPanel.message037')}
           onStop={() => {
             stop();
-            setNotice(
-              'Stopped receiving the answer. Refresh history to see whether it completed.',
-            );
+            setNotice(uiText('ui.ResearchPanel.message039'));
             if (conversationId !== null) void refresh(conversationId);
           }}
         />
@@ -603,7 +613,9 @@ function Panel({
             setError(
               new ApiError({
                 type: 'about:blank',
-                title: 'Invalid question',
+                get title() {
+                  return uiText('ui.ResearchPanel.message020');
+                },
                 status: 400,
                 code: 'VALIDATION_FAILED',
                 rawCode: 'VALIDATION_FAILED',
@@ -615,14 +627,19 @@ function Panel({
           send(question);
         }}
       >
+        <AnswerLanguageSelect
+          value={answerLanguage}
+          onChange={setAnswerLanguage}
+          disabled={pending}
+        />
         <Textarea
           ref={questionInput}
-          label="Research question"
+          label={uiText('ui.ResearchPanel.message021')}
           id="research-question"
           value={question}
           maxLength={2000}
           disabled={pending}
-          placeholder="Ask a question about your research…"
+          placeholder={uiText('ui.ResearchPanel.message022')}
           onChange={(event) => setQuestion(event.target.value)}
         />
         <AnalysisEvidencePicker
@@ -647,7 +664,7 @@ function Panel({
             icon="send"
             disabled={unavailable || (scope === 'source' && !source?.ready)}
           >
-            Ask research question
+            {uiText('ui.ResearchPanel.message023')}
           </Button>
           {!pending && retryable && error === null ? (
             <Button
@@ -657,7 +674,7 @@ function Panel({
                 if (attempt !== null) void run(attempt);
               }}
             >
-              Retry answer
+              {uiText('ui.ResearchPanel.message024')}
             </Button>
           ) : null}
         </div>
@@ -677,7 +694,7 @@ function Panel({
             void refresh(conversationId);
           }}
         >
-          Refresh history
+          {uiText('ui.ResearchPanel.message025')}
         </Button>
       ) : null}
     </section>
@@ -695,10 +712,10 @@ function Panel({
     );
   return variant === 'page' ? (
     <ToolShell
-      label="Ask AI"
-      secondaryLabel="Investigations"
+      label={uiText('ui.ResearchPanel.message007')}
+      secondaryLabel={uiText('ui.ResearchNavigation.message002')}
       secondary={investigations}
-      contextTitle="Research context"
+      contextTitle={uiText('ui.ResearchPanel.message038')}
       contextOpen={contextOpen}
       onContextOpenChange={setContextOpen}
       context={
@@ -731,22 +748,37 @@ function MessageView({
   readonly onAskAll: () => void;
   readonly disabled: boolean;
 }): ReactElement {
+  useUiLocale();
   return (
     <article
       aria-label={
-        message.role === 'USER' ? 'Research question message' : 'Research answer message'
+        message.role === 'USER'
+          ? uiText('ui.ResearchPanel.message026')
+          : uiText('ui.ResearchPanel.message027')
       }
       className={styles.message}
     >
-      <strong>{message.role === 'USER' ? 'Question' : 'Answer'}</strong>{' '}
+      <strong>
+        {message.role === 'USER'
+          ? uiText('ui.ResearchPanel.message028')
+          : uiText('ui.ResearchPanel.message029')}
+      </strong>{' '}
       <time dateTime={message.createdAt}>
-        {new Date(message.createdAt).toLocaleString()}
+        {new Date(message.createdAt).toLocaleString(getIntlLocale())}
       </time>
       {message.role === 'USER' ? (
         <p className={styles.messageScope}>
           {message.selectedSourceIds === null
-            ? 'Scope: All workspace sources'
-            : `Scope: ${message.selectedSourceIds.map((id) => sources.sources.find((source) => source.id === id)?.title ?? id).join(', ') || 'No sources selected'}`}
+            ? uiText('ui.ResearchPanel.message030')
+            : uiText('ui.ResearchPanel.message031', {
+                value0:
+                  message.selectedSourceIds
+                    .map(
+                      (id) =>
+                        sources.sources.find((source) => source.id === id)?.title ?? id,
+                    )
+                    .join(', ') || uiText('ui.ResearchPanel.message032'),
+              })}
         </p>
       ) : null}
       {message.role === 'ASSISTANT' && message.response !== null ? (
@@ -762,12 +794,14 @@ function MessageView({
       ) : (
         <p>{message.content}</p>
       )}
-      {message.status === 'PENDING' ? <p role="status">Answer pending…</p> : null}
+      {message.status === 'PENDING' ? (
+        <p role="status">{uiText('ui.ResearchPanel.message033')}</p>
+      ) : null}
       {message.status === 'FAILED' || message.status === 'ABANDONED' ? (
         <p>
           {message.errorCode === 'AI_OUTPUT_INVALID'
-            ? 'The AI response could not be validated. Please try again or rephrase your request.'
-            : 'No complete answer was saved for this attempt.'}
+            ? uiText('ui.ResearchPanel.message034')
+            : uiText('ui.ResearchPanel.message035')}
         </p>
       ) : null}
     </article>

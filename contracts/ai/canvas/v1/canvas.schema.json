@@ -455,6 +455,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "answerLanguage": { "enum": ["en", "pl"] },
         "schemaVersion": {
           "const": "1.0"
         },

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useId, useRef, useState, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +20,8 @@ import { CalculationPackagePicker } from './CalculationPackagePicker';
 import { ReferencedOutput } from '../../documents/components/DocumentAnalysisBlock';
 import type { AnalysisInput } from '../../analysis/api/analysisApi';
 import { fetchExecutionRecord } from '../../analysis/api/analysisApi';
+import type { Locale } from '../../../shared/i18n';
+import { AnswerLanguageSelect } from './AnswerLanguageSelect';
 
 export interface CanvasProposalReference {
   readonly id: string;
@@ -52,11 +55,13 @@ export function CanvasAiChat({
   readonly onApplying?: (value: boolean) => void;
   readonly onApplied?: () => Promise<void>;
 }): ReactElement {
+  useUiLocale();
   const chat = useCanvasConversation(workspaceId, initialId);
   const navigate = useNavigate();
   const id = useId();
   const input = useRef<HTMLTextAreaElement>(null);
   const [instruction, setInstruction] = useState('');
+  const [answerLanguage, setAnswerLanguage] = useState<Locale>('en');
   const [scope, setScope] = useState<CanvasScope | null>(null);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [reply, setReply] = useState<string | null>(null);
@@ -109,20 +114,22 @@ export function CanvasAiChat({
     snapshot.error !== null;
   return (
     <section
-      aria-label="Canvas AI conversation"
+      aria-label={uiText('ui.CanvasAiChat.message001')}
       className={styles.chat}
       data-canvas-conversation-id={chat.conversationId ?? undefined}
     >
       <div className={styles.context}>
-        <strong>{documentTitle ?? origin?.documentTitle ?? 'Document context'}</strong>
+        <strong>
+          {documentTitle ?? origin?.documentTitle ?? uiText('ui.CanvasAiChat.message002')}
+        </strong>
         <p>
-          Target:{' '}
+          {uiText('ui.CanvasAiChat.message003')}{' '}
           {pinned?.snapshot.target.kind === 'CARET'
-            ? 'At the caret'
+            ? uiText('ui.CanvasAiChat.message004')
             : pinned?.snapshot.target.kind === 'ANALYSIS'
-              ? 'Selected analysis result'
-              : 'Selected text'}
-          . This target stays pinned to this conversation.
+              ? uiText('ui.CanvasAiChat.message005')
+              : uiText('ui.AuthoringPanel.message040')}
+          {uiText('ui.CanvasAiChat.message006')}
         </p>
         {pinned ? (
           <blockquote>
@@ -131,25 +138,21 @@ export function CanvasAiChat({
               `${pinned.snapshot.before} | ${pinned.snapshot.after}`}
           </blockquote>
         ) : (
-          <p role="status">Waiting for saved context…</p>
+          <p role="status">{uiText('ui.CanvasAiChat.message007')}</p>
         )}
         <p>
-          Sources: {currentScope.sourceVersionIds.length} selected versions · Saved
-          results: {currentScope.analysisOutputs.length}
+          {uiText('ui.CanvasAiChat.message008')} {currentScope.sourceVersionIds.length}{' '}
+          {uiText('ui.CanvasAiChat.message009')} {currentScope.analysisOutputs.length}
         </p>
-        <small>
-          This conversation is saved in workspace history after the first message.
-        </small>
-        {!canEdit ? (
-          <p>Read-only: you can ask questions and explain saved results.</p>
-        ) : null}
+        <small>{uiText('ui.CanvasAiChat.message010')}</small>
+        {!canEdit ? <p>{uiText('ui.CanvasAiChat.message011')}</p> : null}
         <div className={styles.actions}>
           <Button
             variant="ghost"
             disabled={busy}
             onClick={() => setScopeOpen(!scopeOpen)}
           >
-            Change evidence scope
+            {uiText('ui.CanvasAiChat.message012')}
           </Button>
           {onChangeContext ? (
             <Button
@@ -160,7 +163,7 @@ export function CanvasAiChat({
                 onChangeContext();
               }}
             >
-              Change context
+              {uiText('ui.CanvasAiChat.message013')}
             </Button>
           ) : null}
           {documentId ? (
@@ -171,7 +174,9 @@ export function CanvasAiChat({
                   disabled={busy || pinned === undefined}
                   onClick={() => setPackagesOpen(!packagesOpen)}
                 >
-                  {packagesOpen ? 'Hide saved package picker' : 'Insert saved package'}
+                  {packagesOpen
+                    ? uiText('ui.CanvasAiChat.message014')
+                    : uiText('ui.CanvasAiChat.message015')}
                 </Button>
               ) : null}
               <Button
@@ -180,7 +185,7 @@ export function CanvasAiChat({
                   void navigate(`/app/workspaces/${workspaceId}/documents/${documentId}`);
                 }}
               >
-                Open document
+                {uiText('ui.CanvasAiChat.message016')}
               </Button>
             </>
           ) : null}
@@ -218,7 +223,7 @@ export function CanvasAiChat({
         <div className={styles.scope}>
           {sources.error ? <p role="alert">{describeError(sources.error)}</p> : null}
           <SourcePicker
-            legend="Evidence source versions"
+            legend={uiText('ui.CanvasAiChat.message061')}
             maxSelected={12}
             sources={(sources.data ?? []).map((s) => ({
               id: s.activeVersionId,
@@ -238,19 +243,16 @@ export function CanvasAiChat({
             onChange={(analysisOutputs) => setScope({ ...currentScope, analysisOutputs })}
             disabled={busy}
           />
-          <small>
-            Only these versions and results support the next answer. Narrowing scope
-            removes earlier evidence from memory.
-          </small>
+          <small>{uiText('ui.CanvasAiChat.message017')}</small>
         </div>
       ) : null}
       <div
         className={styles.messages}
-        aria-label="Canvas conversation history"
+        aria-label={uiText('ui.CanvasAiChat.message018')}
         aria-live="polite"
       >
         {chat.history.isPending && chat.conversationId ? (
-          <p role="status">Loading conversation…</p>
+          <p role="status">{uiText('ui.CanvasAiChat.message019')}</p>
         ) : null}
         {chat.history.hasNextPage ? (
           <Button
@@ -260,25 +262,36 @@ export function CanvasAiChat({
               void chat.history.fetchNextPage();
             }}
           >
-            Load older messages
+            {uiText('ui.CanvasAiChat.message020')}
           </Button>
         ) : null}
         {chat.messages.map((message) => (
           <article
             key={message.id}
-            aria-label={message.role === 'USER' ? 'Canvas question' : 'Canvas answer'}
+            aria-label={
+              message.role === 'USER'
+                ? uiText('ui.CanvasAiChat.message021')
+                : uiText('ui.CanvasAiChat.message022')
+            }
           >
-            <strong>{message.role === 'USER' ? 'You' : 'AI'}</strong>
+            <strong>
+              {message.role === 'USER'
+                ? uiText('ui.CanvasAiChat.message023')
+                : uiText('ui.CanvasAiChat.message024')}
+            </strong>
             <p>{message.content}</p>
-            {message.status === 'PENDING' ? <p role="status">Preparing answer…</p> : null}
+            {message.status === 'PENDING' ? (
+              <p role="status">{uiText('ui.CanvasAiChat.message025')}</p>
+            ) : null}
             {message.status === 'FAILED' || message.status === 'ABANDONED' ? (
               <p role="alert">
-                {message.errorCode ?? 'Request cancelled'}. No complete answer was saved.
+                {message.errorCode ?? uiText('ui.CanvasAiChat.message026')}
+                {uiText('ui.CanvasAiChat.message027')}
               </p>
             ) : null}
             {message.response?.citations.map((citation) => (
               <a key={citation.chunkId} href={citationPath(citation)}>
-                {citation.title ?? 'Source'}{' '}
+                {citation.title ?? uiText('ui.AiDraftBlock.message007')}{' '}
               </a>
             ))}
             {message.role === 'USER' &&
@@ -286,7 +299,7 @@ export function CanvasAiChat({
               <div>
                 <p role="alert">
                   {message.status === 'ABANDONED'
-                    ? 'Polecenie anulowano. Wysłane już wywołanie AI może być płatne; późna odpowiedź nie zostanie opublikowana.'
+                    ? uiText('ui.CanvasAiChat.message028')
                     : canvasFailure(message.errorCode)}
                 </p>
                 <Button
@@ -297,7 +310,7 @@ export function CanvasAiChat({
                     input.current?.focus();
                   }}
                 >
-                  Przywróć polecenie
+                  {uiText('ui.CanvasAiChat.message029')}
                 </Button>
               </div>
             ) : null}
@@ -335,7 +348,7 @@ export function CanvasAiChat({
               <a
                 href={`/app/workspaces/${workspaceId}/analyses${message.canvasResult?.analysisId ? `/${message.canvasResult.analysisId}` : ''}`}
               >
-                Open Analysis Studio
+                {uiText('ui.CanvasAiChat.message030')}
               </a>
             ) : null}
             {chat.turns
@@ -348,12 +361,14 @@ export function CanvasAiChat({
                   onClick={() =>
                     setProposal({
                       id: turn.proposalId!,
-                      title: 'Referenced AI proposal',
+                      get title() {
+                        return uiText('ui.CanvasAiChat.message031');
+                      },
                       sourceVersionIds: turn.scope.sourceVersionIds,
                     })
                   }
                 >
-                  Use this proposal as context
+                  {uiText('ui.CanvasAiChat.message032')}
                 </Button>
               ))}
             {chat.turns
@@ -398,7 +413,7 @@ export function CanvasAiChat({
                   input.current?.focus();
                 }}
               >
-                Reply to this answer
+                {uiText('ui.CanvasAiChat.message033')}
               </Button>
             ) : null}
           </article>
@@ -407,24 +422,20 @@ export function CanvasAiChat({
           .filter((turn) => turn.memory && turn.memory.omittedMessages > 0)
           .map((turn) => (
             <small key={turn.turnId}>
-              Conversation memory limited: {turn.memory?.omittedMessages} earlier messages
-              omitted.
+              {uiText('ui.CanvasAiChat.message034')} {turn.memory?.omittedMessages}{' '}
+              {uiText('ui.CanvasAiChat.message035')}
             </small>
           ))}
         {chat.pending ? (
           <p role="status">
             {chat.pending.status === 'ACCEPTED'
-              ? 'Question queued…'
+              ? uiText('ui.CanvasAiChat.message036')
               : chat.pending.status === 'EXECUTING'
-                ? 'Calculating the frozen dataset in the sandbox…'
-                : 'Preparing a grounded answer…'}{' '}
-            You can close this window while it runs.
+                ? uiText('ui.CanvasAiChat.message037')
+                : uiText('ui.CanvasAiChat.message038')}{' '}
+            {uiText('ui.CanvasAiChat.message039')}
             {chat.lastTurn?.status === 'EXECUTING' ? (
-              <span>
-                {' '}
-                Cancelling this question stops chat observation; the saved execution
-                continues in Analysis Studio.
-              </span>
+              <span> {uiText('ui.CanvasAiChat.message040')}</span>
             ) : null}
           </p>
         ) : null}
@@ -442,7 +453,7 @@ export function CanvasAiChat({
             void chat.retry();
           }}
         >
-          Retry saved request
+          {uiText('ui.CanvasAiChat.message041')}
         </Button>
       ) : null}
       <form
@@ -459,6 +470,7 @@ export function CanvasAiChat({
               proposal?.id ?? null,
               intent,
               intent === 'ANALYZE' && datasetInputs.length ? datasetInputs : undefined,
+              answerLanguage,
             )
             .then((sent) => {
               if (sent) {
@@ -470,26 +482,26 @@ export function CanvasAiChat({
       >
         {proposal ? (
           <div>
-            Follow-up target: {proposal.title}. The server reads the saved proposal or
-            current accepted blocks.
+            {uiText('ui.CanvasAiChat.message042')} {proposal.title}
+            {uiText('ui.CanvasAiChat.message043')}
             <Button
               variant="ghost"
               disabled={busy}
               onClick={() => setProposal(undefined)}
             >
-              Clear proposal target
+              {uiText('ui.CanvasAiChat.message044')}
             </Button>
           </div>
         ) : null}
         {reply ? (
           <div>
-            Replying to the selected answer{' '}
+            {uiText('ui.CanvasAiChat.message045')}{' '}
             <Button variant="ghost" onClick={() => setReply(null)}>
-              Clear reply
+              {uiText('ui.CanvasAiChat.message046')}
             </Button>
           </div>
         ) : null}
-        <label htmlFor={`${id}-intent`}>Action</label>
+        <label htmlFor={`${id}-intent`}>{uiText('ui.CanvasAiChat.message047')}</label>
         <select
           id={`${id}-intent`}
           value={intent}
@@ -498,20 +510,25 @@ export function CanvasAiChat({
             setIntent(event.target.value as CanvasTurnRequest['intent'])
           }
         >
-          <option value="ANSWER">Ask about sources or saved results</option>
-          <option value="CLARIFY">Clarify the request</option>
+          <option value="ANSWER">{uiText('ui.CanvasAiChat.message048')}</option>
+          <option value="CLARIFY">{uiText('ui.CanvasAiChat.message049')}</option>
           {canEdit ? (
             <>
-              <option value="EDIT">Write or revise text</option>
-              <option value="ANALYZE">Analyze a dataset</option>
-              <option value="SOLVE">Solve a problem</option>
+              <option value="EDIT">{uiText('ui.CanvasAiChat.message050')}</option>
+              <option value="ANALYZE">{uiText('ui.CanvasAiChat.message051')}</option>
+              <option value="SOLVE">{uiText('ui.CanvasAiChat.message052')}</option>
             </>
           ) : null}
         </select>
+        <AnswerLanguageSelect
+          value={answerLanguage}
+          onChange={setAnswerLanguage}
+          disabled={busy}
+        />
         <Textarea
           ref={input}
           id={`${id}-prompt`}
-          label="Ask about this context"
+          label={uiText('ui.CanvasAiChat.message053')}
           maxLength={8000}
           value={instruction}
           onChange={(event) => setInstruction(event.target.value)}
@@ -527,7 +544,7 @@ export function CanvasAiChat({
               (intent === 'ANALYZE' && !datasetInputs.length)
             }
           >
-            Send question
+            {uiText('ui.CanvasAiChat.message054')}
           </Button>
           {chat.pending ? (
             <Button
@@ -536,7 +553,7 @@ export function CanvasAiChat({
                 void chat.cancel();
               }}
             >
-              Cancel question
+              {uiText('ui.CanvasAiChat.message055')}
             </Button>
           ) : null}
           {chat.conversationId && onClose ? (
@@ -549,7 +566,7 @@ export function CanvasAiChat({
                 );
               }}
             >
-              Open full chat
+              {uiText('ui.CanvasAiChat.message056')}
             </Button>
           ) : null}
         </div>
@@ -566,6 +583,7 @@ function CanvasDatasetResult({
   readonly analysisId: string;
   readonly executionId: string;
 }): ReactElement {
+  useUiLocale();
   const record = useQuery({
     queryKey: ['canvas-run', workspaceId, analysisId, executionId],
     queryFn: ({ signal }) =>
@@ -573,16 +591,20 @@ function CanvasDatasetResult({
     retry: false,
   });
   return (
-    <section aria-label="Saved dataset calculation">
+    <section aria-label={uiText('ui.CanvasAiChat.message057')}>
       <a
         href={`/app/workspaces/${workspaceId}/analyses/${analysisId}?execution=${executionId}`}
       >
-        Open exact analysis execution
+        {uiText('ui.CanvasAiChat.message058')}
       </a>
-      {record.isPending ? <p role="status">Loading saved calculation…</p> : null}
+      {record.isPending ? (
+        <p role="status">{uiText('ui.CanvasAiChat.message059')}</p>
+      ) : null}
       {record.error ? <p role="alert">{describeError(record.error)}</p> : null}
       {record.data?.execution.status === 'FAILED' ? (
-        <p role="alert">Execution failed: {record.data.execution.failureCode}</p>
+        <p role="alert">
+          {uiText('ui.CanvasAiChat.message060')} {record.data.execution.failureCode}
+        </p>
       ) : null}
       {record.data?.execution.status === 'SUCCEEDED'
         ? record.data.execution.result?.outputs.map((output) => (

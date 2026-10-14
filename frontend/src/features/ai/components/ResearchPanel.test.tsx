@@ -84,6 +84,7 @@ it('creates a conversation, submits an all-source question, and links the persis
     expect.any(AbortSignal),
   );
   expect(stream.mock.calls[0]?.[2]).toEqual({
+    answerLanguage: 'en',
     clientRequestId: expect.any(String),
     question: 'What is kinetic energy?',
   });

@@ -19,7 +19,12 @@ public final class CanvasConversationContracts {
     public record Turn(String schemaVersion, UUID clientRequestId, UUID contextId, Intent intent,
             String instruction, UUID replyToMessageId, UUID targetProposalId, Scope scope,
             @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-            List<dev.researchhub.analysis.application.AnalysisContracts.Input> datasetInputs) {
+            List<dev.researchhub.analysis.application.AnalysisContracts.Input> datasetInputs,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            dev.researchhub.shared.localization.ContentLanguage answerLanguage) {
+        public Turn(String schemaVersion,UUID clientRequestId,UUID contextId,Intent intent,String instruction,UUID replyToMessageId,UUID targetProposalId,Scope scope,List<dev.researchhub.analysis.application.AnalysisContracts.Input> inputs) {
+            this(schemaVersion,clientRequestId,contextId,intent,instruction,replyToMessageId,targetProposalId,scope,inputs,null);
+        }
         public Turn(String schemaVersion,UUID clientRequestId,UUID contextId,Intent intent,String instruction,UUID replyToMessageId,UUID targetProposalId,Scope scope) {
             this(schemaVersion,clientRequestId,contextId,intent,instruction,replyToMessageId,targetProposalId,scope,null);
         }

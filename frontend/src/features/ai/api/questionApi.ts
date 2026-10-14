@@ -1,4 +1,5 @@
 import { apiClient, CSRF_PRIMING_PATH } from '../../../shared/api';
+import type { Locale } from '../../../shared/i18n';
 import type {
   Citation,
   GeneratedResponse,
@@ -7,6 +8,7 @@ import type {
 } from './generationApi';
 
 export interface WorkspaceQuestion {
+  readonly answerLanguage?: Locale;
   readonly question: string;
   /** Omitted/null searches all authorized sources; [] deliberately searches none. */
   readonly selectedSourceIds?: readonly string[] | null;

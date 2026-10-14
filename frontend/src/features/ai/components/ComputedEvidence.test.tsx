@@ -152,6 +152,7 @@ test('question submission forwards only explicitly selected saved outputs', asyn
   });
   fireEvent.click(screen.getByRole('button', { name: 'Ask question' }));
   expect(ask).toHaveBeenCalledWith({
+    answerLanguage: 'en',
     question: 'Does our result agree with theory?',
     selectedAnalysisOutputs: [{ analysisId, executionId, outputId: 'impedance-table' }],
   });

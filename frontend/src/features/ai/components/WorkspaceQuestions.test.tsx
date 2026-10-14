@@ -70,6 +70,7 @@ it('asks all sources by default and renders escaped claims with actual versioned
   expect(screen.getByText('Question: What is kinetic energy?')).not.toBeNull();
   const post = mock.mock.calls.find((call) => String(call[0]).endsWith('/questions'));
   expect(JSON.parse(String(post?.[1]?.body))).toEqual({
+    answerLanguage: 'en',
     question: 'What is kinetic energy?',
   });
 });
@@ -96,6 +97,7 @@ it('opens Ask source with only that source selected and submits the existing que
   );
   const request = mock.mock.calls.find(([url]) => String(url).endsWith('/questions'));
   expect(JSON.parse((request?.[1] as RequestInit).body as string)).toEqual({
+    answerLanguage: 'en',
     question: 'Summarize this source',
     selectedSourceIds: ['s1'],
   });
@@ -125,7 +127,11 @@ it('searches only chosen READY sources and preserves an explicit empty selection
     JSON.parse(
       String(mock.mock.calls.find((c) => String(c[0]).endsWith('/questions'))?.[1]?.body),
     ),
-  ).toEqual({ question: 'What is kinetic energy?', selectedSourceIds: [] });
+  ).toEqual({
+    answerLanguage: 'en',
+    question: 'What is kinetic energy?',
+    selectedSourceIds: [],
+  });
   fireEvent.click(screen.getByLabelText('Lecture'));
   await submit();
   await waitFor(() =>
@@ -326,6 +332,7 @@ it('starts scoped to the dataset chosen for analysis and asks only about that so
   await screen.findByText(supported.answer);
   const post = mock.mock.calls.find((call) => String(call[0]).endsWith('/questions'));
   expect(JSON.parse(String(post?.[1]?.body))).toEqual({
+    answerLanguage: 'en',
     question: 'Describe the columns, data types and data-quality issues in this dataset.',
     selectedSourceIds: ['s1'],
   });

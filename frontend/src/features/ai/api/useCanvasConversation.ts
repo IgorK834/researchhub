@@ -10,6 +10,7 @@ import {
   type CanvasTurnRequest,
 } from './conversationApi';
 import { useConversationHistory } from './useConversations';
+import type { Locale } from '../../../shared/i18n';
 
 interface Attempt {
   readonly conversationId: string | null;
@@ -94,12 +95,14 @@ export function useCanvasConversation(
       targetProposalId: string | null = null,
       intent: CanvasTurnRequest['intent'] = 'ANSWER',
       datasetInputs?: CanvasTurnRequest['datasetInputs'],
+      answerLanguage?: Locale,
     ) => {
       const turn: CanvasTurnRequest = {
         schemaVersion: '1.0',
         clientRequestId: crypto.randomUUID(),
         contextId,
         instruction,
+        ...(answerLanguage ? { answerLanguage } : {}),
         scope,
         intent,
         replyToMessageId,

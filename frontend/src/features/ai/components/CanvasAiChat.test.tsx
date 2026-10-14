@@ -525,7 +525,7 @@ it.each([
       turns: [{ ...state, status: 'FAILED', failureCode: errorCode }],
     };
     setup({ conversationId: 'c1' });
-    const restore = await screen.findByRole('button', { name: 'Przywróć polecenie' });
+    const restore = await screen.findByRole('button', { name: 'Restore command' });
     expect(api.startCanvasConversation).not.toHaveBeenCalled();
     expect(api.sendCanvasTurn).not.toHaveBeenCalled();
     fireEvent.click(restore);

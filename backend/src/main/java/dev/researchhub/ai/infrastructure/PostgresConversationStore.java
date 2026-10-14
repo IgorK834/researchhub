@@ -81,18 +81,19 @@ public class PostgresConversationStore implements ConversationStore {
                 AND started_at < now()-interval '5 minutes' AND NOT EXISTS (SELECT 1 FROM canvas_turns t WHERE t.user_message_id=ai_messages.id)
             """,workspaceId,conversationId);
     }
-    private record Stored(Message message,UUID attemptId,Instant startedAt) {}
+    private record Stored(Message message,UUID attemptId,Instant startedAt,String answerLanguage) {}
     @Override @Transactional
     public Claim claim(UUID workspaceId,UUID conversationId,UUID callerId,Send send) {
         conversation(workspaceId,conversationId,true);
         var rows=jdbc.query("SELECT * FROM ai_messages WHERE workspace_id=? AND conversation_id=? AND client_request_id=? AND role='USER' FOR UPDATE",
-            (row,index)->new Stored(message(row),row.getObject("attempt_id",UUID.class),row.getTimestamp("started_at").toInstant()),
+            (row,index)->new Stored(message(row),row.getObject("attempt_id",UUID.class),row.getTimestamp("started_at").toInstant(),row.getString("answer_language")),
             workspaceId,conversationId,send.clientRequestId());
         UUID attempt=UUID.randomUUID();
         if (!rows.isEmpty()) {
             var existing=rows.getFirst();
             if (!existing.message().content().equals(send.question()) || !Objects.equals(existing.message().selectedSourceIds(),send.selectedSourceIds())
-                || !existing.message().selectedAnalysisOutputs().equals(send.selectedAnalysisOutputs()))
+                || !existing.message().selectedAnalysisOutputs().equals(send.selectedAnalysisOutputs())
+                || !Objects.equals(existing.answerLanguage(),send.answerLanguage()==null ? null : send.answerLanguage().code()))
                 throw new ConflictException("The request identity belongs to a different question");
             if ("COMPLETED".equals(existing.message().status())) {
                 var assistant=jdbc.query("SELECT * FROM ai_messages WHERE workspace_id=? AND conversation_id=? AND client_request_id=? AND role='ASSISTANT'",
@@ -109,10 +110,10 @@ public class PostgresConversationStore implements ConversationStore {
         long sequence=Objects.requireNonNull(jdbc.queryForObject("UPDATE ai_conversations SET next_sequence=next_sequence+2,updated_at=now() WHERE workspace_id=? AND id=? RETURNING next_sequence-2",
             Long.class,workspaceId,conversationId));
         jdbc.update("""
-            INSERT INTO ai_messages(id,workspace_id,conversation_id,client_request_id,sequence,role,status,author_id,content,selected_source_ids,selected_analysis_outputs,attempt_id,started_at)
-            VALUES (?,?,?,?,?,'USER','PENDING',?,?,?::jsonb,?::jsonb,?,now())
+            INSERT INTO ai_messages(id,workspace_id,conversation_id,client_request_id,sequence,role,status,author_id,content,selected_source_ids,selected_analysis_outputs,attempt_id,started_at,answer_language)
+            VALUES (?,?,?,?,?,'USER','PENDING',?,?,?::jsonb,?::jsonb,?,now(),?)
             """,UUID.randomUUID(),workspaceId,conversationId,send.clientRequestId(),sequence,callerId,send.question(),
-            send.selectedSourceIds() == null ? null : json.writeValueAsString(send.selectedSourceIds()),json.writeValueAsString(send.selectedAnalysisOutputs()),attempt);
+            send.selectedSourceIds() == null ? null : json.writeValueAsString(send.selectedSourceIds()),json.writeValueAsString(send.selectedAnalysisOutputs()),attempt,send.answerLanguage()==null ? null : send.answerLanguage().code());
         return new Claim(attempt,user(workspaceId,conversationId,send.clientRequestId()),null);
     }
     private Message user(UUID workspaceId,UUID conversationId,UUID requestId) {

@@ -332,6 +332,8 @@ class AnalysisApiIntegrationTest {
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
         // Remove V49/V50 projections and their triggers before reverting columns they depend on.
+        jdbc.execute("DROP TABLE document_template_creations");
+        jdbc.execute("ALTER TABLE ai_messages DROP COLUMN answer_language");
         jdbc.execute("DROP FUNCTION research_search_json_text(jsonb),refresh_document_search(uuid,uuid),document_search_trigger(),refresh_source_search(uuid,uuid),source_search_trigger(),extraction_search_trigger(),refresh_conversation_search(uuid,uuid),conversation_search_trigger(),message_search_trigger(),refresh_comment_search(uuid,uuid),comment_search_trigger(),reply_search_trigger(),refresh_analysis_search(uuid,uuid),analysis_search_trigger(),execution_search_trigger() CASCADE");
         jdbc.execute("DROP TABLE workspace_search_entries,bibliography_import_records,bibliography_items,bibliography_imports");
         jdbc.execute("DROP FUNCTION preserve_bibliography_import(),bibliography_import_records_are_immutable()");

@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import {
   apiClient,
   requestEventStream,
@@ -10,6 +11,7 @@ import {
 } from '../../../shared/api';
 import type { QuestionResponse } from './questionApi';
 import type { AnalysisEvidenceReference } from './generationApi';
+import type { Locale } from '../../../shared/i18n';
 
 export interface Conversation {
   readonly id: string;
@@ -61,6 +63,7 @@ export interface ConversationTurn {
   readonly assistant: ConversationMessage;
 }
 export interface ConversationQuestion {
+  readonly answerLanguage?: Locale;
   readonly clientRequestId: string;
   readonly question: string;
   readonly selectedSourceIds?: readonly string[] | null;
@@ -173,7 +176,9 @@ function decode(event: ServerEvent): ResearchEvent {
       )
         throw new ApiError({
           type: 'about:blank',
-          title: 'Research request failed',
+          get title() {
+            return uiText('ui.conversationApi.message001');
+          },
           status: data.retryable ? 503 : 400,
           code: data.code,
           rawCode: data.code,
@@ -218,6 +223,7 @@ export interface CanvasScope {
   readonly analysisOutputs: readonly AnalysisEvidenceReference[];
 }
 export interface CanvasTurnRequest {
+  readonly answerLanguage?: Locale;
   readonly schemaVersion: '1.0';
   readonly clientRequestId: string;
   readonly contextId: string;

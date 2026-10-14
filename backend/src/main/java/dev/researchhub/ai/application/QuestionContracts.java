@@ -7,7 +7,9 @@ import dev.researchhub.ai.application.GenerationContracts.*;
 public final class QuestionContracts {
     private QuestionContracts() {}
     public record Question(String question, List<UUID> selectedSourceIds,
-        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs) {
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        dev.researchhub.shared.localization.ContentLanguage answerLanguage) {
         public Question {
             GenerationContracts.require(question != null && !question.isBlank() && question.length() <= 2000);
             // null/omitted = all authorized sources; [] = deliberately select none.
@@ -18,6 +20,7 @@ public final class QuestionContracts {
             selectedAnalysisOutputs=GenerationContracts.bounded(selectedAnalysisOutputs==null ? List.of() : selectedAnalysisOutputs,6);
             GenerationContracts.require(new HashSet<>(selectedAnalysisOutputs).size()==selectedAnalysisOutputs.size());
         }
+        public Question(String question,List<UUID> selectedSourceIds,List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> outputs) { this(question,selectedSourceIds,outputs,null); }
         public Question(String question,List<UUID> selectedSourceIds) { this(question,selectedSourceIds,List.of()); }
     }
     /** citations contains only cited retrieved chunks; generation retains the immutable context audit. */

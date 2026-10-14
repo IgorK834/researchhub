@@ -29,7 +29,8 @@ public class WorkspaceQuestionService {
     public Response answer(UUID workspaceId, UUID callerId, Question question, QuestionExecution execution) {
         execution.checkpoint();
         authorization.requireContentReader(workspaceId, callerId);
-        try (var trace=observation.question(workspaceId,callerId,question,Math.min(feature.topK(),12-question.selectedAnalysisOutputs().size()),feature.parameters(),feature.templateId(),feature.templateHash())) {
+        var policy=LocalizedGenerationPolicy.of(feature,question.answerLanguage());
+        try (var trace=observation.question(workspaceId,callerId,question,Math.min(feature.topK(),12-question.selectedAnalysisOutputs().size()),policy.parameters(),policy.templateId(),policy.templateHash())) {
             try { var response=answerObserved(workspaceId,callerId,question,execution,trace); trace.response(response); return response; }
             catch (dev.researchhub.shared.error.ApiException failure) { trace.failure(failure); throw failure; }
         }
@@ -45,7 +46,7 @@ public class WorkspaceQuestionService {
         if (hits.isEmpty() && question.selectedAnalysisOutputs().isEmpty()) {
             authorization.requireContentReader(workspaceId, callerId);
             trace.retrieved(hits);
-            return new Response("INSUFFICIENT_EVIDENCE", "NO_RETRIEVED_EVIDENCE", NO_EVIDENCE, List.of(), null);
+            return new Response("INSUFFICIENT_EVIDENCE", "NO_RETRIEVED_EVIDENCE", noEvidence(question.answerLanguage()), List.of(), null);
         }
         // Fail closed if an adapter violates its scope. This does not filter global search results.
         if (hits.size() > Math.min(feature.topK(),12-question.selectedAnalysisOutputs().size()) || hits.stream().anyMatch(hit -> !workspaceId.equals(hit.chunk().workspaceId())
@@ -54,8 +55,9 @@ public class WorkspaceQuestionService {
         trace.retrieved(hits);
         var references = hits.stream().map(hit -> new EvidenceReference(hit.chunk().sourceId(), hit.chunk().chunkId(), hit.chunk().processingVersion())).toList();
         var command=new Command(question.question(),references);
-        var generated = question.selectedAnalysisOutputs().isEmpty() ? gateway.generate(workspaceId, callerId,command,feature)
-            : gateway.generate(workspaceId,callerId,command,feature,question.selectedAnalysisOutputs());
+        var localized=LocalizedGenerationPolicy.of(feature,question.answerLanguage());
+        var generated = question.selectedAnalysisOutputs().isEmpty() ? gateway.generate(workspaceId, callerId,command,localized)
+            : gateway.generate(workspaceId,callerId,command,localized,question.selectedAnalysisOutputs());
         execution.checkpoint();
         var chunks = hits.stream().collect(Collectors.toMap(hit -> hit.chunk().chunkId(), RetrievalHit::chunk));
         if (generated.evidence().size() != chunks.size() || generated.evidence().stream().anyMatch(citation -> {
@@ -69,10 +71,16 @@ public class WorkspaceQuestionService {
             !workspaceId.equals(c.workspaceId()) || !question.selectedAnalysisOutputs().contains(new dev.researchhub.analysis.application.AnalysisEvidenceService.Reference(c.analysisId(),c.executionId(),c.outputId())) || !allowed.add(c.evidenceId()))) throw invalid();
         if (!allowed.containsAll(citedIds)) throw invalid();
         if ("INSUFFICIENT_EVIDENCE".equals(answer.status()))
-            return new Response(answer.status(), "INSUFFICIENT_RETRIEVED_EVIDENCE", INSUFFICIENT, List.of(), generated);
+            return new Response(answer.status(), "INSUFFICIENT_RETRIEVED_EVIDENCE", insufficient(question.answerLanguage()), List.of(), generated);
         return new Response(answer.status(), null, answer.claims().stream().map(Claim::text).collect(Collectors.joining("\n\n")),
             generated.evidence().stream().filter(citation -> citedIds.contains(citation.chunkId())).toList(), generated,
             generated.analysisEvidence().stream().filter(citation -> citedIds.contains(citation.evidenceId())).toList());
     }
     private static ModelFailure invalid() { return new ModelFailure(ApiErrorCode.AI_OUTPUT_INVALID); }
+    static String noEvidence(dev.researchhub.shared.localization.ContentLanguage language) {
+        return language==null ? NO_EVIDENCE : language.choose(NO_EVIDENCE,"W autoryzowanych źródłach nie znaleziono przeszukiwalnych dowodów dla tego pytania.");
+    }
+    static String insufficient(dev.researchhub.shared.localization.ContentLanguage language) {
+        return language==null ? INSUFFICIENT : language.choose(INSUFFICIENT,"Dostarczone dowody nie zawierają wystarczających informacji, aby odpowiedzieć na to pytanie.");
+    }
 }

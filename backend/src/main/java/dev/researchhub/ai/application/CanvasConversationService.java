@@ -118,12 +118,12 @@ public class CanvasConversationService {
                 observation.record(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.RETRIEVAL,dev.researchhub.ai.observability.CanvasWorkflowObservation.elapsed(retrievalStart),true);
                 var boundedRefs= selectedChunks.stream().sorted(Comparator.comparingInt((RetrievalChunk c)->score(c.content(),work.request().instruction(),built.memory().selectedText())).reversed().thenComparing(RetrievalChunk::chunkId))
                     .limit(Math.min(policy.topK(),12-work.request().scope().analysisOutputs().size())).map(c->new EvidenceReference(c.sourceId(),c.chunkId(),c.processingVersion(),c.sourceVersionId())).toList();
-                if(boundedRefs.isEmpty() && work.request().scope().analysisOutputs().isEmpty())response=new QuestionContracts.Response("INSUFFICIENT_EVIDENCE","NO_RETRIEVED_EVIDENCE",WorkspaceQuestionService.NO_EVIDENCE,List.of(),null);
+                if(boundedRefs.isEmpty() && work.request().scope().analysisOutputs().isEmpty())response=new QuestionContracts.Response("INSUFFICIENT_EVIDENCE","NO_RETRIEVED_EVIDENCE",WorkspaceQuestionService.noEvidence(work.request().answerLanguage()),List.of(),null);
                 else {
                     if(!turns.beginModel(work))throw new ConflictException("The turn is no longer active");
-                    var generated=observation.measure(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.MODEL,()->gateway.generate(work.workspaceId(),work.callerId(),new Command("Answer the user instruction in conversationContext using only the current S/A evidence.",boundedRefs),policy,work.request().scope().analysisOutputs(),built.memory()));
+                    var generated=observation.measure(work,dev.researchhub.audit.application.ProductAudit.CanvasStage.MODEL,()->gateway.generate(work.workspaceId(),work.callerId(),new Command("Answer the user instruction in conversationContext using only the current S/A evidence.",boundedRefs),LocalizedGenerationPolicy.of(policy,work.request().answerLanguage()),work.request().scope().analysisOutputs(),built.memory()));
                     var answer=generated.result().answer();var ids=answer.claims().stream().flatMap(c->c.evidenceIds().stream()).collect(java.util.stream.Collectors.toSet());
-                    response="INSUFFICIENT_EVIDENCE".equals(answer.status()) ? new QuestionContracts.Response(answer.status(),"INSUFFICIENT_RETRIEVED_EVIDENCE",WorkspaceQuestionService.INSUFFICIENT,List.of(),generated)
+                    response="INSUFFICIENT_EVIDENCE".equals(answer.status()) ? new QuestionContracts.Response(answer.status(),"INSUFFICIENT_RETRIEVED_EVIDENCE",WorkspaceQuestionService.insufficient(work.request().answerLanguage()),List.of(),generated)
                         : new QuestionContracts.Response(answer.status(),null,answer.claims().stream().map(Claim::text).collect(java.util.stream.Collectors.joining("\n\n")),generated.evidence().stream().filter(c->ids.contains(c.chunkId())).toList(),generated,generated.analysisEvidence().stream().filter(c->ids.contains(c.evidenceId())).toList());
                 }
             }

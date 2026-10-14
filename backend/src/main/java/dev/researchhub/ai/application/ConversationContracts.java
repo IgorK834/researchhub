@@ -13,14 +13,17 @@ public final class ConversationContracts {
         }
     }
     public record Send(UUID clientRequestId, String question, List<UUID> selectedSourceIds,
-        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs) {
+        List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> selectedAnalysisOutputs,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        dev.researchhub.shared.localization.ContentLanguage answerLanguage) {
         public Send {
             GenerationContracts.require(clientRequestId != null);
             var command=new QuestionContracts.Question(question,selectedSourceIds,selectedAnalysisOutputs);
             selectedSourceIds=command.selectedSourceIds();selectedAnalysisOutputs=command.selectedAnalysisOutputs();
         }
+        public Send(UUID clientRequestId,String question,List<UUID> selectedSourceIds,List<dev.researchhub.analysis.application.AnalysisEvidenceService.Reference> outputs) {this(clientRequestId,question,selectedSourceIds,outputs,null);}
         public Send(UUID clientRequestId,String question,List<UUID> selectedSourceIds) { this(clientRequestId,question,selectedSourceIds,List.of()); }
-        public QuestionContracts.Question asQuestion() { return new QuestionContracts.Question(question,selectedSourceIds,selectedAnalysisOutputs); }
+        public QuestionContracts.Question asQuestion() { return new QuestionContracts.Question(question,selectedSourceIds,selectedAnalysisOutputs,answerLanguage); }
     }
     public record Conversation(UUID id, UUID workspaceId, UUID createdBy, String title, Instant createdAt, Instant updatedAt,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
