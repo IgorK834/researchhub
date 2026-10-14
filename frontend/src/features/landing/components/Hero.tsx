@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 
 import { Button } from '../../../shared/components/Button';
@@ -8,31 +9,30 @@ import { LinkButton } from './LinkButton';
 import styles from './Landing.module.css';
 
 export function Hero(): ReactElement {
+  useUiLocale();
   return (
     <section className={styles.hero} aria-labelledby="landing-title">
       <div className={[styles.container, styles.heroGrid].join(' ')}>
         <div className={styles.heroCopy}>
-          <Sticker label="Grounded in your sources" tone="yellow" icon="sparkle" />
+          <Sticker
+            label={uiText('ui.AuthLayout.message001')}
+            tone="yellow"
+            icon="sparkle"
+          />
           <h1 id="landing-title" className={styles.display}>
-            Research together. <em>Cite everything.</em>
+            {uiText('ui.Hero.message001')} <em>{uiText('ui.Hero.message002')}</em>
           </h1>
-          <p className={styles.lead}>
-            ResearchHub is a shared workspace for students and researchers. Collect your
-            sources, write the report side by side and ask AI questions that stay grounded
-            in your own files, with every claim traceable to where it came from.
-          </p>
+          <p className={styles.lead}>{uiText('ui.Hero.message003')}</p>
           <div className={styles.ctaRow}>
             <LinkButton to="/register" size="large" icon="arrowRight">
-              Create free account
+              {uiText('ui.Hero.message004')}
             </LinkButton>
             <Button href="#product" variant="secondary" size="large">
-              See how it works
+              {uiText('ui.Hero.message005')}
             </Button>
           </div>
-          <p className={styles.fine}>
-            No credit card required. Free plan, no time limit.
-          </p>
-          <ul className={styles.fileTypes} aria-label="Supported file types">
+          <p className={styles.fine}>{uiText('ui.Hero.message006')}</p>
+          <ul className={styles.fileTypes} aria-label={uiText('ui.Hero.message007')}>
             {SOURCE_TYPES.map((type) => (
               <li key={type}>
                 <Badge
@@ -46,10 +46,10 @@ export function Hero(): ReactElement {
         </div>
         <div className={styles.heroArt} aria-hidden="true">
           <div className={styles.heroSticker}>
-            <Sticker label="Every claim has a source" tone="mint" icon="check" />
+            <Sticker label={uiText('ui.Hero.message008')} tone="mint" icon="check" />
           </div>
           <Illustration scene="hero" size="hero" />
-          <p className={styles.heroCaption}>Read. Question. Cite.</p>
+          <p className={styles.heroCaption}>{uiText('ui.AuthLayout.message003')}</p>
         </div>
       </div>
     </section>

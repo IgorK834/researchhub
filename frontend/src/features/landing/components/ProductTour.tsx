@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 
 import { Icon } from '../../../shared/components/icons';
@@ -20,10 +21,11 @@ const screens: Readonly<Record<TourScreen, string>> = {
 
 /** Tabbed walkthrough built from real renders of the application (see e2e/landing-screenshots.cjs). */
 export function ProductTour(): ReactElement {
+  useUiLocale();
   const [value, setValue] = useState<TourScreen>('overview');
   return (
     <Tabs
-      label="Product walkthrough"
+      label={uiText('ui.ProductTour.message001')}
       value={value}
       onChange={setValue}
       items={TOUR_STEPS.map((step) => ({

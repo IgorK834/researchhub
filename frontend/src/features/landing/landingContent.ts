@@ -1,3 +1,4 @@
+import { t as uiText } from '../../shared/i18n';
 import type { IconName } from '../../shared/components/icons';
 import type { BrandTone } from '../../shared/components/identity';
 import type { IllustrationScene } from '../../shared/components/Illustration';
@@ -10,11 +11,36 @@ export interface NavLink {
 }
 
 export const NAV_LINKS: readonly NavLink[] = [
-  { id: 'product', label: 'Product' },
-  { id: 'features', label: 'Features' },
-  { id: 'how-it-works', label: 'How it works' },
-  { id: 'pricing', label: 'Pricing' },
-  { id: 'faq', label: 'FAQ' },
+  {
+    id: 'product',
+    get label() {
+      return uiText('ui.Sections.message004');
+    },
+  },
+  {
+    id: 'features',
+    get label() {
+      return uiText('ui.Sections.message007');
+    },
+  },
+  {
+    id: 'how-it-works',
+    get label() {
+      return uiText('ui.Sections.message009');
+    },
+  },
+  {
+    id: 'pricing',
+    get label() {
+      return uiText('ui.Pricing.message002');
+    },
+  },
+  {
+    id: 'faq',
+    get label() {
+      return uiText('ui.Sections.message013');
+    },
+  },
 ];
 
 export type TourScreen = 'overview' | 'sources' | 'ask' | 'editor' | 'analysis';
@@ -33,73 +59,128 @@ export interface TourStep {
 export const TOUR_STEPS: readonly TourStep[] = [
   {
     value: 'overview',
-    label: 'Workspace',
-    title: 'One shared place for the whole group.',
-    description:
-      'Every workspace brings the team, the sources, the report and the AI history together, so nobody has to ask where the latest version lives.',
-    points: [
-      'Recent documents, sources and AI activity at a glance',
-      'Owner, Editor and Viewer roles for every member',
-      'Ask a question straight from the overview',
-    ],
-    alt: 'ResearchHub workspace overview for an electronics lab: recent documents, recent AI questions and a box to ask across all sources.',
-    frame: 'Workspace overview',
+    get label() {
+      return uiText('ui.landingContent.message001');
+    },
+    get title() {
+      return uiText('ui.landingContent.message002');
+    },
+    get description() {
+      return uiText('ui.landingContent.message003');
+    },
+    get points() {
+      return [
+        uiText('ui.landingContent.message036'),
+        uiText('ui.landingContent.message037'),
+        uiText('ui.landingContent.message038'),
+      ];
+    },
+    get alt() {
+      return uiText('ui.landingContent.message004');
+    },
+    get frame() {
+      return uiText('ui.landingContent.message039');
+    },
   },
   {
     value: 'sources',
-    label: 'Sources',
-    title: 'Upload once. Everyone works from the same files.',
-    description:
-      'PDFs, Word files, spreadsheets, CSV data and plain text are processed and indexed, so AI can quote them and your team can open the exact passage.',
-    points: [
-      'PDF, DOCX, XLSX, CSV and TXT up to 50 MB',
-      'Every upload is an immutable version; replacing a file keeps the old one',
-      'Clear status for each file: uploaded, processing, ready or failed',
-    ],
-    alt: 'ResearchHub source library listing six lab files with type, uploader, date and ready status.',
-    frame: 'Sources',
+    get label() {
+      return uiText('ui.landingContent.message005');
+    },
+    get title() {
+      return uiText('ui.landingContent.message006');
+    },
+    get description() {
+      return uiText('ui.landingContent.message007');
+    },
+    get points() {
+      return [
+        uiText('ui.landingContent.message040'),
+        uiText('ui.landingContent.message041'),
+        uiText('ui.landingContent.message042'),
+      ];
+    },
+    get alt() {
+      return uiText('ui.landingContent.message008');
+    },
+    get frame() {
+      return uiText('ui.landingContent.message005');
+    },
   },
   {
     value: 'ask',
-    label: 'Ask AI',
-    title: 'Answers that show their work.',
-    description:
-      'Choose which sources AI may use, ask in plain language and get an answer where every claim links back to the passage that supports it.',
-    points: [
-      'You always see the scope: which sources the answer is based on',
-      'Citations open the exact fragment, not just the file',
-      'When the sources are not enough, it says so instead of guessing',
-    ],
-    alt: 'ResearchHub Ask AI page with a grounded answer about the time constant of an RC circuit, citations S1 to S3 and a source scope panel.',
-    frame: 'Ask AI',
+    get label() {
+      return uiText('ui.ResearchPanel.message007');
+    },
+    get title() {
+      return uiText('ui.landingContent.message009');
+    },
+    get description() {
+      return uiText('ui.landingContent.message010');
+    },
+    get points() {
+      return [
+        uiText('ui.landingContent.message043'),
+        uiText('ui.landingContent.message044'),
+        uiText('ui.landingContent.message045'),
+      ];
+    },
+    get alt() {
+      return uiText('ui.landingContent.message011');
+    },
+    get frame() {
+      return uiText('ui.ResearchPanel.message007');
+    },
   },
   {
     value: 'editor',
-    label: 'Writing',
-    title: 'Write the report with AI beside you, not instead of you.',
-    description:
-      'Draft a section from selected sources, rewrite a paragraph or look for evidence behind a claim. Suggestions change the document only after you accept them.',
-    points: [
-      'Comments, history and named snapshots for the whole team',
-      'Content origin keeps human, AI, imported and analysis-derived text apart',
-      'Research conversation next to the editor, with the same citations',
-    ],
-    alt: 'ResearchHub document editor with a lab report on the left and a research conversation with a grounded answer in the side panel.',
-    frame: 'Lab report',
+    get label() {
+      return uiText('ui.landingContent.message012');
+    },
+    get title() {
+      return uiText('ui.landingContent.message013');
+    },
+    get description() {
+      return uiText('ui.landingContent.message014');
+    },
+    get points() {
+      return [
+        uiText('ui.landingContent.message046'),
+        uiText('ui.landingContent.message047'),
+        uiText('ui.landingContent.message048'),
+      ];
+    },
+    get alt() {
+      return uiText('ui.landingContent.message015');
+    },
+    get frame() {
+      return uiText('ui.landingContent.message049');
+    },
   },
   {
     value: 'analysis',
-    label: 'Analyses',
-    title: 'From a spreadsheet to a chart you can reproduce.',
-    description:
-      'Pick a dataset, describe the calculation and ResearchHub plans it, runs the code in an isolated sandbox and keeps the inputs, code and result together.',
-    points: [
-      'Inspect sheets, columns and sample rows before you run anything',
-      'Python runs in a locked-down sandbox, never inside the app',
-      'Insert the result into the report and trace it back to the data',
-    ],
-    alt: 'ResearchHub new analysis form with a measurements spreadsheet selected, its columns and sample rows, and a plain-language request.',
-    frame: 'New analysis',
+    get label() {
+      return uiText('ui.AnalysisList.message001');
+    },
+    get title() {
+      return uiText('ui.landingContent.message016');
+    },
+    get description() {
+      return uiText('ui.landingContent.message017');
+    },
+    get points() {
+      return [
+        uiText('ui.landingContent.message050'),
+        uiText('ui.landingContent.message051'),
+        uiText('ui.landingContent.message052'),
+      ];
+    },
+    get alt() {
+      return uiText('ui.landingContent.message018');
+    },
+    get frame() {
+      return uiText('ui.AnalysisList.message003');
+    },
   },
 ];
 
@@ -114,50 +195,82 @@ export const FEATURES: readonly Feature[] = [
   {
     icon: 'library',
     tone: 'blue',
-    title: 'Shared source library',
-    text: 'One library per workspace for lectures, papers, instructions and datasets. Files are versioned and never silently overwritten.',
+    get title() {
+      return uiText('ui.landingContent.message019');
+    },
+    get text() {
+      return uiText('ui.landingContent.message053');
+    },
   },
   {
     icon: 'sparkle',
     tone: 'lavender',
-    title: 'Grounded answers with citations',
-    text: 'Ask across all or selected sources. Each claim links to its fragment, and weak evidence is reported as insufficient.',
+    get title() {
+      return uiText('ui.landingContent.message020');
+    },
+    get text() {
+      return uiText('ui.landingContent.message054');
+    },
   },
   {
     icon: 'pencil',
     tone: 'yellow',
-    title: 'AI-assisted authoring',
-    text: 'Generate a section from chosen sources, rewrite a selection or find support for a claim. You accept, edit or reject.',
+    get title() {
+      return uiText('ui.AuthoringPanel.message027');
+    },
+    get text() {
+      return uiText('ui.landingContent.message055');
+    },
   },
   {
     icon: 'users',
     tone: 'coral',
-    title: 'Writing together',
-    text: 'One report, many authors. Anchored comment threads, version history and named snapshots keep the group in sync.',
+    get title() {
+      return uiText('ui.landingContent.message021');
+    },
+    get text() {
+      return uiText('ui.landingContent.message056');
+    },
   },
   {
     icon: 'chart',
     tone: 'mint',
-    title: 'Reproducible data analysis',
-    text: 'Describe a calculation in plain language. Tables and charts keep their dataset, code and execution record.',
+    get title() {
+      return uiText('ui.landingContent.message022');
+    },
+    get text() {
+      return uiText('ui.landingContent.message057');
+    },
   },
   {
     icon: 'layers',
     tone: 'blue',
-    title: 'Provenance for every block',
-    text: 'See what was written by a person, drafted by AI, imported or derived from an analysis, and which sources it relied on.',
+    get title() {
+      return uiText('ui.landingContent.message023');
+    },
+    get text() {
+      return uiText('ui.landingContent.message058');
+    },
   },
   {
     icon: 'columns',
     tone: 'lavender',
-    title: 'Compare sources',
-    text: 'Put sources side by side to spot where they agree, differ or contradict each other, with the evidence for each side.',
+    get title() {
+      return uiText('ui.SourceComparisonPanel.message001');
+    },
+    get text() {
+      return uiText('ui.landingContent.message059');
+    },
   },
   {
     icon: 'shield',
     tone: 'coral',
-    title: 'Built with safety in mind',
-    text: 'Uploads are inspected, costly operations are rate limited, prompts are screened and AI code never runs in the app itself.',
+    get title() {
+      return uiText('ui.landingContent.message024');
+    },
+    get text() {
+      return uiText('ui.landingContent.message060');
+    },
   },
 ];
 
@@ -172,20 +285,32 @@ export const PRINCIPLES: readonly Principle[] = [
   {
     icon: 'quote',
     tone: 'mint',
-    title: 'Grounded by default',
-    text: 'AI works from the files your group chose. If the evidence is missing, you get “not enough evidence”, which is useful research information, not an error.',
+    get title() {
+      return uiText('ui.landingContent.message025');
+    },
+    get text() {
+      return uiText('ui.landingContent.message061');
+    },
   },
   {
     icon: 'check',
     tone: 'lavender',
-    title: 'You stay in control',
-    text: 'Suggestions never replace your text on their own. Every change is proposed first, with the evidence beside it.',
+    get title() {
+      return uiText('ui.landingContent.message026');
+    },
+    get text() {
+      return uiText('ui.landingContent.message062');
+    },
   },
   {
     icon: 'history',
     tone: 'yellow',
-    title: 'Traceable and reproducible',
-    text: 'A chart is more than an image. It remembers its data, code and run, so a result can be checked, repeated and trusted.',
+    get title() {
+      return uiText('ui.landingContent.message027');
+    },
+    get text() {
+      return uiText('ui.landingContent.message063');
+    },
   },
 ];
 
@@ -200,26 +325,42 @@ export const STEPS: readonly Step[] = [
   {
     icon: 'plus',
     tone: 'blue',
-    title: 'Create a workspace',
-    text: 'Name it after the lab, course or paper and invite your group with the right roles.',
+    get title() {
+      return uiText('ui.landingContent.message028');
+    },
+    get text() {
+      return uiText('ui.landingContent.message064');
+    },
   },
   {
     icon: 'upload',
     tone: 'coral',
-    title: 'Add your sources',
-    text: 'Upload lectures, papers, instructions and data. Processing runs in the background and shows its progress.',
+    get title() {
+      return uiText('ui.landingContent.message029');
+    },
+    get text() {
+      return uiText('ui.landingContent.message065');
+    },
   },
   {
     icon: 'sparkle',
     tone: 'lavender',
-    title: 'Ask, draft and analyze',
-    text: 'Question the sources, draft sections with citations and turn measurements into charts.',
+    get title() {
+      return uiText('ui.landingContent.message030');
+    },
+    get text() {
+      return uiText('ui.landingContent.message066');
+    },
   },
   {
     icon: 'check',
     tone: 'mint',
-    title: 'Review and finish',
-    text: 'Accept what is right, comment on the rest and keep restore points as the report takes shape.',
+    get title() {
+      return uiText('ui.landingContent.message031');
+    },
+    get text() {
+      return uiText('ui.landingContent.message067');
+    },
   },
 ];
 
@@ -236,26 +377,42 @@ export const AUDIENCES: readonly Audience[] = [
   {
     scene: 'team',
     tone: 'mint',
-    label: 'For students',
-    title: 'Lab reports without the version chaos.',
-    text: 'Share the instructions, lectures and measurements with your group, then write the report together and keep every number tied to its data.',
-    items: [
-      'Ask questions about lectures and instructions',
-      'Draft sections from the right materials',
-      'Analyze measurement files and insert the chart',
-    ],
+    get label() {
+      return uiText('ui.landingContent.message032');
+    },
+    get title() {
+      return uiText('ui.landingContent.message033');
+    },
+    get text() {
+      return uiText('ui.landingContent.message068');
+    },
+    get items() {
+      return [
+        uiText('ui.landingContent.message069'),
+        uiText('ui.landingContent.message070'),
+        uiText('ui.landingContent.message071'),
+      ];
+    },
   },
   {
     scene: 'reading',
     tone: 'lavender',
-    label: 'For researchers',
-    title: 'Literature and data in one trail of evidence.',
-    text: 'Collect papers and datasets, compare what they claim and write with every statement linked to where it came from.',
-    items: [
-      'Compare papers and surface contradictions',
-      'Check a claim against your own sources',
-      'Keep notes reproducible and reviewable',
-    ],
+    get label() {
+      return uiText('ui.landingContent.message034');
+    },
+    get title() {
+      return uiText('ui.landingContent.message035');
+    },
+    get text() {
+      return uiText('ui.landingContent.message072');
+    },
+    get items() {
+      return [
+        uiText('ui.landingContent.message073'),
+        uiText('ui.landingContent.message074'),
+        uiText('ui.landingContent.message075'),
+      ];
+    },
   },
 ];
 
@@ -280,42 +437,68 @@ export interface Plan {
 export const PLANS: readonly Plan[] = [
   {
     id: 'free',
-    name: 'Free',
-    tagline: 'Everything you need to run a course project or a small study.',
+    get name() {
+      return uiText('ui.landingContent.message076');
+    },
+    get tagline() {
+      return uiText('ui.landingContent.message077');
+    },
     price: '$0',
-    period: 'forever',
-    cta: 'Create free account',
-    note: 'No credit card required.',
+    get period() {
+      return uiText('ui.landingContent.message078');
+    },
+    get cta() {
+      return uiText('ui.Hero.message004');
+    },
+    get note() {
+      return uiText('ui.landingContent.message079');
+    },
     highlight: false,
-    features: [
-      'Up to 2 workspaces',
-      'Up to 5 members per workspace',
-      '15 sources per workspace, up to 50 MB each',
-      'Grounded questions with citations',
-      'AI drafting, rewriting and evidence checks (fair use)',
-      '10 data analyses per month',
-      'Version history and content provenance',
-    ],
+    get features() {
+      return [
+        uiText('ui.landingContent.message080'),
+        uiText('ui.landingContent.message081'),
+        uiText('ui.landingContent.message082'),
+        uiText('ui.landingContent.message083'),
+        uiText('ui.landingContent.message084'),
+        uiText('ui.landingContent.message085'),
+        uiText('ui.landingContent.message086'),
+      ];
+    },
   },
   {
     id: 'premium',
-    name: 'Premium',
-    tagline: 'For research groups that live in ResearchHub every day.',
+    get name() {
+      return uiText('ui.landingContent.message087');
+    },
+    get tagline() {
+      return uiText('ui.landingContent.message088');
+    },
     price: '$12',
-    period: 'per member / month',
-    cta: 'Start free, upgrade later',
-    note: 'Premium billing opens soon. Your workspaces carry over.',
+    get period() {
+      return uiText('ui.landingContent.message089');
+    },
+    get cta() {
+      return uiText('ui.landingContent.message090');
+    },
+    get note() {
+      return uiText('ui.landingContent.message091');
+    },
     highlight: true,
-    lead: 'Everything in Free, plus',
-    features: [
-      'Unlimited workspaces and members',
-      'Unlimited sources and larger libraries',
-      'Higher AI limits and priority processing',
-      'Unlimited data analyses with full execution history',
-      'Source comparison and contradiction checks',
-      'Named snapshots and extended history',
-      'Priority support',
-    ],
+    get lead() {
+      return uiText('ui.landingContent.message092');
+    },
+    get features() {
+      return [
+        uiText('ui.landingContent.message093'),
+        uiText('ui.landingContent.message094'),
+        uiText('ui.landingContent.message095'),
+        uiText('ui.landingContent.message096'),
+        uiText('ui.landingContent.message097'),
+        uiText('ui.landingContent.message098'),
+        uiText('ui.landingContent.message099'),
+      ];
+    },
   },
 ];
 
@@ -326,33 +509,51 @@ export interface FaqItem {
 
 export const FAQ: readonly FaqItem[] = [
   {
-    question: 'Will the AI make things up?',
-    answer:
-      'ResearchHub answers from the sources you select and links every claim to the passage behind it. When the retrieved evidence is not enough, it tells you that instead of inventing an answer. You can always open the cited fragment and check it yourself.',
+    get question() {
+      return uiText('ui.landingContent.message100');
+    },
+    get answer() {
+      return uiText('ui.landingContent.message101');
+    },
   },
   {
-    question: 'Which files can I upload?',
-    answer:
-      'PDF, DOCX, XLSX, CSV and plain-text files up to 50 MB each. Uploads are inspected before processing, and a file that cannot be processed fails with a clear reason and a way to retry.',
+    get question() {
+      return uiText('ui.landingContent.message102');
+    },
+    get answer() {
+      return uiText('ui.landingContent.message103');
+    },
   },
   {
-    question: 'Who can see what is in my workspace?',
-    answer:
-      'Only the people you add. Owners manage the workspace, Editors upload sources and write, and Viewers can read and ask questions without changing anything. Access is checked on every request.',
+    get question() {
+      return uiText('ui.landingContent.message104');
+    },
+    get answer() {
+      return uiText('ui.landingContent.message105');
+    },
   },
   {
-    question: 'Can I run calculations on my own data?',
-    answer:
-      'Yes. Pick a spreadsheet or CSV, describe the calculation and ResearchHub plans and runs it in an isolated sandbox. The result keeps its inputs, code and run, and your original data stays unchanged.',
+    get question() {
+      return uiText('ui.landingContent.message106');
+    },
+    get answer() {
+      return uiText('ui.landingContent.message107');
+    },
   },
   {
-    question: 'Can I use it alone, without a group?',
-    answer:
-      'Of course. A workspace with one member works the same way: sources, grounded answers, drafting and analyses. Invite others whenever you are ready.',
+    get question() {
+      return uiText('ui.landingContent.message108');
+    },
+    get answer() {
+      return uiText('ui.landingContent.message109');
+    },
   },
   {
-    question: 'When does Premium become available?',
-    answer:
-      'Premium is on the way. Create a free account today and your workspaces, sources and documents stay exactly where they are when plans change.',
+    get question() {
+      return uiText('ui.landingContent.message110');
+    },
+    get answer() {
+      return uiText('ui.landingContent.message111');
+    },
   },
 ];

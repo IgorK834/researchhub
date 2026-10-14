@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useId, useState, type ReactElement, type ReactNode } from 'react';
 
 import { Link } from 'react-router-dom';
@@ -40,17 +41,16 @@ function SectionHeader({
 }
 
 export function WhySection(): ReactElement {
+  useUiLocale();
   return (
     <section className={styles.section} aria-labelledby="why-title">
       <div className={styles.container}>
         <SectionHeader
           id="why-title"
-          label="Why ResearchHub"
-          title="Chat with a PDF is not research."
+          label={uiText('ui.Sections.message001')}
+          title={uiText('ui.Sections.message002')}
         >
-          Most AI tools answer and move on. Research needs the opposite: an answer you can
-          check, a draft you can defend and a result you can repeat. ResearchHub was built
-          around that, from the first upload to the final report.
+          {uiText('ui.Sections.message003')}
         </SectionHeader>
         <ul className={styles.principles}>
           {PRINCIPLES.map((principle) => (
@@ -67,6 +67,7 @@ export function WhySection(): ReactElement {
 }
 
 export function ProductSection(): ReactElement {
+  useUiLocale();
   return (
     <section
       id="product"
@@ -74,9 +75,12 @@ export function ProductSection(): ReactElement {
       aria-labelledby="product-title"
     >
       <div className={styles.container}>
-        <SectionHeader id="product-title" label="Product" title="See how it works.">
-          Five screens, one workflow: bring in the sources, ask, write, analyze and keep
-          the evidence attached the whole way.
+        <SectionHeader
+          id="product-title"
+          label={uiText('ui.Sections.message004')}
+          title={uiText('ui.Sections.message005')}
+        >
+          {uiText('ui.Sections.message006')}
         </SectionHeader>
         <ProductTour />
       </div>
@@ -85,13 +89,14 @@ export function ProductSection(): ReactElement {
 }
 
 export function FeaturesSection(): ReactElement {
+  useUiLocale();
   return (
     <section id="features" className={styles.section} aria-labelledby="features-title">
       <div className={styles.container}>
         <SectionHeader
           id="features-title"
-          label="Features"
-          title="Everything a research group needs, in one workspace."
+          label={uiText('ui.Sections.message007')}
+          title={uiText('ui.Sections.message008')}
         />
         <ul className={styles.features}>
           {FEATURES.map((feature) => (
@@ -108,6 +113,7 @@ export function FeaturesSection(): ReactElement {
 }
 
 export function HowItWorksSection(): ReactElement {
+  useUiLocale();
   return (
     <section
       id="how-it-works"
@@ -117,8 +123,8 @@ export function HowItWorksSection(): ReactElement {
       <div className={styles.container}>
         <SectionHeader
           id="how-title"
-          label="How it works"
-          title="From first upload to finished report in four steps."
+          label={uiText('ui.Sections.message009')}
+          title={uiText('ui.Sections.message010')}
         />
         <ol className={styles.steps}>
           {STEPS.map((step, index) => (
@@ -138,13 +144,14 @@ export function HowItWorksSection(): ReactElement {
 }
 
 export function AudienceSection(): ReactElement {
+  useUiLocale();
   return (
     <section className={styles.section} aria-labelledby="audience-title">
       <div className={styles.container}>
         <SectionHeader
           id="audience-title"
-          label="Who it is for"
-          title="Made for people who have to show their work."
+          label={uiText('ui.Sections.message011')}
+          title={uiText('ui.Sections.message012')}
         />
         <div className={styles.audiences}>
           {AUDIENCES.map((audience) => (
@@ -175,6 +182,7 @@ export function AudienceSection(): ReactElement {
 }
 
 export function FaqSection(): ReactElement {
+  useUiLocale();
   const base = useId();
   const [open, setOpen] = useState<number | null>(0);
   return (
@@ -184,7 +192,11 @@ export function FaqSection(): ReactElement {
       aria-labelledby="faq-title"
     >
       <div className={[styles.container, styles.faqLayout].join(' ')}>
-        <SectionHeader id="faq-title" label="FAQ" title="Questions, answered plainly." />
+        <SectionHeader
+          id="faq-title"
+          label={uiText('ui.Sections.message013')}
+          title={uiText('ui.Sections.message014')}
+        />
         <div className={styles.faq}>
           {FAQ.map((item, index) => {
             const expanded = open === index;
@@ -219,23 +231,25 @@ export function FaqSection(): ReactElement {
 }
 
 export function FinalCta(): ReactElement {
+  useUiLocale();
   return (
     <section className={styles.section} aria-labelledby="cta-title">
       <div className={styles.container}>
         <div className={styles.cta}>
           <div className={styles.ctaCopy}>
-            <Badge label="Free to start" icon="sparkle" tone="yellow" />
-            <h2 id="cta-title">Start your first research workspace.</h2>
-            <p>
-              Create an account, add your sources and ask your first question in a few
-              minutes. Already have a workspace? Pick up where you left it.
-            </p>
+            <Badge
+              label={uiText('ui.Sections.message015')}
+              icon="sparkle"
+              tone="yellow"
+            />
+            <h2 id="cta-title">{uiText('ui.Sections.message016')}</h2>
+            <p>{uiText('ui.Sections.message017')}</p>
             <div className={styles.ctaRow}>
               <LinkButton to="/register" size="large" icon="arrowRight">
-                Create free account
+                {uiText('ui.Hero.message004')}
               </LinkButton>
               <LinkButton to="/login" variant="secondary" size="large">
-                Log in
+                {uiText('ui.AccountLink.message007')}
               </LinkButton>
             </div>
           </div>
@@ -247,15 +261,16 @@ export function FinalCta(): ReactElement {
 }
 
 export function LandingFooter(): ReactElement {
+  useUiLocale();
   const { config } = usePublicConfig();
   return (
     <footer className={styles.footer}>
       <div className={[styles.container, styles.footerGrid].join(' ')}>
         <p className={styles.footerBrand}>
           <strong>ResearchHub</strong>
-          <span>From sources and raw data to a reproducible collaborative report.</span>
+          <span>{uiText('ui.Sections.message018')}</span>
         </p>
-        <nav aria-label="Footer">
+        <nav aria-label={uiText('ui.Sections.message019')}>
           <ul className={styles.footerLinks}>
             {NAV_LINKS.map((link) => (
               <li key={link.id}>
@@ -263,16 +278,16 @@ export function LandingFooter(): ReactElement {
               </li>
             ))}
             <li>
-              <Link to="/login">Log in</Link>
+              <Link to="/login">{uiText('ui.AccountLink.message007')}</Link>
             </li>
             {config?.registrationMode === 'open' ? (
               <li>
-                <Link to="/register">Create account</Link>
+                <Link to="/register">{uiText('ui.LandingHeader.message001')}</Link>
               </li>
             ) : null}
           </ul>
         </nav>
-        <p className={styles.footerLegal}>© ResearchHub · Privacy · Terms</p>
+        <p className={styles.footerLegal}>{uiText('ui.Sections.message020')}</p>
       </div>
     </footer>
   );
