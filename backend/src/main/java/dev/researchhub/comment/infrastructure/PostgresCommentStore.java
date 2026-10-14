@@ -16,7 +16,8 @@ import java.util.UUID;
 @Repository
 public class PostgresCommentStore {
     private final JdbcTemplate jdbc;
-    public PostgresCommentStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final tools.jackson.databind.ObjectMapper json;
+    public PostgresCommentStore(JdbcTemplate jdbc, tools.jackson.databind.ObjectMapper json) { this.jdbc = jdbc; this.json=json; }
 
     public List<Comment> list(UUID workspaceId, UUID documentId) {
         return jdbc.query("SELECT * FROM document_comments WHERE workspace_id = ? AND document_id = ? ORDER BY created_at, id",
@@ -29,16 +30,16 @@ public class PostgresCommentStore {
     public void create(Comment value) {
         int inserted = jdbc.update("""
                 INSERT INTO document_comments (id, workspace_id, document_id, author_id, author_name, body,
-                 status, anchor_id, anchor_quote, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?) ON CONFLICT DO NOTHING
+                 status, anchor_id, anchor_quote, created_at, updated_at, mentions) VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?::jsonb) ON CONFLICT DO NOTHING
                 """, value.id(), value.workspaceId(), value.documentId(), value.authorId(), value.authorName(),
-                value.body(), value.anchor().id(), value.anchor().quote(), Timestamp.from(value.createdAt()), Timestamp.from(value.updatedAt()));
+                value.body(), value.anchor().id(), value.anchor().quote(), Timestamp.from(value.createdAt()), Timestamp.from(value.updatedAt()), json.writeValueAsString(value.mentions()));
         if (inserted != 1) throw new ConflictException("This comment id or anchor is already in use");
     }
     public List<Reply> replies(UUID workspaceId, UUID documentId, UUID commentId) {
         return jdbc.query("""
                 SELECT * FROM comment_replies WHERE workspace_id = ? AND document_id = ? AND comment_id = ? ORDER BY created_at, id
                 """, (rs, row) -> new Reply(rs.getObject("id", UUID.class), rs.getObject("author_id", UUID.class),
-                rs.getString("author_name"), rs.getString("body"), rs.getTimestamp("created_at").toInstant()),
+                rs.getString("author_name"), rs.getString("body"), rs.getTimestamp("created_at").toInstant(), mentions(rs)),
                 workspaceId, documentId, commentId);
     }
     /** Batched projection for a panel refresh; one query regardless of thread count. */
@@ -49,7 +50,7 @@ public class PostgresCommentStore {
                     UUID commentId = rs.getObject("comment_id", UUID.class);
                     result.computeIfAbsent(commentId, ignored -> new java.util.ArrayList<>()).add(new Reply(
                             rs.getObject("id", UUID.class), rs.getObject("author_id", UUID.class), rs.getString("author_name"),
-                            rs.getString("body"), rs.getTimestamp("created_at").toInstant()));
+                            rs.getString("body"), rs.getTimestamp("created_at").toInstant(), mentions(rs)));
                 }, workspaceId, documentId);
         return result;
     }
@@ -58,9 +59,9 @@ public class PostgresCommentStore {
     }
     public void reply(UUID workspaceId, UUID documentId, UUID commentId, Reply value) {
         int inserted = jdbc.update("""
-                INSERT INTO comment_replies (id, workspace_id, document_id, comment_id, author_id, author_name, body, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING
-                """, value.id(), workspaceId, documentId, commentId, value.authorId(), value.authorName(), value.body(), Timestamp.from(value.createdAt()));
+                INSERT INTO comment_replies (id, workspace_id, document_id, comment_id, author_id, author_name, body, created_at, mentions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb) ON CONFLICT DO NOTHING
+                """, value.id(), workspaceId, documentId, commentId, value.authorId(), value.authorName(), value.body(), Timestamp.from(value.createdAt()), json.writeValueAsString(value.mentions()));
         if (inserted != 1) throw new ConflictException("This reply id is already in use");
         jdbc.update("UPDATE document_comments SET updated_at = ? WHERE workspace_id = ? AND document_id = ? AND id = ?",
                 Timestamp.from(value.createdAt()), workspaceId, documentId, commentId);
@@ -73,12 +74,20 @@ public class PostgresCommentStore {
                 """, status, Timestamp.from(now), resolved ? actor : null, resolved ? Timestamp.from(now) : null,
                 workspaceId, documentId, id);
     }
-    private static Comment comment(ResultSet rs) throws SQLException {
+    public void edit(UUID workspace, UUID document, UUID id, long revision, String body, List<Mention> mentions, Instant now) {
+        int updated=jdbc.update("UPDATE document_comments SET body=?,mentions=?::jsonb,revision=revision+1,updated_at=? WHERE workspace_id=? AND document_id=? AND id=? AND revision=?",
+            body,json.writeValueAsString(mentions),Timestamp.from(now),workspace,document,id,revision);
+        if(updated!=1)throw new ConflictException("Comment changed; reload before editing");
+    }
+    private List<Mention> mentions(ResultSet rs) throws SQLException {
+        return json.readValue(rs.getString("mentions"),new tools.jackson.core.type.TypeReference<List<Mention>>() {});
+    }
+    private Comment comment(ResultSet rs) throws SQLException {
         Timestamp resolved = rs.getTimestamp("resolved_at");
         return new Comment(rs.getObject("id", UUID.class), rs.getObject("workspace_id", UUID.class),
                 rs.getObject("document_id", UUID.class), rs.getObject("author_id", UUID.class), rs.getString("author_name"),
                 rs.getString("body"), rs.getString("status"), new Anchor("TEXT_MARK_V1", rs.getObject("anchor_id", UUID.class),
                 rs.getString("anchor_quote")), false, rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(),
-                rs.getObject("resolved_by", UUID.class), resolved == null ? null : resolved.toInstant(), List.of(), List.of());
+                rs.getObject("resolved_by", UUID.class), resolved == null ? null : resolved.toInstant(), List.of(), List.of(), rs.getLong("revision"), mentions(rs));
     }
 }

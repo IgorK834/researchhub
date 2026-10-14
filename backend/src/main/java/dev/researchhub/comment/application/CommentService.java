@@ -24,6 +24,9 @@ import java.util.UUID;
 @Service
 public class CommentService {
     private final DocumentService documents;
+    private final CommentMentions mentions;
+    private final dev.researchhub.workspace.application.WorkspacePeople people;
+    private final dev.researchhub.audit.application.ProductAudit productAudit;
     private final PostgresCommentStore store;
     private final ReviewAudit audit;
     private final CommentAnchors anchors;
@@ -32,10 +35,12 @@ public class CommentService {
     private final dev.researchhub.comment.infrastructure.PostgresCommentEvidence evidence;
 
     public CommentService(DocumentService documents, PostgresCommentStore store, ReviewAudit audit,
-                          CommentAnchors anchors, UserLookupService users, Clock clock, dev.researchhub.comment.infrastructure.PostgresCommentEvidence evidence) {
+                          CommentAnchors anchors, UserLookupService users, Clock clock, dev.researchhub.comment.infrastructure.PostgresCommentEvidence evidence,
+                          CommentMentions mentions, dev.researchhub.workspace.application.WorkspacePeople people,
+                          dev.researchhub.audit.application.ProductAudit productAudit) {
         this.documents = documents; this.store = store; this.audit = audit;
         this.anchors = anchors; this.users = users; this.clock = clock;
-        this.evidence = evidence;
+        this.evidence = evidence; this.mentions=mentions;this.people=people;this.productAudit=productAudit;
     }
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public List<Comment> list(UUID workspaceId, UUID actorId, UUID documentId) {
@@ -52,37 +57,47 @@ public class CommentService {
     /** UUID supplied by the client makes a retry after a lost response idempotent. */
     @Transactional
     public Comment create(UUID workspaceId, UUID actorId, UUID documentId, Create command) {
+        people.lock(workspaceId,actorId);
         Set<UUID> live = anchors.in(documents.lockForReview(workspaceId, actorId, documentId).content());
         String body = body(command.body());
+        var typed=mentions.validate(workspaceId,body,command.mentions());
         Comment existing = store.find(workspaceId, documentId, command.id()).orElse(null);
         if (existing != null) {
-            if (!existing.authorId().equals(actorId) || !existing.body().equals(body) || !existing.anchor().equals(command.anchor()))
+            if (!existing.authorId().equals(actorId) || !existing.body().equals(body) || !existing.anchor().equals(command.anchor()) || !existing.mentions().equals(typed))
                 throw new ConflictException("This comment id is already in use");
             return enrich(existing, live);
         }
         if (!live.contains(command.anchor().id())) throw new ConflictException("The selected text is no longer available. Select text again.");
         Instant now = clock.instant();
         Comment value = new Comment(command.id(), workspaceId, documentId, actorId, name(actorId), body,
-                "OPEN", command.anchor(), false, now, now, null, null, List.of(), List.of());
+                "OPEN", command.anchor(), false, now, now, null, null, List.of(), List.of(),1,typed);
         store.create(value);
         event(value, actorId, value.authorName(), "CREATED", null, "OPEN", null, now);
+        productAudit.comment(workspaceId,actorId,value.id(),documentId,null,1,dev.researchhub.audit.application.ProductAudit.Type.COMMENT_CREATED,CommentMentions.added(List.of(),typed));
         return value;
     }
     @Transactional
     public Comment reply(UUID workspaceId, UUID actorId, UUID documentId, UUID commentId, UUID replyId, String text) {
+        return reply(workspaceId,actorId,documentId,commentId,replyId,text,List.of());
+    }
+    @Transactional
+    public Comment reply(UUID workspaceId, UUID actorId, UUID documentId, UUID commentId, UUID replyId, String text,List<Mention> input) {
+        people.lock(workspaceId,actorId);
         Set<UUID> live = anchors.in(documents.lockForReview(workspaceId, actorId, documentId).content());
         Comment value = require(workspaceId, documentId, commentId);
         String body = body(text);
+        var typed=mentions.validate(workspaceId,body,input);
         Reply existing = store.findReply(workspaceId, documentId, commentId, replyId).orElse(null);
         if (existing != null) {
-            if (!existing.authorId().equals(actorId) || !existing.body().equals(body)) throw new ConflictException("This reply id is already in use");
+            if (!existing.authorId().equals(actorId) || !existing.body().equals(body) || !existing.mentions().equals(typed)) throw new ConflictException("This reply id is already in use");
             return enrich(value, live);
         }
         if (!value.status().equals("OPEN")) throw new ConflictException("Reopen this thread before replying");
         Instant now = clock.instant();
-        Reply reply = new Reply(replyId, actorId, name(actorId), body, now);
+        Reply reply = new Reply(replyId, actorId, name(actorId), body, now, typed);
         store.reply(workspaceId, documentId, commentId, reply);
         event(value, actorId, reply.authorName(), "REPLIED", "OPEN", "OPEN", replyId, now);
+        productAudit.comment(workspaceId,actorId,value.id(),documentId,replyId,value.revision(),dev.researchhub.audit.application.ProductAudit.Type.COMMENT_REPLIED,CommentMentions.added(List.of(),typed));
         return enrich(require(workspaceId, documentId, commentId), live);
     }
     /** Row lock shared with saves/restore serializes transitions; repeated target status is a no-op. */
@@ -98,6 +113,21 @@ public class CommentService {
         }
         return enrich(require(workspaceId, documentId, commentId), live);
     }
+    @Transactional
+    public Comment edit(UUID workspaceId,UUID actorId,UUID documentId,UUID commentId,long revision,String text,List<Mention> input) {
+        people.lock(workspaceId,actorId);
+        var live=anchors.in(documents.lockForReview(workspaceId,actorId,documentId).content());
+        var value=require(workspaceId,documentId,commentId);
+        if(!value.authorId().equals(actorId))throw new dev.researchhub.shared.error.ForbiddenException("Only the comment author can edit its text");
+        if(value.revision()!=revision)throw new ConflictException("Comment changed; reload before editing");
+        String body=body(text);var typed=mentions.validate(workspaceId,body,input);
+        if(value.body().equals(body) && value.mentions().equals(typed))return enrich(value,live);
+        var added=CommentMentions.added(value.mentions(),typed);var now=clock.instant();
+        store.edit(workspaceId,documentId,commentId,revision,body,typed,now);
+        event(value,actorId,name(actorId),"EDITED",value.status(),value.status(),null,now);
+        productAudit.comment(workspaceId,actorId,commentId,documentId,null,revision+1,dev.researchhub.audit.application.ProductAudit.Type.COMMENT_EDITED,added);
+        return enrich(require(workspaceId,documentId,commentId),live);
+    }
     private void event(Comment value, UUID actorId, String actorName, String action, String previous, String status, UUID replyId, Instant now) {
         audit.record(value.workspaceId(), value.documentId(), new ReviewAudit.Event(UUID.randomUUID(), value.id(), replyId,
                 actorId, actorName, action, previous, status, now));
@@ -109,7 +139,8 @@ public class CommentService {
     private Comment enrich(Comment value, Set<UUID> live, List<Reply> replies, List<CommentEvidenceContracts.Suggestion> suggestions) {
         return new Comment(value.id(), value.workspaceId(), value.documentId(), value.authorId(), value.authorName(), value.body(),
                 value.status(), value.anchor(), !live.contains(value.anchor().id()), value.createdAt(), value.updatedAt(),
-                value.resolvedBy(), value.resolvedAt(), replies, suggestions);
+                value.resolvedBy(), value.resolvedAt(), replies.stream().map(r->new Reply(r.id(),r.authorId(),r.authorName(),r.body(),r.createdAt(),mentions.present(value.workspaceId(),r.mentions()))).toList(), suggestions,
+                value.revision(), mentions.present(value.workspaceId(),value.mentions()));
     }
     private Comment require(UUID workspaceId, UUID documentId, UUID commentId) {
         return store.find(workspaceId, documentId, commentId).orElseThrow(() -> new ResourceNotFoundException("Comment was not found"));

@@ -21,8 +21,9 @@ import java.util.UUID;
 public class CommentController {
     public record AnchorRequest(@NotNull @Pattern(regexp = "TEXT_MARK_V1") String strategy, @NotNull UUID id,
                                 @NotBlank @Size(max = 2000) String quote) {}
-    public record CreateRequest(@NotNull UUID id, @NotBlank @Size(max = 4000) String body, @NotNull @Valid AnchorRequest anchor) {}
-    public record ReplyRequest(@NotNull UUID id, @NotBlank @Size(max = 4000) String body) {}
+    public record CreateRequest(@NotNull UUID id, @NotBlank @Size(max = 4000) String body, @NotNull @Valid AnchorRequest anchor, @Size(max=20) List<CommentContracts.Mention> mentions) {}
+    public record ReplyRequest(@NotNull UUID id, @NotBlank @Size(max = 4000) String body, @Size(max=20) List<CommentContracts.Mention> mentions) {}
+    public record EditRequest(@jakarta.validation.constraints.Positive long revision,@NotBlank @Size(max=4000) String body,@Size(max=20) List<CommentContracts.Mention> mentions) {}
     public record StatusRequest(@NotNull @Pattern(regexp = "OPEN|RESOLVED") String status) {}
     public record EvidenceRequest(@NotNull UUID id) {}
     public record AcceptEvidenceRequest(@NotNull @Pattern(regexp = "[a-f0-9]{64}") String chunkId) {}
@@ -60,13 +61,17 @@ public class CommentController {
     @ResponseStatus(HttpStatus.CREATED)
     CommentContracts.Comment create(@PathVariable UUID workspaceId, @PathVariable UUID documentId, @Valid @RequestBody CreateRequest request) {
         return comments.create(workspaceId, caller(), documentId, new CommentContracts.Create(request.id(), request.body(),
-                new CommentContracts.Anchor(request.anchor().strategy(), request.anchor().id(), request.anchor().quote())));
+                new CommentContracts.Anchor(request.anchor().strategy(), request.anchor().id(), request.anchor().quote()), request.mentions()));
     }
     @PostMapping("/{commentId}/replies")
     @ResponseStatus(HttpStatus.CREATED)
     CommentContracts.Comment reply(@PathVariable UUID workspaceId, @PathVariable UUID documentId, @PathVariable UUID commentId,
                                    @Valid @RequestBody ReplyRequest request) {
-        return comments.reply(workspaceId, caller(), documentId, commentId, request.id(), request.body());
+        return comments.reply(workspaceId, caller(), documentId, commentId, request.id(), request.body(),request.mentions());
+    }
+    @PutMapping("/{commentId}/body")
+    CommentContracts.Comment edit(@PathVariable UUID workspaceId,@PathVariable UUID documentId,@PathVariable UUID commentId,@Valid @RequestBody EditRequest request) {
+        return comments.edit(workspaceId,caller(),documentId,commentId,request.revision(),request.body(),request.mentions());
     }
     @PatchMapping("/{commentId}")
     CommentContracts.Comment status(@PathVariable UUID workspaceId, @PathVariable UUID documentId, @PathVariable UUID commentId,

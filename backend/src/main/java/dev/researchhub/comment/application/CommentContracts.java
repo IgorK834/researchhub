@@ -16,11 +16,18 @@ public final class CommentContracts {
             }
         }
     }
-    public record Create(UUID id, String body, Anchor anchor) {}
-    public record Reply(UUID id, UUID authorId, String authorName, String body, Instant createdAt) {}
+    public record Mention(UUID userId, String displayLabel, int start, int end, boolean available) {
+        public Mention(UUID userId,String displayLabel,int start,int end) {this(userId,displayLabel,start,end,true);}
+    }
+    public record Create(UUID id, String body, Anchor anchor, List<Mention> mentions) {
+        public Create(UUID id,String body,Anchor anchor) {this(id,body,anchor,List.of());}
+    }
+    public record Reply(UUID id, UUID authorId, String authorName, String body, Instant createdAt, List<Mention> mentions) {
+        public Reply(UUID id,UUID authorId,String authorName,String body,Instant createdAt) {this(id,authorId,authorName,body,createdAt,List.of());}
+    }
     public record Comment(UUID id, UUID workspaceId, UUID documentId, UUID authorId, String authorName,
                           String body, String status, Anchor anchor, boolean orphaned,
                           Instant createdAt, Instant updatedAt, UUID resolvedBy, Instant resolvedAt,
-                          List<Reply> replies, List<CommentEvidenceContracts.Suggestion> aiSuggestions) {}
+                          List<Reply> replies, List<CommentEvidenceContracts.Suggestion> aiSuggestions, long revision, List<Mention> mentions) {}
     public record Thread(Comment comment, List<dev.researchhub.audit.application.ReviewAudit.Event> events) {}
 }
