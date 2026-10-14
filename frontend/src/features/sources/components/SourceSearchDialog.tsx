@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useId, useRef, useState, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
@@ -54,6 +55,7 @@ export function SourceSearchDialog({
   readonly onClose: () => void;
   readonly onOpen: (hit: SourceTextHit, beside: boolean) => void;
 }): ReactElement {
+  useUiLocale();
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,7 +94,7 @@ export function SourceSearchDialog({
     inputRef.current?.focus();
   };
   const title = (hit: SourceTextHit): string =>
-    titles.get(hit.chunk.sourceId) ?? 'Workspace source';
+    titles.get(hit.chunk.sourceId) ?? uiText('ui.SourceCommandSearch.message003');
   const open = (beside: boolean): void => {
     if (selected) onOpen(selected, beside);
   };
@@ -100,22 +102,42 @@ export function SourceSearchDialog({
   return (
     <Dialog
       open
-      title="Search source text"
+      title={uiText('ui.SourceSearchDialog.message001')}
       onClose={onClose}
       initialFocusRef={inputRef}
       className={styles.dialog}
-      description="Workspace sources only. Searches passages in the sources you can access."
+      description={uiText('ui.SourceSearchDialog.message002')}
       footer={
         <div className={styles.footer}>
           <KeyboardHintBar
             hints={[
-              { keys: ['↑', '↓'], label: 'move' },
-              { keys: ['Enter'], label: 'open' },
-              { keys: ['Cmd/Ctrl', 'Enter'], label: 'open beside' },
-              { keys: ['Esc'], label: 'close' },
+              {
+                keys: ['↑', '↓'],
+                get label() {
+                  return uiText('ui.WorkspaceSearchDialog.message003');
+                },
+              },
+              {
+                keys: ['Enter'],
+                get label() {
+                  return uiText('ui.DocumentComments.message003');
+                },
+              },
+              {
+                keys: ['Cmd/Ctrl', 'Enter'],
+                get label() {
+                  return uiText('ui.SourceSearchDialog.message003');
+                },
+              },
+              {
+                keys: ['Esc'],
+                get label() {
+                  return uiText('ui.WorkspaceSearchDialog.message005');
+                },
+              },
             ]}
           />
-          <span>Workspace source text only</span>
+          <span>{uiText('ui.SourceSearchDialog.message004')}</span>
         </div>
       }
     >
@@ -144,12 +166,12 @@ export function SourceSearchDialog({
           <input
             ref={inputRef}
             role="combobox"
-            aria-label="Search source text"
+            aria-label={uiText('ui.SourceSearchDialog.message001')}
             aria-autocomplete="list"
             aria-expanded={hits.length > 0}
             aria-controls={`${id}-results`}
             aria-activedescendant={selected ? `${id}-result-${String(index)}` : undefined}
-            placeholder="Search passages in workspace sources…"
+            placeholder={uiText('ui.SourceSearchDialog.message005')}
             maxLength={2000}
             value={input}
             onChange={(event) => {
@@ -157,20 +179,26 @@ export function SourceSearchDialog({
               setSelectedId(null);
             }}
           />
-          <Keycap>Esc</Keycap>
+          <Keycap>{uiText('ui.SourceSearchDialog.message006')}</Keycap>
         </div>
         <p role="status" aria-live="polite" aria-atomic="true" className={styles.count}>
           {searching
-            ? 'Searching workspace source text…'
+            ? uiText('ui.SourceSearchDialog.message007')
             : query && !settling && !search.error
-              ? `${String(hits.length)} ${hits.length === 1 ? 'result' : 'results'} in workspace sources`
-              : 'Enter a phrase to search your workspace sources.'}
+              ? uiText('ui.SourceSearchDialog.message008', {
+                  value0: String(hits.length),
+                  value1:
+                    hits.length === 1
+                      ? uiText('ui.WorkspaceSearchDialog.message010')
+                      : uiText('ui.WorkspaceSearchDialog.message011'),
+                })
+              : uiText('ui.SourceSearchDialog.message009')}
         </p>
         {search.error && !settling ? (
           <div role="alert">
-            Could not search source text: {describeError(search.error)}{' '}
+            {uiText('ui.SourceSearchDialog.message010')} {describeError(search.error)}{' '}
             <Button variant="secondary" onClick={() => void search.refetch()}>
-              Retry search
+              {uiText('ui.SourceSearchDialog.message011')}
             </Button>
           </div>
         ) : null}
@@ -178,9 +206,9 @@ export function SourceSearchDialog({
           <EmptyState
             size="compact"
             tone="blue"
-            title={`Nothing matches “${query}”`}
-            description="Try fewer words. This search already uses workspace sources only."
-            context="Search · no results"
+            title={uiText('ui.WorkspaceSearchDialog.message014', { value0: query })}
+            description={uiText('ui.SourceSearchDialog.message012')}
+            context={uiText('ui.SourceSearchDialog.message013')}
             art={<Illustration scene="search" size="compact" />}
             actions={[
               <Button
@@ -188,27 +216,30 @@ export function SourceSearchDialog({
                 icon="search"
                 onClick={() => inputRef.current?.focus()}
               >
-                Search sources only
+                {uiText('ui.SourceSearchDialog.message014')}
               </Button>,
               <Button key="clear" variant="secondary" onClick={clear}>
-                Clear search
+                {uiText('ui.DocumentList.message017')}
               </Button>,
             ]}
           />
         ) : null}
         <div className={styles.columns}>
-          <section aria-label="Sources results" className={styles.results}>
+          <section
+            aria-label={uiText('ui.SourceSearchDialog.message015')}
+            className={styles.results}
+          >
             {hits.length ? (
               <h3>
                 <IconTile icon="book" tone="blue" size="small" />
-                Sources <span>{hits.length}</span>
+                {uiText('ui.landingContent.message005')} <span>{hits.length}</span>
               </h3>
             ) : null}
             <div
               ref={listRef}
               role="listbox"
               id={`${id}-results`}
-              aria-label="Source passages"
+              aria-label={uiText('ui.SourceSearchDialog.message016')}
               className={styles.list}
             >
               {hits.map((hit, hitIndex) => (
@@ -237,17 +268,22 @@ export function SourceSearchDialog({
             </div>
           </section>
           {selected ? (
-            <aside className={styles.preview} aria-label="Selected passage preview">
-              <h3>Preview</h3>
+            <aside
+              className={styles.preview}
+              aria-label={uiText('ui.SourceSearchDialog.message017')}
+            >
+              <h3>{uiText('ui.DocumentHistory.message022')}</h3>
               <strong>
                 {title(selected)} · {passageLocation(selected)}
               </strong>
-              <p className={styles.evidenceType}>Workspace source</p>
+              <p className={styles.evidenceType}>
+                {uiText('ui.SourceCommandSearch.message003')}
+              </p>
               <blockquote>
                 <MatchedText text={selected.chunk.content} query={query} />
               </blockquote>
               <Button onClick={(event) => open(event.metaKey || event.ctrlKey)}>
-                Open page
+                {uiText('ui.GroundedAnswer.message006')}
               </Button>
             </aside>
           ) : null}

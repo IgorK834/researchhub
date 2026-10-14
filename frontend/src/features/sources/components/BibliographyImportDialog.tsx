@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useRef, useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { describeError, queryKeys } from '../../../shared/api';
@@ -23,7 +24,9 @@ const MAX_BYTES = 2 * 1024 * 1024;
 
 function title(record: BibliographyPreviewRecord): string {
   return (
-    record.bibliography?.title ?? record.bibliography?.citationKey ?? 'Rejected record'
+    record.bibliography?.title ??
+    record.bibliography?.citationKey ??
+    uiText('ui.BibliographyImportDialog.message001')
   );
 }
 
@@ -45,6 +48,7 @@ export function BibliographyImportDialog({
   readonly open: boolean;
   readonly onClose: () => void;
 }): ReactElement {
+  useUiLocale();
   const input = useRef<HTMLInputElement>(null);
   const cache = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -61,7 +65,7 @@ export function BibliographyImportDialog({
   );
   const previewMutation = useMutation({
     mutationFn: () => {
-      if (file === null) throw new Error('Choose a bibliography file first.');
+      if (file === null) throw new Error(uiText('bibliography.chooseFile'));
       return previewBibliographyImport(workspaceId, file, origin);
     },
     onSuccess: async (value) => {
@@ -128,8 +132,8 @@ export function BibliographyImportDialog({
     <Dialog
       open={open}
       onClose={close}
-      title="Import bibliography"
-      description="Preview a local BibTeX, RIS, Zotero, or Mendeley export before saving metadata."
+      title={uiText('ui.BibliographyImportDialog.message002')}
+      description={uiText('ui.BibliographyImportDialog.message003')}
       className={styles.dialog}
       closeDisabled={
         previewMutation.isPending || confirmMutation.isPending || cancelMutation.isPending
@@ -150,48 +154,49 @@ export function BibliographyImportDialog({
             }
             onClick={close}
           >
-            Cancel
+            {uiText('ui.InsertAnalysisResult.message019')}
           </Button>
           {preview && result === null ? (
             <Button
               disabled={confirmMutation.isPending}
               onClick={() => confirmMutation.mutate()}
             >
-              {confirmMutation.isPending ? 'Confirming…' : 'Confirm import'}
+              {confirmMutation.isPending
+                ? uiText('ui.BibliographyImportDialog.message004')
+                : uiText('ui.BibliographyImportDialog.message005')}
             </Button>
           ) : result ? (
-            <Button onClick={close}>Done</Button>
+            <Button onClick={close}>{uiText('ui.AnalysisWidgets.message002')}</Button>
           ) : null}
         </div>
       }
     >
       {result ? (
         <section aria-live="polite" className={styles.summary}>
-          <h3>Import complete</h3>
+          <h3>{uiText('ui.BibliographyImportDialog.message006')}</h3>
           <p>
-            {result.created} created · {result.linked} linked · {result.updated} updated ·{' '}
-            {result.duplicates} duplicates · {result.skipped} skipped · {result.rejected}{' '}
-            rejected
+            {result.created} {uiText('ui.BibliographyImportDialog.message007')}{' '}
+            {result.linked} {uiText('ui.BibliographyImportDialog.message008')}{' '}
+            {result.updated} {uiText('ui.BibliographyImportDialog.message009')}{' '}
+            {result.duplicates} {uiText('ui.BibliographyImportDialog.message010')}{' '}
+            {result.skipped} {uiText('ui.BibliographyImportDialog.message011')}{' '}
+            {result.rejected} {uiText('ui.BibliographyImportDialog.message012')}
           </p>
-          <p>
-            Bibliographic-only entries remain outside source retrieval and Gemini
-            evidence.
-          </p>
+          <p>{uiText('ui.BibliographyImportDialog.message013')}</p>
         </section>
       ) : preview ? (
         <>
           <div className={styles.summary} role="status">
             <strong>{preview.fileName}</strong>
             <span>
-              {preview.totalRecords} records · {preview.ready} ready ·{' '}
-              {preview.duplicates} duplicates · {preview.conflicts} conflicts ·{' '}
-              {preview.rejected} rejected
+              {preview.totalRecords} {uiText('ui.BibliographyImportDialog.message014')}{' '}
+              {preview.ready} {uiText('ui.BibliographyImportDialog.message015')}{' '}
+              {preview.duplicates} {uiText('ui.BibliographyImportDialog.message010')}{' '}
+              {preview.conflicts} {uiText('ui.BibliographyImportDialog.message016')}{' '}
+              {preview.rejected} {uiText('ui.BibliographyImportDialog.message012')}
             </span>
           </div>
-          <p>
-            Existing source metadata is changed only when you explicitly choose “Replace
-            source metadata”. Attachment paths and URLs are never opened or downloaded.
-          </p>
+          <p>{uiText('ui.BibliographyImportDialog.message017')}</p>
           <ol className={styles.records}>
             {preview.records.map((record) => {
               const sourceMatches = record.matches.filter(
@@ -215,7 +220,8 @@ export function BibliographyImportDialog({
                     />
                   </div>
                   <p>
-                    Record {record.recordNumber} · {record.location}
+                    {uiText('ui.BibliographyImportDialog.message018')}{' '}
+                    {record.recordNumber} · {record.location}
                     {record.bibliography?.authors.length
                       ? ` · ${record.bibliography.authors.join('; ')}`
                       : ''}
@@ -227,17 +233,26 @@ export function BibliographyImportDialog({
                     <p>{[...record.collections, ...record.tags].join(' · ')}</p>
                   ) : null}
                   {record.ignoredAttachments > 0 ? (
-                    <p>{record.ignoredAttachments} attachment reference(s) ignored.</p>
+                    <p>
+                      {record.ignoredAttachments}{' '}
+                      {uiText('ui.BibliographyImportDialog.message019')}
+                    </p>
                   ) : null}
                   {record.bibliography ? (
                     <p>
                       {record.itemType}
                       {record.bibliography.doi
-                        ? ` · DOI: ${record.bibliography.doi}`
+                        ? ' ' +
+                          uiText('ui.BibliographyImportDialog.message020', {
+                            value0: record.bibliography.doi,
+                          })
                         : ''}
                       {record.bibliography.venue ? ` · ${record.bibliography.venue}` : ''}
                       {record.bibliography.citationKey
-                        ? ` · Key: ${record.bibliography.citationKey}`
+                        ? ' ' +
+                          uiText('ui.BibliographyImportDialog.message021', {
+                            value0: record.bibliography.citationKey,
+                          })
                         : ''}
                     </p>
                   ) : null}
@@ -249,16 +264,23 @@ export function BibliographyImportDialog({
                   {record.matches.map((match) => (
                     <div key={`${match.kind}-${match.id}`}>
                       <p>
-                        Matches {match.kind === 'SOURCE' ? 'source' : 'bibliography item'}{' '}
-                        “{match.title}” by {match.reason.toLowerCase()}
+                        {uiText('ui.BibliographyImportDialog.message022')}{' '}
+                        {match.kind === 'SOURCE'
+                          ? uiText('ui.DocumentSources.message004')
+                          : uiText('ui.BibliographyImportDialog.message023')}{' '}
+                        “{match.title}
+                        {uiText('ui.BibliographyImportDialog.message024')}{' '}
+                        {match.reason.toLowerCase()}
                         {match.conflictingFields.length
-                          ? `; differs in ${match.conflictingFields.join(', ')}`
+                          ? uiText('ui.BibliographyImportDialog.message025', {
+                              value0: match.conflictingFields.join(', '),
+                            })
                           : ''}
                         .
                         {match.tags?.length || match.collections?.length ? (
                           <span>
                             {' '}
-                            Existing labels:{' '}
+                            {uiText('ui.BibliographyImportDialog.message026')}{' '}
                             {[...(match.tags ?? []), ...(match.collections ?? [])].join(
                               ' · ',
                             )}
@@ -268,36 +290,49 @@ export function BibliographyImportDialog({
                       </p>
                       {match.existingBibliography ? (
                         <details>
-                          <summary>Existing metadata: {match.title}</summary>
+                          <summary>
+                            {uiText('ui.BibliographyImportDialog.message027')}{' '}
+                            {match.title}
+                          </summary>
                           <p>
                             {match.existingBibliography.authors.join('; ') ||
-                              'No authors'}{' '}
-                            · {match.existingBibliography.publicationYear ?? 'No date'}
+                              uiText('ui.BibliographyImportDialog.message028')}{' '}
+                            ·{' '}
+                            {match.existingBibliography.publicationYear ??
+                              uiText('ui.BibliographyImportDialog.message029')}
                           </p>
                           <p>
-                            DOI: {match.existingBibliography.doi ?? 'Not set'} · Venue:{' '}
-                            {match.existingBibliography.venue ?? 'Not set'}
+                            {uiText('ui.BibliographyImportDialog.message030')}{' '}
+                            {match.existingBibliography.doi ??
+                              uiText('ui.BibliographyImportDialog.message031')}{' '}
+                            {uiText('ui.BibliographyImportDialog.message032')}{' '}
+                            {match.existingBibliography.venue ??
+                              uiText('ui.BibliographyImportDialog.message031')}
                           </p>
                           <p>
-                            Citation key:{' '}
-                            {match.existingBibliography.citationKey ?? 'Not set'}
+                            {uiText('ui.BibliographyImportDialog.message033')}{' '}
+                            {match.existingBibliography.citationKey ??
+                              uiText('ui.BibliographyImportDialog.message031')}
                           </p>
                           <p>
-                            URL (metadata only):{' '}
-                            {match.existingBibliography.url ?? 'Not set'}
+                            {uiText('ui.BibliographyImportDialog.message034')}{' '}
+                            {match.existingBibliography.url ??
+                              uiText('ui.BibliographyImportDialog.message031')}
                           </p>
                         </details>
                       ) : null}
                     </div>
                   ))}
                   {record.status === 'READY' ? (
-                    <p>Will create a bibliographic-only entry.</p>
+                    <p>{uiText('ui.BibliographyImportDialog.message035')}</p>
                   ) : null}
                   {record.status === 'CONFLICT' &&
                   record.matches.length === 0 &&
                   record.bibliography ? (
                     <TextField
-                      label={`Citation key for record ${String(record.recordNumber)}`}
+                      label={uiText('ui.BibliographyImportDialog.message036', {
+                        value0: String(record.recordNumber),
+                      })}
                       defaultValue={record.bibliography.citationKey ?? ''}
                       maxLength={100}
                       disabled={confirmMutation.isPending}
@@ -317,7 +352,9 @@ export function BibliographyImportDialog({
                   ) : null}
                   {record.status !== 'REJECTED' ? (
                     <Select
-                      label={`Decision for record ${String(record.recordNumber)}`}
+                      label={uiText('ui.BibliographyImportDialog.message037', {
+                        value0: String(record.recordNumber),
+                      })}
                       disabled={confirmMutation.isPending}
                       value={
                         selected
@@ -329,9 +366,13 @@ export function BibliographyImportDialog({
                       onChange={(event) => choose(record, event.target.value)}
                     >
                       {record.status === 'READY' || selected?.acceptedBibliography ? (
-                        <option value="CREATE">Create bibliography entry</option>
+                        <option value="CREATE">
+                          {uiText('ui.BibliographyImportDialog.message038')}
+                        </option>
                       ) : null}
-                      <option value="SKIP">Keep existing metadata / skip</option>
+                      <option value="SKIP">
+                        {uiText('ui.BibliographyImportDialog.message039')}
+                      </option>
                       {(sources.data ?? [])
                         .filter(
                           (source) =>
@@ -342,7 +383,8 @@ export function BibliographyImportDialog({
                             key={`source-${source.id}`}
                             value={`LINK_SOURCE:${source.id}`}
                           >
-                            Link to source: {source.displayName}
+                            {uiText('ui.BibliographyImportDialog.message040')}{' '}
+                            {source.displayName}
                           </option>
                         ))}
                       {sourceMatches.map((match) => (
@@ -350,7 +392,7 @@ export function BibliographyImportDialog({
                           key={`link-${match.id}`}
                           value={`LINK_SOURCE:${match.id}`}
                         >
-                          Link to source: {match.title}
+                          {uiText('ui.BibliographyImportDialog.message040')} {match.title}
                         </option>
                       ))}
                       {sourceMatches.map((match) => (
@@ -358,7 +400,7 @@ export function BibliographyImportDialog({
                           key={`replace-${match.id}`}
                           value={`REPLACE_SOURCE:${match.id}`}
                         >
-                          Replace source metadata: {match.title}
+                          {uiText('ui.BibliographyImportDialog.message041')} {match.title}
                         </option>
                       ))}
                       {record.matches
@@ -368,7 +410,8 @@ export function BibliographyImportDialog({
                             key={`replace-item-${match.id}`}
                             value={`REPLACE_ITEM:${match.id}`}
                           >
-                            Replace bibliography metadata: {match.title}
+                            {uiText('ui.BibliographyImportDialog.message042')}{' '}
+                            {match.title}
                           </option>
                         ))}
                     </Select>
@@ -388,7 +431,7 @@ export function BibliographyImportDialog({
                           setDecisions(next);
                         }}
                       />
-                      Add imported tags and collections
+                      {uiText('ui.BibliographyImportDialog.message043')}
                     </label>
                   ) : null}
                 </li>
@@ -402,22 +445,30 @@ export function BibliographyImportDialog({
           onSubmit={(event) => {
             event.preventDefault();
             if (file === null) {
-              setLocalError('Choose a bibliography file first.');
+              setLocalError(uiText('bibliography.chooseFile'));
               return;
             }
             previewMutation.mutate();
           }}
         >
           <Select
-            label="Export source"
+            label={uiText('ui.BibliographyImportDialog.message044')}
             value={origin}
             onChange={(event) => setOrigin(event.target.value as BibliographyOrigin)}
           >
-            <option value="GENERIC">BibTeX, RIS, or CSL-JSON</option>
-            <option value="ZOTERO">Zotero export</option>
-            <option value="MENDELEY">Mendeley export</option>
+            <option value="GENERIC">
+              {uiText('ui.BibliographyImportDialog.message045')}
+            </option>
+            <option value="ZOTERO">
+              {uiText('ui.BibliographyImportDialog.message046')}
+            </option>
+            <option value="MENDELEY">
+              {uiText('ui.BibliographyImportDialog.message047')}
+            </option>
           </Select>
-          <label htmlFor="bibliography-file">Bibliography file</label>
+          <label htmlFor="bibliography-file">
+            {uiText('ui.BibliographyImportDialog.message048')}
+          </label>
           <input
             ref={input}
             id="bibliography-file"
@@ -427,24 +478,27 @@ export function BibliographyImportDialog({
               const selected = event.target.files?.[0] ?? null;
               if (selected && selected.size > MAX_BYTES) {
                 setFile(null);
-                setLocalError('Bibliography files must be at most 2 MiB.');
+                setLocalError(uiText('bibliography.oversized'));
               } else {
                 setFile(selected);
                 setLocalError(null);
               }
             }}
           />
-          <p>
-            UTF-8 · maximum 2 MiB and 1000 records. No live synchronization or
-            credentials.
-          </p>
+          <p>{uiText('ui.BibliographyImportDialog.message049')}</p>
           <Button type="submit" disabled={previewMutation.isPending}>
-            {previewMutation.isPending ? 'Reading preview…' : 'Preview import'}
+            {previewMutation.isPending
+              ? uiText('ui.BibliographyImportDialog.message050')
+              : uiText('ui.BibliographyImportDialog.message051')}
           </Button>
         </form>
       )}
       {localError ? <p role="alert">{localError}</p> : null}
-      {error ? <p role="alert">Import failed: {describeError(error)}</p> : null}
+      {error ? (
+        <p role="alert">
+          {uiText('ui.BibliographyImportDialog.message052')} {describeError(error)}
+        </p>
+      ) : null}
     </Dialog>
   );
 }

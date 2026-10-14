@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import { apiClient } from '../../../shared/api';
 
 export interface SourceTextHit {
@@ -55,5 +56,8 @@ export function passageLocation(hit: SourceTextHit): string {
     return pageEnd !== null && pageEnd !== pageStart
       ? `pages ${String(pageStart)}–${String(pageEnd)}`
       : `page ${String(pageStart)}`;
-  return sectionTitle ?? (spans[0] ? `location ${spans[0].unitId}` : 'Source passage');
+  return (
+    sectionTitle ??
+    (spans[0] ? `location ${spans[0].unitId}` : uiText('ui.sourceTextSearch.message001'))
+  );
 }

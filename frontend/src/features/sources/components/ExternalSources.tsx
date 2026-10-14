@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -22,6 +24,7 @@ export function ExternalSources({
   readonly workspaceId: string;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const [enabled, setEnabled] = useState(false);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -64,44 +67,44 @@ export function ExternalSources({
   return (
     <section className={styles.page} aria-labelledby="external-sources-heading">
       <header>
-        <h1 id="external-sources-heading">External web references</h1>
-        <Sticker icon="globe" tone="yellow" label="External web" />
+        <h1 id="external-sources-heading">{uiText('ui.ExternalSources.message001')}</h1>
+        <Sticker
+          icon="globe"
+          tone="yellow"
+          label={uiText('ui.ExternalSources.message002')}
+        />
       </header>
+      <p>{uiText('ui.ExternalSources.message003')}</p>
       <p>
-        Discover web sources separately from your uploaded workspace evidence. A recorded
-        reference preserves the search result; it does not import the page or verify its
-        claims.
-      </p>
-      <p>
-        <Link to={`/app/workspaces/${workspaceId}/sources`}>Workspace sources only</Link>{' '}
-        · AI answers and report citations continue to use imported workspace sources only.
+        <Link to={`/app/workspaces/${workspaceId}/sources`}>
+          {uiText('ui.ExternalSources.message004')}
+        </Link>{' '}
+        {uiText('ui.ExternalSources.message005')}
       </p>
       {canEdit ? (
-        <Panel title="Discover external sources">
+        <Panel title={uiText('ui.ExternalSources.message006')}>
           {availability.isPending ? (
-            <p role="status">Checking external search availability…</p>
+            <p role="status">{uiText('ui.ExternalSources.message007')}</p>
           ) : availability.error ? (
             <p role="alert">
-              Could not check external search: {describeError(availability.error)}{' '}
+              {uiText('ui.ExternalSources.message008')}{' '}
+              {describeError(availability.error)}{' '}
               <Button variant="secondary" onClick={() => void availability.refetch()}>
-                Retry availability
+                {uiText('ui.ExternalSources.message009')}
               </Button>
             </p>
           ) : !availability.data.available ? (
-            <p role="status">
-              External search is not configured on this server. Recorded references remain
-              available below.
-            </p>
+            <p role="status">{uiText('ui.ExternalSources.message010')}</p>
           ) : (
             <>
               <Checkbox
-                label="Enable external search"
+                label={uiText('ui.ExternalSources.message011')}
                 checked={enabled}
                 onChange={(event) => {
                   if (event.target.checked) setEnabled(true);
                   else disable();
                 }}
-                hint="Your search query is sent to Brave Search. Uploaded source text is not sent. You can turn this off at any time."
+                hint={uiText('ui.ExternalSources.message012')}
               />
               {enabled ? (
                 <form
@@ -116,7 +119,7 @@ export function ExternalSources({
                   }}
                 >
                   <TextField
-                    label="Search the external web"
+                    label={uiText('ui.ExternalSources.message013')}
                     required
                     maxLength={600}
                     value={query}
@@ -128,34 +131,34 @@ export function ExternalSources({
                     disabled={discovery.isPending || !query.trim()}
                   >
                     {discovery.isPending
-                      ? 'Searching external web…'
-                      : 'Search external web'}
+                      ? uiText('ui.ExternalSources.message014')
+                      : uiText('ui.ExternalSources.message015')}
                   </Button>
                 </form>
               ) : (
-                <p>
-                  External search is off. Enable it explicitly to discover web references.
-                </p>
+                <p>{uiText('ui.ExternalSources.message016')}</p>
               )}
             </>
           )}
           {enabled && discovery.error ? (
             <p role="alert">
-              Could not search external sources: {describeError(discovery.error)}
+              {uiText('ui.ExternalSources.message017')} {describeError(discovery.error)}
             </p>
           ) : null}
           {enabled && save.error ? (
-            <p role="alert">Could not record reference: {describeError(save.error)}</p>
+            <p role="alert">
+              {uiText('ui.ExternalSources.message018')} {describeError(save.error)}
+            </p>
           ) : null}
           {currentDiscovery ? (
-            <section aria-label="External discoveries">
+            <section aria-label={uiText('ui.ExternalSources.message019')}>
               <p role="status">
-                {currentDiscovery.results.length} external web results ·{' '}
-                {currentDiscovery.provider} ·{' '}
-                {new Date(currentDiscovery.searchedAt).toLocaleString()}
+                {currentDiscovery.results.length}{' '}
+                {uiText('ui.ExternalSources.message020')} {currentDiscovery.provider} ·{' '}
+                {new Date(currentDiscovery.searchedAt).toLocaleString(getIntlLocale())}
               </p>
               {currentDiscovery.results.length === 0 ? (
-                <p>No external results. Try a different query.</p>
+                <p>{uiText('ui.ExternalSources.message021')}</p>
               ) : (
                 <ul className={styles.list}>
                   {currentDiscovery.results.map((result) => (
@@ -172,8 +175,8 @@ export function ExternalSources({
                         }
                       >
                         {recorded.has(result.id)
-                          ? 'Reference recorded'
-                          : 'Record reference'}
+                          ? uiText('ui.ExternalSources.message022')
+                          : uiText('ui.ExternalSources.message023')}
                       </Button>
                     </li>
                   ))}
@@ -183,19 +186,16 @@ export function ExternalSources({
           ) : null}
         </Panel>
       ) : (
-        <p>
-          You can read recorded references. Discovering or recording external sources
-          requires editor access in an active workspace.
-        </p>
+        <p>{uiText('ui.ExternalSources.message024')}</p>
       )}
-      <Panel title="Recorded external references">
+      <Panel title={uiText('ui.ExternalSources.message025')}>
         {references.isPending ? (
-          <p role="status">Loading recorded references…</p>
+          <p role="status">{uiText('ui.ExternalSources.message026')}</p>
         ) : references.error ? (
           <p role="alert">
-            Could not load references: {describeError(references.error)}{' '}
+            {uiText('ui.ExternalSources.message027')} {describeError(references.error)}{' '}
             <Button variant="secondary" onClick={() => void references.refetch()}>
-              Retry references
+              {uiText('ui.ExternalSources.message028')}
             </Button>
           </p>
         ) : (
@@ -203,8 +203,8 @@ export function ExternalSources({
             {references.data.items.length === 0 ? (
               <EmptyState
                 size="compact"
-                title="No external references recorded"
-                description="Discover a web source and record its result to retain its origin. Uploaded sources stay in the workspace library."
+                title={uiText('ui.ExternalSources.message029')}
+                description={uiText('ui.ExternalSources.message030')}
               />
             ) : (
               <ul className={styles.list}>
@@ -212,48 +212,52 @@ export function ExternalSources({
                   <li key={reference.id}>
                     <WebResult result={reference} />
                     <details>
-                      <summary>Discovery provenance</summary>
+                      <summary>{uiText('ui.ExternalSources.message031')}</summary>
                       <dl>
-                        <dt>Provider</dt>
+                        <dt>{uiText('ui.ExternalSources.message032')}</dt>
                         <dd>{reference.provider}</dd>
-                        <dt>Search query</dt>
+                        <dt>{uiText('ui.ExternalSources.message033')}</dt>
                         <dd>{reference.query}</dd>
-                        <dt>Discovered</dt>
-                        <dd>{new Date(reference.discoveredAt).toLocaleString()}</dd>
-                        <dt>Recorded</dt>
-                        <dd>{new Date(reference.recordedAt).toLocaleString()}</dd>
-                        <dt>Snapshot SHA-256</dt>
+                        <dt>{uiText('ui.ExternalSources.message034')}</dt>
+                        <dd>
+                          {new Date(reference.discoveredAt).toLocaleString(
+                            getIntlLocale(),
+                          )}
+                        </dd>
+                        <dt>{uiText('ui.ExternalSources.message035')}</dt>
+                        <dd>
+                          {new Date(reference.recordedAt).toLocaleString(getIntlLocale())}
+                        </dd>
+                        <dt>{uiText('ui.ExternalSources.message036')}</dt>
                         <dd className={styles.hash}>{reference.snapshotSha256}</dd>
                       </dl>
                     </details>
-                    <p>
-                      Recorded external reference. To cite this as workspace evidence,
-                      upload the original material and review its extracted content.
-                    </p>
+                    <p>{uiText('ui.ExternalSources.message037')}</p>
                   </li>
                 ))}
               </ul>
             )}
             <nav
               className={styles.pagination}
-              aria-label="Recorded references pagination"
+              aria-label={uiText('ui.ExternalSources.message038')}
             >
               <Button
                 variant="secondary"
                 disabled={page === 0}
                 onClick={() => setPage(page - 1)}
               >
-                Previous references
+                {uiText('ui.BibliographyLibrary.message011')}
               </Button>
               <span>
-                Page {page + 1} · {references.data.totalElements} references
+                {uiText('ui.ExternalSources.message039')} {page + 1} ·{' '}
+                {references.data.totalElements} {uiText('ui.ExternalSources.message040')}
               </span>
               <Button
                 variant="secondary"
                 disabled={!references.data.hasNext}
                 onClick={() => setPage(page + 1)}
               >
-                Next references
+                {uiText('ui.BibliographyLibrary.message012')}
               </Button>
             </nav>
           </>
@@ -264,16 +268,21 @@ export function ExternalSources({
 }
 
 function WebResult({ result }: { readonly result: ExternalResult }): ReactElement {
+  useUiLocale();
   return (
     <>
-      <Sticker tone="yellow" icon="globe" label="External web" />
+      <Sticker
+        tone="yellow"
+        icon="globe"
+        label={uiText('ui.ExternalSources.message002')}
+      />
       <h3>
         <a href={result.url} target="_blank" rel="noopener noreferrer">
           {result.title}
         </a>
       </h3>
       <p className={styles.url}>{result.url}</p>
-      <p>{result.snippet || 'No search snippet provided.'}</p>
+      <p>{result.snippet || uiText('ui.ExternalSources.message041')}</p>
     </>
   );
 }

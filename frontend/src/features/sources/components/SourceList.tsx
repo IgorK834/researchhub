@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { describeError } from '../../../shared/api';
@@ -40,6 +42,7 @@ export function SourceList({
   canEdit = false,
   archived = false,
 }: SourceListProps): ReactElement {
+  useUiLocale();
   const [search, setSearch] = useSearchParams();
   const rawType = search.get('type');
   const type = SOURCE_TYPES.includes(rawType as SourceType)
@@ -99,7 +102,9 @@ export function SourceList({
   const columns: readonly TableColumn<WorkspaceSource>[] = [
     {
       id: 'name',
-      header: 'Name',
+      get header() {
+        return uiText('ui.CsvAssetProfile.message013');
+      },
       rowHeader: true,
       render: (source) => (
         <div className={styles.name}>
@@ -118,7 +123,8 @@ export function SourceList({
             ) : null}
             {source.status === 'FAILED' ? (
               <p className={styles.failure} title={source.failureSummary ?? undefined}>
-                Failure: {source.failureSummary ?? 'Source processing failed.'}
+                {uiText('ui.SourceList.message001')}{' '}
+                {source.failureSummary ?? uiText('ui.SourceList.message002')}
               </p>
             ) : null}
           </div>
@@ -127,12 +133,16 @@ export function SourceList({
     },
     {
       id: 'type',
-      header: 'Type',
+      get header() {
+        return uiText('ui.DatasetPreviewPanel.message048');
+      },
       render: (source) => <SourceTypeBadge sourceType={source.sourceType} />,
     },
     {
       id: 'uploader',
-      header: 'Uploaded by',
+      get header() {
+        return uiText('ui.SourceList.message003');
+      },
       priority: 'metadata',
       render: (source) => {
         const name = uploaderNames.get(source.uploadedBy) ?? source.uploadedBy;
@@ -146,11 +156,13 @@ export function SourceList({
     },
     {
       id: 'date',
-      header: 'Date',
+      get header() {
+        return uiText('ui.SourceList.message004');
+      },
       priority: 'metadata',
       render: (source) => (
         <time dateTime={source.createdAt}>
-          {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
+          {new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'medium' }).format(
             new Date(source.createdAt),
           )}
         </time>
@@ -158,12 +170,16 @@ export function SourceList({
     },
     {
       id: 'status',
-      header: 'Status',
+      get header() {
+        return uiText('ui.SourceList.message005');
+      },
       render: (source) => <SourceStatusChip status={source.status} />,
     },
     {
       id: 'actions',
-      header: 'Actions',
+      get header() {
+        return uiText('ui.DocumentList.message020');
+      },
       render: (source) => (
         <div className={styles.actions}>
           {source.status === 'READY' ? (
@@ -171,19 +187,19 @@ export function SourceList({
               to={`/app/workspaces/${workspaceId}/ask?askSource=${encodeURIComponent(source.id)}`}
             >
               <Icon name="sparkle" size={14} />
-              Ask source
+              {uiText('ui.SourceList.message006')}
             </Link>
           ) : null}
           <Link to={`/app/workspaces/${workspaceId}/sources/${source.id}`}>
             <Icon name="external" size={14} />
-            Open
+            {uiText('ui.ClaimEvidencePanel.message011')}
           </Link>
           <a
             href={sourceContentPath(workspaceId, source.id)}
             download={source.displayName}
           >
             <Icon name="download" size={14} />
-            Download
+            {uiText('ui.ExportDocument.message004')}
           </a>
           {source.status === 'FAILED' && canEdit ? (
             <SourceRetry workspaceId={workspaceId} sourceId={source.id} />
@@ -195,20 +211,24 @@ export function SourceList({
   const collection =
     rows.length === 0 ? (
       <EmptyState
-        context={type === 'ALL' ? 'Sources · empty' : `Sources · ${type}`}
+        context={
+          type === 'ALL'
+            ? uiText('ui.SourceList.message007')
+            : uiText('ui.SourceList.message008', { value0: type })
+        }
         title={
           total === 0 && !filtered
-            ? 'Bring in your research material'
+            ? uiText('ui.SourceList.message009')
             : type !== 'ALL'
-              ? `No ${type} sources`
-              : 'No matching sources'
+              ? uiText('ui.SourceList.message010', { value0: type })
+              : uiText('ui.SourceList.message011')
         }
         description={
           filtered && type === 'ALL'
-            ? 'Try a different search or clear the filters.'
+            ? uiText('ui.SourceList.message012')
             : type === 'ALL'
-              ? 'Add PDF, DOCX, XLSX, CSV or TXT files. AI answers can cite your sources.'
-              : `No ${type} sources in this workspace yet.`
+              ? uiText('ui.SourceList.message013')
+              : uiText('ui.SourceList.message014', { value0: type })
         }
         art={<Illustration scene={total === 0 ? 'sources' : 'search'} />}
         tone="blue"
@@ -216,13 +236,13 @@ export function SourceList({
           canEdit && total === 0 && !filtered
             ? [
                 <Button key="upload" icon="upload" onClick={() => setUploadOpen(true)}>
-                  Upload source
+                  {uiText('ui.SourceList.message015')}
                 </Button>,
               ]
             : filtered
               ? [
                   <Button key="clear" variant="secondary" onClick={clearFilters}>
-                    Show all sources
+                    {uiText('ui.SourceList.message016')}
                   </Button>,
                 ]
               : undefined
@@ -234,7 +254,7 @@ export function SourceList({
           columns={columns}
           rows={rows}
           rowKey={(source) => source.id}
-          caption="Workspace sources"
+          caption={uiText('ui.SourceList.message017')}
         />
       </div>
     );
@@ -242,28 +262,31 @@ export function SourceList({
     <section className={styles.library} aria-labelledby="workspace-sources-heading">
       <header className={styles.header}>
         <div>
-          <h1 id="workspace-sources-heading">Sources</h1>
+          <h1 id="workspace-sources-heading">{uiText('ui.landingContent.message005')}</h1>
           {facets !== undefined && error === null && facetsError === null ? (
             <p>
-              {total} {total === 1 ? 'source' : 'sources'} · {readyCount} ready · AI
-              answers can cite these sources
+              {total}{' '}
+              {total === 1
+                ? uiText('ui.DocumentSources.message004')
+                : uiText('ui.AiDraftBlock.message004')}{' '}
+              · {readyCount} {uiText('ui.SourceList.message018')}
             </p>
           ) : null}
         </div>
         <div className={styles.headerActions}>
           <Link to={`/app/workspaces/${workspaceId}/external-sources`}>
-            External web references
+            {uiText('ui.ExternalSources.message001')}
           </Link>
           {readyCount !== undefined && error === null ? (
             <Sticker
               tone="blue"
               icon="sparkle"
-              label={`Grounded in ${readyCount} ready ${readyCount === 1 ? 'source' : 'sources'}`}
+              label={uiText('counts.readyGrounded', { count: readyCount })}
             />
           ) : null}
           {canEdit && total !== 0 ? (
             <Button icon="upload" onClick={() => setUploadOpen(true)}>
-              Upload source
+              {uiText('ui.SourceList.message015')}
             </Button>
           ) : null}
           {canEdit ? (
@@ -272,23 +295,22 @@ export function SourceList({
               icon="download"
               onClick={() => setBibliographyOpen(true)}
             >
-              Import bibliography
+              {uiText('ui.BibliographyImportDialog.message002')}
             </Button>
           ) : null}
         </div>
       </header>
-      {archived ? (
-        <p role="status">
-          This workspace is archived. Its content can no longer be changed. Nothing has
-          been deleted.
+      {archived ? <p role="status">{uiText('ui.SourceList.message020')}</p> : null}
+      {isPending ? <p role="status">{uiText('ui.DocumentSources.message008')}</p> : null}
+      {error !== null ? (
+        <p role="alert">
+          {uiText('ui.SourceList.message021')} {describeError(error)}
         </p>
       ) : null}
-      {isPending ? <p role="status">Loading sources…</p> : null}
-      {error !== null ? (
-        <p role="alert">Could not load the sources: {describeError(error)}</p>
-      ) : null}
       {facetsError ? (
-        <p role="alert">Could not load filter options: {describeError(facetsError)}</p>
+        <p role="alert">
+          {uiText('ui.SourceList.message022')} {describeError(facetsError)}
+        </p>
       ) : null}
       <form
         className={styles.search}
@@ -302,26 +324,26 @@ export function SourceList({
         }}
       >
         <TextField
-          label="Search sources"
+          label={uiText('ui.SourceList.message023')}
           type="search"
-          placeholder="Search filename or title"
+          placeholder={uiText('ui.SourceList.message024')}
           maxLength={200}
           key={filters.query}
           name="query"
           defaultValue={filters.query}
         />
         <Button variant="secondary" type="submit" icon="search">
-          Search
+          {uiText('ui.WorkspaceCommandSearch.message003')}
         </Button>
       </form>
       <ResponsiveFilters>
         <div className={styles.filters}>
           <Select
-            label="Status"
+            label={uiText('ui.SourceList.message005')}
             value={filters.status}
             onChange={(event) => changeFilter('status', event.target.value)}
           >
-            <option value="">All statuses</option>
+            <option value="">{uiText('ui.SourceList.message025')}</option>
             {['UPLOADED', 'PROCESSING', 'READY', 'FAILED'].map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -329,11 +351,11 @@ export function SourceList({
             ))}
           </Select>
           <Select
-            label="Uploaded by"
+            label={uiText('ui.SourceList.message003')}
             value={filters.uploader}
             onChange={(event) => changeFilter('uploader', event.target.value)}
           >
-            <option value="">Anyone</option>
+            <option value="">{uiText('ui.SourceList.message026')}</option>
             {(facets?.uploaders ?? []).map((id) => (
               <option key={id} value={id}>
                 {uploaderNames.get(id) ?? id}
@@ -341,11 +363,11 @@ export function SourceList({
             ))}
           </Select>
           <Select
-            label="Tag"
+            label={uiText('ui.SourceList.message027')}
             value={filters.tag}
             onChange={(event) => changeFilter('tag', event.target.value)}
           >
-            <option value="">All tags</option>
+            <option value="">{uiText('ui.SourceList.message028')}</option>
             {(facets?.tags ?? []).map((tag) => (
               <option key={tag} value={tag}>
                 {tag}
@@ -354,19 +376,22 @@ export function SourceList({
           </Select>
           {filtered ? (
             <Button variant="ghost" onClick={clearFilters}>
-              Clear filters
+              {uiText('ui.SourceList.message029')}
             </Button>
           ) : null}
         </div>
       </ResponsiveFilters>
       {facets?.collections.length ? (
-        <div className={styles.collections} aria-label="Source collections">
+        <div
+          className={styles.collections}
+          aria-label={uiText('ui.SourceList.message030')}
+        >
           <Button
             variant={filters.collection === '' ? 'primary' : 'secondary'}
             size="compact"
             onClick={() => changeFilter('collection', '')}
           >
-            All collections
+            {uiText('ui.SourceList.message031')}
           </Button>
           {facets.collections.map((collection) => (
             <Button
@@ -383,29 +408,33 @@ export function SourceList({
       ) : null}
       {result !== undefined && error === null ? (
         <Tabs
-          label="Source types"
+          label={uiText('ui.SourceList.message032')}
           value={type}
           onChange={setType}
           items={(['ALL', ...SOURCE_TYPES] as const).map((value) => ({
             value,
-            label: value === 'ALL' ? 'All sources' : value,
+            label: value === 'ALL' ? uiText('ui.SourceList.message033') : value,
             count: value === 'ALL' ? total : (facets?.types[value] ?? 0),
             content: value === type ? collection : null,
           }))}
         />
       ) : null}
       {result && result.totalElements > 0 ? (
-        <nav className={styles.pagination} aria-label="Source pages">
+        <nav
+          className={styles.pagination}
+          aria-label={uiText('ui.SourceList.message034')}
+        >
           <Button
             variant="secondary"
             size="compact"
             disabled={page === 0 || isFetching}
             onClick={() => changeFilter('page', String(page - 1))}
           >
-            Previous
+            {uiText('ui.SourceList.message035')}
           </Button>
           <span role="status">
-            Page {page + 1} · {result.totalElements} matching sources
+            {uiText('ui.ExternalSources.message039')} {page + 1} · {result.totalElements}{' '}
+            {uiText('ui.SourceList.message036')}
           </span>
           <Button
             variant="secondary"
@@ -413,7 +442,7 @@ export function SourceList({
             disabled={!result.hasNext || isFetching}
             onClick={() => changeFilter('page', String(page + 1))}
           >
-            Next
+            {uiText('ui.AnalysisWidgets.message004')}
           </Button>
         </nav>
       ) : null}
@@ -428,7 +457,7 @@ export function SourceList({
           void refreshFacets();
         }}
       >
-        Refresh sources
+        {uiText('ui.SourceList.message037')}
       </Button>
       <BibliographyLibrary workspaceId={workspaceId} canEdit={canEdit} />
       {canEdit ? (

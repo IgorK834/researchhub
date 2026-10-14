@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Badge } from '../../../shared/components/identity';
 import { Icon } from '../../../shared/components/icons';
@@ -19,10 +20,17 @@ export function SourceTypeBadge({
 }: {
   readonly sourceType: string;
 }): ReactElement {
+  useUiLocale();
   const visual = Object.hasOwn(SOURCE_TYPE_VISUALS, sourceType)
     ? SOURCE_TYPE_VISUALS[sourceType as SourceType]
     : neutral;
-  return <Badge label={sourceType.trim() || 'Source'} {...visual} size="compact" />;
+  return (
+    <Badge
+      label={sourceType.trim() || uiText('ui.AiDraftBlock.message007')}
+      {...visual}
+      size="compact"
+    />
+  );
 }
 
 /** Decorative tile; the adjacent name/type badge supplies its accessible text. */
@@ -47,13 +55,14 @@ export function SourceTypeTile({
 }
 
 export function SourceStatusChip({ status }: { readonly status: string }): ReactElement {
+  useUiLocale();
   const known = Object.hasOwn(SOURCE_STATUS_LABELS, status);
   return (
     <Badge
       label={
         known
           ? SOURCE_STATUS_LABELS[status as SourceStatus]
-          : status.trim() || 'Unknown status'
+          : status.trim() || uiText('ui.SourceVisuals.message001')
       }
       {...(known
         ? SOURCE_STATUS_VISUALS[status as SourceStatus]

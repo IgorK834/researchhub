@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useRef, useState, type ReactElement } from 'react';
 import { useLocation } from 'react-router-dom';
 import { describeError } from '../../../shared/api';
@@ -34,6 +35,7 @@ function UploadedFile({
   readonly workspaceId: string;
   readonly sourceId: string;
 }): ReactElement {
+  useUiLocale();
   const source = useSourceQuery(workspaceId, sourceId);
   const status = source.data?.status ?? 'UPLOADED';
   return (
@@ -54,11 +56,13 @@ function UploadedFile({
             className={styles.failure}
             title={source.data?.failureSummary ?? undefined}
           >
-            {source.data?.failureSummary ?? 'Source processing failed.'}
+            {source.data?.failureSummary ?? uiText('ui.SourceList.message002')}
           </p>
         ) : null}
         {source.error ? (
-          <p role="alert">Could not load source status: {describeError(source.error)}</p>
+          <p role="alert">
+            {uiText('ui.SourceUploadForm.message001')} {describeError(source.error)}
+          </p>
         ) : null}
       </div>
     </>
@@ -77,6 +81,7 @@ export function SourceUploadForm({
   open,
   onClose,
 }: SourceUploadFormProps): ReactElement {
+  useUiLocale();
   const input = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
   const [queue, setQueue] = useState<readonly QueueEntry[]>([]);
@@ -138,13 +143,13 @@ export function SourceUploadForm({
         (location.hash === '#upload-source-heading' && dismissedKey !== location.key)
       }
       onClose={close}
-      title="Upload sources"
-      description="Add research material to this workspace."
+      title={uiText('ui.SourceUploadForm.message002')}
+      description={uiText('ui.SourceUploadForm.message003')}
       className={styles.uploadDialog}
       footer={
         <div className={styles.dialogFooter}>
-          <p>You can close this window. Uploads and processing continue.</p>
-          <Button onClick={close}>Done</Button>
+          <p>{uiText('ui.SourceUploadForm.message004')}</p>
+          <Button onClick={close}>{uiText('ui.AnalysisWidgets.message002')}</Button>
         </div>
       }
     >
@@ -174,16 +179,16 @@ export function SourceUploadForm({
           <SourceTypeTile sourceType="DOCX" />
         </div>
         <div>
-          <h3>Drop files here</h3>
+          <h3>{uiText('ui.SourceUploadForm.message005')}</h3>
           <Button
             variant="secondary"
             icon="upload"
             onClick={() => input.current?.click()}
           >
-            Browse files
+            {uiText('ui.SourceUploadForm.message006')}
           </Button>
           <label className="visually-hidden" htmlFor="source-file">
-            Source file
+            {uiText('ui.SourceUploadForm.message007')}
           </label>
           <input
             ref={input}
@@ -199,11 +204,8 @@ export function SourceUploadForm({
               event.target.value = '';
             }}
           />
-          <p>
-            Up to 50 MB per file. Archives and macro-enabled Office files are not
-            supported.
-          </p>
-          <p>Supported types:</p>
+          <p>{uiText('ui.SourceUploadForm.message008')}</p>
+          <p>{uiText('ui.SourceUploadForm.message009')}</p>
           <div className={styles.types}>
             {SOURCE_TYPES.map((type) => (
               <SourceTypeBadge key={type} sourceType={type} />
@@ -213,10 +215,11 @@ export function SourceUploadForm({
       </div>
       {queue.length > 0 ? (
         <>
-          <h3>
-            {queue.length} {queue.length === 1 ? 'file' : 'files'}
-          </h3>
-          <ul className={styles.queue} aria-label="Upload queue">
+          <h3>{uiText('counts.files', { count: queue.length })}</h3>
+          <ul
+            className={styles.queue}
+            aria-label={uiText('ui.SourceUploadForm.message012')}
+          >
             {queue.map((entry) => (
               <li key={entry.id} className={styles.queueRow}>
                 <SourceTypeTile sourceType={entry.sourceType} />
@@ -228,11 +231,11 @@ export function SourceUploadForm({
                   {entry.phase === 'uploading' ? (
                     <div aria-live="polite">
                       <p>
-                        Uploading {entry.file.name}
+                        {uiText('ui.SourceUploadForm.message013')} {entry.file.name}
                         {entry.progress === null ? '…' : `: ${entry.progress}%`}
                       </p>
                       <progress
-                        aria-label="Upload progress"
+                        aria-label={uiText('ui.SourceUploadForm.message014')}
                         max={100}
                         value={entry.progress ?? undefined}
                       />
@@ -246,7 +249,7 @@ export function SourceUploadForm({
                   {entry.sourceId !== null ? (
                     <>
                       <p className="visually-hidden" role="status">
-                        Uploaded {entry.file.name}.
+                        {uiText('ui.SourceUploadForm.message015')} {entry.file.name}.
                       </p>
                       <UploadedFile workspaceId={workspaceId} sourceId={entry.sourceId} />
                     </>
@@ -255,7 +258,12 @@ export function SourceUploadForm({
                 {entry.phase !== 'uploaded' ? (
                   <div className={styles.queueState}>
                     {entry.phase === 'uploading' ? (
-                      <Badge label="Uploading" icon="upload" tone="blue" size="compact" />
+                      <Badge
+                        label={uiText('ui.SourceUploadForm.message013')}
+                        icon="upload"
+                        tone="blue"
+                        size="compact"
+                      />
                     ) : (
                       <SourceStatusChip status="FAILED" />
                     )}
@@ -268,7 +276,7 @@ export function SourceUploadForm({
                           void send(entry);
                         }}
                       >
-                        Retry
+                        {uiText('ui.CanvasContextPreview.message004')}
                       </Button>
                     ) : null}
                   </div>

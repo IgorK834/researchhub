@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import styles from './SourceDetail.module.css';
 import { TextField } from '../../../shared/components/forms';
 import { Panel } from '../../../shared/components/content';
@@ -23,6 +24,7 @@ export function PdfSourcePreview({
   readonly requestedPage: string | null;
   readonly onNavigate: (page: number) => void;
 }): ReactElement {
+  useUiLocale();
   const { data } = useQuery({
     queryKey: queryKeys.sourceExtraction(workspaceId, sourceId, revision),
     queryFn: ({ signal }) => fetchSourceExtraction(workspaceId, sourceId, signal),
@@ -32,15 +34,15 @@ export function PdfSourcePreview({
   const parsed = parsePdfPage(requestedPage, count);
   const page = parsed ?? 1;
   return (
-    <Panel title="PDF preview">
+    <Panel title={uiText('ui.PdfSourcePreview.message001')}>
       {parsed === null ? (
-        <p role="alert">
-          The requested PDF page is not available. Enter a valid page number.
-        </p>
+        <p role="alert">{uiText('ui.PdfSourcePreview.message002')}</p>
       ) : null}
       <p>
-        Page {page}
-        {count && count > 0 ? ` of ${String(count)}` : ''}
+        {uiText('ui.ExternalSources.message039')} {page}
+        {count && count > 0
+          ? ' ' + uiText('ui.PdfSourcePreview.message003', { value0: String(count) })
+          : ''}
       </p>
       <PdfPageForm key={page} page={page} count={count} onNavigate={onNavigate} />
       <div className={styles.actions}>
@@ -50,7 +52,7 @@ export function PdfSourcePreview({
           disabled={page <= 1}
           onClick={() => onNavigate(page - 1)}
         >
-          Previous PDF page
+          {uiText('ui.PdfSourcePreview.message004')}
         </Button>
         <Button
           variant="secondary"
@@ -58,7 +60,7 @@ export function PdfSourcePreview({
           disabled={page >= (count && count > 0 ? count : 10000)}
           onClick={() => onNavigate(page + 1)}
         >
-          Next PDF page
+          {uiText('ui.PdfSourcePreview.message005')}
         </Button>
         <p>
           <a
@@ -66,13 +68,11 @@ export function PdfSourcePreview({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Open PDF at page {page}
+            {uiText('ui.PdfSourcePreview.message006')} {page}
           </a>
         </p>
       </div>
-      <p>
-        The PDF opens in your browser viewer. Page navigation depends on browser support.
-      </p>
+      <p>{uiText('ui.PdfSourcePreview.message007')}</p>
     </Panel>
   );
 }
@@ -86,14 +86,13 @@ function PdfPageForm({
   readonly count: number | undefined;
   readonly onNavigate: (page: number) => void;
 }): ReactElement {
+  useUiLocale();
   const [input, setInput] = useState(String(page));
   const [invalidInput, setInvalidInput] = useState(false);
   return (
     <>
       {invalidInput ? (
-        <p role="alert">
-          The requested PDF page is not available. Enter a valid page number.
-        </p>
+        <p role="alert">{uiText('ui.PdfSourcePreview.message002')}</p>
       ) : null}
       <form
         className={styles.actions}
@@ -109,7 +108,7 @@ function PdfPageForm({
         }}
       >
         <TextField
-          label="PDF page"
+          label={uiText('ui.PdfSourcePreview.message008')}
           type="number"
           min={1}
           max={count && count > 0 ? count : 10000}
@@ -117,7 +116,7 @@ function PdfPageForm({
           onChange={(event) => setInput(event.target.value)}
         />
         <Button variant="secondary" type="submit">
-          Go to page
+          {uiText('ui.PdfSourcePreview.message009')}
         </Button>
       </form>
     </>

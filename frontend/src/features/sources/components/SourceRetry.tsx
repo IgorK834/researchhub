@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { describeError } from '../../../shared/api';
@@ -10,6 +11,7 @@ export function SourceRetry({
   readonly workspaceId: string;
   readonly sourceId: string;
 }): ReactElement {
+  useUiLocale();
   const retry = useReprocessSource(workspaceId, sourceId);
   return (
     <>
@@ -20,10 +22,12 @@ export function SourceRetry({
         busy={retry.isPending}
         onClick={() => retry.mutate()}
       >
-        Retry
+        {uiText('ui.CanvasContextPreview.message004')}
       </Button>
       {retry.error ? (
-        <p role="alert">Could not reprocess source: {describeError(retry.error)}</p>
+        <p role="alert">
+          {uiText('ui.SourceProcessing.message007')} {describeError(retry.error)}
+        </p>
       ) : null}
     </>
   );

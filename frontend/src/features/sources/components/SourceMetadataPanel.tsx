@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { describeError } from '../../../shared/api';
 import { Button } from '../../../shared/components/Button';
@@ -15,6 +16,7 @@ export function SourceMetadataPanel({
   readonly source: WorkspaceSource;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   const metadata = source.bibliography ?? {
     title: null,
@@ -26,42 +28,51 @@ export function SourceMetadataPanel({
     citationKey: null,
   };
   return (
-    <Panel title="Bibliography & organization" className={styles.panel}>
-      <p className={styles.hint}>
-        Workspace-curated metadata. Links describe this source; they do not add external
-        evidence.
-      </p>
+    <Panel title={uiText('ui.SourceMetadataPanel.message001')} className={styles.panel}>
+      <p className={styles.hint}>{uiText('ui.SourceMetadataPanel.message002')}</p>
       <dl className={styles.details}>
-        <dt>Title</dt>
-        <dd>{metadata.title ?? 'Not set'}</dd>
-        <dt>Authors</dt>
-        <dd>{metadata.authors.join('; ') || 'Not set'}</dd>
-        <dt>Publication year</dt>
-        <dd>{metadata.publicationYear ?? 'Not set'}</dd>
-        <dt>Journal/conference</dt>
-        <dd>{metadata.venue ?? 'Not set'}</dd>
+        <dt>{uiText('ui.DocumentEditorForm.message013')}</dt>
+        <dd>{metadata.title ?? uiText('ui.BibliographyImportDialog.message031')}</dd>
+        <dt>{uiText('ui.SourceMetadataPanel.message003')}</dt>
+        <dd>
+          {metadata.authors.join('; ') ||
+            uiText('ui.BibliographyImportDialog.message031')}
+        </dd>
+        <dt>{uiText('ui.BibliographyLibrary.message015')}</dt>
+        <dd>
+          {metadata.publicationYear ?? uiText('ui.BibliographyImportDialog.message031')}
+        </dd>
+        <dt>{uiText('ui.SourceMetadataPanel.message004')}</dt>
+        <dd>{metadata.venue ?? uiText('ui.BibliographyImportDialog.message031')}</dd>
         <dt>DOI</dt>
-        <dd>{metadata.doi ?? 'Not set'}</dd>
-        <dt>URL</dt>
+        <dd>{metadata.doi ?? uiText('ui.BibliographyImportDialog.message031')}</dd>
+        <dt>{uiText('ui.SourceMetadataPanel.message005')}</dt>
         <dd>
           {metadata.url ? (
             <a href={metadata.url} target="_blank" rel="noopener noreferrer">
               {metadata.url}
             </a>
           ) : (
-            'Not set'
+            uiText('ui.BibliographyImportDialog.message031')
           )}
         </dd>
-        <dt>Citation key</dt>
-        <dd>{metadata.citationKey ?? 'Not set'}</dd>
-        <dt>Tags</dt>
-        <dd>{(source.tags ?? []).join(' · ') || 'None'}</dd>
-        <dt>Collections</dt>
-        <dd>{(source.collections ?? []).join(' · ') || 'None'}</dd>
+        <dt>{uiText('ui.BibliographyLibrary.message018')}</dt>
+        <dd>
+          {metadata.citationKey ?? uiText('ui.BibliographyImportDialog.message031')}
+        </dd>
+        <dt>{uiText('ui.SourceMetadataPanel.message006')}</dt>
+        <dd>
+          {(source.tags ?? []).join(' · ') || uiText('ui.ProvenancePanel.message022')}
+        </dd>
+        <dt>{uiText('ui.SourceMetadataPanel.message007')}</dt>
+        <dd>
+          {(source.collections ?? []).join(' · ') ||
+            uiText('ui.ProvenancePanel.message022')}
+        </dd>
       </dl>
       {canEdit ? (
         <Button variant="secondary" icon="pencil" onClick={() => setOpen(true)}>
-          Edit source details
+          {uiText('ui.SourceMetadataPanel.message008')}
         </Button>
       ) : null}
       {open && canEdit ? (
@@ -85,6 +96,7 @@ function SourceMetadataEditor({
   readonly source: WorkspaceSource;
   readonly onClose: () => void;
 }): ReactElement {
+  useUiLocale();
   const [metadata, setMetadata] = useState(source.bibliography);
   const [authors, setAuthors] = useState(metadata.authors.join('\n'));
   const [name, setName] = useState(source.displayName);
@@ -95,26 +107,23 @@ function SourceMetadataEditor({
     source.id,
   );
   const fields = [
-    ['title', 'Title', 1000],
-    ['venue', 'Journal/conference', 500],
+    ['title', uiText('ui.DocumentEditorForm.message013'), 1000],
+    ['venue', uiText('ui.SourceMetadataPanel.message004'), 500],
     ['url', 'URL', 2000],
-    ['citationKey', 'Citation key', 100],
+    ['citationKey', uiText('ui.BibliographyLibrary.message018'), 100],
   ] as const;
   return (
     <Dialog
       open
-      title="Edit source details"
+      title={uiText('ui.SourceMetadataPanel.message008')}
       onClose={onClose}
       footer={
         <Button variant="secondary" onClick={onClose}>
-          Done
+          {uiText('ui.AnalysisWidgets.message002')}
         </Button>
       }
     >
-      <p className={styles.hint}>
-        Metadata and labels can change while citations retain the source ID, version and
-        original bytes.
-      </p>
+      <p className={styles.hint}>{uiText('ui.SourceMetadataPanel.message009')}</p>
       <form
         className={styles.form}
         onSubmit={(event) => {
@@ -122,7 +131,7 @@ function SourceMetadataEditor({
           bibliography.mutate({ ...metadata, authors: lines(authors) });
         }}
       >
-        <h3>Bibliographic metadata</h3>
+        <h3>{uiText('ui.SourceMetadataPanel.message010')}</h3>
         {fields.map(([key, label, maxLength]) => (
           <TextField
             key={key}
@@ -171,24 +180,23 @@ function SourceMetadataEditor({
               })
             }
           >
-            {lookup.isPending ? 'Looking up DOI…' : 'Look up DOI metadata'}
+            {lookup.isPending
+              ? uiText('ui.SourceMetadataPanel.message011')
+              : uiText('ui.SourceMetadataPanel.message012')}
           </Button>
         </div>
         {lookup.error ? <p role="alert">{describeError(lookup.error)}</p> : null}
         {lookup.isSuccess ? (
-          <p role="status">
-            Suggestion from Crossref. Existing values were kept; review and save the
-            bibliography to accept it.
-          </p>
+          <p role="status">{uiText('ui.SourceMetadataPanel.message013')}</p>
         ) : null}
         <Textarea
-          label="Authors"
-          hint="One author per line, in publication order."
+          label={uiText('ui.SourceMetadataPanel.message003')}
+          hint={uiText('ui.SourceMetadataPanel.message014')}
           value={authors}
           onChange={(event) => setAuthors(event.target.value)}
         />
         <TextField
-          label="Publication year"
+          label={uiText('ui.BibliographyLibrary.message015')}
           type="number"
           min={1}
           max={9999}
@@ -205,9 +213,13 @@ function SourceMetadataEditor({
         {bibliography.error ? (
           <p role="alert">{describeError(bibliography.error)}</p>
         ) : null}
-        {bibliography.isSuccess ? <p role="status">Bibliography saved.</p> : null}
+        {bibliography.isSuccess ? (
+          <p role="status">{uiText('ui.SourceMetadataPanel.message015')}</p>
+        ) : null}
         <Button type="submit" disabled={bibliography.isPending}>
-          {bibliography.isPending ? 'Saving bibliography…' : 'Save bibliography'}
+          {bibliography.isPending
+            ? uiText('ui.SourceMetadataPanel.message016')
+            : uiText('ui.SourceMetadataPanel.message017')}
         </Button>
       </form>
       <form
@@ -221,32 +233,36 @@ function SourceMetadataEditor({
           });
         }}
       >
-        <h3>Library organization</h3>
+        <h3>{uiText('ui.SourceMetadataPanel.message018')}</h3>
         <TextField
-          label="Display name"
+          label={uiText('ui.SourceMetadataPanel.message019')}
           required
           maxLength={255}
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
         <Textarea
-          label="Tags"
-          hint="One tag per line. Up to 20 tags, 80 characters each."
+          label={uiText('ui.SourceMetadataPanel.message006')}
+          hint={uiText('ui.SourceMetadataPanel.message020')}
           value={tags}
           onChange={(event) => setTags(event.target.value)}
         />
         <Textarea
-          label="Collections"
-          hint="One collection per line. Use the same label to group sources. Labels are case-insensitive."
+          label={uiText('ui.SourceMetadataPanel.message007')}
+          hint={uiText('ui.SourceMetadataPanel.message021')}
           value={collections}
           onChange={(event) => setCollections(event.target.value)}
         />
         {organization.error ? (
           <p role="alert">{describeError(organization.error)}</p>
         ) : null}
-        {organization.isSuccess ? <p role="status">Organization saved.</p> : null}
+        {organization.isSuccess ? (
+          <p role="status">{uiText('ui.SourceMetadataPanel.message022')}</p>
+        ) : null}
         <Button type="submit" disabled={organization.isPending}>
-          {organization.isPending ? 'Saving organization…' : 'Save organization'}
+          {organization.isPending
+            ? uiText('ui.SourceMetadataPanel.message023')
+            : uiText('ui.SourceMetadataPanel.message024')}
         </Button>
       </form>
     </Dialog>

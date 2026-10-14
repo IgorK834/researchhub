@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { Panel } from '../../../shared/components/content';
 import { Progress } from '../../../shared/components/feedback';
 import { Button } from '../../../shared/components/Button';
@@ -20,6 +22,7 @@ export function SourceProcessing({
   readonly status: SourceStatus;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const mutation = useReprocessSource(workspaceId, sourceId);
   const busy = status === 'UPLOADED' || status === 'PROCESSING';
   const { data, error } = useQuery({
@@ -35,30 +38,39 @@ export function SourceProcessing({
     refetchInterval: busy ? 2000 : false,
   });
   const stageLabels = {
-    EXTRACT: 'Reading source',
-    CHUNK: 'Preparing source fragments',
-    EMBED: 'Making source searchable',
-    INDEX: 'Saving searchable fragments',
-    FINALIZE: 'Finishing processing',
+    get EXTRACT() {
+      return uiText('ui.SourceProcessing.message010');
+    },
+    get CHUNK() {
+      return uiText('ui.SourceProcessing.message011');
+    },
+    get EMBED() {
+      return uiText('ui.SourceProcessing.message012');
+    },
+    get INDEX() {
+      return uiText('ui.SourceProcessing.message013');
+    },
+    get FINALIZE() {
+      return uiText('ui.SourceProcessing.message014');
+    },
   };
   return (
-    <Panel title="Source processing">
-      {busy ? (
-        <p role="status">
-          Source processing is in progress. Status updates automatically.
-        </p>
-      ) : null}
+    <Panel title={uiText('ui.SourceProcessing.message001')}>
+      {busy ? <p role="status">{uiText('ui.SourceProcessing.message002')}</p> : null}
       {busy && processing.data?.stage ? (
         <div aria-live="polite">
           <p>
             {stageLabels[processing.data.stage]} · {processing.data.progress}%
           </p>
-          <Progress label="Source processing progress" value={processing.data.progress} />
+          <Progress
+            label={uiText('ui.SourceProcessing.message003')}
+            value={processing.data.progress}
+          />
         </div>
       ) : null}
       {busy && processing.error ? (
         <p role="alert">
-          Could not load processing progress: {describeError(processing.error)}
+          {uiText('ui.SourceProcessing.message004')} {describeError(processing.error)}
         </p>
       ) : null}
       {canEdit ? (
@@ -69,24 +81,30 @@ export function SourceProcessing({
           disabled={busy || mutation.isPending}
           onClick={() => mutation.mutate()}
         >
-          {status === 'FAILED' ? 'Retry processing' : 'Reprocess source'}
+          {status === 'FAILED'
+            ? uiText('ui.SourceProcessing.message005')
+            : uiText('ui.SourceProcessing.message006')}
         </Button>
       ) : null}
       {mutation.error ? (
-        <p role="alert">Could not reprocess source: {describeError(mutation.error)}</p>
+        <p role="alert">
+          {uiText('ui.SourceProcessing.message007')} {describeError(mutation.error)}
+        </p>
       ) : null}
       {error ? (
-        <p role="alert">Could not load processing history: {describeError(error)}</p>
+        <p role="alert">
+          {uiText('ui.SourceProcessing.message008')} {describeError(error)}
+        </p>
       ) : null}
       {(data?.length ?? 0) > 0 ? (
         <details>
-          <summary>Processing history</summary>
+          <summary>{uiText('ui.SourceProcessing.message009')}</summary>
           <ol>
             {data?.map((run) => (
               <li key={run.jobId}>
                 {run.parserVersion} · {run.processingVersion} · {run.jobStatus} ·{' '}
                 <time dateTime={run.persistedAt}>
-                  {new Date(run.persistedAt).toLocaleString()}
+                  {new Date(run.persistedAt).toLocaleString(getIntlLocale())}
                 </time>
               </li>
             ))}

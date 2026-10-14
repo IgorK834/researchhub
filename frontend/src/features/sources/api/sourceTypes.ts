@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 /**
  * The source types a workspace accepts, mirroring `dev.researchhub.source.domain.SourceType` and the table in
  * docs/development/sources.md.
@@ -19,10 +20,18 @@ export type SourceType = (typeof SOURCE_TYPES)[number];
 export type SourceStatus = 'UPLOADED' | 'PROCESSING' | 'READY' | 'FAILED';
 
 export const SOURCE_STATUS_LABELS: Readonly<Record<SourceStatus, string>> = {
-  UPLOADED: 'Uploaded',
-  PROCESSING: 'Processing',
-  READY: 'Ready',
-  FAILED: 'Failed',
+  get UPLOADED() {
+    return uiText('ui.SourceUploadForm.message015');
+  },
+  get PROCESSING() {
+    return uiText('ui.sourceTypes.message003');
+  },
+  get READY() {
+    return uiText('ui.sourceTypes.message004');
+  },
+  get FAILED() {
+    return uiText('ui.AnalysisStatus.message007');
+  },
 };
 
 export interface SourceVisual {
@@ -108,9 +117,11 @@ const GENERIC_MEDIA_TYPE = 'application/octet-stream';
 
 /** "Supported types: PDF (.pdf), DOCX (.docx), ...", worded exactly as the server words it. */
 export function supportedTypesSentence(): string {
-  return `Supported types: ${SOURCE_TYPES.map(
-    (type) => `${type} (.${SOURCE_TYPE_RULES[type].extension})`,
-  ).join(', ')}.`;
+  return uiText('source.supportedTypes', {
+    types: SOURCE_TYPES.map(
+      (type) => `${type} (.${SOURCE_TYPE_RULES[type].extension})`,
+    ).join(', '),
+  });
 }
 
 /** The part of a `File` this check reads, so it can be tested without constructing one. */
@@ -143,7 +154,7 @@ function formatLimit(bytes: number): string {
   if (bytes % megabyte === 0) {
     return `${String(bytes / megabyte)} MB`;
   }
-  return `${String(bytes)} bytes`;
+  return uiText('source.bytes', { count: bytes });
 }
 
 /**
@@ -165,8 +176,9 @@ export function checkSourceFile(
       ok: false,
       message:
         (extension === null
-          ? 'The file has no extension, so its type cannot be recognised. '
-          : `Files of type .${extension} are not supported. `) + supportedTypesSentence(),
+          ? uiText('ui.sourceTypes.message001') + ' '
+          : uiText('source.unsupportedExtension', { extension })) +
+        supportedTypesSentence(),
     };
   }
 
@@ -178,19 +190,27 @@ export function checkSourceFile(
   ) {
     return {
       ok: false,
-      message:
-        `The file is named .${SOURCE_TYPE_RULES[sourceType].extension} but was sent as ${declared}, ` +
-        `which is not a ${sourceType} media type. ${supportedTypesSentence()}`,
+      message: uiText('source.mediaMismatch', {
+        extension: SOURCE_TYPE_RULES[sourceType].extension,
+        media: declared,
+        type: sourceType,
+        supported: supportedTypesSentence(),
+      }),
     };
   }
 
   if (file.size === 0) {
-    return { ok: false, message: 'The file is empty' };
+    return {
+      ok: false,
+      get message() {
+        return uiText('ui.sourceTypes.message002');
+      },
+    };
   }
   if (file.size > maxBytes) {
     return {
       ok: false,
-      message: `The file is larger than the ${formatLimit(maxBytes)} allowed for one source`,
+      message: uiText('source.tooLarge', { limit: formatLimit(maxBytes) }),
     };
   }
 

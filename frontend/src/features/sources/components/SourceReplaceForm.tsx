@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { Panel } from '../../../shared/components/content';
 import { Button } from '../../../shared/components/Button';
 import { useRef, useState, type ReactElement } from 'react';
@@ -14,18 +15,19 @@ export function SourceReplaceForm({
   readonly workspaceId: string;
   readonly sourceId: string;
 }): ReactElement {
+  useUiLocale();
   const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const replace = useReplaceSource(workspaceId, sourceId);
   return (
-    <Panel title="Upload a new version">
-      <p>Existing analyses keep their original version and bytes.</p>
+    <Panel title={uiText('ui.SourceReplaceForm.message001')}>
+      <p>{uiText('ui.SourceReplaceForm.message002')}</p>
       <form
         onSubmit={(event) => {
           event.preventDefault();
           if (file === null) {
-            setError('Choose a replacement file');
+            setError(uiText('ui.SourceReplaceForm.message008'));
             return;
           }
           replace.mutate(
@@ -43,13 +45,18 @@ export function SourceReplaceForm({
         {error === null ? null : <p role="alert">{error}</p>}
         {replace.error === null ? null : (
           <p role="alert">
-            Could not upload the new version: {describeError(replace.error)}
+            {uiText('ui.SourceReplaceForm.message003')} {describeError(replace.error)}
           </p>
         )}
         {replace.isSuccess ? (
-          <p role="status">Version {replace.data.activeVersionNumber} was uploaded.</p>
+          <p role="status">
+            {uiText('ui.AnalysisStudio.message004')} {replace.data.activeVersionNumber}{' '}
+            {uiText('ui.SourceReplaceForm.message004')}
+          </p>
         ) : null}
-        <label htmlFor="replacement-file">Replacement file</label>{' '}
+        <label htmlFor="replacement-file">
+          {uiText('ui.SourceReplaceForm.message005')}
+        </label>{' '}
         <input
           ref={input}
           id="replacement-file"
@@ -74,7 +81,9 @@ export function SourceReplaceForm({
           }}
         />
         <Button type="submit" disabled={replace.isPending}>
-          {replace.isPending ? 'Uploading version…' : 'Upload new version'}
+          {replace.isPending
+            ? uiText('ui.SourceReplaceForm.message006')
+            : uiText('ui.SourceReplaceForm.message007')}
         </Button>
       </form>
     </Panel>

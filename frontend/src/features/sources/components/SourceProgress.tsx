@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/api';
@@ -5,11 +6,21 @@ import { fetchSourceProcessing } from '../api/sourceApi';
 import styles from './Sources.module.css';
 
 const stageLabels = {
-  EXTRACT: 'Reading source',
-  CHUNK: 'Preparing source fragments',
-  EMBED: 'Making source searchable',
-  INDEX: 'Saving searchable fragments',
-  FINALIZE: 'Finishing processing',
+  get EXTRACT() {
+    return uiText('ui.SourceProcessing.message010');
+  },
+  get CHUNK() {
+    return uiText('ui.SourceProcessing.message011');
+  },
+  get EMBED() {
+    return uiText('ui.SourceProcessing.message012');
+  },
+  get INDEX() {
+    return uiText('ui.SourceProcessing.message013');
+  },
+  get FINALIZE() {
+    return uiText('ui.SourceProcessing.message014');
+  },
 };
 
 /** Server-reported processing progress only; uploading bytes is a separate operation. */
@@ -20,6 +31,7 @@ export function SourceProgress({
   readonly workspaceId: string;
   readonly sourceId: string;
 }): ReactElement {
+  useUiLocale();
   const { data, error } = useQuery({
     queryKey: queryKeys.sourceProcessing(workspaceId, sourceId),
     queryFn: async ({ signal }) =>
@@ -31,14 +43,14 @@ export function SourceProgress({
     <div className={styles.processing} aria-live="polite">
       <p>
         {error
-          ? 'Processing source. Progress is temporarily unavailable.'
+          ? uiText('ui.SourceProgress.message001')
           : stage
             ? `${stageLabels[stage]} · ${data.progress}%`
-            : 'Source processing is in progress. Status updates automatically.'}
+            : uiText('ui.SourceProcessing.message002')}
       </p>
       {stage ? (
         <progress
-          aria-label="Source processing progress"
+          aria-label={uiText('ui.SourceProcessing.message003')}
           max={100}
           value={data.progress}
         />

@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { DataTable, Panel, type TableColumn } from '../../../shared/components/content';
 import { Button } from '../../../shared/components/Button';
 import type { ReactElement } from 'react';
@@ -25,36 +27,56 @@ export function SourceVersionHistory({
   readonly selectedVersionId?: string | undefined;
   readonly onPreview?: (versionId: string) => void;
 }): ReactElement {
+  useUiLocale();
   const versions = useSourceVersionsQuery(workspaceId, sourceId);
-  if (versions.isPending) return <p role="status">Loading versions…</p>;
+  if (versions.isPending)
+    return <p role="status">{uiText('ui.DocumentHistory.message012')}</p>;
   if (versions.error !== null) {
-    return <p role="alert">Could not load versions: {describeError(versions.error)}</p>;
+    return (
+      <p role="alert">
+        {uiText('ui.SourceVersionHistory.message001')} {describeError(versions.error)}
+      </p>
+    );
   }
   const columns: readonly TableColumn<SourceVersion>[] = [
     {
       id: 'version',
-      header: 'Version',
+      get header() {
+        return uiText('ui.AnalysisStudio.message004');
+      },
       rowHeader: true,
       render: (version) =>
         `${String(version.versionNumber)}${version.active ? ' (latest)' : ''}`,
     },
-    { id: 'file', header: 'File', render: (version) => version.originalFilename },
+    {
+      id: 'file',
+      get header() {
+        return uiText('ui.DatasetPreviewPanel.message010');
+      },
+      render: (version) => version.originalFilename,
+    },
     {
       id: 'size',
-      header: 'Size',
-      render: (version) => `${version.sizeBytes.toLocaleString()} bytes`,
+      get header() {
+        return uiText('ui.DatasetPreviewPanel.message013');
+      },
+      render: (version) => `${version.sizeBytes.toLocaleString(getIntlLocale())} bytes`,
     },
     {
       id: 'status',
-      header: 'Status',
+      get header() {
+        return uiText('ui.SourceList.message005');
+      },
       render: (version) => <SourceStatusChip status={version.status} />,
     },
     {
       id: 'uploaded',
-      header: 'Uploaded',
+      get header() {
+        return uiText('ui.SourceUploadForm.message015');
+      },
       render: (version) => (
         <time dateTime={version.createdAt}>
-          {new Intl.DateTimeFormat(undefined, {
+          {new Intl.DateTimeFormat(getIntlLocale(), {
             dateStyle: 'medium',
             timeStyle: 'short',
           }).format(new Date(version.createdAt))}
@@ -63,7 +85,9 @@ export function SourceVersionHistory({
     },
     {
       id: 'actions',
-      header: 'Actions',
+      get header() {
+        return uiText('ui.DocumentList.message020');
+      },
       render: (version) => (
         <>
           <Button
@@ -72,9 +96,11 @@ export function SourceVersionHistory({
             icon="download"
             href={sourceVersionContentPath(workspaceId, sourceId, version.id)}
             download={version.originalFilename}
-            aria-label={`Download version ${String(version.versionNumber)}`}
+            aria-label={uiText('ui.SourceVersionHistory.message002', {
+              value0: String(version.versionNumber),
+            })}
           >
-            Download
+            {uiText('ui.ExportDocument.message004')}
           </Button>
           {onPreview !== undefined &&
           TABULAR.has(version.sourceType) &&
@@ -83,10 +109,12 @@ export function SourceVersionHistory({
               size="compact"
               variant="secondary"
               aria-pressed={version.id === selectedVersionId}
-              aria-label={`Preview data of version ${String(version.versionNumber)}`}
+              aria-label={uiText('ui.SourceVersionHistory.message003', {
+                value0: String(version.versionNumber),
+              })}
               onClick={() => onPreview(version.id)}
             >
-              Preview data
+              {uiText('ui.SourceVersionHistory.message004')}
             </Button>
           ) : null}
         </>
@@ -94,17 +122,14 @@ export function SourceVersionHistory({
     },
   ];
   return (
-    <Panel title="Versions">
-      <p>
-        Each upload is kept as an immutable version. Existing analyses keep the version
-        they used.
-      </p>
+    <Panel title={uiText('ui.DocumentHistory.message016')}>
+      <p>{uiText('ui.SourceVersionHistory.message005')}</p>
       <DataTable
         columns={columns}
         rows={versions.data}
         rowKey={(version) => version.id}
         isSelected={(version) => version.id === selectedVersionId}
-        caption="Source versions"
+        caption={uiText('ui.AnalysisProvenance.message005')}
       />
     </Panel>
   );

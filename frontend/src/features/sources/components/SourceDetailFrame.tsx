@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ToolShell } from '../../../shared/components/shell';
@@ -15,6 +16,7 @@ export function SourceDetailFrame({
   readonly metadata: ReactNode;
   readonly children: ReactNode;
 }): ReactElement {
+  useUiLocale();
   const [host] = useState(() => document.createElement('div'));
   const attach = (element: HTMLDivElement | null): void => {
     if (element) element.appendChild(host);
@@ -32,8 +34,8 @@ export function SourceDetailFrame({
         content
       ) : (
         <ToolShell
-          label="Source reader"
-          contextTitle="Source metadata"
+          label={uiText('ui.SourceDetailFrame.message001')}
+          contextTitle={uiText('ui.SourceDetailFrame.message002')}
           context={metadata}
         >
           {content}

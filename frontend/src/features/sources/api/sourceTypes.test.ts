@@ -108,7 +108,7 @@ describe('checkSourceFile', () => {
     );
     expect(checkSourceFile(file('big.pdf', 'application/pdf', 2048), 1000)).toEqual({
       ok: false,
-      message: 'The file is larger than the 1000 bytes allowed for one source',
+      message: 'The file is larger than the 1,000 bytes allowed for one source',
     });
     expect(
       checkSourceFile(file('big.pdf', 'application/pdf', 1024 ** 3 + 1), 1024 ** 3),

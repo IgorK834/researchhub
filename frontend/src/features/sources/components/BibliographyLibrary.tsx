@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { describeError } from '../../../shared/api';
@@ -18,6 +19,7 @@ export function BibliographyLibrary({
   readonly workspaceId: string;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const [offset, setOffset] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState<BibliographyItem | null>(null);
@@ -28,29 +30,30 @@ export function BibliographyLibrary({
     enabled: expanded,
   });
   return (
-    <section aria-label="Imported bibliography">
-      <h2>Bibliography</h2>
-      <p>
-        Saved references and collections. Add a source file separately to use its content
-        as evidence.
-      </p>
+    <section aria-label={uiText('ui.BibliographyLibrary.message001')}>
+      <h2>{uiText('ui.BibliographyLibrary.message002')}</h2>
+      <p>{uiText('ui.BibliographyLibrary.message003')}</p>
       <Button
         variant="secondary"
         aria-expanded={expanded}
         onClick={() => setExpanded((value) => !value)}
       >
-        {expanded ? 'Hide bibliography' : 'Show bibliography'}
+        {expanded
+          ? uiText('ui.BibliographyLibrary.message004')
+          : uiText('ui.BibliographyLibrary.message005')}
       </Button>
       {expanded ? (
         <>
-          {library.isPending ? <p role="status">Loading bibliography…</p> : null}
+          {library.isPending ? (
+            <p role="status">{uiText('ui.BibliographyLibrary.message006')}</p>
+          ) : null}
           {library.error ? (
             <p role="alert">
-              Could not load bibliography: {describeError(library.error)}
+              {uiText('ui.BibliographyLibrary.message007')} {describeError(library.error)}
             </p>
           ) : null}
           {library.data?.items.length === 0 ? (
-            <p>No bibliography entries yet. Import a file to add references.</p>
+            <p>{uiText('ui.BibliographyLibrary.message008')}</p>
           ) : null}
           <ul className={styles.records}>
             {library.data?.items.map((item) => (
@@ -58,7 +61,7 @@ export function BibliographyLibrary({
                 <strong>
                   {item.bibliography.title ??
                     item.bibliography.citationKey ??
-                    'Untitled reference'}
+                    uiText('ui.BibliographyLibrary.message009')}
                 </strong>
                 <p>
                   {item.bibliography.authors.join('; ')}
@@ -69,10 +72,15 @@ export function BibliographyLibrary({
                 <p>
                   {item.itemType} · {[...item.tags, ...item.collections].join(' · ')}
                 </p>
-                {item.bibliography.doi ? <p>DOI: {item.bibliography.doi}</p> : null}
+                {item.bibliography.doi ? (
+                  <p>
+                    {uiText('ui.BibliographyImportDialog.message030')}{' '}
+                    {item.bibliography.doi}
+                  </p>
+                ) : null}
                 {canEdit ? (
                   <Button variant="secondary" onClick={() => setEditing(item)}>
-                    Edit reference
+                    {uiText('ui.BibliographyLibrary.message010')}
                   </Button>
                 ) : null}
               </li>
@@ -83,7 +91,7 @@ export function BibliographyLibrary({
               variant="secondary"
               onClick={() => setOffset(Math.max(0, offset - 50))}
             >
-              Previous references
+              {uiText('ui.BibliographyLibrary.message011')}
             </Button>
           ) : null}
           {library.data && library.data.nextOffset >= 0 ? (
@@ -91,7 +99,7 @@ export function BibliographyLibrary({
               variant="secondary"
               onClick={() => setOffset(library.data!.nextOffset)}
             >
-              Next references
+              {uiText('ui.BibliographyLibrary.message012')}
             </Button>
           ) : null}
           {editing ? (
@@ -117,6 +125,7 @@ function BibliographyEditor({
   readonly item: BibliographyItem;
   readonly onClose: () => void;
 }): ReactElement {
+  useUiLocale();
   const cache = useQueryClient();
   const save = useMutation({
     mutationFn: (updated: BibliographyItem) => saveBibliographyItem(workspaceId, updated),
@@ -152,7 +161,7 @@ function BibliographyEditor({
   return (
     <Dialog
       open
-      title="Edit bibliography reference"
+      title={uiText('ui.BibliographyLibrary.message013')}
       onClose={() => {
         if (!save.isPending) onClose();
       }}
@@ -167,18 +176,18 @@ function BibliographyEditor({
         }}
       >
         <TextField
-          label="Title"
+          label={uiText('ui.DocumentEditorForm.message013')}
           name="title"
           defaultValue={item.bibliography.title ?? ''}
           maxLength={1000}
         />
         <TextField
-          label="Authors (semicolon-separated)"
+          label={uiText('ui.BibliographyLibrary.message014')}
           name="authors"
           defaultValue={item.bibliography.authors.join('; ')}
         />
         <TextField
-          label="Publication year"
+          label={uiText('ui.BibliographyLibrary.message015')}
           name="year"
           type="number"
           min={1}
@@ -192,38 +201,42 @@ function BibliographyEditor({
           maxLength={300}
         />
         <TextField
-          label="Venue"
+          label={uiText('ui.BibliographyLibrary.message016')}
           name="venue"
           defaultValue={item.bibliography.venue ?? ''}
           maxLength={500}
         />
         <TextField
-          label="Reference URL"
+          label={uiText('ui.BibliographyLibrary.message017')}
           name="url"
           defaultValue={item.bibliography.url ?? ''}
           maxLength={2000}
         />
         <TextField
-          label="Citation key"
+          label={uiText('ui.BibliographyLibrary.message018')}
           name="citationKey"
           defaultValue={item.bibliography.citationKey ?? ''}
           maxLength={100}
         />
         <TextField
-          label="Tags (semicolon-separated)"
+          label={uiText('ui.BibliographyLibrary.message019')}
           name="tags"
           defaultValue={item.tags.join('; ')}
         />
         <TextField
-          label="Collections (semicolon-separated)"
+          label={uiText('ui.BibliographyLibrary.message020')}
           name="collections"
           defaultValue={item.collections.join('; ')}
         />
         {save.error ? (
-          <p role="alert">Could not save reference: {describeError(save.error)}</p>
+          <p role="alert">
+            {uiText('ui.BibliographyLibrary.message021')} {describeError(save.error)}
+          </p>
         ) : null}
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : 'Save reference'}
+          {save.isPending
+            ? uiText('ui.BibliographyLibrary.message022')
+            : uiText('ui.BibliographyLibrary.message023')}
         </Button>
       </form>
     </Dialog>

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, useState, type ReactElement, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -33,6 +34,7 @@ function CommandSearchSession({
   titles,
   compact = false,
 }: CommandSearchProps): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   const [beside, setBeside] = useState<SourceTextHit | null>(null);
   const navigate = useNavigate();
@@ -66,11 +68,11 @@ function CommandSearchSession({
         icon="search"
         className={styles.trigger}
         disabled={!workspaceId}
-        aria-label="Search source text (Cmd or Ctrl K)"
+        aria-label={uiText('ui.SourceCommandSearch.message001')}
         title={
           workspaceId
-            ? 'Search source text (Cmd or Ctrl K)'
-            : 'Choose a workspace to search its sources'
+            ? uiText('ui.SourceCommandSearch.message001')
+            : uiText('ui.SourceCommandSearch.message002')
         }
         onClick={(event) => {
           returnFocusRef.current = event.currentTarget;
@@ -79,7 +81,8 @@ function CommandSearchSession({
       >
         {compact ? null : (
           <>
-            Search <Keycap>Cmd/Ctrl K</Keycap>
+            {uiText('ui.WorkspaceCommandSearch.message003')}
+            <Keycap>{uiText('ui.WorkspaceCommandSearch.message004')}</Keycap>
           </>
         )}
       </Button>
@@ -98,7 +101,10 @@ function CommandSearchSession({
       {beside && workspaceId ? (
         <PassageBeside
           hit={beside}
-          title={titles.get(beside.chunk.sourceId) ?? 'Workspace source'}
+          title={
+            titles.get(beside.chunk.sourceId) ??
+            uiText('ui.SourceCommandSearch.message003')
+          }
           onClose={() => setBeside(null)}
           returnFocusRef={returnFocusRef}
           onOpen={() => {
@@ -124,6 +130,7 @@ function PassageBeside({
   readonly onOpen: () => void;
   readonly returnFocusRef: RefObject<HTMLElement | null>;
 }): ReactElement {
+  useUiLocale();
   const chunk = hit.chunk;
   const fragment = useQuery({
     queryKey: queryKeys.citationFragment(
@@ -144,21 +151,23 @@ function PassageBeside({
       title={`${title} · ${passageLocation(hit)}`}
       onClose={onClose}
       returnFocusRef={returnFocusRef}
-      description="Workspace source · opened beside your current page"
+      description={uiText('ui.SourceCommandSearch.message004')}
       className={styles.beside}
     >
       {fragment.isPending ? (
-        <p role="status">Checking source passage…</p>
+        <p role="status">{uiText('ui.SourceCommandSearch.message005')}</p>
       ) : fragment.error ? (
         <p role="alert">
-          This source passage is unavailable or has changed:{' '}
-          {describeError(fragment.error)}. Search again to open its current version.
+          {uiText('ui.SourceCommandSearch.message006')} {describeError(fragment.error)}
+          {uiText('ui.SourceCommandSearch.message007')}
         </p>
       ) : (
         <>
           <blockquote>{fragment.data.content}</blockquote>
-          <p>Source version: {chunk.sourceVersionId}</p>
-          <Button onClick={onOpen}>Open page</Button>
+          <p>
+            {uiText('ui.SourceCommandSearch.message008')} {chunk.sourceVersionId}
+          </p>
+          <Button onClick={onOpen}>{uiText('ui.GroundedAnswer.message006')}</Button>
         </>
       )}
     </SlideOver>

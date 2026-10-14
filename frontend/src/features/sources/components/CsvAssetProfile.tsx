@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import type { CsvProfile } from '../api/sourceExtraction';
 
@@ -7,39 +8,39 @@ export function CsvAssetProfile({
 }: {
   readonly profile: CsvProfile;
 }): ReactElement {
+  useUiLocale();
   const delimiter =
     profile.delimiter === null
-      ? 'Single column'
+      ? uiText('ui.CsvAssetProfile.message001')
       : ({ ',': 'Comma', ';': 'Semicolon', '\t': 'Tab', '|': 'Pipe' } as const)[
           profile.delimiter
         ];
   return (
-    <section aria-label="CSV data asset">
-      <h3>CSV data asset</h3>
+    <section aria-label={uiText('ui.CsvAssetProfile.message002')}>
+      <h3>{uiText('ui.CsvAssetProfile.message002')}</h3>
       <p>
-        Encoding: {profile.encoding}. Separator: {delimiter}.
+        {uiText('ui.CsvAssetProfile.message003')} {profile.encoding}
+        {uiText('ui.CsvAssetProfile.message004')} {delimiter}.
       </p>
       <p>
-        Data rows: {profile.rowCount ?? 'Unknown'}. Profiled data rows:{' '}
-        {profile.profiledRowCount}
-        {profile.rowScanComplete ? ' (complete row scan)' : ' (limited row scan)'}.
+        {uiText('ui.CsvAssetProfile.message005')}{' '}
+        {profile.rowCount ?? uiText('ui.ProblemForm.message012')}
+        {uiText('ui.CsvAssetProfile.message006')} {profile.profiledRowCount}
+        {profile.rowScanComplete
+          ? ' ' + uiText('ui.CsvAssetProfile.message007')
+          : ' ' + uiText('ui.CsvAssetProfile.message008')}
+        .
       </p>
-      <p>
-        The first nonempty record is assumed to contain column names. Inferred types can
-        be wrong; verify them before analysis.
-      </p>
-      <p>
-        Missing counts cover profiled rows and treat empty or whitespace-only cells as
-        missing. Text such as NA or null remains a value.
-      </p>
-      <p>AI source questions use this schema. Use the original file for calculations.</p>
-      <table aria-label="CSV inferred schema">
+      <p>{uiText('ui.CsvAssetProfile.message009')}</p>
+      <p>{uiText('ui.CsvAssetProfile.message010')}</p>
+      <p>{uiText('ui.CsvAssetProfile.message011')}</p>
+      <table aria-label={uiText('ui.CsvAssetProfile.message012')}>
         <thead>
           <tr>
-            <th scope="col">Column</th>
-            <th scope="col">Name</th>
-            <th scope="col">Inferred type</th>
-            <th scope="col">Missing in profiled rows</th>
+            <th scope="col">{uiText('ui.AnalysisProvenance.message007')}</th>
+            <th scope="col">{uiText('ui.CsvAssetProfile.message013')}</th>
+            <th scope="col">{uiText('ui.CsvAssetProfile.message014')}</th>
+            <th scope="col">{uiText('ui.CsvAssetProfile.message015')}</th>
           </tr>
         </thead>
         <tbody>
