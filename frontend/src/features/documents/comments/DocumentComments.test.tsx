@@ -12,11 +12,16 @@ import {
 import { Editor } from '@tiptap/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DocumentComments } from './DocumentComments';
+import { memberApi } from '../../comments/memberApi';
 import { commentApi, type DocumentComment } from './commentApi';
 import { attachCommentAnchor } from './commentAnchor';
 import { documentExtensions } from '../api/documentContent';
 import { ApiError, queryKeys } from '../../../shared/api';
 
+jest.mock('../../comments/memberApi', () => ({
+  ...jest.requireActual('../../comments/memberApi'),
+  memberApi: { search: jest.fn() },
+}));
 jest.mock('./commentApi', () => ({
   commentApi: {
     list: jest.fn(),
@@ -385,4 +390,35 @@ it('keeps a pending request unavailable until the server returns and treats empt
   expect(screen.getByText('Loading comments…')).toBeTruthy();
   await act(async () => resolve([]));
   expect(await screen.findByText('No open comments yet.')).toBeTruthy();
+});
+
+it('uses recipient identity in a reply retry key when identical visible names are swapped', async () => {
+  jest.mocked(commentApi.reply).mockRejectedValue(new Error('Offline'));
+  jest
+    .mocked(memberApi.search)
+    .mockImplementation(async (_workspace, query) => [
+      { userId: query === 'Ada ' ? 'other-ada' : 'ada', displayLabel: 'Ada' },
+    ]);
+  render(panel(), { wrapper });
+  await loaded();
+  fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
+  const input = screen.getByLabelText('Reply to Ada Lovelace') as HTMLTextAreaElement;
+  const picker = screen.getByRole('combobox', { name: 'Mention a workspace member' });
+  fireEvent.focus(picker);
+  fireEvent.click(await screen.findByRole('button', { name: 'Ada' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send reply' }));
+  await screen.findByRole('alert');
+  await act(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  });
+  input.setSelectionRange(0, input.value.length);
+  fireEvent.change(picker, { target: { value: 'Ada ' } });
+  fireEvent.click(await screen.findByRole('button', { name: 'Ada' }));
+  expect(input.value).toBe('@Ada ');
+  fireEvent.click(screen.getByRole('button', { name: 'Send reply' }));
+  await screen.findByRole('alert');
+  const calls = jest.mocked(commentApi.reply).mock.calls;
+  expect(calls[0]![3]).not.toBe(calls[1]![3]);
+  expect(calls[0]![5]?.[0]?.userId).toBe('ada');
+  expect(calls[1]![5]?.[0]?.userId).toBe('other-ada');
 });

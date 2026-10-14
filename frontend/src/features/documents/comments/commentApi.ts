@@ -1,3 +1,4 @@
+import type { Mention } from '../../comments/memberApi';
 import { apiClient, CSRF_PRIMING_PATH } from '../../../shared/api';
 import type { CommentAnchor } from './commentAnchor';
 import type { AuthoringSuggestion } from '../../ai/api/authoringApi';
@@ -20,10 +21,12 @@ export interface CommentReply {
   readonly authorName: string;
   readonly body: string;
   readonly createdAt: string;
+  readonly mentions?: readonly Mention[];
 }
 export interface DocumentComment extends CommentReply {
   readonly workspaceId: string;
   readonly documentId: string;
+  readonly revision?: number;
   readonly status: 'OPEN' | 'RESOLVED';
   readonly anchor: CommentAnchor;
   readonly orphaned: boolean;
@@ -37,7 +40,7 @@ export interface CommentEvent {
   readonly id: string;
   readonly actorId: string;
   readonly actorName: string;
-  readonly action: 'CREATED' | 'REPLIED' | 'RESOLVED' | 'REOPENED';
+  readonly action: 'CREATED' | 'REPLIED' | 'RESOLVED' | 'REOPENED' | 'EDITED';
   readonly previousStatus: 'OPEN' | 'RESOLVED' | null;
   readonly status: 'OPEN' | 'RESOLVED';
   readonly createdAt: string;
@@ -83,10 +86,11 @@ export const commentApi = {
     documentId: string,
     anchor: CommentAnchor,
     body: string,
+    mentions?: readonly Mention[],
   ): Promise<DocumentComment> => {
     await apiClient.get(CSRF_PRIMING_PATH);
     return apiClient.post(path(workspaceId, documentId), {
-      body: { id: anchor.id, anchor, body },
+      body: { id: anchor.id, anchor, body, ...(mentions?.length ? { mentions } : {}) },
     });
   },
   reply: async (
@@ -95,10 +99,24 @@ export const commentApi = {
     commentId: string,
     id: string,
     body: string,
+    mentions?: readonly Mention[],
   ): Promise<DocumentComment> => {
     await apiClient.get(CSRF_PRIMING_PATH);
     return apiClient.post(`${path(workspaceId, documentId)}/${commentId}/replies`, {
-      body: { id, body },
+      body: { id, body, ...(mentions?.length ? { mentions } : {}) },
+    });
+  },
+  edit: async (
+    workspaceId: string,
+    documentId: string,
+    id: string,
+    revision: number,
+    body: string,
+    mentions: readonly Mention[],
+  ): Promise<DocumentComment> => {
+    await apiClient.get(CSRF_PRIMING_PATH);
+    return apiClient.put(`${path(workspaceId, documentId)}/${id}/body`, {
+      body: { revision, body, mentions },
     });
   },
   status: async (

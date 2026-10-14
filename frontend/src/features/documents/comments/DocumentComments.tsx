@@ -8,12 +8,16 @@ import { Button } from '../../../shared/components/Button';
 import { Icon } from '../../../shared/components/icons';
 import { commentApi, type DocumentComment } from './commentApi';
 import { commentRange, navigateToComment, type CommentAnchor } from './commentAnchor';
+import { MentionComposer, MentionLabels } from '../../comments/MentionComposer';
+import { EditComment } from '../../comments/EditComment';
+import { canonicalMentions, type Mention } from '../../comments/memberApi';
+import { CreateReviewTaskButton } from '../../review-tasks/TaskComposer';
 import styles from './DocumentComments.module.css';
 import { CommentEvidence } from './CommentEvidence';
 
 type Action =
-  | { kind: 'create'; anchor: CommentAnchor; body: string }
-  | { kind: 'reply'; commentId: string; id: string; body: string }
+  | { kind: 'create'; anchor: CommentAnchor; body: string; mentions: Mention[] }
+  | { kind: 'reply'; commentId: string; id: string; body: string; mentions: Mention[] }
   | { kind: 'status'; commentId: string; status: DocumentComment['status'] };
 
 export function DocumentComments({
@@ -50,11 +54,16 @@ export function DocumentComments({
   const [showResolved, setShowResolved] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [body, setBody] = useState('');
+  const [typedMentions, setTypedMentions] = useState<Mention[]>([]);
+  const [replyMentions, setReplyMentions] = useState<Mention[]>([]);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
-  const replyAttempt = useRef<{ id: string; body: string; commentId: string } | null>(
-    null,
-  );
+  const replyAttempt = useRef<{
+    id: string;
+    body: string;
+    commentId: string;
+    mentions: string;
+  } | null>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
   const [liveAnchors, setLiveAnchors] = useState<ReadonlySet<string> | null>(null);
   const history = useQuery({
@@ -66,7 +75,15 @@ export function DocumentComments({
   const mutation = useMutation({
     mutationFn: (action: Action) => {
       if (action.kind === 'create')
-        return commentApi.create(workspaceId, documentId, action.anchor, action.body);
+        return action.mentions.length
+          ? commentApi.create(
+              workspaceId,
+              documentId,
+              action.anchor,
+              action.body,
+              action.mentions,
+            )
+          : commentApi.create(workspaceId, documentId, action.anchor, action.body);
       if (action.kind === 'reply')
         return commentApi.reply(
           workspaceId,
@@ -74,6 +91,7 @@ export function DocumentComments({
           action.commentId,
           action.id,
           action.body,
+          ...(action.mentions.length ? [action.mentions] : []),
         );
       return commentApi.status(workspaceId, documentId, action.commentId, action.status);
     },
@@ -90,10 +108,12 @@ export function DocumentComments({
       setActiveId(updated.id);
       if (action.kind === 'create') {
         setBody('');
+        setTypedMentions([]);
         onCancel();
       }
       if (action.kind === 'reply') {
         setReplyBody('');
+        setReplyMentions([]);
         setReplyTo(null);
         replyAttempt.current = null;
       }
@@ -231,19 +251,17 @@ export function DocumentComments({
         <div className={styles.composer}>
           <h3>{uiText('ui.DocumentComments.message010')}</h3>
           <blockquote>{pendingAnchor.quote}</blockquote>
-          <label className="visually-hidden" htmlFor="comment-body">
-            {uiText('ui.DocumentComments.message011')}
-          </label>
-          <textarea
-            ref={composer}
+          <MentionComposer
+            workspaceId={workspaceId}
             id="comment-body"
-            rows={4}
-            maxLength={4000}
-            value={body}
-            placeholder={uiText('ui.DocumentComments.message012')}
+            label={uiText('ui.DocumentComments.message011')}
+            inputRef={composer}
+            body={body}
+            mentions={typedMentions}
             disabled={mutation.isPending}
-            onChange={(event) => {
-              setBody(event.target.value);
+            onChange={(value, typed) => {
+              setBody(value);
+              setTypedMentions(typed);
               mutation.reset();
             }}
           />
@@ -259,6 +277,7 @@ export function DocumentComments({
               disabled={mutation.isPending}
               onClick={() => {
                 setBody('');
+                setTypedMentions([]);
                 mutation.reset();
                 onCancel();
               }}
@@ -270,7 +289,12 @@ export function DocumentComments({
               disabled={!body.trim() || !saved || !liveAnchors?.has(pendingAnchor.id)}
               busy={mutation.isPending}
               onClick={() =>
-                mutation.mutate({ kind: 'create', anchor: pendingAnchor, body })
+                mutation.mutate({
+                  kind: 'create',
+                  anchor: pendingAnchor,
+                  body,
+                  mentions: canonicalMentions(body, typedMentions),
+                })
               }
             >
               {uiText('ui.DocumentComments.message015')}
@@ -344,6 +368,7 @@ export function DocumentComments({
             date={comment.createdAt}
             body={comment.body}
           />
+          <MentionLabels mentions={comment.mentions ?? []} />
           {comment.replies.map((reply) => (
             <Contribution
               key={reply.id}
@@ -363,6 +388,17 @@ export function DocumentComments({
             </p>
           ) : null}
           <div className={styles.actions}>
+            {writable ? (
+              <CreateReviewTaskButton
+                workspaceId={workspaceId}
+                target={{ targetType: 'COMMENT', targetId: comment.id, documentId }}
+              />
+            ) : null}
+            {writable &&
+            comment.authorId ===
+              client.getQueryData<{ id: string }>(queryKeys.currentUser())?.id ? (
+              <EditComment key={`${comment.id}-${comment.revision}`} comment={comment} />
+            ) : null}
             {writable && comment.status === 'OPEN' ? (
               <Button
                 variant="ghost"
@@ -371,6 +407,7 @@ export function DocumentComments({
                 onClick={() => {
                   setReplyTo(comment.id);
                   setReplyBody('');
+                  setReplyMentions([]);
                   mutation.reset();
                 }}
               >
@@ -410,18 +447,17 @@ export function DocumentComments({
           </div>
           {replyTo === comment.id && writable && comment.status === 'OPEN' ? (
             <div className={styles.reply}>
-              <label htmlFor={`reply-${comment.id}`}>
-                {uiText('ui.DocumentComments.message030')} {comment.authorName}
-              </label>
-              <textarea
+              <MentionComposer
+                workspaceId={workspaceId}
                 id={`reply-${comment.id}`}
-                autoFocus
-                rows={3}
-                maxLength={4000}
-                value={replyBody}
+                label={`${uiText('ui.DocumentComments.message030')} ${comment.authorName}`}
+                body={replyBody}
+                mentions={replyMentions}
                 disabled={mutation.isPending}
-                onChange={(event) => {
-                  setReplyBody(event.target.value);
+                autoFocus
+                onChange={(value, typed) => {
+                  setReplyBody(value);
+                  setReplyMentions(typed);
                   mutation.reset();
                 }}
               />
@@ -441,16 +477,33 @@ export function DocumentComments({
                   busy={mutation.isPending}
                   onClick={() => {
                     const previous = replyAttempt.current;
+                    const typed = canonicalMentions(replyBody, replyMentions);
+                    const fingerprint = JSON.stringify(
+                      typed.map(({ userId, displayLabel, start, end }) => ({
+                        userId,
+                        displayLabel,
+                        start,
+                        end,
+                      })),
+                    );
                     const id =
-                      previous?.body === replyBody && previous.commentId === comment.id
+                      previous?.body === replyBody.trim() &&
+                      previous.mentions === fingerprint &&
+                      previous.commentId === comment.id
                         ? previous.id
                         : crypto.randomUUID();
-                    replyAttempt.current = { id, body: replyBody, commentId: comment.id };
+                    replyAttempt.current = {
+                      id,
+                      body: replyBody.trim(),
+                      commentId: comment.id,
+                      mentions: fingerprint,
+                    };
                     mutation.mutate({
                       kind: 'reply',
                       commentId: comment.id,
                       id,
                       body: replyBody,
+                      mentions: typed,
                     });
                   }}
                 >
@@ -495,6 +548,7 @@ export function DocumentComments({
                     {event.actorName}{' '}
                     {
                       {
+                        EDITED: uiText('collab.editComment'),
                         CREATED: 'commented',
                         REPLIED: 'replied',
                         get RESOLVED() {
