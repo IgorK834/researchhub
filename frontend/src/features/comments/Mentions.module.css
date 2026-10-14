@@ -1,0 +1,30 @@
+.picker,
+.composer {
+  display: grid;
+  gap: var(--space-2);
+}
+.picker ul {
+  list-style: none;
+  padding: 0;
+  max-block-size: 14rem;
+  overflow: auto;
+}
+.picker [aria-selected='true'] {
+  background: var(--color-surface-muted);
+}
+.picker button {
+  inline-size: 100%;
+  text-align: start;
+  padding: var(--space-2);
+}
+.hint {
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+}
+.chip {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin: var(--space-1);
+}
