@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { createElement, useMemo, type ReactElement, type ReactNode } from 'react';
 import { Button } from '../../../shared/components/Button';
 import { Icon } from '../../../shared/components/icons';
@@ -36,23 +37,26 @@ function renderNode(
     const citation = node.attrs?.['citation'] as EditorCitation;
     return (
       <span {...props} className={styles.citation} title={citation.title ?? undefined}>
-        {citation.label ?? citation.title ?? 'Citation'}
+        {citation.label ?? citation.title ?? uiText('ui.ResearchEvidence.message001')}
       </span>
     );
   }
   if (node.type === 'analysisResult' && isAnalysisBlockAttrs(node.attrs))
     return (
       <div {...props}>
-        Analysis result: {node.attrs.caption || node.attrs.reference.outputId} · Execution{' '}
-        {node.attrs.reference.executionId} ·{' '}
-        {node.attrs.reference.renderMode.toLowerCase()}
+        {uiText('ui.DocumentVersionDiff.message001')}{' '}
+        {node.attrs.caption || node.attrs.reference.outputId}{' '}
+        {uiText('ui.DocumentAnalysisBlock.message009')} {node.attrs.reference.executionId}{' '}
+        · {node.attrs.reference.renderMode.toLowerCase()}
       </div>
     );
   if (node.type === 'hardBreak')
     return (
       <span {...props}>
         <br />
-        <span className="visually-hidden">Line break</span>
+        <span className="visually-hidden">
+          {uiText('ui.DocumentVersionDiff.message002')}
+        </span>
       </span>
     );
   if (node.type === 'horizontalRule')
@@ -109,35 +113,37 @@ export function DocumentVersionDiff({
   title,
   onClose,
 }: DocumentVersionDiffProps): ReactElement {
+  useUiLocale();
   const diff = useMemo(
     () => compareStoredDocuments(selected, current),
     [selected, current],
   );
   return (
-    <section aria-label="Version differences">
+    <section aria-label={uiText('ui.DocumentVersionDiff.message003')}>
       <div className={styles.previewBanner} role="status">
         <Icon name="eye" size={16} />
         <strong>
-          Previewing v{selectedRevision}, compared with current (v{currentRevision})
+          {uiText('ui.DocumentVersionDiff.message004')}
+          {selectedRevision}
+          {uiText('ui.DocumentVersionDiff.message005')}
+          {currentRevision})
         </strong>
         <div className={styles.diffLegend}>
-          <span data-change="added">Added</span>
-          <span data-change="removed">Removed</span>
+          <span data-change="added">{uiText('ui.DocumentVersionDiff.message006')}</span>
+          <span data-change="removed">{uiText('ui.DocumentVersionDiff.message007')}</span>
         </div>
         <Button
           variant="ghost"
           iconOnly
           icon="x"
-          aria-label="Close version preview"
+          aria-label={uiText('ui.DocumentHistory.message005')}
           onClick={onClose}
         />
       </div>
       <div className={[paper.paper, paper.editor, styles.diffPaper].join(' ')}>
         <h2 className={styles.paperTitle}>{title}</h2>
         {!diff.hasDifferences ? (
-          <p role="status">
-            No differences. This version’s content matches the current stored document.
-          </p>
+          <p role="status">{uiText('ui.DocumentVersionDiff.message008')}</p>
         ) : null}
         {diff.nodes.map(renderNode)}
       </div>

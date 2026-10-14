@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import {
   createContext,
   useContext,
@@ -50,6 +52,7 @@ export function ProvenancePanel({
   readonly target: ProvenanceTarget | null;
   readonly onClose: () => void;
 }): ReactElement {
+  useUiLocale();
   const returnFocusRef = useMemo(
     () => ({ current: target?.trigger ?? null }),
     [target?.trigger],
@@ -57,7 +60,7 @@ export function ProvenancePanel({
   return (
     <SlideOver
       open={target !== null}
-      title="Provenance"
+      title={uiText('ui.DocumentProvenance.message002')}
       onClose={onClose}
       returnFocusRef={returnFocusRef}
     >
@@ -81,6 +84,7 @@ function CitationProvenance({
 }: {
   readonly citation: PreviewCitation;
 }): ReactElement {
+  useUiLocale();
   const versions = useQuery({
     queryKey: ['citation-provenance', citation.workspaceId, citation.sourceId],
     queryFn: ({ signal }) =>
@@ -91,46 +95,57 @@ function CitationProvenance({
   const version = versions.data?.find((v) => v.id === citation.sourceVersionId);
   return (
     <>
-      <h3>Citation provenance</h3>
+      <h3>{uiText('ui.ProvenancePanel.message001')}</h3>
       {citation.sourceVersionId !== null && versions.isPending ? (
-        <p role="status">Loading source provenance…</p>
+        <p role="status">{uiText('ui.ProvenancePanel.message002')}</p>
       ) : null}
       {versions.error ? (
         <p role="alert">
-          Could not load source provenance: {describeError(versions.error)}
+          {uiText('ui.ProvenancePanel.message003')} {describeError(versions.error)}
         </p>
       ) : null}
       {versions.data && !version ? (
-        <p role="status">The immutable source version is unavailable.</p>
+        <p role="status">{uiText('ui.ProvenancePanel.message004')}</p>
       ) : null}
       <dl>
-        <dt>Source name</dt>
-        <dd>{version?.originalFilename ?? citation.title ?? 'Not recorded'}</dd>
-        <dt>Immutable source version</dt>
+        <dt>{uiText('ui.ProvenancePanel.message005')}</dt>
         <dd>
-          {citation.sourceVersionId ?? 'Not recorded for this legacy citation'}
+          {version?.originalFilename ??
+            citation.title ??
+            uiText('ui.AnalysisChart.message001')}
+        </dd>
+        <dt>{uiText('ui.ProvenancePanel.message006')}</dt>
+        <dd>
+          {citation.sourceVersionId ?? uiText('ui.ProvenancePanel.message007')}
           {version ? ` · v${version.versionNumber}` : ''}
         </dd>
-        <dt>Page or fragment</dt>
+        <dt>{uiText('ui.ProvenancePanel.message008')}</dt>
         <dd>
           {citation.pageStart !== null
-            ? `Page ${citation.pageStart}${citation.pageEnd !== null && citation.pageEnd !== citation.pageStart ? `–${citation.pageEnd}` : ''}`
+            ? uiText('ui.ProvenancePanel.message009', {
+                value0: citation.pageStart,
+                value1:
+                  citation.pageEnd !== null && citation.pageEnd !== citation.pageStart
+                    ? `–${citation.pageEnd}`
+                    : '',
+              })
             : (citation.sectionTitle ??
-              (citation.spans.map((s) => s.unitId).join(', ') || 'Not recorded'))}
+              (citation.spans.map((s) => s.unitId).join(', ') ||
+                uiText('ui.AnalysisChart.message001')))}
         </dd>
-        <dt>Fragment content hash (SHA-256)</dt>
+        <dt>{uiText('ui.ProvenancePanel.message010')}</dt>
         <dd>
           <code>{citation.contentHash}</code>
         </dd>
-        <dt>Source content hash (SHA-256)</dt>
+        <dt>{uiText('ui.ProvenancePanel.message011')}</dt>
         <dd>
-          <code>{version?.contentSha256 ?? 'Not recorded'}</code>
+          <code>{version?.contentSha256 ?? uiText('ui.AnalysisChart.message001')}</code>
         </dd>
-        <dt>Processing version</dt>
+        <dt>{uiText('ui.ProvenancePanel.message012')}</dt>
         <dd>{citation.processingVersion}</dd>
       </dl>
       <a href={citationPath({ ...citation, chunkId: citation.chunkId ?? '' })}>
-        Open source reader at this version
+        {uiText('ui.ProvenancePanel.message013')}
       </a>
     </>
   );
@@ -142,6 +157,7 @@ function AnalysisDetails({
   readonly workspaceId: string;
   readonly reference: AnalysisReference;
 }): ReactElement {
+  useUiLocale();
   const saved = useQuery<ExecutionRecord | SolutionBundle>({
     queryKey: [
       'panel-analysis-provenance',
@@ -161,30 +177,33 @@ function AnalysisDetails({
           ),
     retry: false,
   });
-  if (saved.isPending) return <p role="status">Loading analysis provenance…</p>;
+  if (saved.isPending)
+    return <p role="status">{uiText('ui.ProvenancePanel.message014')}</p>;
   if (saved.error)
     return (
-      <p role="alert">Could not load analysis provenance: {describeError(saved.error)}</p>
+      <p role="alert">
+        {uiText('ui.ProvenancePanel.message015')} {describeError(saved.error)}
+      </p>
     );
   if ('execution' in saved.data) return <AnalysisProvenance record={saved.data} />;
   const solution = saved.data;
   return (
     <>
-      <h3>Scientific analysis provenance</h3>
+      <h3>{uiText('ui.ProvenancePanel.message016')}</h3>
       <dl>
-        <dt>Input hash</dt>
+        <dt>{uiText('ui.ProvenancePanel.message017')}</dt>
         <dd>
           <code>{solution.inputHash}</code>
         </dd>
-        <dt>Plan hash</dt>
+        <dt>{uiText('ui.ProvenancePanel.message018')}</dt>
         <dd>
           <code>{solution.planHash}</code>
         </dd>
-        <dt>Runtime version</dt>
+        <dt>{uiText('ui.AnalysisProvenance.message019')}</dt>
         <dd>{solution.runtimeVersion}</dd>
-        <dt>Runtime image</dt>
+        <dt>{uiText('ui.ProvenancePanel.message019')}</dt>
         <dd>{solution.imageId}</dd>
-        <dt>Generated code hashes</dt>
+        <dt>{uiText('ui.ProvenancePanel.message020')}</dt>
         <dd>
           {Object.entries(solution.codeHashes).map(([name, hash]) => (
             <p key={name}>
@@ -192,16 +211,19 @@ function AnalysisDetails({
             </p>
           ))}
         </dd>
-        <dt>Outputs</dt>
-        <dd>{solution.outputs.map((o) => o.name).join(', ') || 'None'}</dd>
-        <dt>Duration</dt>
-        <dd>Not recorded in this solution contract</dd>
-        <dt>Re-run origin</dt>
+        <dt>{uiText('ui.ProvenancePanel.message021')}</dt>
+        <dd>
+          {solution.outputs.map((o) => o.name).join(', ') ||
+            uiText('ui.ProvenancePanel.message022')}
+        </dd>
+        <dt>{uiText('ui.AnalysisProvenance.message023')}</dt>
+        <dd>{uiText('ui.ProvenancePanel.message023')}</dd>
+        <dt>{uiText('ui.AnalysisProvenance.message003')}</dt>
         <dd>
           <pre>
             {solution.origin
               ? JSON.stringify(solution.origin, null, 2)
-              : 'Original execution'}
+              : uiText('ui.AnalysisProvenance.message004')}
           </pre>
         </dd>
       </dl>
@@ -217,6 +239,7 @@ function BlockDetails({
   readonly documentId: string;
   readonly blockId: string | null;
 }): ReactElement {
+  useUiLocale();
   const history = useQuery({
     queryKey: ['document-provenance', workspaceId, documentId, blockId],
     queryFn: ({ signal }) =>
@@ -227,53 +250,84 @@ function BlockDetails({
     enabled: blockId !== null,
     retry: false,
   });
-  if (blockId === null) return <p>No origin was recorded for this legacy block.</p>;
-  if (history.isPending) return <p role="status">Loading block provenance…</p>;
+  if (blockId === null) return <p>{uiText('ui.ProvenancePanel.message024')}</p>;
+  if (history.isPending)
+    return <p role="status">{uiText('ui.ProvenancePanel.message025')}</p>;
   if (history.error)
     return (
-      <p role="alert">Could not load block provenance: {describeError(history.error)}</p>
+      <p role="alert">
+        {uiText('ui.ProvenancePanel.message026')} {describeError(history.error)}
+      </p>
     );
-  if (history.data.length === 0) return <p>No saved provenance for this block.</p>;
+  if (history.data.length === 0) return <p>{uiText('ui.ProvenancePanel.message027')}</p>;
   return (
     <>
-      <h3>Recorded block operations</h3>
-      <p>
-        These operations record origin at a saved revision. Later edits may change the
-        wording.
-      </p>
+      <h3>{uiText('ui.DocumentProvenance.message011')}</h3>
+      <p>{uiText('ui.ProvenancePanel.message028')}</p>
       <ol>
         {history.data.map((op) => (
           <li key={op.id}>
-            <strong>{op.category}</strong>
+            <strong>
+              {op.operationType === 'TEMPLATE_APPLIED'
+                ? uiText('templates.origin')
+                : op.category}
+            </strong>
             <dl>
+              {op.metadata.documentTemplate ? (
+                <>
+                  <dt>{uiText('templates.select')}</dt>
+                  <dd>
+                    {op.metadata.documentTemplate.templateId} ·{' '}
+                    {uiText('templates.version', {
+                      version: op.metadata.documentTemplate.version,
+                    })}{' '}
+                    · {op.metadata.documentTemplate.locale.toUpperCase()}
+                  </dd>
+                  <dt>SHA-256</dt>
+                  <dd>
+                    <code>{op.metadata.documentTemplate.templateSha256}</code>
+                  </dd>
+                </>
+              ) : null}
               {op.category.startsWith('AI_') ? (
                 <>
-                  <dt>Model name</dt>
-                  <dd>{op.metadata.model?.name ?? 'Not recorded'}</dd>
-                  <dt>Model version</dt>
-                  <dd>{op.metadata.model?.version ?? 'Not recorded'}</dd>
-                  <dt>Template version</dt>
+                  <dt>{uiText('ui.ProvenancePanel.message029')}</dt>
                   <dd>
-                    {op.metadata.templateId ?? 'Not recorded'}
+                    {op.metadata.model?.name ?? uiText('ui.AnalysisChart.message001')}
+                  </dd>
+                  <dt>{uiText('ui.ProvenancePanel.message030')}</dt>
+                  <dd>
+                    {op.metadata.model?.version ?? uiText('ui.AnalysisChart.message001')}
+                  </dd>
+                  <dt>{uiText('ui.ProvenancePanel.message031')}</dt>
+                  <dd>
+                    {op.metadata.templateId ?? uiText('ui.AnalysisChart.message001')}
                     {op.metadata.templateHash ? (
                       <code>{op.metadata.templateHash}</code>
                     ) : null}
                   </dd>
                 </>
               ) : null}
-              <dt>{op.operationType === 'AI_ACCEPTED' ? 'Approving user' : 'Actor'}</dt>
+              <dt>
+                {op.operationType === 'AI_ACCEPTED'
+                  ? uiText('ui.ProvenancePanel.message032')
+                  : uiText('ui.ProvenancePanel.message033')}
+              </dt>
               <dd>
-                {op.actorName} · {op.actorUserId ?? 'System'}
+                {op.actorName} ·{' '}
+                {op.actorUserId ?? uiText('ui.DocumentHistory.message017')}
               </dd>
               <dt>
-                {op.operationType === 'AI_ACCEPTED' ? 'Approved at' : 'Recorded at'}
+                {op.operationType === 'AI_ACCEPTED'
+                  ? uiText('ui.ProvenancePanel.message034')
+                  : uiText('ui.ProvenancePanel.message035')}
               </dt>
               <dd>
                 <time dateTime={op.createdAt}>
-                  {new Date(op.createdAt).toLocaleString()}
+                  {new Date(op.createdAt).toLocaleString(getIntlLocale())}
                 </time>
               </dd>
-              <dt>Document revision</dt>
+              <dt>{uiText('ui.ProvenancePanel.message036')}</dt>
               <dd>{op.documentRevision}</dd>
             </dl>
           </li>

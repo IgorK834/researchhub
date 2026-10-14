@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
@@ -26,6 +27,7 @@ export function DocumentRowActions({
   readonly workspaceId: string;
   readonly document: DocumentSummary;
 }): ReactElement {
+  useUiLocale();
   const [action, setAction] = useState<'rename' | 'archive' | null>(null);
   const [title, setTitle] = useState(document.title);
   const save = useSaveDocument(workspaceId, document.id);
@@ -57,30 +59,38 @@ export function DocumentRowActions({
         variant="ghost"
         size="compact"
         icon="pencil"
-        aria-label={`Rename ${document.title}`}
+        aria-label={uiText('ui.DocumentRowActions.message001', {
+          value0: document.title,
+        })}
         onClick={() => {
           rename.reset();
           setTitle(document.title);
           setAction('rename');
         }}
       >
-        Rename
+        {uiText('ui.DocumentRowActions.message002')}
       </Button>
       <Button
         variant="ghost"
         size="compact"
         icon="archive"
-        aria-label={`Archive ${document.title}`}
+        aria-label={uiText('ui.DocumentRowActions.message003', {
+          value0: document.title,
+        })}
         onClick={() => {
           archive.reset();
           setAction('archive');
         }}
       >
-        Archive
+        {uiText('ui.DocumentRowActions.message004')}
       </Button>
       <Dialog
         open={action !== null}
-        title={action === 'rename' ? 'Rename document' : 'Archive document'}
+        title={
+          action === 'rename'
+            ? uiText('ui.DocumentRowActions.message005')
+            : uiText('ui.DocumentEditorForm.message021')
+        }
         onClose={() => setAction(null)}
         closeDisabled={pending}
         dismissible={!pending}
@@ -88,7 +98,7 @@ export function DocumentRowActions({
         {error !== null ? (
           <p role="alert">
             {hasApiErrorCode(error, 'CONFLICT')
-              ? 'The document changed before this action completed. Please try again.'
+              ? uiText('ui.DocumentRowActions.message006')
               : error instanceof UnsupportedDocumentContentError
                 ? error.message
                 : describeError(error)}
@@ -104,7 +114,7 @@ export function DocumentRowActions({
             noValidate
           >
             <TextField
-              label="Document title"
+              label={uiText('ui.DocumentRowActions.message007')}
               value={title}
               error={fieldErrors['title']}
               autoComplete="off"
@@ -115,26 +125,27 @@ export function DocumentRowActions({
               type="submit"
               disabled={!title.trim()}
               busy={pending}
-              busyLabel="Renaming…"
+              busyLabel={uiText('ui.DocumentRowActions.message008')}
             >
-              Rename document
+              {uiText('ui.DocumentRowActions.message005')}
             </Button>
           </form>
         ) : (
           <>
             <p>
-              Archive “{document.title}”? It leaves this list, and its text stays
-              available through its existing link.
+              {uiText('ui.DocumentRowActions.message009')}
+              {document.title}
+              {uiText('ui.DocumentRowActions.message010')}
             </p>
             <Button
               variant="danger"
               busy={pending}
-              busyLabel="Archiving…"
+              busyLabel={uiText('ui.DocumentEditorForm.message020')}
               onClick={() =>
                 archive.mutate(undefined, { onSuccess: () => setAction(null) })
               }
             >
-              Archive document
+              {uiText('ui.DocumentEditorForm.message021')}
             </Button>
           </>
         )}

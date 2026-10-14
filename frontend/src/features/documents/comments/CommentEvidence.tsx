@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import type { Editor } from '@tiptap/core';
 import { useMutation } from '@tanstack/react-query';
@@ -29,6 +31,7 @@ export function CommentEvidence({
   readonly saved: boolean;
   readonly onUpdated: (comment: DocumentComment) => void;
 }): ReactElement {
+  useUiLocale();
   const request = useRef<string | null>(null);
   const [pending, setPending] = useState<{
     suggestionId: string;
@@ -104,36 +107,33 @@ export function CommentEvidence({
           busy={invocation.isPending}
           onClick={() => invocation.mutate()}
         >
-          Find evidence with AI
+          {uiText('ui.CommentEvidence.message001')}
         </Button>
       ) : null}
       {invocation.isPending ? (
-        <p role="status">Researching the highlighted claim…</p>
+        <p role="status">{uiText('ui.CommentEvidence.message002')}</p>
       ) : null}
       {invocation.error ? (
         <p role="alert">
-          Could not find evidence: {describeError(invocation.error)} You can retry this
-          request.
+          {uiText('ui.CommentEvidence.message003')} {describeError(invocation.error)}{' '}
+          {uiText('ui.CommentEvidence.message004')}
         </p>
       ) : null}
       {insertionError ? (
-        <p role="alert">
-          The passage is unavailable or the editor is read-only. Select live text before
-          inserting a citation.
-        </p>
+        <p role="alert">{uiText('ui.CommentEvidence.message005')}</p>
       ) : null}
       {pending && !acceptance.error ? (
         <p role="status">
           {saved
-            ? 'Confirming the saved citation…'
-            : 'Waiting for the inserted citation to be saved…'}
+            ? uiText('ui.CommentEvidence.message006')
+            : uiText('ui.CommentEvidence.message007')}
         </p>
       ) : null}
       {acceptance.error && pending ? (
         <div role="alert">
           <p>
-            Could not confirm the citation: {describeError(acceptance.error)} The document
-            keeps your edit.
+            {uiText('ui.CommentEvidence.message008')} {describeError(acceptance.error)}{' '}
+            {uiText('ui.CommentEvidence.message009')}
           </p>
           {writable ? (
             <Button
@@ -142,7 +142,7 @@ export function CommentEvidence({
               disabled={!saved || acceptance.isPending}
               onClick={() => acceptance.mutate(pending)}
             >
-              Retry confirmation
+              {uiText('ui.CommentEvidence.message010')}
             </Button>
           ) : null}
           <Button
@@ -155,7 +155,7 @@ export function CommentEvidence({
               acceptance.reset();
             }}
           >
-            Keep edit and dismiss
+            {uiText('ui.CommentEvidence.message011')}
           </Button>
         </div>
       ) : null}
@@ -163,15 +163,16 @@ export function CommentEvidence({
         <section
           key={suggestion.id}
           className={styles.aiSuggestion}
-          aria-label="AI evidence suggestion"
+          aria-label={uiText('ui.CommentEvidence.message012')}
         >
           <p className={styles.aiHeading}>
-            <Icon name="sparkle" size={16} /> <strong>AI · Evidence suggestion</strong>
+            <Icon name="sparkle" size={16} />{' '}
+            <strong>{uiText('ui.CommentEvidence.message013')}</strong>
           </p>
           <p className={styles.meta}>
-            Requested by {suggestion.requestedByName} ·{' '}
+            {uiText('ui.AnalysisProvenance.message014')} {suggestion.requestedByName} ·{' '}
             <time dateTime={suggestion.createdAt}>
-              {new Date(suggestion.createdAt).toLocaleString()}
+              {new Date(suggestion.createdAt).toLocaleString(getIntlLocale())}
             </time>
           </p>
           {suggestion.evidence.generation ? (
@@ -180,10 +181,12 @@ export function CommentEvidence({
               {suggestion.evidence.generation.model.name}
             </p>
           ) : null}
-          <blockquote aria-label="Claim researched">{suggestion.claim}</blockquote>
+          <blockquote aria-label={uiText('ui.CommentEvidence.message014')}>
+            {suggestion.claim}
+          </blockquote>
           {available && editor && liveClaim !== suggestion.claim ? (
             <p className={styles.evidenceWarning}>
-              Highlighted text changed. Request fresh evidence before citing.
+              {uiText('ui.CommentEvidence.message015')}
             </p>
           ) : null}
           {suggestion.evidence.warnings.map((warning) => (
@@ -197,27 +200,34 @@ export function CommentEvidence({
                 <strong>
                   {
                     {
-                      supporting: 'Supporting evidence',
-                      related: 'Related evidence',
-                      insufficient: 'Insufficient evidence',
+                      get supporting() {
+                        return uiText('ui.ClaimEvidencePanel.message012');
+                      },
+                      get related() {
+                        return uiText('ui.CommentEvidence.message020');
+                      },
+                      get insufficient() {
+                        return uiText('ui.AuthoringPanel.message035');
+                      },
                     }[candidate.category]
                   }
                 </strong>
               </p>
               <a href={citationPath(candidate.citation)}>
-                {candidate.citation.title || 'Open source'}
+                {candidate.citation.title || uiText('ui.ResearchEvidence.message003')}
                 {candidate.citation.pageStart === null
                   ? ''
                   : ` · p. ${candidate.citation.pageStart}`}
               </a>
               <p className={styles.body}>{candidate.reason}</p>
               <details>
-                <summary>Source excerpt</summary>
+                <summary>{uiText('ui.CommentEvidence.message016')}</summary>
                 <blockquote>{candidate.snippet}</blockquote>
               </details>
               {suggestion.acceptedChunkIds.includes(candidate.citation.chunkId) ? (
                 <p className={styles.meta}>
-                  <Icon name="check" size={14} /> Citation inserted manually
+                  <Icon name="check" size={14} />{' '}
+                  {uiText('ui.CommentEvidence.message017')}
                 </p>
               ) : writable && candidate.category !== 'insufficient' ? (
                 <Button
@@ -232,14 +242,12 @@ export function CommentEvidence({
                   }
                   onClick={() => insert(suggestion.id, candidate.citation)}
                 >
-                  Insert citation
+                  {uiText('ui.CommentEvidence.message018')}
                 </Button>
               ) : null}
             </div>
           ))}
-          <p className={styles.meta}>
-            Review source evidence before citing. This suggestion leaves the thread open.
-          </p>
+          <p className={styles.meta}>{uiText('ui.CommentEvidence.message019')}</p>
         </section>
       ))}
     </div>

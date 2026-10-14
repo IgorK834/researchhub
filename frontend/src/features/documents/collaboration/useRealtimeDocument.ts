@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { DocumentProvider } from './DocumentProvider';
 import type { HocuspocusProvider } from '@hocuspocus/provider';
@@ -292,8 +293,8 @@ export function useRealtimeDocument(
               acknowledged = false;
               setFailureDetail(
                 message.code === 'PERSISTENCE_UNAVAILABLE'
-                  ? 'The save service is unavailable. Reconnecting will retry your local changes.'
-                  : 'The server could not accept these changes. Reconnect to verify access and synchronize.',
+                  ? uiText('ui.useRealtimeDocument.message001')
+                  : uiText('ui.useRealtimeDocument.message002'),
               );
               fail(new Error(message.code));
             }

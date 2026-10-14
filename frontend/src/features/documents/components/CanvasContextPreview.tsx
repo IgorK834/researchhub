@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { Editor } from '@tiptap/core';
 import type { SelectionBookmark, Transaction } from '@tiptap/pm/state';
@@ -44,6 +45,7 @@ export function CanvasContextPreview({
   readonly onApplying?: (value: boolean) => void;
   readonly onApplied?: () => Promise<void>;
 }): ReactElement {
+  useUiLocale();
   const target = useRef(bookmark);
   const [original, setOriginal] = useState(() =>
     canvasSelectionKey(editor, bookmark.resolve(editor.state.doc)),
@@ -141,15 +143,15 @@ export function CanvasContextPreview({
   return (
     <AnchoredPopover
       anchor={editor.view.dom}
-      title="Ask AI — document context"
+      title={uiText('ui.CanvasContextPreview.message001')}
       virtualAnchor={virtualAnchor}
       className={chatStyles.surface}
       onClose={onClose}
     >
       {!saved && !context ? (
-        <p role="status">Waiting for your document to save and synchronize…</p>
+        <p role="status">{uiText('ui.CanvasContextPreview.message002')}</p>
       ) : null}
-      {busy ? <p role="status">Preparing the selected context…</p> : null}
+      {busy ? <p role="status">{uiText('ui.CanvasContextPreview.message003')}</p> : null}
       {error ? (
         <>
           <p role="alert">{error}</p>
@@ -160,19 +162,19 @@ export function CanvasContextPreview({
               setAttempt((value) => value + 1);
             }}
           >
-            Retry
+            {uiText('ui.CanvasContextPreview.message004')}
           </Button>
         </>
       ) : null}
       {context ? (
         <div data-canvas-context-id={context.contextId}>
-          <p role="status">Context ready</p>
+          <p role="status">{uiText('ui.CanvasContextPreview.message005')}</p>
           <p>
             {context.snapshot.target.kind === 'CARET'
-              ? 'At the caret'
+              ? uiText('ui.CanvasAiChat.message004')
               : context.snapshot.target.kind === 'ANALYSIS'
-                ? 'Selected analysis result'
-                : 'Selected text'}
+                ? uiText('ui.CanvasAiChat.message005')
+                : uiText('ui.AuthoringPanel.message040')}
           </p>
           <blockquote>
             {context.snapshot.formulas?.map((math) => math.accessibleText).join('; ') ||
@@ -201,7 +203,7 @@ export function CanvasContextPreview({
         }}
       />
       <Button variant="secondary" onClick={onClose}>
-        Close
+        {uiText('ui.CanvasContextPreview.message006')}
       </Button>
     </AnchoredPopover>
   );

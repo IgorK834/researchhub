@@ -1,22 +1,28 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import type { Editor } from '@tiptap/core';
 import { mathValue, parseMath } from '../api/mathAst';
 export function MathAuthoring({ editor }: { readonly editor: Editor }): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [block, setBlock] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(false);
   return (
     <>
-      <button type="button" aria-label="Insert formula" onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        aria-label={uiText('ui.MathAuthoring.message001')}
+        onClick={() => setOpen(!open)}
+      >
         ∑
       </button>
       {open && (
-        <div role="group" aria-label="Formula editor">
+        <div role="group" aria-label={uiText('ui.MathAuthoring.message002')}>
           <label>
-            Formula
+            {uiText('ui.ProblemForm.message009')}
             <input
-              aria-label="Formula"
+              aria-label={uiText('ui.ProblemForm.message009')}
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={1000}
@@ -28,9 +34,9 @@ export function MathAuthoring({ editor }: { readonly editor: Editor }): ReactEle
               checked={block}
               onChange={(e) => setBlock(e.target.checked)}
             />
-            Display equation
+            {uiText('ui.MathAuthoring.message003')}
           </label>
-          <span>Use + − * / ^ =, sqrt, sin, cos. Angles use radians.</span>
+          <span>{uiText('ui.MathAuthoring.message004')}</span>
           <button
             type="button"
             onClick={() => {
@@ -46,18 +52,18 @@ export function MathAuthoring({ editor }: { readonly editor: Editor }): ReactEle
                   .run();
                 setOpen(false);
                 setText('');
-                setError('');
+                setError(false);
               } catch (e) {
-                setError(e instanceof Error ? e.message : 'Invalid formula');
+                setError(true);
               }
             }}
           >
-            Insert
+            {uiText('ui.InsertAnalysisResult.message020')}
           </button>
           <button type="button" onClick={() => setOpen(false)}>
-            Cancel
+            {uiText('ui.InsertAnalysisResult.message019')}
           </button>
-          {error && <span role="alert">{error}</span>}
+          {error && <span role="alert">{uiText('editor.mathError')}</span>}
         </div>
       )}
     </>

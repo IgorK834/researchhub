@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import { Node, type JSONContent } from '@tiptap/core';
 
 export interface AnalysisReference {
@@ -123,6 +124,6 @@ export const AnalysisResultBlock = Node.create({
   renderHTML: ({ node }) => [
     'section',
     { 'data-analysis-result': node.attrs.blockId },
-    node.attrs.caption || 'Referenced analysis result',
+    node.attrs.caption || uiText('ui.analysisReference.message001'),
   ],
 });

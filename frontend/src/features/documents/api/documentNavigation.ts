@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { citationReferences } from './researchCitation';
 import { isAnalysisBlockAttrs, type AnalysisBlockAttrs } from './analysisReference';
@@ -31,7 +32,7 @@ export function documentNavigation(
       headings.push({
         position,
         level: node.attrs['level'] as number,
-        title: node.textContent.trim() || 'Untitled section',
+        title: node.textContent.trim() || uiText('ui.documentNavigation.message001'),
       });
   });
   return {

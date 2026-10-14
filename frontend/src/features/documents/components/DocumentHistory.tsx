@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createDocumentSnapshot } from '../api/documentApi';
@@ -35,13 +37,27 @@ export interface DocumentHistoryProps {
 }
 
 const REASONS: Readonly<Record<DocumentVersionReason, string>> = {
-  CREATED: 'Created',
-  MANUAL_SAVE: 'Saved version',
-  AUTOSAVE_CHECKPOINT: 'Autosave checkpoint',
-  RESTORE: 'Restored',
-  AI_ACCEPTANCE: 'AI suggestion accepted',
-  MANUAL_SNAPSHOT: 'Named snapshot',
-  SCHEDULED_SNAPSHOT: 'Automatic snapshot',
+  get CREATED() {
+    return uiText('ui.AccountSettings.message013');
+  },
+  get MANUAL_SAVE() {
+    return uiText('ui.DocumentHistory.message035');
+  },
+  get AUTOSAVE_CHECKPOINT() {
+    return uiText('ui.DocumentHistory.message036');
+  },
+  get RESTORE() {
+    return uiText('ui.DocumentHistory.message037');
+  },
+  get AI_ACCEPTANCE() {
+    return uiText('ui.DocumentHistory.message038');
+  },
+  get MANUAL_SNAPSHOT() {
+    return uiText('ui.DocumentHistory.message039');
+  },
+  get SCHEDULED_SNAPSHOT() {
+    return uiText('ui.DocumentHistory.message040');
+  },
 };
 const REASON_ICONS: Readonly<Record<DocumentVersionReason, IconName>> = {
   CREATED: 'file',
@@ -54,7 +70,7 @@ const REASON_ICONS: Readonly<Record<DocumentVersionReason, IconName>> = {
 };
 function formatTime(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(getIntlLocale());
 }
 
 /** Immutable restore points. Confirmation keeps the existing revision check and never discards unsaved edits. */
@@ -71,6 +87,7 @@ export function DocumentHistory({
   previewHost,
   onPreviewChange,
 }: DocumentHistoryProps): ReactElement {
+  useUiLocale();
   const [snapshotName, setSnapshotName] = useState('');
   const client = useQueryClient();
   const snapshot = useMutation({
@@ -106,18 +123,19 @@ export function DocumentHistory({
   const comparison =
     previewId === null || !isOpen ? null : (
       <div>
-        {preview.isPending ? <p role="status">Loading this version…</p> : null}
+        {preview.isPending ? (
+          <p role="status">{uiText('ui.DocumentHistory.message001')}</p>
+        ) : null}
         {preview.error !== null ? (
-          <p role="alert">Could not load this version: {describeError(preview.error)}</p>
+          <p role="alert">
+            {uiText('ui.DocumentHistory.message002')} {describeError(preview.error)}
+          </p>
         ) : null}
         {preview.data !== undefined && previewBody === null ? (
-          <p>This version contains content this editor cannot display.</p>
+          <p>{uiText('ui.DocumentHistory.message003')}</p>
         ) : null}
         {previewBody !== null && currentBody === null ? (
-          <p>
-            The current document contains content this editor cannot compare. Nothing has
-            been changed.
-          </p>
+          <p>{uiText('ui.DocumentHistory.message004')}</p>
         ) : null}
         {previewBody !== null && currentBody !== null && preview.data !== undefined ? (
           <DocumentVersionDiff
@@ -130,7 +148,7 @@ export function DocumentHistory({
           />
         ) : (
           <Button variant="secondary" onClick={closePreview}>
-            Close version preview
+            {uiText('ui.DocumentHistory.message005')}
           </Button>
         )}
       </div>
@@ -138,9 +156,7 @@ export function DocumentHistory({
 
   const contents = (
     <>
-      <p className={styles.description}>
-        Pick a version to preview it — nothing changes until you restore.
-      </p>
+      <p className={styles.description}>{uiText('ui.DocumentHistory.message006')}</p>
       {canRestore ? (
         <form
           className={styles.snapshotForm}
@@ -150,13 +166,13 @@ export function DocumentHistory({
               snapshot.mutate();
           }}
         >
-          <label htmlFor="snapshot-name">Snapshot name</label>
+          <label htmlFor="snapshot-name">{uiText('ui.DocumentHistory.message007')}</label>
           <input
             id="snapshot-name"
             maxLength={120}
             value={snapshotName}
             onChange={(event) => setSnapshotName(event.target.value)}
-            placeholder="Before review"
+            placeholder={uiText('ui.DocumentHistory.message008')}
           />
           <Button
             type="submit"
@@ -165,38 +181,53 @@ export function DocumentHistory({
               restoreBlockedReason !== null || !snapshotName.trim() || snapshot.isPending
             }
           >
-            Save named snapshot
+            {uiText('ui.DocumentHistory.message009')}
           </Button>
           {snapshot.error ? (
-            <p role="alert">Could not save snapshot: {describeError(snapshot.error)}</p>
+            <p role="alert">
+              {uiText('ui.DocumentHistory.message010')} {describeError(snapshot.error)}
+            </p>
           ) : null}
-          {snapshot.isSuccess ? <p role="status">Named snapshot saved.</p> : null}
+          {snapshot.isSuccess ? (
+            <p role="status">{uiText('ui.DocumentHistory.message011')}</p>
+          ) : null}
         </form>
       ) : null}
       {versions.isPending && isOpen ? (
         <p role="status" aria-live="polite">
-          Loading versions…
+          {uiText('ui.DocumentHistory.message012')}
         </p>
       ) : null}
       {versions.error !== null ? (
-        <p role="alert">Could not load the history: {describeError(versions.error)}</p>
+        <p role="alert">
+          {uiText('ui.DocumentHistory.message013')} {describeError(versions.error)}
+        </p>
       ) : null}
       {restore.error !== null ? (
-        <p role="alert">Could not restore: {describeError(restore.error)}</p>
+        <p role="alert">
+          {uiText('ui.DocumentHistory.message014')} {describeError(restore.error)}
+        </p>
       ) : null}
       {canRestore && restoreBlockedReason !== null ? (
         <p className={styles.blocked}>{restoreBlockedReason}</p>
       ) : null}
-      {versions.data?.length === 0 ? <p>No versions yet.</p> : null}
+      {versions.data?.length === 0 ? (
+        <p>{uiText('ui.DocumentHistory.message015')}</p>
+      ) : null}
       {versions.data === undefined ? null : (
-        <ol aria-label="Versions" className={styles.versions}>
+        <ol
+          aria-label={uiText('ui.DocumentHistory.message016')}
+          className={styles.versions}
+        >
           {versions.data.map((version) => {
             const label = `revision ${String(version.revision)}`;
             const selected = previewId === version.id;
             const author =
               version.actorName ??
               authors.find((member) => member.userId === version.createdBy)?.name ??
-              (version.createdBy === null ? 'System' : 'Unknown author');
+              (version.createdBy === null
+                ? uiText('ui.DocumentHistory.message017')
+                : uiText('ui.DocumentHistory.message018'));
             return (
               <li key={version.id} className={styles.version} data-selected={selected}>
                 <div className={styles.versionHeading}>
@@ -204,7 +235,8 @@ export function DocumentHistory({
                   <strong>{version.name || REASONS[version.reason]}</strong>
                   <span className={styles.revision}>v{version.revision}</span>
                   <span className="visually-hidden">
-                    Revision {version.revision} · {REASONS[version.reason]}
+                    {uiText('ui.DocumentHistory.message019')} {version.revision} ·{' '}
+                    {REASONS[version.reason]}
                   </span>
                 </div>
                 <span className={styles.meta}>
@@ -215,38 +247,44 @@ export function DocumentHistory({
                 </span>
                 {version.stateSha256 ? (
                   <p className={styles.meta}>
-                    Collaborative snapshot · state {version.collaborationSequence}
+                    {uiText('ui.DocumentHistory.message020')}{' '}
+                    {version.collaborationSequence}
                   </p>
                 ) : null}
                 <div className={styles.actions}>
                   <Button
                     variant="ghost"
                     icon="eye"
-                    aria-label={`Preview ${label}`}
+                    aria-label={uiText('ui.DocumentHistory.message021', {
+                      value0: label,
+                    })}
                     aria-pressed={selected}
                     onClick={() => setPreviewId(selected ? null : version.id)}
                   >
-                    Preview
+                    {uiText('ui.DocumentHistory.message022')}
                   </Button>
                   {canRestore && confirmingId !== version.id ? (
                     <Button
                       variant={selected ? 'primary' : 'secondary'}
                       icon="history"
-                      aria-label={`Restore ${label}`}
+                      aria-label={uiText('ui.DocumentHistory.message023', {
+                        value0: label,
+                      })}
                       disabled={restoreBlockedReason !== null || restore.isPending}
                       onClick={() => {
                         setConfirmingId(version.id);
                       }}
                     >
-                      Restore
+                      {uiText('ui.DocumentHistory.message024')}
                     </Button>
                   ) : null}
                 </div>
                 {canRestore && confirmingId === version.id ? (
                   <div className={styles.confirmation}>
                     <p>
-                      Replace the current text with {label}? It becomes revision{' '}
-                      {revision + 1}; nothing is deleted.
+                      {uiText('ui.DocumentHistory.message025')} {label}
+                      {uiText('ui.DocumentHistory.message026')} {revision + 1}
+                      {uiText('ui.DocumentHistory.message027')}
                     </p>
                     <div className={styles.actions}>
                       <Button
@@ -264,27 +302,36 @@ export function DocumentHistory({
                           );
                         }}
                       >
-                        {restore.isPending ? 'Restoring…' : `Confirm restore of ${label}`}
+                        {restore.isPending
+                          ? uiText('ui.DocumentHistory.message028')
+                          : uiText('ui.DocumentHistory.message029', { value0: label })}
                       </Button>
                       <Button variant="secondary" onClick={() => setConfirmingId(null)}>
-                        Cancel
+                        {uiText('ui.InsertAnalysisResult.message019')}
                       </Button>
                     </div>
                   </div>
                 ) : null}
                 {selected ? (
-                  <div aria-label={`Contents of ${label}`} role="region">
+                  <div
+                    aria-label={uiText('ui.DocumentHistory.message030', {
+                      value0: label,
+                    })}
+                    role="region"
+                  >
                     {previewHost === undefined ? comparison : null}
                     {previewBody === null ? null : (
                       <details className={styles.original}>
-                        <summary>Stored version content</summary>
+                        <summary>{uiText('ui.DocumentHistory.message031')}</summary>
                         <DocumentBodyEditor
                           workspaceId={workspaceId}
                           key={version.id}
                           initialContent={previewBody}
                           editable={false}
                           onChange={() => undefined}
-                          label={`Text of ${label}`}
+                          label={uiText('ui.DocumentHistory.message032', {
+                            value0: label,
+                          })}
                         />
                       </details>
                     )}
@@ -295,10 +342,7 @@ export function DocumentHistory({
           })}
         </ol>
       )}
-      <p className={styles.safety}>
-        Restoring creates a new revision. Nothing is deleted, and later versions remain in
-        the history.
-      </p>
+      <p className={styles.safety}>{uiText('ui.DocumentHistory.message033')}</p>
       {previewHost === undefined ? null : createPortal(comparison, previewHost)}
     </>
   );
@@ -308,12 +352,15 @@ export function DocumentHistory({
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary>Version history</summary>
+      <summary>{uiText('ui.DocumentHistory.message034')}</summary>
       {contents}
     </details>
   ) : (
-    <section className={styles.history} aria-label="Version history">
-      <h2>Version history</h2>
+    <section
+      className={styles.history}
+      aria-label={uiText('ui.DocumentHistory.message034')}
+    >
+      <h2>{uiText('ui.DocumentHistory.message034')}</h2>
       {contents}
     </section>
   );

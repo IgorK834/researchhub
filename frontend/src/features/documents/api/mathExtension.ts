@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import { Node } from '@tiptap/core';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -10,7 +11,7 @@ export function renderMath(
   const accessible =
     typeof value?.accessibleText === 'string'
       ? value.accessibleText.slice(0, 4000)
-      : 'Formula unavailable';
+      : uiText('ui.mathExtension.message001');
   element.removeAttribute('data-math-fallback');
   element.setAttribute('role', 'math');
   element.setAttribute('aria-label', accessible);

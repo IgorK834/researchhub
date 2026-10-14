@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { usePosition } from '../../../shared/components/overlays/Popover';
 import { MathAuthoring } from './MathAuthoring';
 import { ProvenanceProvider, useOpenProvenance } from '../provenance/ProvenancePanel';
@@ -481,6 +482,7 @@ function BlockProvenanceAction({
   readonly workspaceId: string;
   readonly documentId: string;
 }): ReactElement | null {
+  useUiLocale();
   const open = useOpenProvenance();
   const surface = useRef<HTMLDivElement>(null);
   const block = useEditorState({
@@ -526,18 +528,18 @@ function BlockProvenanceAction({
           ref={surface}
           className={styles.provenanceAction}
           role="group"
-          aria-label="Selected block provenance"
+          aria-label={uiText('ui.DocumentBodyEditor.message001')}
           aria-keyshortcuts="Alt+P"
           onMouseDown={(event) => event.preventDefault()}
         >
           <Button
             variant="secondary"
-            title="Show provenance (Alt+P)"
+            title={uiText('ui.DocumentBodyEditor.message002')}
             onClick={() =>
               open?.({ kind: 'block', workspaceId, documentId, blockId: block.id })
             }
           >
-            Show provenance
+            {uiText('ui.Citations.message006')}
           </Button>
         </div>,
         document.body,
@@ -550,6 +552,7 @@ function BlockProvenanceAction({
  * schema and survives a save.
  */
 function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement {
+  useUiLocale();
   const state = useEditorState({
     editor,
     selector: ({ editor: current }) => ({
@@ -568,12 +571,16 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
   });
 
   return (
-    <div role="toolbar" aria-label="Formatting" className={styles.toolbar}>
+    <div
+      role="toolbar"
+      aria-label={uiText('ui.DocumentBodyEditor.message003')}
+      className={styles.toolbar}
+    >
       <MathAuthoring editor={editor} />
       <button
         type="button"
-        aria-label="Undo"
-        title="Undo"
+        aria-label={uiText('ui.CanvasContextMenu.message001')}
+        title={uiText('ui.CanvasContextMenu.message001')}
         disabled={!state.canUndo}
         onClick={() => editor.chain().focus().undo().run()}
       >
@@ -581,47 +588,56 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
       </button>
       <button
         type="button"
-        aria-label="Redo"
-        title="Redo"
+        aria-label={uiText('ui.CanvasContextMenu.message002')}
+        title={uiText('ui.CanvasContextMenu.message002')}
         disabled={!state.canRedo}
         onClick={() => editor.chain().focus().redo().run()}
       >
         <Icon name="redo" />
       </button>
       <ToggleButton
-        label="Bold"
+        icon="bold"
+        label={uiText('ui.CanvasContextMenu.message007')}
         pressed={state.bold}
         onClick={() => editor.chain().focus().toggleBold().run()}
       />
       <ToggleButton
-        label="Italic"
+        icon="italic"
+        label={uiText('ui.CanvasContextMenu.message008')}
         pressed={state.italic}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       />
       <ToggleButton
-        label="Heading 1"
+        icon="heading"
+        badge="1"
+        label={uiText('ui.DocumentBodyEditor.message004')}
         pressed={state.heading1}
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
       />
       <ToggleButton
-        label="Heading 2"
+        icon="heading"
+        badge="2"
+        label={uiText('ui.DocumentBodyEditor.message005')}
         pressed={state.heading2}
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
       />
       <ToggleButton
-        label="Bullet list"
+        icon="list"
+        label={uiText('ui.CanvasContextMenu.message010')}
         pressed={state.bulletList}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       />
       <ToggleButton
-        label="Numbered list"
+        icon="list"
+        badge="1."
+        label={uiText('ui.DocumentBodyEditor.message006')}
         pressed={state.orderedList}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       />
       <button
         type="button"
-        aria-label="Insert table"
-        title="Insert table"
+        aria-label={uiText('ui.DocumentBodyEditor.message007')}
+        title={uiText('ui.DocumentBodyEditor.message007')}
         onClick={() =>
           editor
             .chain()
@@ -633,7 +649,8 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
         <Icon name="table" />
       </button>
       <ToggleButton
-        label="Quote"
+        icon="quote"
+        label={uiText('ui.DocumentBodyEditor.message008')}
         pressed={state.blockquote}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
       />
@@ -643,25 +660,25 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
             type="button"
             onClick={() => editor.chain().focus().addRowAfter().run()}
           >
-            Add row
+            {uiText('ui.DocumentBodyEditor.message009')}
           </button>
           <button
             type="button"
             onClick={() => editor.chain().focus().addColumnAfter().run()}
           >
-            Add column
+            {uiText('ui.DocumentBodyEditor.message010')}
           </button>
           <button
             type="button"
             onClick={() => editor.chain().focus().deleteTable().run()}
           >
-            Delete table
+            {uiText('ui.DocumentBodyEditor.message011')}
           </button>
         </>
       ) : null}
       {state.citation ? (
         <label>
-          Citation display
+          {uiText('ui.DocumentBodyEditor.message012')}
           <select
             value={
               (
@@ -683,8 +700,8 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
                 .run();
             }}
           >
-            <option value="NUMERIC">Number</option>
-            <option value="SOURCE">Source and location</option>
+            <option value="NUMERIC">{uiText('ui.DocumentBodyEditor.message013')}</option>
+            <option value="SOURCE">{uiText('ui.DocumentBodyEditor.message014')}</option>
           </select>
         </label>
       ) : null}
@@ -693,10 +710,14 @@ function DocumentToolbar({ editor }: { readonly editor: Editor }): ReactElement 
 }
 
 function ToggleButton({
+  icon,
+  badge,
   label,
   pressed,
   onClick,
 }: {
+  readonly icon: IconName;
+  readonly badge?: string;
   readonly label: string;
   readonly pressed: boolean;
   readonly onClick: () => void;
@@ -709,26 +730,8 @@ function ToggleButton({
       aria-pressed={pressed}
       onClick={onClick}
     >
-      <Icon
-        name={
-          (
-            {
-              Bold: 'bold',
-              Italic: 'italic',
-              'Heading 1': 'heading',
-              'Heading 2': 'heading',
-              'Bullet list': 'list',
-              'Numbered list': 'list',
-              Quote: 'quote',
-            } as Record<string, IconName>
-          )[label]!
-        }
-      />
-      {label === 'Heading 1' || label === 'Heading 2' ? (
-        <span>{label.slice(-1)}</span>
-      ) : label === 'Numbered list' ? (
-        <span>1.</span>
-      ) : null}
+      <Icon name={icon} />
+      {badge ? <span>{badge}</span> : null}
     </button>
   );
 }

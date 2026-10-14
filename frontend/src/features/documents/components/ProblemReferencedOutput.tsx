@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { ProvenancePanel, useOpenProvenance } from '../provenance/ProvenancePanel';
 import { useQuery } from '@tanstack/react-query';
@@ -22,6 +23,7 @@ export function ProblemReferencedOutput({
   readonly canEdit?: boolean;
   readonly onUpdate?: () => void;
 }): ReactElement {
+  useUiLocale();
   const openProvenance = useOpenProvenance();
   const [open, setOpen] = useState(false);
   const saved = useQuery({
@@ -32,10 +34,17 @@ export function ProblemReferencedOutput({
   });
   const bundle = saved.data;
   return (
-    <section className={styles.result} aria-label="Referenced scientific result">
-      {saved.isPending ? <p role="status">Loading saved solution…</p> : null}
+    <section
+      className={styles.result}
+      aria-label={uiText('ui.ProblemReferencedOutput.message001')}
+    >
+      {saved.isPending ? (
+        <p role="status">{uiText('ui.ProblemReferencedOutput.message002')}</p>
+      ) : null}
       {saved.error ? (
-        <p role="alert">Could not load saved solution: {describeError(saved.error)}</p>
+        <p role="alert">
+          {uiText('ui.ProblemReferencedOutput.message003')} {describeError(saved.error)}
+        </p>
       ) : null}
       {bundle &&
       ['SOLUTION', 'STEP', 'INPUTS', 'ASSUMPTIONS'].includes(reference.renderMode) ? (
@@ -47,7 +56,7 @@ export function ProblemReferencedOutput({
       ) : null}
       {bundle?.plot && reference.renderMode === 'TABLE' ? (
         <table>
-          <caption>Saved numeric plot data</caption>
+          <caption>{uiText('ui.ProblemStudio.message025')}</caption>
           <thead>
             <tr>
               <th>x ({bundle.plot.xUnit})</th>
@@ -66,11 +75,15 @@ export function ProblemReferencedOutput({
       ) : null}
       {bundle?.plot && reference.renderMode === 'CHART' ? (
         <img
-          alt="Saved computed plot"
+          alt={uiText('ui.ProblemReferencedOutput.message004')}
           src={`/api/workspaces/${encodeURIComponent(workspaceId)}/analyses/${encodeURIComponent(reference.analysisId)}/problem/executions/${encodeURIComponent(reference.executionId)}/artifacts/plot.png`}
         />
       ) : null}
-      {caption ? <p>Human caption (not verified): {caption}</p> : null}
+      {caption ? (
+        <p>
+          {uiText('ui.DocumentAnalysisBlock.message008')} {caption}
+        </p>
+      ) : null}
       {bundle ? (
         <StepDetailsLink
           workspaceId={workspaceId}
@@ -82,13 +95,10 @@ export function ProblemReferencedOutput({
         <Link
           to={`/app/workspaces/${workspaceId}/ask?conversation=${encodeURIComponent(reference.conversationId)}`}
         >
-          Open originating conversation
+          {uiText('ui.ProblemReferencedOutput.message005')}
         </Link>
       ) : null}
-      <p>
-        This block keeps its saved execution. Editing prose does not change checked
-        values.
-      </p>
+      <p>{uiText('ui.ProblemReferencedOutput.message006')}</p>
       <Button
         variant="secondary"
         onClick={() => {
@@ -97,7 +107,7 @@ export function ProblemReferencedOutput({
           else setOpen(true);
         }}
       >
-        Show provenance
+        {uiText('ui.Citations.message006')}
       </Button>
       <ProvenancePanel
         target={open ? { kind: 'analysis', workspaceId, reference } : null}
@@ -105,7 +115,7 @@ export function ProblemReferencedOutput({
       />
       {canEdit ? (
         <Button variant="ghost" onClick={onUpdate}>
-          Update reference
+          {uiText('ui.AnalysisWidgets.message017')}
         </Button>
       ) : null}
     </section>

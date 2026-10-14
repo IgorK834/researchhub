@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { CanvasContextPreview } from './CanvasContextPreview';
 import type { SelectionBookmark } from '@tiptap/pm/state';
 import { DocumentProvenance } from '../provenance/DocumentProvenance';
@@ -114,6 +115,7 @@ export function DocumentEditorForm({
   focusBlock,
   contextCaptureEnabled = true,
 }: DocumentEditorFormProps): ReactElement {
+  useUiLocale();
   const commentHash = useLocation().hash;
   const [canvasContext, setCanvasContext] = useState<{
     id: string;
@@ -218,7 +220,9 @@ export function DocumentEditorForm({
     autosave.status === 'failed' ? fieldErrorsByName(autosave.error) : {};
   const titleError =
     fieldErrors['title'] ??
-    (autosave.blocked && editable ? 'A title is required.' : undefined);
+    (autosave.blocked && editable
+      ? uiText('ui.DocumentEditorForm.message001')
+      : undefined);
   const contentError = fieldErrors['content'];
   const archiveFailure = archive.error !== null ? describeError(archive.error) : null;
 
@@ -299,7 +303,13 @@ export function DocumentEditorForm({
                         id: crypto.randomUUID(),
                         editor: commentEditor,
                         bookmark: commentEditor.state.selection.getBookmark(),
-                        proposal: { id, title: 'Accepted AI text', sourceVersionIds },
+                        proposal: {
+                          id,
+                          get title() {
+                            return uiText('ui.DocumentEditorForm.message002');
+                          },
+                          sourceVersionIds,
+                        },
                       })
                   : undefined
               }
@@ -339,15 +349,17 @@ export function DocumentEditorForm({
           <Icon name="lock" size={18} />
           <span>
             {realtime.stateReplaced
-              ? 'A snapshot was restored. Load its new state to continue. Earlier local changes are retained separately on this device.'
-              : 'Editing access has changed. This editor is read-only. Any unaccepted changes are kept on this device.'}
+              ? uiText('ui.DocumentEditorForm.message003')
+              : uiText('ui.DocumentEditorForm.message004')}
           </span>
           <Button
             variant="secondary"
             type="button"
             onClick={() => window.location.reload()}
           >
-            {realtime.stateReplaced ? 'Load restored snapshot' : 'Check access'}
+            {realtime.stateReplaced
+              ? uiText('ui.DocumentEditorForm.message005')
+              : uiText('ui.DocumentEditorForm.message006')}
           </Button>
         </div>
       ) : realtimeEnabled && !realtime.connected ? (
@@ -355,11 +367,11 @@ export function DocumentEditorForm({
           <Icon name="wifiOff" size={18} />
           <span>
             {realtime.ready
-              ? 'Offline — changes are kept on this device. Reconnecting…'
-              : 'Connecting to collaboration…'}
+              ? uiText('ui.DocumentEditorForm.message007')
+              : uiText('ui.DocumentEditorForm.message008')}
           </span>
           <Button variant="secondary" type="button" onClick={autosave.retry}>
-            Try now
+            {uiText('ui.DocumentEditorForm.message009')}
           </Button>
         </div>
       ) : null}
@@ -367,7 +379,9 @@ export function DocumentEditorForm({
         state={autosave}
         {...(realtimeEnabled
           ? {
-              blockedReason: !realtime.connected ? 'waiting for connection' : undefined,
+              blockedReason: !realtime.connected
+                ? uiText('ui.DocumentEditorForm.message010')
+                : undefined,
               failureDetail: realtime.failureDetail,
             }
           : {})}
@@ -380,12 +394,12 @@ export function DocumentEditorForm({
         statusHost ? (
           createPortal(
             <span data-status="readonly">
-              <Icon name="eye" size={14} /> Read-only
+              <Icon name="eye" size={14} /> {uiText('ui.DocumentEditorForm.message011')}
             </span>,
             statusHost,
           )
         ) : (
-          <span data-status="readonly">Read-only</span>
+          <span data-status="readonly">{uiText('ui.DocumentEditorForm.message011')}</span>
         )
       ) : null}
       {isViewer ? <DocumentViewerNotice statusHost={statusHost} /> : null}
@@ -393,10 +407,7 @@ export function DocumentEditorForm({
       {archiveFailure !== null ? <p role="alert">{archiveFailure}</p> : null}
 
       {storedBody === null ? (
-        <p role="alert">
-          This document contains content this editor cannot open, so it is not shown and
-          cannot be edited here. Nothing has been changed.
-        </p>
+        <p role="alert">{uiText('ui.DocumentEditorForm.message012')}</p>
       ) : null}
 
       <div
@@ -426,7 +437,7 @@ export function DocumentEditorForm({
         >
           <div>
             <label htmlFor="document-editor-title" className="visually-hidden">
-              Title
+              {uiText('ui.DocumentEditorForm.message013')}
             </label>
             <textarea
               className={styles.title}
@@ -459,7 +470,7 @@ export function DocumentEditorForm({
 
           <div>
             <span id="document-editor-text-label" className="visually-hidden">
-              Text
+              {uiText('ui.DocumentEditorForm.message014')}
             </span>
             {storedBody === null || (realtimeEnabled && !realtime.ready) ? null : (
               <DocumentBodyEditor
@@ -544,11 +555,11 @@ export function DocumentEditorForm({
                   (realtimeEnabled && autosave.status !== 'saved')
                 }
               >
-                Save version
+                {uiText('ui.DocumentEditorForm.message015')}
               </Button>{' '}
               {realtimeEnabled
-                ? 'Changes save automatically. Save a version to keep a historical snapshot.'
-                : 'Changes save automatically. Save a version to keep a restore point you can return to.'}
+                ? uiText('ui.DocumentEditorForm.message016')
+                : uiText('ui.DocumentEditorForm.message017')}
             </div>
           ) : null}
         </form>
@@ -565,7 +576,9 @@ export function DocumentEditorForm({
                       bookmark: commentEditor.state.selection.getBookmark(),
                       proposal: {
                         id: suggestion.id,
-                        title: 'Saved AI proposal',
+                        get title() {
+                          return uiText('ui.DocumentEditorForm.message018');
+                        },
                         sourceVersionIds: [
                           ...new Set(
                             suggestion.citations.flatMap((citation) =>
@@ -607,7 +620,7 @@ export function DocumentEditorForm({
             onPreviewChange={setPreviewing}
             canRestore={editable}
             restoreBlockedReason={
-              settled ? null : 'Restoring is available once your changes are saved.'
+              settled ? null : uiText('ui.DocumentEditorForm.message019')
             }
             onRestored={onReplaced}
             expanded={historyExpanded}
@@ -627,9 +640,11 @@ export function DocumentEditorForm({
               archive.mutate();
             }}
           >
-            {archive.isPending ? 'Archiving…' : 'Archive document'}
+            {archive.isPending
+              ? uiText('ui.DocumentEditorForm.message020')
+              : uiText('ui.DocumentEditorForm.message021')}
           </Button>
-          {settled ? null : ' Archiving is available once your changes are saved.'}
+          {settled ? null : ' ' + uiText('ui.DocumentEditorForm.message022')}
         </p>
       ) : null}
     </div>

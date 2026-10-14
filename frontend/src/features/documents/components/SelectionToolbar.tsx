@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditorState, type Editor } from '@tiptap/react';
@@ -14,6 +15,7 @@ export function SelectionToolbar({
   readonly onAction?: (action: SelectionAction, selection: AuthoringSelection) => void;
   readonly onComment?: () => void;
 }): ReactElement | null {
+  useUiLocale();
   const surface = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(true);
   useEffect(() => {
@@ -82,10 +84,12 @@ export function SelectionToolbar({
       ref={surface}
       role="toolbar"
       aria-label={
-        onComment ? 'Actions for selected text' : 'AI actions for selected text'
+        onComment
+          ? uiText('ui.SelectionToolbar.message001')
+          : uiText('ui.SelectionToolbar.message002')
       }
       aria-keyshortcuts="Alt+F10"
-      title="Actions for selected text (Tab or Alt+F10)"
+      title={uiText('ui.SelectionToolbar.message003')}
       className={styles.toolbar}
       onMouseDown={(event) => event.preventDefault()}
       onKeyDown={(event) => {
@@ -121,7 +125,7 @@ export function SelectionToolbar({
         : null}
       {onComment ? (
         <button type="button" onClick={onComment}>
-          Add comment
+          {uiText('ui.SelectionToolbar.message004')}
         </button>
       ) : null}
     </div>,

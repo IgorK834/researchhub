@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useMemo, type ReactElement } from 'react';
 import type { Editor } from '@tiptap/core';
 import { DOMSerializer } from '@tiptap/pm/model';
@@ -23,6 +24,7 @@ export function CanvasContextMenu({
   readonly onAskAi?: (bookmark: SelectionBookmark) => void;
   readonly onNotice: (message: string) => void;
 }): ReactElement {
+  useUiLocale();
   const target = useMemo(() => new Map([['bookmark', bookmark]]), [bookmark]);
   useEffect(() => {
     const map = ({ transaction }: { transaction: Transaction }): void => {
@@ -82,11 +84,7 @@ export function CanvasContextMenu({
         editor.commands.deleteSelection();
       }
     } catch {
-      onNotice(
-        cut
-          ? 'Cut was unavailable. The text is retained; use Ctrl/Cmd+X.'
-          : 'Copy was unavailable. Use Ctrl/Cmd+C.',
-      );
+      onNotice(cut ? uiText('editor.cutError') : uiText('editor.copyError'));
     } finally {
       stop();
     }
@@ -113,7 +111,7 @@ export function CanvasContextMenu({
       if (html) editor.view.pasteHTML(html);
       else if (text) editor.view.pasteText(text);
     } catch {
-      onNotice('Clipboard access was unavailable. Use Ctrl/Cmd+V to paste.');
+      onNotice(uiText('ui.CanvasContextMenu.message012'));
     } finally {
       stop();
     }
@@ -130,7 +128,9 @@ export function CanvasContextMenu({
     items.push(
       {
         id: 'undo',
-        label: 'Undo',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message001');
+        },
         disabled: !editor.can().undo(),
         onSelect: run(() => {
           editor.commands.undo();
@@ -138,7 +138,9 @@ export function CanvasContextMenu({
       },
       {
         id: 'redo',
-        label: 'Redo',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message002');
+        },
         disabled: !editor.can().redo(),
         onSelect: run(() => {
           editor.commands.redo();
@@ -146,7 +148,9 @@ export function CanvasContextMenu({
       },
       {
         id: 'cut',
-        label: 'Cut',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message003');
+        },
         separatorBefore: true,
         disabled: !selected,
         onSelect: () => {
@@ -156,7 +160,9 @@ export function CanvasContextMenu({
     );
   items.push({
     id: 'copy',
-    label: 'Copy',
+    get label() {
+      return uiText('ui.CanvasContextMenu.message004');
+    },
     disabled: !selected,
     onSelect: () => {
       void copy(false);
@@ -166,14 +172,18 @@ export function CanvasContextMenu({
     items.push(
       {
         id: 'paste',
-        label: 'Paste',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message005');
+        },
         onSelect: () => {
           void paste();
         },
       },
       {
         id: 'delete',
-        label: 'Delete selection',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message006');
+        },
         disabled: !selected,
         onSelect: run(() => {
           editor.commands.deleteSelection();
@@ -181,7 +191,9 @@ export function CanvasContextMenu({
       },
       {
         id: 'bold',
-        label: 'Bold',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message007');
+        },
         separatorBefore: true,
         onSelect: run(() => {
           editor.commands.toggleBold();
@@ -189,21 +201,27 @@ export function CanvasContextMenu({
       },
       {
         id: 'italic',
-        label: 'Italic',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message008');
+        },
         onSelect: run(() => {
           editor.commands.toggleItalic();
         }),
       },
       {
         id: 'heading',
-        label: 'Heading',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message009');
+        },
         onSelect: run(() => {
           editor.commands.toggleHeading({ level: 2 });
         }),
       },
       {
         id: 'list',
-        label: 'Bullet list',
+        get label() {
+          return uiText('ui.CanvasContextMenu.message010');
+        },
         onSelect: run(() => {
           editor.commands.toggleBulletList();
         }),
@@ -211,7 +229,9 @@ export function CanvasContextMenu({
     );
   items.push({
     id: 'ask',
-    label: 'Ask AI',
+    get label() {
+      return uiText('ui.ResearchPanel.message007');
+    },
     separatorBefore: true,
     disabled: !onAskAi,
     onSelect: () => {
@@ -224,7 +244,7 @@ export function CanvasContextMenu({
       anchor={anchor}
       returnTo={editor.view.dom}
       items={items}
-      label="Canvas actions"
+      label={uiText('ui.CanvasContextMenu.message011')}
       onClose={onClose}
     />
   );

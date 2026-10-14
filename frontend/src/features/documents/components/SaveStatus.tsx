@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './DocumentFrame.module.css';
@@ -21,11 +23,21 @@ export interface SaveStatusProps {
 }
 
 const LABELS = {
-  saved: 'Saved',
-  unsaved: 'Unsaved changes',
-  saving: 'Saving…',
-  failed: 'Save failed',
-  conflict: 'Conflict',
+  get saved() {
+    return uiText('ui.SaveStatus.message009');
+  },
+  get unsaved() {
+    return uiText('ui.SaveStatus.message010');
+  },
+  get saving() {
+    return uiText('ui.BibliographyLibrary.message022');
+  },
+  get failed() {
+    return uiText('ui.SaveStatus.message011');
+  },
+  get conflict() {
+    return uiText('ui.SaveStatus.message012');
+  },
 } as const;
 
 /**
@@ -41,9 +53,10 @@ export function SaveStatus({
   onDiscardLocalChanges,
   statusHost,
   savedAt,
-  blockedReason = 'a title is required before this can be saved',
+  blockedReason = uiText('ui.SaveStatus.message013'),
   failureDetail,
 }: SaveStatusProps): ReactElement {
+  useUiLocale();
   const { status, revision, error, blocked } = state;
   const hasFieldErrors = Object.keys(fieldErrorsByName(error)).length > 0;
   const currentRevision =
@@ -81,12 +94,15 @@ export function SaveStatus({
           <time dateTime={savedAt} title={savedAt}>
             {Number.isNaN(new Date(savedAt).getTime())
               ? savedAt
-              : new Date(savedAt).toLocaleTimeString(undefined, {
+              : new Date(savedAt).toLocaleTimeString(getIntlLocale(), {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
           </time>
-          <span className="visually-hidden"> · revision {revision}</span>
+          <span className="visually-hidden">
+            {' '}
+            {uiText('ui.SaveStatus.message001')} {revision}
+          </span>
         </>
       ) : null}
       {status === 'unsaved' && blocked ? ` · ${blockedReason}` : null}
@@ -98,16 +114,15 @@ export function SaveStatus({
       {statusHost === undefined ? badge : createPortal(badge, statusHost)}
       {status === 'failed' ? (
         <div className={styles.saveAlert}>
-          <Banner tone="error" lead="Save failed">
+          <Banner tone="error" lead={uiText('ui.SaveStatus.message011')}>
             <p>
               {hasFieldErrors
-                ? 'The server did not accept this version.'
+                ? uiText('ui.SaveStatus.message002')
                 : (failureDetail ?? describeError(error))}{' '}
-              Your changes are still here and have not been saved. Saving will be tried
-              again when you keep editing or come back online.
+              {uiText('ui.SaveStatus.message003')}
             </p>
             <Button variant="secondary" icon="refresh" type="button" onClick={onRetry}>
-              Retry saving
+              {uiText('ui.SaveStatus.message004')}
             </Button>
           </Banner>
         </div>
@@ -115,25 +130,22 @@ export function SaveStatus({
 
       {status === 'conflict' ? (
         <div className={styles.saveAlert}>
-          <Banner tone="warning" role="alert" lead="Conflict">
+          <Banner tone="warning" role="alert" lead={uiText('ui.SaveStatus.message012')}>
             <p>{describeError(error)}</p>
             {currentRevision === undefined ? null : (
               <p>
-                The saved document is now at revision {currentRevision}. Your copy is
-                based on revision {revision}.
+                {uiText('ui.SaveStatus.message005')} {currentRevision}
+                {uiText('ui.SaveStatus.message006')} {revision}.
               </p>
             )}
-            <p>
-              Your changes are still here and have not been saved. Autosave has stopped
-              until you choose what to do.
-            </p>
+            <p>{uiText('ui.SaveStatus.message007')}</p>
             <Button
               variant="secondary"
               icon="refresh"
               type="button"
               onClick={onDiscardLocalChanges}
             >
-              Discard my changes and load the latest version
+              {uiText('ui.SaveStatus.message008')}
             </Button>
           </Banner>
         </div>

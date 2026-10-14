@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -11,20 +12,24 @@ export function DocumentViewerNotice({
 }: {
   readonly statusHost?: HTMLElement;
 }): ReactElement {
+  useUiLocale();
   const [dismissed, setDismissed] = useState(false);
   const chip = (
     <p className={styles.saveStatus} data-status="readonly">
       <Icon name="eye" size={14} />
-      <strong>Read-only</strong>
+      <strong>{uiText('ui.DocumentEditorForm.message011')}</strong>
     </p>
   );
   return (
     <>
       {statusHost === undefined ? chip : createPortal(chip, statusHost)}
       <div className={styles.viewerNotice}>
-        <Banner tone="info" icon="eye" lead="You’re a viewer in this workspace.">
-          You can read this document and ask AI about it. Only editors can change the
-          document.
+        <Banner
+          tone="info"
+          icon="eye"
+          lead={uiText('ui.DocumentViewerNotice.message004')}
+        >
+          {uiText('ui.DocumentViewerNotice.message001')}
         </Banner>
       </div>
       <ToastHost
@@ -38,8 +43,12 @@ export function DocumentViewerNotice({
                     tone: 'info',
                     icon: 'lock',
                     duration: 0,
-                    title: 'Only editors can change this document',
-                    message: 'You can still read the document and ask AI about it.',
+                    get title() {
+                      return uiText('ui.DocumentViewerNotice.message002');
+                    },
+                    get message() {
+                      return uiText('ui.DocumentViewerNotice.message003');
+                    },
                   },
                 },
               ]

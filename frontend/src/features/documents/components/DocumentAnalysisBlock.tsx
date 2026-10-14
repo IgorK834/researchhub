@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { NodeViewWrapper, useEditorState, type NodeViewProps } from '@tiptap/react';
 import { useQuery } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ export function DocumentAnalysisBlock({
   updateAttributes,
   extension,
 }: NodeViewProps): ReactElement {
+  useUiLocale();
   const workspaceId = extension.options.workspaceId as string | undefined;
   const attrs = isAnalysisBlockAttrs(node.attrs) ? node.attrs : null;
   const [updating, setUpdating] = useState(false);
@@ -36,7 +38,7 @@ export function DocumentAnalysisBlock({
       data-analysis-block={attrs?.blockId}
     >
       {!workspaceId || !attrs ? (
-        <p role="alert">This analysis reference is unavailable.</p>
+        <p role="alert">{uiText('ui.DocumentAnalysisBlock.message001')}</p>
       ) : attrs.reference.workload === 'PROBLEM' ? (
         <ProblemReferencedOutput
           workspaceId={workspaceId}
@@ -56,11 +58,8 @@ export function DocumentAnalysisBlock({
       )}
       {updating && workspaceId && attrs && canEdit ? (
         <div className={styles.update}>
-          <h3>Explicitly update this reference</h3>
-          <p>
-            The saved block will point to the execution you choose. Earlier document
-            versions keep their original reference.
-          </p>
+          <h3>{uiText('ui.DocumentAnalysisBlock.message002')}</h3>
+          <p>{uiText('ui.DocumentAnalysisBlock.message003')}</p>
           <AnalysisOutputPicker
             workspaceId={workspaceId}
             initial={attrs.reference}
@@ -70,7 +69,7 @@ export function DocumentAnalysisBlock({
             }}
           />
           <Button variant="ghost" onClick={() => setUpdating(false)}>
-            Cancel update
+            {uiText('ui.DocumentAnalysisBlock.message004')}
           </Button>
         </div>
       ) : null}
@@ -90,6 +89,7 @@ export function ReferencedOutput({
   readonly canEdit: boolean;
   readonly onUpdate: () => void;
 }): ReactElement {
+  useUiLocale();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const openProvenance = useOpenProvenance();
   const showProvenance = (): void => {
@@ -138,16 +138,16 @@ export function ReferencedOutput({
     ) ?? false;
   return (
     <>
-      {record.isPending ? <p role="status">Loading referenced result…</p> : null}
+      {record.isPending ? (
+        <p role="status">{uiText('ui.DocumentAnalysisBlock.message005')}</p>
+      ) : null}
       {record.error ? (
         <p role="alert">
-          Could not load referenced result: {describeError(record.error)}
+          {uiText('ui.DocumentAnalysisBlock.message006')} {describeError(record.error)}
         </p>
       ) : null}
       {saved && !output ? (
-        <p role="alert">
-          The selected saved output is unavailable. Choose a valid successful execution.
-        </p>
+        <p role="alert">{uiText('ui.DocumentAnalysisBlock.message007')}</p>
       ) : null}
       {output?.kind === 'CHART' && chart && reference.renderMode === 'CHART' ? (
         <AnalysisChart
@@ -165,7 +165,9 @@ export function ReferencedOutput({
       {caption ? (
         <p className={styles.caption}>
           {reference.schemaVersion === '2.0' ? (
-            <>Human caption (not verified): {caption}</>
+            <>
+              {uiText('ui.DocumentAnalysisBlock.message008')} {caption}
+            </>
           ) : (
             caption
           )}
@@ -173,24 +175,26 @@ export function ReferencedOutput({
       ) : null}
       <div className={styles.footer}>
         <Button variant="secondary" onClick={showProvenance}>
-          Show provenance
+          {uiText('ui.Citations.message006')}
         </Button>
         <span>
-          Analysis {reference.analysisId.slice(0, 8)} · Execution{' '}
+          {uiText('ui.AnalysisOutputPicker.message003')}{' '}
+          {reference.analysisId.slice(0, 8)}{' '}
+          {uiText('ui.DocumentAnalysisBlock.message009')}{' '}
           {reference.executionId.slice(0, 8)}
         </span>
         <Link to={details} target="_blank" rel="noreferrer">
-          Open analysis provenance
+          {uiText('ui.GroundedAnswer.message021')}
         </Link>
         {canEdit ? (
           <Button variant="ghost" onClick={onUpdate}>
-            Update reference
+            {uiText('ui.AnalysisWidgets.message017')}
           </Button>
         ) : null}
       </div>
       {saved ? (
         <p className={styles.sources}>
-          Source:{' '}
+          {uiText('ui.DocumentAnalysisBlock.message010')}{' '}
           {saved.snapshot.inputs
             .map(
               (input) =>
@@ -201,13 +205,10 @@ export function ReferencedOutput({
       ) : null}
       <AnalysisFreshnessBanner
         outOfDate={changed}
-        message="An input source has a newer version. This block keeps displaying its historical result until you explicitly choose a different saved execution."
+        message={uiText('ui.DocumentAnalysisBlock.message011')}
       />
       {sources.error ? (
-        <p role="status">
-          Source freshness could not be checked. The historical execution reference is
-          unchanged.
-        </p>
+        <p role="status">{uiText('ui.DocumentAnalysisBlock.message012')}</p>
       ) : null}
       <ProvenancePanel
         target={detailsOpen ? { kind: 'analysis', workspaceId, reference } : null}

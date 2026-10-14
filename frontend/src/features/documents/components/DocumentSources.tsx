@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import type { DocumentNavigation } from '../api/documentNavigation';
@@ -30,6 +31,7 @@ export function DocumentSources({
   analyses = [],
   workspaceId,
 }: DocumentSourcesProps): ReactElement {
+  useUiLocale();
   const cited = new Map<string, DocumentNavigation['references'][number][]>();
   for (const reference of references) {
     const group = cited.get(reference.citation.sourceId) ?? [];
@@ -40,8 +42,8 @@ export function DocumentSources({
   return (
     <div className={styles.sourceLists}>
       {analyses.length && workspaceId ? (
-        <section aria-label="Analysis blocks in this document">
-          <h2>Analysis blocks in this document</h2>
+        <section aria-label={uiText('ui.DocumentSources.message001')}>
+          <h2>{uiText('ui.DocumentSources.message001')}</h2>
           <ul>
             {analyses.map(({ attrs }) => (
               <li key={attrs.blockId}>
@@ -55,28 +57,30 @@ export function DocumentSources({
                     {attrs.caption || attrs.reference.outputId}
                   </Link>
                   <p className={styles.meta}>
-                    Execution {attrs.reference.executionId.slice(0, 8)} ·{' '}
+                    {uiText('ui.AnalysisEvidencePicker.message004')}{' '}
+                    {attrs.reference.executionId.slice(0, 8)} ·{' '}
                     {attrs.reference.renderMode.toLowerCase()}
                   </p>
                 </div>
               </li>
             ))}
           </ul>
-          <p>
-            Each block keeps its selected historical execution. Use Update reference on
-            the block to choose another saved result.
-          </p>
+          <p>{uiText('ui.DocumentSources.message002')}</p>
         </section>
       ) : null}
       <section aria-labelledby="document-cited-heading">
         <h2 id="document-cited-heading">
-          Cited in this document{' '}
+          {uiText('ui.DocumentSources.message003')}{' '}
           <span className={styles.meta}>
-            ({cited.size} {cited.size === 1 ? 'source' : 'sources'})
+            ({cited.size}{' '}
+            {cited.size === 1
+              ? uiText('ui.DocumentSources.message004')
+              : uiText('ui.AiDraftBlock.message004')}
+            )
           </span>
         </h2>
         {references.length === 0 ? (
-          <p className={styles.meta}>No sources cited yet.</p>
+          <p className={styles.meta}>{uiText('ui.DocumentSources.message005')}</p>
         ) : (
           <ul>
             {[...cited.values()].map((group) => {
@@ -94,11 +98,12 @@ export function DocumentSources({
                         citation.title ??
                         sources.find((source) => source.id === citation.sourceId)
                           ?.title ??
-                        'Source'}
+                        uiText('ui.AiDraftBlock.message007')}
                     </Link>
                     <p className={styles.meta}>
                       {citation.pageStart === null
-                        ? (citation.sectionTitle ?? 'Source reference')
+                        ? (citation.sectionTitle ??
+                          uiText('ui.DocumentSources.message006'))
                         : `p. ${citation.pageStart}`}
                     </p>
                     {group.length > 1 ? (
@@ -107,11 +112,14 @@ export function DocumentSources({
                           <Link
                             key={reference.citationId}
                             to={citationHref(reference.citation)}
-                            aria-label={`Citation ${reference.number}`}
+                            aria-label={uiText('ui.Citations.message005', {
+                              value0: reference.number,
+                            })}
                           >
                             [{reference.number}]{' '}
                             {reference.citation.pageStart === null
-                              ? (reference.citation.sectionTitle ?? 'Source reference')
+                              ? (reference.citation.sectionTitle ??
+                                uiText('ui.DocumentSources.message006'))
                               : `p. ${reference.citation.pageStart}`}
                           </Link>
                         ))}
@@ -125,13 +133,13 @@ export function DocumentSources({
         )}
       </section>
       <section aria-labelledby="document-not-cited-heading">
-        <h2 id="document-not-cited-heading">In the workspace, not cited</h2>
+        <h2 id="document-not-cited-heading">{uiText('ui.DocumentSources.message007')}</h2>
         {loading ? (
-          <p role="status">Loading sources…</p>
+          <p role="status">{uiText('ui.DocumentSources.message008')}</p>
         ) : error !== null ? (
           <p role="alert">{error}</p>
         ) : notCited.length === 0 ? (
-          <p className={styles.meta}>No uncited sources.</p>
+          <p className={styles.meta}>{uiText('ui.DocumentSources.message009')}</p>
         ) : (
           <ul>
             {notCited.map((source) => (

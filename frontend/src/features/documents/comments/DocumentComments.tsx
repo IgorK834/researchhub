@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import type { Editor } from '@tiptap/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +37,7 @@ export function DocumentComments({
   readonly onOpen: () => void;
   readonly initialCommentId?: string;
 }): ReactElement {
+  useUiLocale();
   const client = useQueryClient();
   const key = queryKeys.documentComments(workspaceId, documentId);
   const comments = useQuery({
@@ -185,10 +188,16 @@ export function DocumentComments({
   const opened = data?.filter((comment) => comment.status === 'OPEN') ?? [];
   const rows = showResolved ? resolved : opened;
   return (
-    <section aria-label="Document comments" className={styles.panel}>
+    <section
+      aria-label={uiText('ui.DocumentComments.message001')}
+      className={styles.panel}
+    >
       <div className={styles.header}>
         <h2>
-          Comments <span>{opened.length} open</span>
+          {uiText('ui.DocumentComments.message002')}{' '}
+          <span>
+            {opened.length} {uiText('ui.DocumentComments.message003')}
+          </span>
         </h2>
         <Button
           variant="ghost"
@@ -198,29 +207,32 @@ export function DocumentComments({
             void comments.refetch();
           }}
         >
-          Refresh comments
+          {uiText('ui.DocumentComments.message004')}
         </Button>
       </div>
-      {comments.isPending ? <p role="status">Loading comments…</p> : null}
+      {comments.isPending ? (
+        <p role="status">{uiText('ui.DocumentComments.message005')}</p>
+      ) : null}
       {comments.error ? (
-        <p role="alert">Could not load comments: {describeError(comments.error)}</p>
+        <p role="alert">
+          {uiText('ui.DocumentComments.message006')} {describeError(comments.error)}
+        </p>
       ) : null}
       {mutation.error ? (
         <p role="alert">
-          Could not save comment: {describeError(mutation.error)} Your draft is kept here.
+          {uiText('ui.DocumentComments.message007')} {describeError(mutation.error)}{' '}
+          {uiText('ui.DocumentComments.message008')}
         </p>
       ) : null}
       {!writable ? (
-        <p className={styles.hint}>
-          Read-only comments. Only editors and owners can add comments or change threads.
-        </p>
+        <p className={styles.hint}>{uiText('ui.DocumentComments.message009')}</p>
       ) : null}
       {pendingAnchor && writable ? (
         <div className={styles.composer}>
-          <h3>New comment on selection</h3>
+          <h3>{uiText('ui.DocumentComments.message010')}</h3>
           <blockquote>{pendingAnchor.quote}</blockquote>
           <label className="visually-hidden" htmlFor="comment-body">
-            Write a comment
+            {uiText('ui.DocumentComments.message011')}
           </label>
           <textarea
             ref={composer}
@@ -228,7 +240,7 @@ export function DocumentComments({
             rows={4}
             maxLength={4000}
             value={body}
-            placeholder="Write a comment…"
+            placeholder={uiText('ui.DocumentComments.message012')}
             disabled={mutation.isPending}
             onChange={(event) => {
               setBody(event.target.value);
@@ -236,12 +248,10 @@ export function DocumentComments({
             }}
           />
           {!saved ? (
-            <p role="status">Waiting for the selected text to be saved…</p>
+            <p role="status">{uiText('ui.DocumentComments.message013')}</p>
           ) : null}
           {liveAnchors !== null && !liveAnchors.has(pendingAnchor.id) ? (
-            <p role="status">
-              Selected text was removed. Select another passage to comment.
-            </p>
+            <p role="status">{uiText('ui.DocumentComments.message014')}</p>
           ) : null}
           <div className={styles.actions}>
             <Button
@@ -253,7 +263,7 @@ export function DocumentComments({
                 onCancel();
               }}
             >
-              Cancel
+              {uiText('ui.InsertAnalysisResult.message019')}
             </Button>
             <Button
               icon="comment"
@@ -263,41 +273,49 @@ export function DocumentComments({
                 mutation.mutate({ kind: 'create', anchor: pendingAnchor, body })
               }
             >
-              Comment
+              {uiText('ui.DocumentComments.message015')}
             </Button>
           </div>
         </div>
       ) : writable ? (
-        <p className={styles.hint}>
-          Select text in the document, then choose Add comment.
-        </p>
+        <p className={styles.hint}>{uiText('ui.DocumentComments.message016')}</p>
       ) : null}
-      <div className={styles.filters} role="group" aria-label="Comment status">
+      <div
+        className={styles.filters}
+        role="group"
+        aria-label={uiText('ui.DocumentComments.message017')}
+      >
         <Button
           variant="ghost"
           aria-pressed={!showResolved}
           onClick={() => setShowResolved(false)}
         >
-          Open ({opened.length})
+          {uiText('ui.DocumentComments.message018')}
+          {opened.length})
         </Button>
         <Button
           variant="ghost"
           aria-pressed={showResolved}
           onClick={() => setShowResolved(true)}
         >
-          Resolved ({resolved.length})
+          {uiText('ui.DocumentComments.message019')}
+          {resolved.length})
         </Button>
       </div>
       {comments.isSuccess && rows.length === 0 ? (
         <p className={styles.hint}>
-          {showResolved ? 'No resolved threads.' : 'No open comments yet.'}
+          {showResolved
+            ? uiText('ui.DocumentComments.message020')
+            : uiText('ui.DocumentComments.message021')}
         </p>
       ) : null}
       {rows.map((comment) => (
         <article
           key={comment.id}
           id={`comment-${comment.id}`}
-          aria-label={`Comment by ${comment.authorName}`}
+          aria-label={uiText('ui.DocumentComments.message022', {
+            value0: comment.authorName,
+          })}
           className={styles.thread}
           data-status={comment.status.toLowerCase()}
           data-active={activeId === comment.id}
@@ -306,7 +324,9 @@ export function DocumentComments({
             className={styles.anchor}
             type="button"
             disabled={!available(comment) || !editor}
-            aria-label={`Go to commented text: ${comment.anchor.quote}`}
+            aria-label={uiText('ui.DocumentComments.message023', {
+              value0: comment.anchor.quote,
+            })}
             onClick={() => {
               setActiveId(comment.id);
               navigateToComment(editor!, comment.anchor.id);
@@ -316,8 +336,7 @@ export function DocumentComments({
           </button>
           {!available(comment) ? (
             <p className={styles.orphan}>
-              <Icon name="link" size={14} /> Original passage is no longer available. This
-              thread is preserved.
+              <Icon name="link" size={14} /> {uiText('ui.DocumentComments.message024')}
             </p>
           ) : null}
           <Contribution
@@ -335,7 +354,7 @@ export function DocumentComments({
           ))}
           {comment.status === 'RESOLVED' ? (
             <p className={styles.meta}>
-              <Icon name="check" size={14} /> Resolved{' '}
+              <Icon name="check" size={14} /> {uiText('ui.DocumentComments.message025')}{' '}
               {comment.resolvedAt ? (
                 <time dateTime={comment.resolvedAt}>
                   {formatDate(comment.resolvedAt)}
@@ -355,7 +374,7 @@ export function DocumentComments({
                   mutation.reset();
                 }}
               >
-                Reply
+                {uiText('ui.DocumentComments.message026')}
               </Button>
             ) : null}
             {writable ? (
@@ -372,7 +391,9 @@ export function DocumentComments({
                   })
                 }
               >
-                {comment.status === 'OPEN' ? 'Resolve' : 'Reopen'}
+                {comment.status === 'OPEN'
+                  ? uiText('ui.DocumentComments.message027')
+                  : uiText('ui.DocumentComments.message028')}
               </Button>
             ) : null}
             <Button
@@ -384,12 +405,14 @@ export function DocumentComments({
                 setShowHistory(!(activeId === comment.id && showHistory));
               }}
             >
-              Activity
+              {uiText('ui.DocumentComments.message029')}
             </Button>
           </div>
           {replyTo === comment.id && writable && comment.status === 'OPEN' ? (
             <div className={styles.reply}>
-              <label htmlFor={`reply-${comment.id}`}>Reply to {comment.authorName}</label>
+              <label htmlFor={`reply-${comment.id}`}>
+                {uiText('ui.DocumentComments.message030')} {comment.authorName}
+              </label>
               <textarea
                 id={`reply-${comment.id}`}
                 autoFocus
@@ -411,7 +434,7 @@ export function DocumentComments({
                     mutation.reset();
                   }}
                 >
-                  Cancel reply
+                  {uiText('ui.DocumentComments.message031')}
                 </Button>
                 <Button
                   disabled={!replyBody.trim()}
@@ -431,7 +454,7 @@ export function DocumentComments({
                     });
                   }}
                 >
-                  Send reply
+                  {uiText('ui.DocumentComments.message032')}
                 </Button>
               </div>
             </div>
@@ -453,11 +476,17 @@ export function DocumentComments({
             }}
           />
           {activeId === comment.id && showHistory ? (
-            <div className={styles.activity} aria-label="Comment activity">
-              {history.isPending ? <p role="status">Loading activity…</p> : null}
+            <div
+              className={styles.activity}
+              aria-label={uiText('ui.DocumentComments.message033')}
+            >
+              {history.isPending ? (
+                <p role="status">{uiText('ui.DocumentComments.message034')}</p>
+              ) : null}
               {history.error ? (
                 <p role="alert">
-                  Could not load activity: {describeError(history.error)}
+                  {uiText('ui.DocumentComments.message035')}{' '}
+                  {describeError(history.error)}
                 </p>
               ) : null}
               <ol>
@@ -468,8 +497,12 @@ export function DocumentComments({
                       {
                         CREATED: 'commented',
                         REPLIED: 'replied',
-                        RESOLVED: 'resolved the thread',
-                        REOPENED: 'reopened the thread',
+                        get RESOLVED() {
+                          return uiText('ui.DocumentComments.message036');
+                        },
+                        get REOPENED() {
+                          return uiText('ui.DocumentComments.message037');
+                        },
                       }[event.action]
                     }{' '}
                     ·{' '}
@@ -486,7 +519,7 @@ export function DocumentComments({
 }
 
 function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
+  return new Date(value).toLocaleString(getIntlLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
   });

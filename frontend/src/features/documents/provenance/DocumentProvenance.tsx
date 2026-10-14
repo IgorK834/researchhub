@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useEffect, useState, type ReactElement } from 'react';
 import { NodeSelection } from '@tiptap/pm/state';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
@@ -8,6 +10,7 @@ import { Button } from '../../../shared/components/Button';
 import { Icon } from '../../../shared/components/icons';
 import { citationPath, type Citation } from '../../ai/api/generationApi';
 import styles from './DocumentProvenance.module.css';
+import type { DocumentTemplateOrigin } from '../api/documentTemplateApi';
 
 export type OriginCategory =
   'HUMAN' | 'AI_GENERATED' | 'AI_REWRITTEN' | 'IMPORTED' | 'ANALYSIS_DERIVED';
@@ -22,6 +25,7 @@ export interface OriginOperation {
   documentRevision: number;
   createdAt: string;
   metadata: {
+    documentTemplate?: DocumentTemplateOrigin;
     citations?: Citation[];
     model?: { provider?: string; name?: string; version?: string };
     templateId?: string;
@@ -36,11 +40,21 @@ export interface OriginOperation {
   };
 }
 const labels: Record<OriginCategory, string> = {
-  HUMAN: 'Human contribution',
-  AI_GENERATED: 'AI generated',
-  AI_REWRITTEN: 'AI rewritten',
-  IMPORTED: 'Imported content',
-  ANALYSIS_DERIVED: 'Analysis derived',
+  get HUMAN() {
+    return uiText('ui.DocumentOutline.message004');
+  },
+  get AI_GENERATED() {
+    return uiText('ui.DocumentProvenance.message022');
+  },
+  get AI_REWRITTEN() {
+    return uiText('ui.DocumentProvenance.message023');
+  },
+  get IMPORTED() {
+    return uiText('ui.DocumentOutline.message006');
+  },
+  get ANALYSIS_DERIVED() {
+    return uiText('ui.DocumentOutline.message007');
+  },
 };
 export function DocumentProvenance({
   workspaceId,
@@ -53,6 +67,7 @@ export function DocumentProvenance({
   readonly editor: Editor | null;
   readonly onExplainOperation?: (id: string, sourceVersionIds: readonly string[]) => void;
 }): ReactElement {
+  useUiLocale();
   const [block, setBlock] = useState<{
     id: string | null;
     text: string;
@@ -102,40 +117,39 @@ export function DocumentProvenance({
     staleTime: 0,
   });
   return (
-    <section aria-label="Block provenance" className={styles.inspector}>
-      <h2>Provenance</h2>
-      <p className={styles.note}>
-        Recorded operations for this block. Later edits may change its wording. This is
-        not AI detection or a percentage of authorship.
-      </p>
+    <section
+      aria-label={uiText('ui.DocumentProvenance.message001')}
+      className={styles.inspector}
+    >
+      <h2>{uiText('ui.DocumentProvenance.message002')}</h2>
+      <p className={styles.note}>{uiText('ui.DocumentProvenance.message003')}</p>
       {!block ? (
-        <p>
-          Select a paragraph, heading, code block, figure or analysis result to inspect
-          its origin.
-        </p>
+        <p>{uiText('ui.DocumentProvenance.message004')}</p>
       ) : (
         <>
-          <blockquote aria-label="Selected block">{block.text || block.type}</blockquote>
+          <blockquote aria-label={uiText('ui.DocumentProvenance.message005')}>
+            {block.text || block.type}
+          </blockquote>
           {!block.id ? (
-            <p>
-              No origin was recorded for this legacy block. Its authorship cannot be
-              inferred.
-            </p>
+            <p>{uiText('ui.DocumentProvenance.message006')}</p>
           ) : (
             <>
-              {history.isPending ? <p role="status">Loading provenance…</p> : null}
+              {history.isPending ? (
+                <p role="status">{uiText('ui.DocumentProvenance.message007')}</p>
+              ) : null}
               {history.error ? (
                 <p role="alert">
-                  Could not load provenance: {describeError(history.error)}
+                  {uiText('ui.DocumentProvenance.message008')}{' '}
+                  {describeError(history.error)}
                 </p>
               ) : null}
               {history.data?.length === 0 ? (
-                <p>No saved operations yet. Provenance becomes available after saving.</p>
+                <p>{uiText('ui.DocumentProvenance.message009')}</p>
               ) : null}
               {history.data?.length === 200 ? (
-                <p>Showing the latest 200 recorded operations.</p>
+                <p>{uiText('ui.DocumentProvenance.message010')}</p>
               ) : null}
-              <ol aria-label="Recorded block operations">
+              <ol aria-label={uiText('ui.DocumentProvenance.message011')}>
                 {history.data?.map((operation) => (
                   <li key={operation.id} data-origin={operation.category}>
                     <strong>
@@ -154,25 +168,36 @@ export function DocumentProvenance({
                       {labels[operation.category]}
                     </strong>
                     <p>
-                      {operation.operationType === 'AI_ACCEPTED'
-                        ? 'Suggestion accepted'
-                        : operation.operationType === 'CITATION_ADDED'
-                          ? 'Citation added manually'
-                          : operation.operationType === 'INSERTED'
-                            ? 'Block inserted'
-                            : operation.operationType === 'TRACKED'
-                              ? 'Tracking started'
-                              : 'Block edited'}{' '}
+                      {operation.operationType === 'TEMPLATE_APPLIED'
+                        ? uiText('templates.origin')
+                        : operation.operationType === 'AI_ACCEPTED'
+                          ? uiText('ui.DocumentProvenance.message012')
+                          : operation.operationType === 'CITATION_ADDED'
+                            ? uiText('ui.DocumentProvenance.message013')
+                            : operation.operationType === 'INSERTED'
+                              ? uiText('ui.DocumentProvenance.message014')
+                              : operation.operationType === 'TRACKED'
+                                ? uiText('ui.DocumentProvenance.message015')
+                                : uiText('ui.DocumentProvenance.message016')}{' '}
                       · v{operation.documentRevision}
                     </p>
+                    {operation.metadata.documentTemplate ? (
+                      <p>
+                        {operation.metadata.documentTemplate.templateId} ·{' '}
+                        {uiText('templates.version', {
+                          version: operation.metadata.documentTemplate.version,
+                        })}{' '}
+                        · {operation.metadata.documentTemplate.locale.toUpperCase()}
+                      </p>
+                    ) : null}
                     <p>
                       {operation.actorName} ·{' '}
                       <time dateTime={operation.createdAt}>
-                        {new Date(operation.createdAt).toLocaleString()}
+                        {new Date(operation.createdAt).toLocaleString(getIntlLocale())}
                       </time>
                     </p>
                     {operation.metadata.editedBeforeAcceptance ? (
-                      <p>Edited by a person before acceptance.</p>
+                      <p>{uiText('ui.DocumentProvenance.message017')}</p>
                     ) : null}
                     {operation.metadata.model?.name ? (
                       <p>
@@ -182,7 +207,8 @@ export function DocumentProvenance({
                     ) : null}
                     {operation.sourceOperationId ? (
                       <p className={styles.identity}>
-                        Source operation: {operation.sourceOperationId}
+                        {uiText('ui.DocumentProvenance.message018')}{' '}
+                        {operation.sourceOperationId}
                       </p>
                     ) : null}
                     {operation.operationType === 'AI_ACCEPTED' &&
@@ -202,15 +228,15 @@ export function DocumentProvenance({
                           ])
                         }
                       >
-                        Explain accepted text in chat
+                        {uiText('ui.DocumentProvenance.message019')}
                       </Button>
                     ) : null}
                     {operation.metadata.citations?.length ? (
-                      <ul aria-label="Operation sources">
+                      <ul aria-label={uiText('ui.DocumentProvenance.message020')}>
                         {operation.metadata.citations.map((citation) => (
                           <li key={citation.chunkId}>
                             <a href={citationPath(citation)}>
-                              {citation.title || 'Open source'}
+                              {citation.title || uiText('ui.ResearchEvidence.message003')}
                               {citation.pageStart === null
                                 ? ''
                                 : ` · p. ${citation.pageStart}`}
@@ -224,10 +250,11 @@ export function DocumentProvenance({
                         <a
                           href={`/app/workspaces/${workspaceId}/analyses/${operation.metadata.analysis.analysisId}?execution=${operation.metadata.analysis.executionId}`}
                         >
-                          Open analysis provenance
+                          {uiText('ui.GroundedAnswer.message021')}
                         </a>
                         <br />
-                        Output: {operation.metadata.analysis.outputId}
+                        {uiText('ui.DocumentProvenance.message021')}{' '}
+                        {operation.metadata.analysis.outputId}
                       </p>
                     ) : null}
                   </li>

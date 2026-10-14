@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -23,7 +25,7 @@ export interface DocumentListProps {
 
 export function documentTime(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(getIntlLocale());
 }
 
 /** Summaries only. A rename fetches the full document before a revision-checked update. */
@@ -34,6 +36,7 @@ export function DocumentList({
   onCreated,
   variant = 'table',
 }: DocumentListProps): ReactElement {
+  useUiLocale();
   const { data: documents, error, isPending } = useDocumentsQuery(workspaceId);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('updated');
@@ -59,10 +62,12 @@ export function DocumentList({
     >
       <header className={styles.listHeader}>
         <div>
-          <Heading id="workspace-documents-heading">Documents</Heading>
+          <Heading id="workspace-documents-heading">
+            {uiText('ui.DocumentList.message001')}
+          </Heading>
           {!column && documents !== undefined && error === null ? (
             <p className={styles.meta}>
-              {documents.length} {documents.length === 1 ? 'document' : 'documents'}
+              {uiText('documents.count', { count: documents.length })}
             </p>
           ) : null}
         </div>
@@ -71,7 +76,7 @@ export function DocumentList({
             <Button
               icon="plus"
               iconOnly
-              aria-label="New document"
+              aria-label={uiText('ui.DocumentList.message004')}
               variant="ghost"
               onClick={() => setCreating(true)}
             />
@@ -81,20 +86,22 @@ export function DocumentList({
               variant={column ? 'ghost' : 'primary'}
               onClick={() => setCreating(true)}
             >
-              New document
+              {uiText('ui.DocumentList.message004')}
             </Button>
           )
         ) : null}
       </header>
-      {isPending ? <p role="status">Loading documents…</p> : null}
+      {isPending ? <p role="status">{uiText('ui.DocumentList.message005')}</p> : null}
       {error !== null && !isPending ? (
-        <p role="alert">Could not load the documents: {describeError(error)}</p>
+        <p role="alert">
+          {uiText('ui.DocumentList.message006')} {describeError(error)}
+        </p>
       ) : null}
       {documents !== undefined && error === null ? (
         documents.length === 0 ? (
           <EmptyState
-            title="Nothing written yet"
-            description="Your research starts with a blank page. Write your first document here."
+            title={uiText('ui.DocumentList.message007')}
+            description={uiText('ui.DocumentList.message008')}
             art={<Illustration scene="documents" size={column ? 'compact' : 'default'} />}
             size={column ? 'compact' : 'default'}
             tone="lavender"
@@ -102,7 +109,7 @@ export function DocumentList({
               canEdit
                 ? [
                     <Button key="create" icon="plus" onClick={() => setCreating(true)}>
-                      Create first document
+                      {uiText('ui.DocumentList.message009')}
                     </Button>,
                   ]
                 : undefined
@@ -126,18 +133,20 @@ export function DocumentList({
           <>
             <div className={styles.filters}>
               <TextField
-                label="Search documents"
+                label={uiText('ui.DocumentList.message010')}
                 type="search"
-                placeholder="Search by title…"
+                placeholder={uiText('ui.DocumentList.message011')}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
               <label>
-                Sort documents
+                {uiText('ui.DocumentList.message012')}
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
-                  <option value="updated">Last edited</option>
-                  <option value="title">Title A–Z</option>
-                  <option value="revision">Revision</option>
+                  <option value="updated">{uiText('ui.DocumentList.message013')}</option>
+                  <option value="title">{uiText('ui.DocumentList.message014')}</option>
+                  <option value="revision">
+                    {uiText('ui.DocumentHistory.message019')}
+                  </option>
                 </select>
               </label>
             </div>
@@ -145,24 +154,26 @@ export function DocumentList({
               <EmptyState
                 art={<Illustration scene="search" />}
                 tone="blue"
-                title="No matching documents"
-                description="Try another title or clear your search."
+                title={uiText('ui.DocumentList.message015')}
+                description={uiText('ui.DocumentList.message016')}
                 actions={[
                   <Button key="clear" variant="secondary" onClick={() => setSearch('')}>
-                    Clear search
+                    {uiText('ui.DocumentList.message017')}
                   </Button>,
                 ]}
               />
             ) : (
               <DataTable<DocumentSummary>
-                caption="Workspace documents"
-                label="Documents"
+                caption={uiText('ui.DocumentList.message018')}
+                label={uiText('ui.DocumentList.message001')}
                 rows={rows}
                 rowKey={(row) => row.id}
                 columns={[
                   {
                     id: 'title',
-                    header: 'Title',
+                    get header() {
+                      return uiText('ui.DocumentEditorForm.message013');
+                    },
                     rowHeader: true,
                     render: (row) => (
                       <div className={styles.documentTitle}>
@@ -173,12 +184,16 @@ export function DocumentList({
                   },
                   {
                     id: 'revision',
-                    header: 'Revision',
+                    get header() {
+                      return uiText('ui.DocumentHistory.message019');
+                    },
                     render: (row) => <span className={styles.meta}>v{row.revision}</span>,
                   },
                   {
                     id: 'updated',
-                    header: 'Updated',
+                    get header() {
+                      return uiText('ui.DocumentList.message019');
+                    },
                     render: (row) => (
                       <time dateTime={row.updatedAt} className={styles.meta}>
                         {documentTime(row.updatedAt)}
@@ -187,15 +202,19 @@ export function DocumentList({
                   },
                   {
                     id: 'actions',
-                    header: 'Actions',
+                    get header() {
+                      return uiText('ui.DocumentList.message020');
+                    },
                     render: (row) => (
                       <div className={styles.rowActions}>
                         <Link
                           to={path(row.id)}
                           className={styles.open}
-                          aria-label={`Open ${row.title}`}
+                          aria-label={uiText('ui.DocumentList.message021', {
+                            value0: row.title,
+                          })}
                         >
-                          Open
+                          {uiText('ui.ClaimEvidencePanel.message011')}
                         </Link>
                         {canEdit ? (
                           <DocumentRowActions workspaceId={workspaceId} document={row} />
