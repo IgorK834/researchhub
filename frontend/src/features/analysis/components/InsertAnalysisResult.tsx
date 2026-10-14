@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ export function InsertAnalysisResult({
   readonly record: ExecutionRecord;
   readonly onClose: () => void;
 }): ReactElement {
+  useUiLocale();
   const workspaceId = record.execution.workspaceId;
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -90,8 +92,8 @@ export function InsertAnalysisResult({
       }}
       closeDisabled={insert.isPending}
       dismissible={!insert.isPending}
-      title="Insert result"
-      description="Insert a saved output with its exact execution and source provenance."
+      title={uiText('ui.InsertAnalysisResult.message001')}
+      description={uiText('ui.InsertAnalysisResult.message002')}
       className={styles.dialog}
     >
       <form
@@ -102,9 +104,9 @@ export function InsertAnalysisResult({
         }}
       >
         <fieldset disabled={insert.isPending}>
-          <legend>Destination and saved output</legend>
+          <legend>{uiText('ui.InsertAnalysisResult.message003')}</legend>
           <label>
-            Document
+            {uiText('ui.InsertAnalysisResult.message004')}
             <select
               value={documentId}
               onChange={(event) => {
@@ -112,7 +114,7 @@ export function InsertAnalysisResult({
                 setPosition(-1);
               }}
             >
-              <option value="">Choose a report</option>
+              <option value="">{uiText('ui.InsertAnalysisResult.message005')}</option>
               {documents.data?.map((document) => (
                 <option key={document.id} value={document.id}>
                   {document.title}
@@ -120,7 +122,11 @@ export function InsertAnalysisResult({
               ))}
             </select>
           </label>
-          <div className={styles.formats} role="radiogroup" aria-label="Output format">
+          <div
+            className={styles.formats}
+            role="radiogroup"
+            aria-label={uiText('ui.InsertAnalysisResult.message006')}
+          >
             {outputs.map((output) => (
               <label key={output.name} data-selected={outputId === output.name}>
                 <input
@@ -132,17 +138,17 @@ export function InsertAnalysisResult({
                 />
                 <strong>
                   {output.kind === 'TEXT'
-                    ? 'Summary'
+                    ? uiText('ui.InsertAnalysisResult.message007')
                     : output.kind === 'CHART'
-                      ? 'Chart'
-                      : 'Table'}
+                      ? uiText('ui.InsertAnalysisResult.message008')
+                      : uiText('ui.InsertAnalysisResult.message009')}
                 </strong>
                 <span>{output.name}</span>
               </label>
             ))}
           </div>
           <label>
-            Caption
+            {uiText('ui.InsertAnalysisResult.message010')}
             <input
               value={caption}
               maxLength={1000}
@@ -151,15 +157,15 @@ export function InsertAnalysisResult({
           </label>
           {body ? (
             <label>
-              Insert position
+              {uiText('ui.InsertAnalysisResult.message011')}
               <select
                 value={position}
                 onChange={(event) => setPosition(Number(event.target.value))}
               >
-                <option value={-1}>End of document</option>
+                <option value={-1}>{uiText('ui.InsertAnalysisResult.message012')}</option>
                 {body.content?.map((block, index) => (
                   <option key={index} value={index}>
-                    Before block {index + 1}
+                    {uiText('ui.InsertAnalysisResult.message013')} {index + 1}
                     {block.type === 'heading'
                       ? ` · ${block.content?.map((text) => text.text ?? '').join('')}`
                       : ''}
@@ -170,18 +176,21 @@ export function InsertAnalysisResult({
           ) : null}
         </fieldset>
         <p>
-          Execution {record.execution.id} · {selected?.name}. Source versions and the
-          analysis link stay attached. A later rerun will not replace this reference.
+          {uiText('ui.AnalysisEvidencePicker.message004')} {record.execution.id} ·{' '}
+          {selected?.name}
+          {uiText('ui.InsertAnalysisResult.message014')}
         </p>
         {error ? (
-          <p role="alert">Could not load the destination: {describeError(error)}</p>
+          <p role="alert">
+            {uiText('ui.InsertAnalysisResult.message015')} {describeError(error)}
+          </p>
         ) : null}
         {document.data && !body ? (
-          <p role="alert">This document cannot be opened safely by this editor.</p>
+          <p role="alert">{uiText('ui.InsertAnalysisResult.message016')}</p>
         ) : null}
         {insert.error ? (
           <p role="alert">
-            Could not insert the result: {describeError(insert.error)}{' '}
+            {uiText('ui.InsertAnalysisResult.message017')} {describeError(insert.error)}{' '}
             <Button
               variant="ghost"
               disabled={document.isFetching}
@@ -189,13 +198,13 @@ export function InsertAnalysisResult({
                 void document.refetch();
               }}
             >
-              Reload destination
+              {uiText('ui.InsertAnalysisResult.message018')}
             </Button>
           </p>
         ) : null}
         <div className={styles.actions}>
           <Button variant="secondary" disabled={insert.isPending} onClick={onClose}>
-            Cancel
+            {uiText('ui.InsertAnalysisResult.message019')}
           </Button>
           <Button
             type="submit"
@@ -209,7 +218,7 @@ export function InsertAnalysisResult({
             }
             busy={insert.isPending}
           >
-            Insert
+            {uiText('ui.InsertAnalysisResult.message020')}
           </Button>
         </div>
       </form>

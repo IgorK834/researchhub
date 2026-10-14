@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import {
   useEffect,
   useId,
@@ -16,10 +17,34 @@ import styles from './AnalysisWidgets.module.css';
 export type ComputationState = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 const states: Record<ComputationState, { label: string; icon: IconName; tone: string }> =
   {
-    QUEUED: { label: 'Queued', icon: 'clock', tone: 'neutral' },
-    RUNNING: { label: 'Running', icon: 'refresh', tone: 'active' },
-    COMPLETED: { label: 'Completed', icon: 'check', tone: 'success' },
-    FAILED: { label: 'Failed', icon: 'alert', tone: 'failed' },
+    QUEUED: {
+      get label() {
+        return uiText('ui.AnalysisStatus.message004');
+      },
+      icon: 'clock',
+      tone: 'neutral',
+    },
+    RUNNING: {
+      get label() {
+        return uiText('ui.AnalysisStatus.message005');
+      },
+      icon: 'refresh',
+      tone: 'active',
+    },
+    COMPLETED: {
+      get label() {
+        return uiText('ui.AnalysisStatus.message006');
+      },
+      icon: 'check',
+      tone: 'success',
+    },
+    FAILED: {
+      get label() {
+        return uiText('ui.AnalysisStatus.message007');
+      },
+      icon: 'alert',
+      tone: 'failed',
+    },
   };
 export function AnalysisStatusChip({
   state,
@@ -45,8 +70,9 @@ export function AnalysisPipeline({
 }: {
   readonly steps: readonly PipelineStep[];
 }): ReactElement {
+  useUiLocale();
   return (
-    <ol className={styles.pipeline} aria-label="Analysis progress">
+    <ol className={styles.pipeline} aria-label={uiText('ui.AnalysisWidgets.message001')}>
       {steps.map((step) => (
         <li key={step.id} data-state={step.state}>
           <Icon
@@ -61,10 +87,10 @@ export function AnalysisPipeline({
           <div>
             <small>
               {step.state === 'DONE'
-                ? 'Done'
+                ? uiText('ui.AnalysisWidgets.message002')
                 : step.state === 'IN_PROGRESS'
-                  ? 'In progress'
-                  : 'Next'}
+                  ? uiText('ui.AnalysisWidgets.message003')
+                  : uiText('ui.AnalysisWidgets.message004')}
             </small>
             <h3>{step.title}</h3>
             <p>{step.description}</p>
@@ -93,6 +119,7 @@ export function AnalysisCodePanel({
   readonly toggleVisible?: boolean;
   readonly footer?: ReactNode;
 }): ReactElement {
+  useUiLocale();
   const [local, setLocal] = useState(false);
   const generatedId = useId();
   const panelId = id ?? generatedId;
@@ -117,28 +144,30 @@ export function AnalysisCodePanel({
             onOpenChange?.(!open);
           }}
         >
-          {open ? 'Hide code' : 'Show code'}
+          {open
+            ? uiText('ui.AnalysisStudio.message015')
+            : uiText('ui.AnalysisStudio.message016')}
         </Button>
       ) : null}
       {open ? (
         <section
           id={panelId}
-          aria-label="Generated code, read-only"
+          aria-label={uiText('ui.AnalysisWidgets.message005')}
           ref={section}
           tabIndex={-1}
         >
-          <Panel title={`The code that produced this · ${language}, read-only`}>
-            <p>
-              Code is read-only. Running it requires a separate, explicit analysis
-              execution.
-            </p>
+          <Panel title={uiText('ui.AnalysisWidgets.message006', { value0: language })}>
+            <p>{uiText('ui.AnalysisWidgets.message007')}</p>
             {hash ? (
               <p className={styles.hash}>
-                SHA-256 <code>{hash}</code>
+                {uiText('ui.AnalysisWidgets.message008')} <code>{hash}</code>
               </p>
             ) : null}
             {footer}
-            <ol className={styles.code} aria-label="Code with line numbers">
+            <ol
+              className={styles.code}
+              aria-label={uiText('ui.AnalysisWidgets.message009')}
+            >
               {code.split('\n').map((line, index) => (
                 <li key={index}>
                   <code>{line || ' '}</code>
@@ -165,6 +194,7 @@ export function AnalysisResultTable({
   rows,
   calculatedColumn,
 }: ResultTableProps): ReactElement {
+  useUiLocale();
   const [page, setPage] = useState(0);
   const visiblePage = Math.min(page, Math.max(0, Math.ceil(rows.length / 25) - 1));
   const start = visiblePage * 25;
@@ -172,14 +202,19 @@ export function AnalysisResultTable({
     <Panel title={name}>
       <div className={styles.tableScroll}>
         <table className={styles.table}>
-          <caption>{rows.length} saved rows</caption>
+          <caption>
+            {rows.length} {uiText('ui.AnalysisWidgets.message010')}
+          </caption>
           <thead>
             <tr>
               {columns.map((column, index) => (
                 <th key={index} scope="col" data-calculated={index === calculatedColumn}>
                   {column}
                   {index === calculatedColumn ? (
-                    <span className="visually-hidden"> (calculated)</span>
+                    <span className="visually-hidden">
+                      {' '}
+                      {uiText('ui.AnalysisWidgets.message011')}
+                    </span>
                   ) : null}
                 </th>
               ))}
@@ -202,22 +237,23 @@ export function AnalysisResultTable({
       </div>
       <div className={styles.actions}>
         <span>
-          {rows.length ? `${start + 1}–${Math.min(start + 25, rows.length)}` : '0'} of{' '}
-          {rows.length} rows
+          {rows.length ? `${start + 1}–${Math.min(start + 25, rows.length)}` : '0'}{' '}
+          {uiText('ui.AnalysisWidgets.message012')} {rows.length}{' '}
+          {uiText('ui.AnalysisWidgets.message013')}
         </span>
         <Button
           variant="ghost"
           disabled={visiblePage === 0}
           onClick={() => setPage(visiblePage - 1)}
         >
-          Previous rows
+          {uiText('ui.AnalysisWidgets.message014')}
         </Button>
         <Button
           variant="ghost"
           disabled={start + 25 >= rows.length}
           onClick={() => setPage(visiblePage + 1)}
         >
-          Next rows
+          {uiText('ui.AnalysisWidgets.message015')}
         </Button>
       </div>
     </Panel>
@@ -238,6 +274,7 @@ export function AnalysisChartFrame({
   readonly children: ReactNode;
   readonly onDetails?: () => void;
 }): ReactElement {
+  useUiLocale();
   return (
     <Panel
       className={styles.chartFrame}
@@ -245,7 +282,7 @@ export function AnalysisChartFrame({
       header={
         onDetails ? (
           <Button variant="secondary" icon="layers" onClick={onDetails}>
-            View provenance
+            {uiText('ui.AnalysisStudio.message018')}
           </Button>
         ) : undefined
       }
@@ -254,7 +291,7 @@ export function AnalysisChartFrame({
       <figure className={styles.figure}>
         {children}
         {legend.length ? (
-          <ul aria-label="Chart legend">
+          <ul aria-label={uiText('ui.AnalysisWidgets.message016')}>
             {legend.map((text, index) => (
               <li key={index}>{text}</li>
             ))}
@@ -274,13 +311,14 @@ export function AnalysisFreshnessBanner({
   readonly message: string;
   readonly onUpdate?: () => void;
 }): ReactElement | null {
+  useUiLocale();
   if (!outOfDate) return null;
   return (
-    <Banner tone="warning" lead="Out of date">
+    <Banner tone="warning" lead={uiText('ui.AnalysisWidgets.message018')}>
       <p>{message}</p>
       {onUpdate ? (
         <Button variant="secondary" onClick={onUpdate}>
-          Update reference
+          {uiText('ui.AnalysisWidgets.message017')}
         </Button>
       ) : null}
     </Banner>
@@ -301,6 +339,7 @@ export function AnalysisListItem({
   readonly outputLabel: string;
   readonly onOpen: () => void;
 }): ReactElement {
+  useUiLocale();
   return (
     <article className={styles.listItem}>
       <div className={styles.actions}>
@@ -311,7 +350,7 @@ export function AnalysisListItem({
         {inputLabel} · {timeLabel} · {outputLabel}
       </p>
       <Button variant="secondary" onClick={onOpen}>
-        Open analysis
+        {uiText('ui.AnalysisList.message013')}
       </Button>
     </article>
   );

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { Link } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import { Banner } from '../../../shared/components/feedback';
@@ -10,32 +11,39 @@ export function AnalysisLineage({
   readonly workspaceId: string;
   readonly lineage: Lineage;
 }): ReactElement {
+  useUiLocale();
   const changed = lineage.versions.some(
     (v) => v.originalVersionId !== v.selectedVersionId,
   );
   return (
     <Banner
       tone={changed ? 'warning' : 'info'}
-      lead={changed ? 'Inputs changed for this run' : 'Original input versions retained'}
+      lead={
+        changed
+          ? uiText('ui.AnalysisLineage.message001')
+          : uiText('ui.AnalysisLineage.message002')
+      }
     >
       <p>
         {lineage.inputMode === 'LATEST'
-          ? 'This derived analysis replanned the same request using the latest versions selected when it was created.'
-          : 'This attempt uses the original source versions and accepted code.'}
+          ? uiText('ui.AnalysisLineage.message003')
+          : uiText('ui.AnalysisLineage.message004')}
       </p>
       <ul>
         {lineage.versions.map((v) => (
           <li key={v.sourceId}>
-            Source {v.sourceId.slice(0, 8)}: v{v.originalVersionNumber} → v
-            {v.selectedVersionNumber}
-            {v.originalVersionId === v.selectedVersionId ? ' (unchanged)' : ' (changed)'}
+            {uiText('ui.AiDraftBlock.message007')} {v.sourceId.slice(0, 8)}: v
+            {v.originalVersionNumber} → v{v.selectedVersionNumber}
+            {v.originalVersionId === v.selectedVersionId
+              ? ' ' + uiText('ui.AnalysisLineage.message005')
+              : ' ' + uiText('ui.AnalysisLineage.message006')}
           </li>
         ))}
       </ul>
       <Link
         to={`/app/workspaces/${workspaceId}/analyses/${lineage.originAnalysisId}?execution=${encodeURIComponent(lineage.originExecutionId)}`}
       >
-        View original execution
+        {uiText('ui.AnalysisLineage.message007')}
       </Link>
     </Banner>
   );

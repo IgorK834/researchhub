@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAnalyses, fetchExecutions, fetchExecutionRecord } from '../api/analysisApi';
@@ -21,6 +23,7 @@ export function AnalysisOutputPicker({
   readonly onChoose: (reference: AnalysisReference) => void;
   readonly disabled?: boolean;
 }): ReactElement {
+  useUiLocale();
   const [analysisId, setAnalysisId] = useState(initial?.analysisId ?? '');
   const [executionId, setExecutionId] = useState(initial?.executionId ?? '');
   const [outputId, setOutputId] = useState(initial?.outputId ?? '');
@@ -74,12 +77,14 @@ export function AnalysisOutputPicker({
       : undefined;
   return (
     <fieldset disabled={disabled} className={styles.picker}>
-      <legend>Saved analysis output</legend>
+      <legend>{uiText('ui.AnalysisOutputPicker.message001')}</legend>
       {error ? (
-        <p role="alert">Could not load saved outputs: {describeError(error)}</p>
+        <p role="alert">
+          {uiText('ui.AnalysisOutputPicker.message002')} {describeError(error)}
+        </p>
       ) : null}
       <Select
-        label="Analysis"
+        label={uiText('ui.AnalysisOutputPicker.message003')}
         value={analysisId}
         onChange={(event) => {
           setAnalysisId(event.target.value);
@@ -87,7 +92,7 @@ export function AnalysisOutputPicker({
           setOutputId('');
         }}
       >
-        <option value="">Choose analysis</option>
+        <option value="">{uiText('ui.AnalysisOutputPicker.message004')}</option>
         {analyses.data?.map((analysis) => (
           <option key={analysis.id} value={analysis.id}>
             {analysis.plan?.summary ?? analysis.userPrompt}
@@ -95,7 +100,8 @@ export function AnalysisOutputPicker({
         ))}
         {initial && !analyses.data?.some((a) => a.id === initial.analysisId) ? (
           <option value={initial.analysisId}>
-            Referenced analysis {initial.analysisId.slice(0, 8)}
+            {uiText('ui.AnalysisOutputPicker.message005')}{' '}
+            {initial.analysisId.slice(0, 8)}
           </option>
         ) : null}
       </Select>
@@ -105,40 +111,45 @@ export function AnalysisOutputPicker({
           disabled={offset === 0}
           onClick={() => setOffset(Math.max(0, offset - 50))}
         >
-          Newer analyses
+          {uiText('ui.AnalysisList.message014')}
         </Button>
         <Button
           variant="ghost"
           disabled={!analyses.data || analyses.data.length < 50}
           onClick={() => setOffset(offset + 50)}
         >
-          Older analyses
+          {uiText('ui.AnalysisList.message015')}
         </Button>
       </div>
       <Select
-        label="Execution"
+        label={uiText('ui.AnalysisEvidencePicker.message004')}
         value={executionId}
         onChange={(event) => {
           setExecutionId(event.target.value);
           setOutputId('');
         }}
       >
-        <option value="">Choose completed execution</option>
+        <option value="">{uiText('ui.AnalysisOutputPicker.message006')}</option>
         {executions.data
           ?.filter((run) => run.status === 'SUCCEEDED')
           .map((run) => (
             <option key={run.id} value={run.id}>
-              {run.attempt === null ? 'Saved run' : `Attempt ${run.attempt}`} ·{' '}
-              {new Date(run.finishedAt!).toLocaleString()} · {run.id.slice(0, 8)}
+              {run.attempt === null
+                ? uiText('ui.AnalysisOutputPicker.message007')
+                : uiText('ui.AnalysisOutputPicker.message008', {
+                    value0: run.attempt,
+                  })}{' '}
+              · {new Date(run.finishedAt!).toLocaleString(getIntlLocale())} ·{' '}
+              {run.id.slice(0, 8)}
             </option>
           ))}
       </Select>
       <Select
-        label="Output"
+        label={uiText('ui.AnalysisOutputPicker.message009')}
         value={outputId}
         onChange={(event) => setOutputId(event.target.value)}
       >
-        <option value="">Choose output</option>
+        <option value="">{uiText('ui.AnalysisOutputPicker.message010')}</option>
         {record.data?.execution.status === 'SUCCEEDED'
           ? record.data.execution.result?.outputs.map((output) => (
               <option key={output.name} value={output.name}>
@@ -149,8 +160,8 @@ export function AnalysisOutputPicker({
       </Select>
       {output ? (
         <p>
-          Reference: {executionId} · {output.name}. It stays on this execution until you
-          explicitly update it.
+          {uiText('ui.AnalysisOutputPicker.message011')} {executionId} · {output.name}
+          {uiText('ui.AnalysisOutputPicker.message012')}
         </p>
       ) : null}
       <Button
@@ -174,7 +185,7 @@ export function AnalysisOutputPicker({
             });
         }}
       >
-        Use selected output
+        {uiText('ui.AnalysisOutputPicker.message013')}
       </Button>
     </fieldset>
   );

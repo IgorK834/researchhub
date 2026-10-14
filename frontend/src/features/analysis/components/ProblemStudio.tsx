@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import styles from './Problem.module.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -25,6 +26,7 @@ export function ProblemStudio({
   readonly analysisId: string;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const client = useQueryClient();
   const key = ['problem', workspaceId, analysisId];
   const analysis = useQuery({
@@ -49,7 +51,9 @@ export function ProblemStudio({
         ? analysis.data
         : await planProblem(workspaceId, analysisId);
       if (planned?.status !== 'READY_TO_EXECUTE')
-        throw new Error(planned?.missing.join(' ') || 'Complete the problem input');
+        throw new Error(
+          planned?.missing.join(' ') || uiText('ui.ProblemStudio.message001'),
+        );
       return executeProblem(workspaceId, analysisId);
     },
     onSuccess: () => client.invalidateQueries({ queryKey: key }),
@@ -58,7 +62,8 @@ export function ProblemStudio({
     mutationFn: (id: string) => reproduceProblem(workspaceId, analysisId, id),
     onSuccess: () => client.invalidateQueries({ queryKey: key }),
   });
-  if (analysis.isPending) return <p role="status">Loading problem…</p>;
+  if (analysis.isPending)
+    return <p role="status">{uiText('ui.ProblemStudio.message002')}</p>;
   if (analysis.error) return <p role="alert">{describeError(analysis.error)}</p>;
   const a = analysis.data;
   const busy =
@@ -67,19 +72,27 @@ export function ProblemStudio({
     executions.data?.some((e) => ['QUEUED', 'RUNNING'].includes(e.status));
   return (
     <section className={styles.result}>
-      <Link to={`/app/workspaces/${workspaceId}/analyses`}>All analyses</Link>
+      <Link to={`/app/workspaces/${workspaceId}/analyses`}>
+        {uiText('ui.AnalysisStudio.message009')}
+      </Link>
       <h1>{a.userPrompt}</h1>
-      <p>PROBLEM · {a.status}</p>
+      <p>
+        {uiText('ui.ProblemStudio.message003')} {a.status}
+      </p>
       <p>{a.snapshot.problem.statement}</p>
-      <h2>Frozen input</h2>
+      <h2>{uiText('ui.ProblemStudio.message004')}</h2>
       <ul>
         {a.snapshot.problem.parameters.map((p) => (
           <li key={p.symbol}>
-            {p.symbol} = {p.value ?? 'missing'} {p.unit ?? 'unit missing'}
+            {p.symbol} = {p.value ?? uiText('ui.ProblemStudio.message005')}{' '}
+            {p.unit ?? uiText('ui.ProblemStudio.message006')}
           </li>
         ))}
       </ul>
-      <p>Domain: {a.snapshot.problem.domain ?? 'missing'}</p>
+      <p>
+        {uiText('ui.ProblemStudio.message007')}{' '}
+        {a.snapshot.problem.domain ?? uiText('ui.ProblemStudio.message005')}
+      </p>
       <ul>
         {a.snapshot.problem.assumptions.map((s, i) => (
           <li key={i}>{s}</li>
@@ -87,12 +100,12 @@ export function ProblemStudio({
       </ul>
       {a.parentAnalysisId && (
         <Link to={`/app/workspaces/${workspaceId}/analyses/${a.parentAnalysisId}`}>
-          Previous input snapshot
+          {uiText('ui.ProblemStudio.message008')}
         </Link>
       )}
       {a.missing.length > 0 && (
         <div role="status">
-          <h2>Clarification required</h2>
+          <h2>{uiText('ui.ProblemStudio.message009')}</h2>
           <ul>
             {a.missing.map((s) => (
               <li key={s}>{s}</li>
@@ -106,14 +119,14 @@ export function ProblemStudio({
             disabled={!!busy || a.missing.length > 0 || a.status === 'FAILED'}
             onClick={() => run.mutate()}
           >
-            Calculate in sandbox
+            {uiText('ui.ProblemStudio.message010')}
           </Button>
           <Button
             variant="secondary"
             disabled={!!busy}
             onClick={() => setChange(!change)}
           >
-            Change inputs
+            {uiText('ui.ProblemStudio.message011')}
           </Button>
         </>
       )}
@@ -133,27 +146,38 @@ export function ProblemStudio({
         </p>
       )}
       <p>
-        Input hash: <code>{a.snapshot.inputHash}</code>
+        {uiText('ui.ProblemStudio.message012')} <code>{a.snapshot.inputHash}</code>
       </p>
-      <p>Planning template: {a.snapshot.templateId}</p>
-      {a.plan && <p>Model plan: {a.plan.summary}</p>}
+      <p>
+        {uiText('ui.ProblemStudio.message013')} {a.snapshot.templateId}
+      </p>
+      {a.plan && (
+        <p>
+          {uiText('ui.ProblemStudio.message014')} {a.plan.summary}
+        </p>
+      )}
       {executions.data?.map((e) => (
         <article key={e.id}>
-          <h2>Execution {e.status}</h2>
+          <h2>
+            {uiText('ui.AnalysisEvidencePicker.message004')} {e.status}
+          </h2>
           <p>
-            Run {e.id} · Runtime {e.runtimeVersion}
+            {uiText('ui.ProblemStudio.message015')} {e.id}{' '}
+            {uiText('ui.ProblemStudio.message016')} {e.runtimeVersion}
           </p>
           <p>
-            Computation: {e.computationStatus ?? e.status} · Verification:{' '}
-            {e.verification?.status ?? 'not performed'}
+            {uiText('ui.ProblemStudio.message017')} {e.computationStatus ?? e.status}{' '}
+            {uiText('ui.ProblemStudio.message018')}{' '}
+            {e.verification?.status ?? uiText('ui.ProblemStudio.message019')}
           </p>
-          {e.failureCode && <p role="alert">Calculation failed: {e.failureCode}</p>}
+          {e.failureCode && (
+            <p role="alert">
+              {uiText('ui.ProblemStudio.message020')} {e.failureCode}
+            </p>
+          )}
           {e.result && (
             <>
-              <p>
-                Computations checked in a fresh sandbox. This checks arithmetic and the
-                declared units; physical assumptions are listed above.
-              </p>
+              <p>{uiText('ui.ProblemStudio.message021')}</p>
               {e.result.outputs.map((o) => (
                 <div key={o.name}>
                   <div
@@ -169,7 +193,7 @@ export function ProblemStudio({
                       (s) => location.hash === `#step-${s.id}`,
                     )}
                   >
-                    <summary>Saved calculation steps</summary>
+                    <summary>{uiText('ui.ProblemStudio.message022')}</summary>
                     {e.solution ? (
                       e.solution.steps
                         .filter((s) => s.outputId === o.name)
@@ -183,10 +207,9 @@ export function ProblemStudio({
                         ))
                     ) : (
                       <p>
-                        Substitute the frozen parameters shown above into the formula and
-                        evaluate in the declared output unit. Computed values:{' '}
-                        {o.values.join(', ')} {o.unit}. Each saved step belongs to
-                        execution {e.id}.
+                        {uiText('ui.ProblemStudio.message023')} {o.values.join(', ')}{' '}
+                        {o.unit}
+                        {uiText('ui.ProblemStudio.message024')} {e.id}.
                       </p>
                     )}
                   </details>
@@ -195,7 +218,7 @@ export function ProblemStudio({
               {e.result.plot && (
                 <>
                   <table>
-                    <caption>Saved numeric plot data</caption>
+                    <caption>{uiText('ui.ProblemStudio.message025')}</caption>
                     <thead>
                       <tr>
                         <th>x ({e.result.plot.xUnit})</th>
@@ -212,7 +235,7 @@ export function ProblemStudio({
                     </tbody>
                   </table>
                   <img
-                    alt="Computed plot"
+                    alt={uiText('ui.ProblemStudio.message026')}
                     src={`${problemPath(workspaceId, analysisId)}/problem/executions/${e.id}/artifacts/plot.png`}
                   />
                 </>
@@ -220,14 +243,25 @@ export function ProblemStudio({
             </>
           )}
           <details>
-            <summary>Reproduction and verification receipt</summary>
-            <p>Input: {e.inputHash}</p>
-            <p>Plan: {e.planHash}</p>
-            <p>Image: {e.imageId}</p>
+            <summary>{uiText('ui.ProblemStudio.message027')}</summary>
+            <p>
+              {uiText('ui.ProblemStudio.message028')} {e.inputHash}
+            </p>
+            <p>
+              {uiText('ui.ProblemStudio.message029')} {e.planHash}
+            </p>
+            <p>
+              {uiText('ui.ProblemStudio.message030')} {e.imageId}
+            </p>
             {e.solution ? (
               <>
-                <p>Interpretation: {e.solution.interpretation.status}</p>
-                <p>Verification version: {e.solution.verificationVersion}</p>
+                <p>
+                  {uiText('ui.ProblemStudio.message031')}{' '}
+                  {e.solution.interpretation.status}
+                </p>
+                <p>
+                  {uiText('ui.ProblemStudio.message032')} {e.solution.verificationVersion}
+                </p>
                 <pre>{JSON.stringify(e.solution.codeHashes, null, 2)}</pre>
               </>
             ) : null}
@@ -235,7 +269,7 @@ export function ProblemStudio({
           </details>
           {canEdit && e.imageId && (
             <Button disabled={!!busy} onClick={() => reproduce.mutate(e.id)}>
-              Reproduce frozen run
+              {uiText('ui.ProblemStudio.message033')}
             </Button>
           )}
         </article>

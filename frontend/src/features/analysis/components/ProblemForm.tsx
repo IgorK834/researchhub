@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import styles from './Problem.module.css';
 import { useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ export function ProblemForm({
   readonly parent?: ProblemAnalysis | null;
   readonly onCreated: (id: string) => void;
 }): ReactElement {
+  const locale = useUiLocale();
   const original = parent?.snapshot.problem;
   const [statement, setStatement] = useState(original?.statement ?? '');
   const [formula, setFormula] = useState(
@@ -43,7 +45,7 @@ export function ProblemForm({
       ? `${original.plot.parameter};${original.plot.start};${original.plot.end};${original.plot.points}`
       : 'x;0;10;51',
   );
-  const [error, setError] = useState('');
+  const [error, setError] = useState<Error | null>(null);
   const request = useRef(crypto.randomUUID());
   const save = useMutation({
     mutationFn: (problem: ProblemInput) =>
@@ -53,10 +55,10 @@ export function ProblemForm({
   return (
     <form
       className={styles.form}
-      aria-label="Scientific problem"
+      aria-label={uiText('ui.ProblemForm.message001')}
       onSubmit={(e) => {
         e.preventDefault();
-        setError('');
+        setError(null);
         try {
           const rows = parameters.trim()
             ? parameters
@@ -101,19 +103,21 @@ export function ProblemForm({
               : null,
           });
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Invalid formula');
+          setError(
+            err instanceof Error ? err : new Error(uiText('ui.ProblemForm.message002')),
+          );
         }
       }}
     >
       <h2>
         {parent
-          ? 'Complete or change the saved problem'
-          : 'Scientific problem — no dataset required'}
+          ? uiText('ui.ProblemForm.message003')
+          : uiText('ui.ProblemForm.message004')}
       </h2>
       <label>
-        Problem statement
+        {uiText('ui.ProblemForm.message005')}
         <textarea
-          aria-label="Problem statement"
+          aria-label={uiText('ui.ProblemForm.message005')}
           maxLength={4000}
           value={statement}
           onChange={(e) => setStatement(e.target.value)}
@@ -121,31 +125,31 @@ export function ProblemForm({
         />
       </label>
       <label>
-        Calculation
+        {uiText('ui.ProblemForm.message006')}
         <select
-          aria-label="Calculation"
+          aria-label={uiText('ui.ProblemForm.message006')}
           value={mode}
           onChange={(e) => setMode(e.target.value as 'EVALUATE' | 'SOLVE')}
         >
-          <option value="EVALUATE">Evaluate formula</option>
-          <option value="SOLVE">Solve polynomial equation (degree ≤ 4)</option>
+          <option value="EVALUATE">{uiText('ui.ProblemForm.message007')}</option>
+          <option value="SOLVE">{uiText('ui.ProblemForm.message008')}</option>
         </select>
       </label>
       <label>
-        Formula
+        {uiText('ui.ProblemForm.message009')}
         <input
-          aria-label="Problem formula"
+          aria-label={uiText('ui.ProblemForm.message010')}
           value={formula}
           maxLength={1000}
           onChange={(e) => setFormula(e.target.value)}
-          placeholder="distance / time"
+          placeholder={uiText('ui.ProblemForm.message011')}
         />
       </label>
       {mode === 'SOLVE' && (
         <label>
-          Unknown
+          {uiText('ui.ProblemForm.message012')}
           <input
-            aria-label="Unknown"
+            aria-label={uiText('ui.ProblemForm.message012')}
             value={unknown}
             maxLength={16}
             onChange={(e) => setUnknown(e.target.value)}
@@ -153,41 +157,37 @@ export function ProblemForm({
         </label>
       )}
       <label>
-        Result unit
+        {uiText('ui.ProblemForm.message013')}
         <input
-          aria-label="Result unit"
+          aria-label={uiText('ui.ProblemForm.message013')}
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
           maxLength={16}
         />
       </label>
       <label>
-        Parameters
+        {uiText('ui.ProblemForm.message014')}
         <textarea
-          aria-label="Problem parameters"
+          aria-label={uiText('ui.ProblemForm.message015')}
           value={parameters}
           onChange={(e) => setParameters(e.target.value)}
           maxLength={3000}
-          placeholder={'distance;100;m\ntime;20;s'}
+          placeholder={uiText('ui.ProblemForm.message016')}
         />
       </label>
-      <p>
-        One parameter per line: symbol;canonical decimal;unit. Use a decimal point.
-        Supported units: 1, m, cm, km, s, ms, kg, g, m/s, m/s^2, N, J, Pa, rad, deg, A,
-        mA, V, ohm, kohm, W, mW. Degrees are explicitly converted to radians.
-      </p>
+      <p>{uiText('ui.ProblemForm.message017')}</p>
       <label>
         <input
           type="checkbox"
           checked={domain}
           onChange={(e) => setDomain(e.target.checked)}
         />
-        Use the REAL domain
+        {uiText('ui.ProblemForm.message018')}
       </label>
       <label>
-        Assumptions
+        {uiText('ui.AnalysisStudio.message031')}
         <textarea
-          aria-label="Problem assumptions"
+          aria-label={uiText('ui.ProblemForm.message019')}
           value={assumptions}
           onChange={(e) => setAssumptions(e.target.value)}
           maxLength={6000}
@@ -199,27 +199,35 @@ export function ProblemForm({
           checked={plot}
           onChange={(e) => setPlot(e.target.checked)}
         />
-        Generate plot
+        {uiText('ui.ProblemForm.message020')}
       </label>
       {plot && (
         <label>
-          Plot range
+          {uiText('ui.ProblemForm.message021')}
           <input
-            aria-label="Plot range"
+            aria-label={uiText('ui.ProblemForm.message021')}
             value={range}
             onChange={(e) => setRange(e.target.value)}
           />
-          <span>parameter;start;end;points (2–201)</span>
+          <span>{uiText('ui.ProblemForm.message022')}</span>
         </label>
       )}
       <p>
         {parent
-          ? 'Changing inputs saves a new analysis linked to this immutable snapshot.'
-          : 'Missing values, units or domain are saved as a request for clarification.'}
+          ? uiText('ui.ProblemForm.message023')
+          : uiText('ui.ProblemForm.message024')}
       </p>
-      {(error || save.error) && <p role="alert">{error || describeError(save.error)}</p>}
+      {(error || save.error) && (
+        <p role="alert">
+          {error
+            ? locale === 'pl'
+              ? uiText('problem.validation')
+              : error.message
+            : describeError(save.error)}
+        </p>
+      )}
       <Button type="submit" disabled={save.isPending}>
-        Save problem
+        {uiText('ui.ProblemForm.message025')}
       </Button>
     </form>
   );

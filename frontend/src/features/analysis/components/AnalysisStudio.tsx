@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { ProblemStudio } from './ProblemStudio';
 import { useState, type ReactElement } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
@@ -37,6 +39,7 @@ function DatasetStudio({
   readonly analysisId: string;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const analysis = useAnalysisQuery(workspaceId, analysisId);
   const history = useExecutionsQuery(
     workspaceId,
@@ -79,10 +82,11 @@ function DatasetStudio({
       await client.invalidateQueries({ queryKey: queryKeys.analyses(workspaceId) });
     },
   });
-  if (analysis.isPending) return <p role="status">Loading analysis…</p>;
+  if (analysis.isPending)
+    return <p role="status">{uiText('ui.AnalysisStudio.message001')}</p>;
   if (analysis.error)
     return (
-      <Banner tone="error" lead="Analysis unavailable">
+      <Banner tone="error" lead={uiText('ui.AnalysisStudio.message046')}>
         {describeError(analysis.error)}
       </Banner>
     );
@@ -99,17 +103,18 @@ function DatasetStudio({
     canRun && saved && ['SUCCEEDED', 'FAILED'].includes(saved.execution.status);
   return (
     <ToolShell
-      label="Analysis results"
-      secondaryLabel="Analysis inputs"
+      label={uiText('ui.AnalysisStudio.message002')}
+      secondaryLabel={uiText('ui.AnalysisStudio.message047')}
       secondaryWidth={260}
       secondary={
         saved ? (
           <div className={styles.secondary}>
-            <h2>Input datasets</h2>
+            <h2>{uiText('ui.AnalysisStudio.message003')}</h2>
             {saved.snapshot.inputs.map((input) => (
               <Panel key={input.sourceVersionId} title={input.originalFilename}>
                 <p>
-                  Version {input.versionNumber} · {input.format}
+                  {uiText('ui.AnalysisStudio.message004')} {input.versionNumber} ·{' '}
+                  {input.format}
                 </p>
                 {input.sheets.map((sheet) => (
                   <p key={sheet.name}>
@@ -121,41 +126,44 @@ function DatasetStudio({
               </Panel>
             ))}
             <div className={styles.request}>
-              <h3>Your request</h3>
+              <h3>{uiText('ui.AnalysisStudio.message005')}</h3>
               <p className={styles.preserve}>{saved.snapshot.userPrompt}</p>
             </div>
-            <DashedNote>
-              Every attempt keeps its original input versions and code. Newer uploads do
-              not change this saved result.
-            </DashedNote>
+            <DashedNote>{uiText('ui.AnalysisStudio.message006')}</DashedNote>
           </div>
         ) : (
           <div className={styles.secondary}>
-            <h2>Input datasets</h2>
+            <h2>{uiText('ui.AnalysisStudio.message003')}</h2>
             {current.inputs.map((input) => (
               <Panel
                 key={input.sourceVersionId}
-                title={`Source ${input.sourceId.slice(0, 8)}`}
+                title={uiText('ui.AnalysisStudio.message007', {
+                  value0: input.sourceId.slice(0, 8),
+                })}
               >
-                <p>Version {input.sourceVersionId}</p>
-                <p>{input.sheetName ?? 'All selected sheets'}</p>
+                <p>
+                  {uiText('ui.AnalysisStudio.message004')} {input.sourceVersionId}
+                </p>
+                <p>{input.sheetName ?? uiText('ui.AnalysisStudio.message008')}</p>
               </Panel>
             ))}
             <div className={styles.request}>
-              <h3>Your request</h3>
+              <h3>{uiText('ui.AnalysisStudio.message005')}</h3>
               <p className={styles.preserve}>{current.userPrompt}</p>
             </div>
           </div>
         )
       }
       context={saved ? <AnalysisProvenance record={saved} /> : undefined}
-      contextTitle="Provenance"
+      contextTitle={uiText('ui.DocumentProvenance.message002')}
       contextOpen={detailsOpen}
       onContextOpenChange={setDetailsOpen}
     >
       <div className={styles.page}>
         <div className={styles.actions}>
-          <Link to={`/app/workspaces/${workspaceId}/analyses`}>All analyses</Link>
+          <Link to={`/app/workspaces/${workspaceId}/analyses`}>
+            {uiText('ui.AnalysisStudio.message009')}
+          </Link>
           <AnalysisStatus status={saved?.execution.status ?? current.status} />
         </div>
         <h1>
@@ -170,10 +178,10 @@ function DatasetStudio({
               onClick={() => run.mutate()}
             >
               {run.isPending
-                ? 'Queueing…'
+                ? uiText('ui.AnalysisStudio.message010')
                 : current.status === 'DRAFT' || current.status === 'READY_TO_EXECUTE'
-                  ? 'Run analysis'
-                  : 'Re-run same data and code'}
+                  ? uiText('ui.AnalysisStudio.message011')
+                  : uiText('ui.AnalysisStudio.message012')}
             </Button>
           ) : null}
           {canRerun ? (
@@ -184,7 +192,7 @@ function DatasetStudio({
                 disabled={pending}
                 onClick={() => rerun.mutate('ORIGINAL')}
               >
-                Re-run with original inputs
+                {uiText('ui.AnalysisStudio.message013')}
               </Button>
               <Button
                 variant="secondary"
@@ -192,7 +200,7 @@ function DatasetStudio({
                 disabled={pending}
                 onClick={() => rerun.mutate('LATEST')}
               >
-                Re-run against latest sources
+                {uiText('ui.AnalysisStudio.message014')}
               </Button>
             </>
           ) : null}
@@ -204,12 +212,14 @@ function DatasetStudio({
               aria-controls="analysis-code"
               onClick={() => setCodeOpen(!codeOpen)}
             >
-              {codeOpen ? 'Hide code' : 'Show code'}
+              {codeOpen
+                ? uiText('ui.AnalysisStudio.message015')
+                : uiText('ui.AnalysisStudio.message016')}
             </Button>
           ) : null}
           {saved?.execution.status === 'SUCCEEDED' && canEdit ? (
             <Button variant="secondary" onClick={() => setInsertOpen(true)}>
-              Insert into document
+              {uiText('ui.AnalysisStudio.message017')}
             </Button>
           ) : null}
           {saved ? (
@@ -218,22 +228,24 @@ function DatasetStudio({
               icon="layers"
               onClick={() => setDetailsOpen(true)}
             >
-              View provenance
+              {uiText('ui.AnalysisStudio.message018')}
             </Button>
           ) : null}
           {history.data?.length ? (
             <label className={styles.historySelect}>
-              Run history
+              {uiText('ui.AnalysisStudio.message019')}
               <select
-                aria-label="Execution attempt"
+                aria-label={uiText('ui.AnalysisStudio.message020')}
                 value={selectedId}
                 onChange={(event) => setSearch({ execution: event.target.value })}
               >
                 {history.data.map((e) => (
                   <option key={e.id} value={e.id}>
-                    Attempt {e.attempt} ·{' '}
-                    {e.status === 'SUCCEEDED' ? 'Completed' : e.status} ·{' '}
-                    {new Date(e.createdAt).toLocaleString()}
+                    {uiText('ui.AnalysisStudio.message021')} {e.attempt} ·{' '}
+                    {e.status === 'SUCCEEDED'
+                      ? uiText('ui.AnalysisStatus.message006')
+                      : e.status}{' '}
+                    · {new Date(e.createdAt).toLocaleString(getIntlLocale())}
                   </option>
                 ))}
               </select>
@@ -241,66 +253,59 @@ function DatasetStudio({
           ) : null}
         </div>
         {canRerun ? (
-          <p className={styles.meta}>
-            Original inputs reuse the accepted code and saved runtime image when recorded.
-            Latest sources create a new analysis and plan after verifying its sheets and
-            columns.
-          </p>
+          <p className={styles.meta}>{uiText('ui.AnalysisStudio.message022')}</p>
         ) : null}
         {saved && !saved.execution.provenance.imageId && canRerun ? (
-          <Banner tone="warning" lead="Original runtime was not recorded">
-            A rerun will use the current pinned server runtime; exact environment
-            reproduction cannot be guaranteed.
+          <Banner tone="warning" lead={uiText('ui.AnalysisStudio.message048')}>
+            {uiText('ui.AnalysisStudio.message023')}
           </Banner>
         ) : null}
         {lineage ? <AnalysisLineage workspaceId={workspaceId} lineage={lineage} /> : null}
         {saved &&
         ['QUEUED', 'RUNNING'].includes(current.status) &&
         ['SUCCEEDED', 'FAILED'].includes(saved.execution.status) ? (
-          <Banner lead="Another attempt is in progress">
-            You are viewing a saved historical attempt. Its inputs and results remain
-            unchanged.
+          <Banner lead={uiText('ui.AnalysisStudio.message049')}>
+            {uiText('ui.AnalysisStudio.message024')}
           </Banner>
         ) : null}
         {origin.error ? (
-          <Banner tone="error" lead="Could not load this analysis origin">
+          <Banner tone="error" lead={uiText('ui.AnalysisStudio.message050')}>
             {describeError(origin.error)}
           </Banner>
         ) : null}
         {pending ? (
           <p role="status">
             {rerun.variables === 'LATEST' && rerun.isPending
-              ? 'Checking latest versions and preparing a new analysis…'
-              : 'Queueing an explicit execution…'}
+              ? uiText('ui.AnalysisStudio.message025')
+              : uiText('ui.AnalysisStudio.message026')}
           </p>
         ) : null}
         {rerun.error ? (
-          <Banner tone="error" lead="Could not re-run this analysis">
+          <Banner tone="error" lead={uiText('ui.AnalysisStudio.message051')}>
             {describeError(rerun.error)}
           </Banner>
         ) : null}
         {run.error ? (
-          <Banner tone="error" lead="Could not start this attempt">
+          <Banner tone="error" lead={uiText('ui.AnalysisStudio.message052')}>
             {describeError(run.error)}
           </Banner>
         ) : null}
         {!current.plan && current.status === 'FAILED' && history.data?.length === 0 ? (
-          <Banner tone="error" lead="The analysis plan could not be completed">
+          <Banner tone="error" lead={uiText('ui.AnalysisStudio.message053')}>
             {analysisFailureMessage(current.failureCode)}{' '}
             <Link to={`/app/workspaces/${workspaceId}/analyses/new`}>
-              Create a new analysis
+              {uiText('ui.AnalysisStudio.message027')}
             </Link>
           </Banner>
         ) : null}
         {current.status === 'PLANNING' ? (
-          <Banner lead="Preparing the analysis plan">
-            The request and selected source versions are saved. Code has not been executed
-            yet.
+          <Banner lead={uiText('ui.AnalysisStudio.message054')}>
+            {uiText('ui.AnalysisStudio.message028')}
           </Banner>
         ) : null}
         {plan ? (
           <details className={styles.plan}>
-            <summary>Analysis plan</summary>
+            <summary>{uiText('ui.AnalysisStudio.message029')}</summary>
             <p>{plan.summary}</p>
             {[...plan.transformations, ...plan.statisticalOperations].map((step, i) => (
               <p key={i}>
@@ -308,10 +313,10 @@ function DatasetStudio({
               </p>
             ))}
             <p>
-              Planned outputs:{' '}
+              {uiText('ui.AnalysisStudio.message030')}{' '}
               {plan.outputs.map((output) => `${output.name} (${output.kind})`).join(', ')}
             </p>
-            <h3>Assumptions</h3>
+            <h3>{uiText('ui.AnalysisStudio.message031')}</h3>
             {plan.assumptions.length ? (
               <ul>
                 {plan.assumptions.map((note, i) => (
@@ -319,12 +324,12 @@ function DatasetStudio({
                 ))}
               </ul>
             ) : (
-              <p>No assumptions recorded.</p>
+              <p>{uiText('ui.AnalysisStudio.message032')}</p>
             )}
           </details>
         ) : null}
         {plan?.warnings.length ? (
-          <Banner tone="warning" lead="Analysis warnings">
+          <Banner tone="warning" lead={uiText('ui.AnalysisStudio.message055')}>
             <ul>
               {plan.warnings.map((note, i) => (
                 <li key={i}>{note}</li>
@@ -332,38 +337,40 @@ function DatasetStudio({
             </ul>
           </Banner>
         ) : null}
-        {history.isPending ? <p role="status">Loading run history…</p> : null}
+        {history.isPending ? (
+          <p role="status">{uiText('ui.AnalysisStudio.message033')}</p>
+        ) : null}
         {history.error ? (
-          <Banner tone="error" lead="Could not load run history">
+          <Banner tone="error" lead={uiText('ui.AnalysisStudio.message056')}>
             {describeError(history.error)}
           </Banner>
         ) : null}
         {selectedId && record.isPending ? (
-          <p role="status">Loading saved execution…</p>
+          <p role="status">{uiText('ui.AnalysisStudio.message034')}</p>
         ) : null}
         {record.error ? (
-          <Banner tone="error" lead="Saved execution unavailable">
+          <Banner tone="error" lead={uiText('ui.AnalysisStudio.message057')}>
             {describeError(record.error)}
           </Banner>
         ) : null}
         {saved ? (
           <>
             <p className={styles.meta}>
-              Viewing attempt {saved.execution.attempt} ·{' '}
+              {uiText('ui.AnalysisStudio.message035')} {saved.execution.attempt} ·{' '}
               <AnalysisStatus status={saved.execution.status} /> ·{' '}
               {saved.execution.finishedAt
-                ? new Date(saved.execution.finishedAt).toLocaleString()
-                : 'You can leave this page and return to the saved attempt.'}
+                ? new Date(saved.execution.finishedAt).toLocaleString(getIntlLocale())
+                : uiText('ui.AnalysisStudio.message036')}
             </p>
             {['QUEUED', 'RUNNING'].includes(saved.execution.status) ? (
-              <Banner lead="Working on your analysis">
-                The result appears here once this attempt finishes.
+              <Banner lead={uiText('ui.AnalysisStudio.message058')}>
+                {uiText('ui.AnalysisStudio.message037')}
               </Banner>
             ) : null}
             {saved.execution.status === 'FAILED' ? (
-              <Banner tone="error" lead="This attempt could not be completed">
+              <Banner tone="error" lead={uiText('ui.AnalysisStudio.message059')}>
                 <p>{analysisFailureMessage(saved.execution.failureCode)}</p>
-                <p>Previous successful attempts remain in run history.</p>
+                <p>{uiText('ui.AnalysisStudio.message038')}</p>
               </Banner>
             ) : null}
             <AnalysisResult
@@ -375,7 +382,7 @@ function DatasetStudio({
               <Link
                 to={`/app/workspaces/${workspaceId}/analyses/${analysisId}?execution=${encodeURIComponent(saved.execution.id)}`}
               >
-                Result permalink
+                {uiText('ui.AnalysisStudio.message039')}
               </Link>{' '}
               ·{' '}
               <a
@@ -383,7 +390,7 @@ function DatasetStudio({
                 target="_blank"
                 rel="noreferrer"
               >
-                Provenance API (JSON)
+                {uiText('ui.AnalysisStudio.message040')}
               </a>
             </p>
           </>
@@ -403,7 +410,7 @@ function DatasetStudio({
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Code API (JSON)
+                  {uiText('ui.AnalysisStudio.message041')}
                 </a>
               ) : undefined
             }
@@ -413,13 +420,13 @@ function DatasetStudio({
           <InsertAnalysisResult record={saved} onClose={() => setInsertOpen(false)} />
         ) : null}
         {history.data?.length === 0 ? (
-          <Panel title="No executions yet">
+          <Panel title={uiText('ui.AnalysisStudio.message042')}>
             <p>
               {current.plan
-                ? 'The accepted plan is saved. Run it to produce a persisted result.'
+                ? uiText('ui.AnalysisStudio.message043')
                 : current.status === 'FAILED'
-                  ? 'Planning did not produce an accepted plan. Create a new analysis to change the request.'
-                  : 'The request and exact source selections are saved.'}
+                  ? uiText('ui.AnalysisStudio.message044')
+                  : uiText('ui.AnalysisStudio.message045')}
             </p>
           </Panel>
         ) : null}

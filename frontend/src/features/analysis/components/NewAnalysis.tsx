@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { ProblemForm } from './ProblemForm';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
@@ -29,6 +30,7 @@ export function NewAnalysis({
   readonly onCreated: (analysisId: string) => void;
   readonly initialVersionId?: string;
 }): ReactElement {
+  useUiLocale();
   const [problemMode, setProblemMode] = useState(false);
   const [version, setVersion] = useState(
     initialVersionId ?? datasets[0]?.sourceVersionId ?? '',
@@ -55,45 +57,43 @@ export function NewAnalysis({
     return (
       <section className={styles.page}>
         <Button variant="ghost" onClick={() => setProblemMode(false)}>
-          Use dataset
+          {uiText('ui.NewAnalysis.message001')}
         </Button>
         <ProblemForm workspaceId={workspaceId} onCreated={onCreated} />
       </section>
     );
   return (
     <section className={styles.page}>
-      <Link to={`/app/workspaces/${workspaceId}/analyses`}>All analyses</Link>
-      <h1>New analysis</h1>
+      <Link to={`/app/workspaces/${workspaceId}/analyses`}>
+        {uiText('ui.AnalysisStudio.message009')}
+      </Link>
+      <h1>{uiText('ui.AnalysisList.message003')}</h1>
       <Button variant="secondary" onClick={() => setProblemMode(true)}>
-        Solve a problem without dataset
+        {uiText('ui.NewAnalysis.message002')}
       </Button>
-      <p>
-        Choose the data and describe what to calculate. Each run keeps its source
-        versions, code and result.
-      </p>
+      <p>{uiText('ui.NewAnalysis.message003')}</p>
       {create.error ? (
-        <Banner tone="error" lead="The analysis could not be started">
+        <Banner tone="error" lead={uiText('ui.NewAnalysis.message018')}>
           {describeError(create.error)}
           {draftId ? (
             <Link to={`/app/workspaces/${workspaceId}/analyses/${draftId}`}>
-              Open saved analysis
+              {uiText('ui.NewAnalysis.message004')}
             </Link>
           ) : null}
         </Banner>
       ) : null}
       {!selected ? (
-        <Panel title="Choose data">
+        <Panel title={uiText('ui.NewAnalysis.message005')}>
           <Illustration scene="sources" />
-          <p>
-            No ready CSV or XLSX datasets are available. Upload and process a dataset
-            first.
-          </p>
-          <Link to={`/app/workspaces/${workspaceId}/sources`}>Open sources</Link>
+          <p>{uiText('ui.NewAnalysis.message006')}</p>
+          <Link to={`/app/workspaces/${workspaceId}/sources`}>
+            {uiText('ui.NewAnalysis.message007')}
+          </Link>
         </Panel>
       ) : (
         <div className={styles.stack}>
           <Select
-            label="Source version"
+            label={uiText('ui.DatasetPreviewPanel.message009')}
             value={selected.sourceVersionId}
             disabled={create.isPending}
             onChange={(e) => setVersion(e.target.value)}
@@ -133,6 +133,7 @@ function DatasetSelection({
   readonly pending: boolean;
   readonly onRun: (input: AnalysisInput) => void;
 }): ReactElement {
+  useUiLocale();
   const preview = useDatasetPreviewQuery(
     workspaceId,
     dataset.sourceId,
@@ -140,16 +141,17 @@ function DatasetSelection({
   );
   const [sheetName, setSheet] = useState('');
   const [selected, setSelected] = useState<readonly number[] | null>(null);
-  if (preview.isPending) return <p role="status">Loading dataset structure…</p>;
+  if (preview.isPending)
+    return <p role="status">{uiText('ui.NewAnalysis.message008')}</p>;
   if (preview.error)
     return (
-      <Banner tone="error" lead="Could not inspect this version">
+      <Banner tone="error" lead={uiText('ui.NewAnalysis.message019')}>
         {describeError(preview.error)}
       </Banner>
     );
   const sheet =
     preview.data.sheets.find((s) => s.name === sheetName) ?? preview.data.sheets[0];
-  if (!sheet) return <p>No inspected sheets are available for this version.</p>;
+  if (!sheet) return <p>{uiText('ui.NewAnalysis.message009')}</p>;
   const columns = selected ?? sheet.columns.map((c) => c.index);
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -162,9 +164,9 @@ function DatasetSelection({
   };
   return (
     <form onSubmit={submit} className={styles.stack}>
-      <Panel title="1 · Choose data">
+      <Panel title={uiText('ui.NewAnalysis.message010')}>
         <Select
-          label="Sheet"
+          label={uiText('ui.DatasetPreviewPanel.message038')}
           value={sheet.name}
           disabled={pending}
           onChange={(e) => {
@@ -179,7 +181,7 @@ function DatasetSelection({
           ))}
         </Select>
         <fieldset disabled={pending} className={styles.columns}>
-          <legend>Columns to use</legend>
+          <legend>{uiText('ui.NewAnalysis.message011')}</legend>
           {sheet.columns.map((c) => (
             <label key={c.index}>
               <input
@@ -205,33 +207,33 @@ function DatasetSelection({
           }))}
           rows={sheet.sampleRows.slice(0, 8)}
           rowKey={(row) => row.rowNumber}
-          caption="Inspection sample — execution reads the full selected source version"
+          caption={uiText('ui.NewAnalysis.message012')}
         />
         <p className={styles.meta}>
-          Version {preview.data.versionNumber} · {preview.data.originalFilename}
-          {preview.data.truncated ? ' · Preview limited' : ''}
+          {uiText('ui.AnalysisStudio.message004')} {preview.data.versionNumber} ·{' '}
+          {preview.data.originalFilename}
+          {preview.data.truncated ? ' ' + uiText('ui.NewAnalysis.message013') : ''}
         </p>
       </Panel>
-      <Panel title="2 · Describe what to calculate">
+      <Panel title={uiText('ui.NewAnalysis.message014')}>
         <Textarea
-          label="Analysis request"
+          label={uiText('ui.AnalysisProvenance.message008')}
           value={prompt}
           maxLength={4000}
           required
           disabled={pending}
           onChange={(e) => onPrompt(e.target.value)}
-          placeholder="Calculate impedance U/I and plot impedance versus frequency."
+          placeholder={uiText('ui.NewAnalysis.message015')}
         />
-        <p className={styles.meta}>
-          Computed values will come from execution of the full dataset. The original data
-          stays unchanged.
-        </p>
+        <p className={styles.meta}>{uiText('ui.NewAnalysis.message016')}</p>
         <Button
           type="submit"
           icon="play"
           disabled={pending || !prompt.trim() || columns.length === 0}
         >
-          {pending ? 'Preparing analysis…' : 'Run analysis'}
+          {pending
+            ? uiText('ui.NewAnalysis.message017')
+            : uiText('ui.AnalysisStudio.message011')}
         </Button>
       </Panel>
     </form>

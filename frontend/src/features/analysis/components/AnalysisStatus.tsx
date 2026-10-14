@@ -1,3 +1,4 @@
+import { t as uiText } from '../../../shared/i18n';
 import type { ReactElement } from 'react';
 import { Icon, type IconName } from '../../../shared/components/icons';
 import type { AnalysisStatus as Status } from '../api/analysisApi';
@@ -8,13 +9,55 @@ const STATES: Record<
   Status,
   { readonly label: string; readonly icon: IconName; readonly tone: string }
 > = {
-  DRAFT: { label: 'Draft', icon: 'pencil', tone: 'neutral' },
-  PLANNING: { label: 'Preparing', icon: 'refresh', tone: 'active' },
-  READY_TO_EXECUTE: { label: 'Ready to run', icon: 'play', tone: 'neutral' },
-  QUEUED: { label: 'Queued', icon: 'clock', tone: 'active' },
-  RUNNING: { label: 'Running', icon: 'refresh', tone: 'active' },
-  SUCCEEDED: { label: 'Completed', icon: 'check', tone: 'success' },
-  FAILED: { label: 'Failed', icon: 'alert', tone: 'failed' },
+  DRAFT: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message001');
+    },
+    icon: 'pencil',
+    tone: 'neutral',
+  },
+  PLANNING: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message002');
+    },
+    icon: 'refresh',
+    tone: 'active',
+  },
+  READY_TO_EXECUTE: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message003');
+    },
+    icon: 'play',
+    tone: 'neutral',
+  },
+  QUEUED: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message004');
+    },
+    icon: 'clock',
+    tone: 'active',
+  },
+  RUNNING: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message005');
+    },
+    icon: 'refresh',
+    tone: 'active',
+  },
+  SUCCEEDED: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message006');
+    },
+    icon: 'check',
+    tone: 'success',
+  },
+  FAILED: {
+    get label() {
+      return uiText('ui.AnalysisStatus.message007');
+    },
+    icon: 'alert',
+    tone: 'failed',
+  },
 };
 export function AnalysisStatus({ status }: { readonly status: Status }): ReactElement {
   if (['QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED'].includes(status))

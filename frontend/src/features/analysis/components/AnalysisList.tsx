@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../../../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../../shared/components/Button';
@@ -16,27 +18,30 @@ export function AnalysisList({
   readonly workspaceId: string;
   readonly canEdit: boolean;
 }): ReactElement {
+  useUiLocale();
   const [offset, setOffset] = useState(0);
   const analyses = useAnalysesQuery(workspaceId, true, offset);
   return (
     <section className={styles.page} aria-labelledby="workspace-analyses-heading">
       <div className={styles.heading}>
         <div>
-          <h1 id="workspace-analyses-heading">Analyses</h1>
-          <p>Data, code, execution and results — kept together for every attempt.</p>
+          <h1 id="workspace-analyses-heading">{uiText('ui.AnalysisList.message001')}</h1>
+          <p>{uiText('ui.AnalysisList.message002')}</p>
         </div>
         {canEdit ? (
           <Link
             className={styles.primaryLink}
             to={`/app/workspaces/${workspaceId}/analyses/new`}
           >
-            New analysis
+            {uiText('ui.AnalysisList.message003')}
           </Link>
         ) : null}
       </div>
-      {analyses.isPending ? <p role="status">Loading analyses…</p> : null}
+      {analyses.isPending ? (
+        <p role="status">{uiText('ui.AnalysisList.message004')}</p>
+      ) : null}
       {analyses.error ? (
-        <Banner tone="error" lead="Could not load analyses">
+        <Banner tone="error" lead={uiText('ui.AnalysisList.message016')}>
           {describeError(analyses.error)}
           <Button
             variant="ghost"
@@ -44,15 +49,19 @@ export function AnalysisList({
               void analyses.refetch();
             }}
           >
-            Try again
+            {uiText('ui.AnalysisChart.message004')}
           </Button>
         </Banner>
       ) : null}
       {analyses.error === null && !analyses.isPending && analyses.data?.length === 0 ? (
         <EmptyState
-          context="Analyses · empty"
-          title={offset === 0 ? 'No analyses yet' : 'No analyses on this page'}
-          description="Computed results and their provenance appear here after an analysis is created."
+          context={uiText('ui.AnalysisList.message005')}
+          title={
+            offset === 0
+              ? uiText('ui.AnalysisList.message006')
+              : uiText('ui.AnalysisList.message007')
+          }
+          description={uiText('ui.AnalysisList.message008')}
           art={<Illustration scene={offset === 0 ? 'analyses' : 'search'} />}
           tone={offset === 0 ? 'yellow' : 'blue'}
           actions={
@@ -63,7 +72,7 @@ export function AnalysisList({
                     href={`/app/workspaces/${workspaceId}/analyses/new`}
                     icon="lineChart"
                   >
-                    Analyze data
+                    {uiText('ui.AnalysisList.message009')}
                   </Button>,
                 ]
               : undefined
@@ -83,16 +92,18 @@ export function AnalysisList({
                   </Link>
                 </h2>
                 <p className={styles.meta}>
-                  {analysis.inputs.length} immutable input{' '}
-                  {analysis.inputs.length === 1 ? 'version' : 'versions'} ·{' '}
-                  {new Date(analysis.createdAt).toLocaleString()}
+                  {analysis.inputs.length} {uiText('ui.AnalysisList.message010')}{' '}
+                  {analysis.inputs.length === 1
+                    ? uiText('ui.AnalysisList.message011')
+                    : uiText('ui.AnalysisList.message012')}{' '}
+                  · {new Date(analysis.createdAt).toLocaleString(getIntlLocale())}
                 </p>
               </div>
               <Link
                 className={styles.secondaryLink}
                 to={`/app/workspaces/${workspaceId}/analyses/${analysis.id}`}
               >
-                Open analysis
+                {uiText('ui.AnalysisList.message013')}
               </Link>
             </Card>
           </li>
@@ -104,14 +115,14 @@ export function AnalysisList({
           disabled={offset === 0}
           onClick={() => setOffset(Math.max(0, offset - 50))}
         >
-          Newer analyses
+          {uiText('ui.AnalysisList.message014')}
         </Button>
         <Button
           variant="ghost"
           disabled={!analyses.data || analyses.data.length < 50}
           onClick={() => setOffset(offset + 50)}
         >
-          Older analyses
+          {uiText('ui.AnalysisList.message015')}
         </Button>
       </div>
     </section>
