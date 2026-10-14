@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNarrowDesktop } from '../../hooks/useNarrowDesktop';
@@ -9,6 +10,7 @@ export function ResponsiveFilters({
 }: {
   readonly children: ReactNode;
 }): ReactElement {
+  useUiLocale();
   const narrow = useNarrowDesktop();
   const [host] = useState(() => document.createElement('div'));
   const attach = (element: HTMLDivElement | null): void => {
@@ -17,7 +19,10 @@ export function ResponsiveFilters({
   return (
     <>
       {narrow ? (
-        <Popover triggerLabel="Filters" title="Filters">
+        <Popover
+          triggerLabel={uiText('ui.ResponsiveFilters.message001')}
+          title={uiText('ui.ResponsiveFilters.message001')}
+        >
           <div ref={attach} />
         </Popover>
       ) : (

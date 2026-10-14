@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import type { ReactElement } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
@@ -13,9 +14,33 @@ import { Banner, Skeleton } from '../shared/components/feedback';
 import styles from '../features/workspaces/components/Workspaces.module.css';
 
 const steps = [
-  { title: 'Add sources', detail: 'PDFs, notes and data', tone: 'blue' },
-  { title: 'Write together', detail: 'Documents with citations', tone: 'coral' },
-  { title: 'Check the evidence', detail: 'Ask AI, see where it came from', tone: 'mint' },
+  {
+    get title() {
+      return uiText('ui.WorkspaceListPage.message001');
+    },
+    get detail() {
+      return uiText('workspace.stepSources');
+    },
+    tone: 'blue',
+  },
+  {
+    get title() {
+      return uiText('ui.WorkspaceListPage.message002');
+    },
+    get detail() {
+      return uiText('workspace.stepDocuments');
+    },
+    tone: 'coral',
+  },
+  {
+    get title() {
+      return uiText('ui.WorkspaceListPage.message003');
+    },
+    get detail() {
+      return uiText('workspace.stepQuestions');
+    },
+    tone: 'mint',
+  },
 ] as const;
 
 /**
@@ -28,6 +53,7 @@ const steps = [
  * key. An empty list is a success, not an error — it is what a new account correctly sees.
  */
 export function WorkspaceListPage(): ReactElement {
+  useUiLocale();
   const { data, error, isPending } = useWorkspacesQuery();
   const context = useOutletContext<AppOutletContext | null>();
   const { openCreateWorkspace } = useCreateWorkspaceDialog();
@@ -37,14 +63,16 @@ export function WorkspaceListPage(): ReactElement {
     <section className={styles.home}>
       <header className={styles.greeting}>
         <h1>
-          {displayName ? `Welcome back, ${displayName}.` : 'Welcome to ResearchHub.'}
+          {displayName
+            ? uiText('ui.WorkspaceListPage.message004', { value0: displayName })
+            : uiText('ui.WorkspaceListPage.message005')}
         </h1>
       </header>
 
       {isPending ? (
         <>
           <p role="status" aria-live="polite">
-            Loading your workspaces…
+            {uiText('ui.WorkspaceListPage.message006')}
           </p>
           <div className={styles.loadingGrid} aria-hidden="true">
             {[0, 1, 2, 3].map((key) => (
@@ -59,7 +87,7 @@ export function WorkspaceListPage(): ReactElement {
       ) : null}
 
       {error !== null && !isPending ? (
-        <Banner tone="error" lead="Could not load your workspaces">
+        <Banner tone="error" lead={uiText('ui.WorkspaceListPage.message010')}>
           {describeError(error)}
         </Banner>
       ) : null}
@@ -71,7 +99,7 @@ export function WorkspaceListPage(): ReactElement {
               context={emptyStateCopy.workspaces.context}
               art={<Illustration scene="workspace" />}
               title={emptyStateCopy.workspaces.title}
-              description="A workspace holds your sources, documents and analyses — and the people you work on them with."
+              description={uiText('ui.WorkspaceListPage.message007')}
               actions={[
                 <Button
                   key="create"
@@ -79,11 +107,14 @@ export function WorkspaceListPage(): ReactElement {
                   icon="plus"
                   onClick={(event) => openCreateWorkspace(event.currentTarget)}
                 >
-                  Create workspace
+                  {uiText('ui.CreateWorkspaceDialog.message001')}
                 </Button>,
               ]}
             />
-            <ol className={styles.steps} aria-label="Getting started">
+            <ol
+              className={styles.steps}
+              aria-label={uiText('ui.WorkspaceListPage.message008')}
+            >
               {steps.map((step, index) => (
                 <li key={step.title}>
                   <Card className={styles.step}>
@@ -104,7 +135,9 @@ export function WorkspaceListPage(): ReactElement {
           </div>
         ) : (
           <section className={styles.recent} aria-labelledby="recent-workspaces-heading">
-            <h2 id="recent-workspaces-heading">Recent workspaces</h2>
+            <h2 id="recent-workspaces-heading">
+              {uiText('ui.WorkspaceListPage.message009')}
+            </h2>
             <WorkspaceList workspaces={data} />
           </section>
         )

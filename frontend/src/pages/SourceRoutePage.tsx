@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,6 +11,7 @@ import { workspaceSectionPath } from '../app/workspaceRoutes';
 
 /** A direct/refreshed narrow URL has the same library backdrop as a link opened from the library. */
 export function SourceRoutePage(): ReactElement {
+  useUiLocale();
   const narrow = useNarrowDesktop();
   const navigate = useNavigate();
   const { workspaceId } = useParams();
@@ -26,7 +28,7 @@ export function SourceRoutePage(): ReactElement {
           <WorkspaceDetailPage section="sources" />
           <SlideOver
             open
-            title="Source details"
+            title={uiText('ui.SourceRoutePage.message001')}
             onClose={() => {
               void navigate(
                 `${workspaceSectionPath(workspaceId, 'sources')}#workspace-sources-heading`,

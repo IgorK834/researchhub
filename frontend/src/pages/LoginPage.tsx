@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -18,6 +19,7 @@ import { usePublicConfig } from '../app/PublicConfig';
  * session id is in a cookie the page cannot read.
  */
 export function LoginPage(): ReactElement {
+  useUiLocale();
   const { config } = usePublicConfig();
   const navigate = useNavigate();
   const returnAction = useLocation().hash.slice(1);
@@ -32,7 +34,7 @@ export function LoginPage(): ReactElement {
   // address exists, and repeating a guess here would undo that.
   const credentialsRejected = hasApiErrorCode(error, 'UNAUTHENTICATED');
   const formMessage = credentialsRejected
-    ? 'Invalid email or password.'
+    ? uiText('ui.LoginPage.message001')
     : error !== null && Object.keys(fieldErrors).length === 0
       ? describeError(error)
       : null;
@@ -58,9 +60,9 @@ export function LoginPage(): ReactElement {
   return (
     <AuthLayout
       variant="login"
-      title="Log in"
-      subtitle="Pick up your workspace where you left it."
-      footer="© ResearchHub · Privacy · Terms"
+      title={uiText('ui.AccountLink.message007')}
+      subtitle={uiText('ui.LoginPage.message002')}
+      footer={uiText('ui.Sections.message020')}
     >
       <form
         onSubmit={(event) => {
@@ -79,7 +81,7 @@ export function LoginPage(): ReactElement {
           size="large"
           id="email"
           name="email"
-          label="Email"
+          label={uiText('ui.PasswordRecovery.message007')}
           type="email"
           value={email}
           autoComplete="email"
@@ -91,7 +93,7 @@ export function LoginPage(): ReactElement {
           size="large"
           id="password"
           name="password"
-          label="Password"
+          label={uiText('ui.LoginPage.message003')}
           type="password"
           value={password}
           autoComplete="current-password"
@@ -103,36 +105,42 @@ export function LoginPage(): ReactElement {
           type="submit"
           size="large"
           busy={isPending}
-          busyLabel="Logging in…"
-          aria-label={isPending ? 'Logging in…' : undefined}
+          busyLabel={uiText('ui.LoginPage.message004')}
+          aria-label={isPending ? uiText('ui.LoginPage.message004') : undefined}
           className={styles.submit}
         >
-          Log in
+          {uiText('ui.AccountLink.message007')}
         </Button>
       </form>
       <p>
-        <Link to="/forgot-password">Forgot password?</Link>
+        <Link to="/forgot-password">{uiText('ui.LoginPage.message005')}</Link>
       </p>
-      <div className={styles.divider}>or</div>
+      <div className={styles.divider}>{uiText('ui.LoginPage.message006')}</div>
       <Button
         type="button"
         variant="secondary"
         size="large"
         disabled
-        aria-label="Continue with Google"
+        aria-label={uiText('ui.LoginPage.message007')}
         aria-describedby="google-soon"
         className={styles.google}
       >
         <span className={styles.googleContent}>
-          Continue with Google
+          {uiText('ui.LoginPage.message007')}
           <span id="google-soon">
-            <Badge label="Soon" icon="clock" tone="yellow" size="compact" />
+            <Badge
+              label={uiText('ui.LoginPage.message008')}
+              icon="clock"
+              tone="yellow"
+              size="compact"
+            />
           </span>
         </span>
       </Button>
       {config?.registrationMode === 'open' ? (
         <p className={styles.accountLink}>
-          No account yet? <Link to="/register">Create account</Link>
+          {uiText('ui.LoginPage.message009')}{' '}
+          <Link to="/register">{uiText('ui.LandingHeader.message001')}</Link>
         </p>
       ) : null}
     </AuthLayout>

@@ -1,3 +1,4 @@
+import { t as uiText } from '../i18n';
 export interface WorkspaceCapabilities {
   readonly canRead: boolean;
   readonly canEditContent: boolean;
@@ -23,12 +24,12 @@ export function workspaceCapabilities(
 export function workspaceRoleLabel(role: string): string {
   switch (role) {
     case 'OWNER':
-      return 'Owner';
+      return uiText('ui.InvitationPanel.message005');
     case 'EDITOR':
-      return 'Editor';
+      return uiText('ui.AddMemberForm.message003');
     case 'VIEWER':
-      return 'Viewer';
+      return uiText('ui.AddMemberForm.message004');
     default:
-      return role.trim() ? role : 'Unknown role';
+      return role.trim() ? role : uiText('ui.workspaceCapabilities.message001');
   }
 }

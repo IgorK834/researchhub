@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import { useEffect, useState, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -55,19 +56,17 @@ function DocumentNotFound({
 }: {
   readonly workspaceId: string | undefined;
 }): ReactElement {
+  useUiLocale();
   return (
     <section>
-      <h1>Document not found</h1>
-      <p>
-        This document is not available. It may have been removed, or you may not have
-        access.
-      </p>
+      <h1>{uiText('ui.DocumentDetailPage.message001')}</h1>
+      <p>{uiText('ui.DocumentDetailPage.message002')}</p>
       <Link
         to={
           workspaceId === undefined ? '/app/workspaces' : `/app/workspaces/${workspaceId}`
         }
       >
-        Back to the workspace
+        {uiText('ui.DocumentDetailPage.message003')}
       </Link>
     </section>
   );
@@ -89,6 +88,7 @@ function DocumentScreen({
   readonly workspaceId: string;
   readonly documentId: string;
 }): ReactElement {
+  useUiLocale();
   const document = useDocumentQuery(workspaceId, documentId);
   const workspace = useWorkspaceQuery(workspaceId);
   const authorized = workspace.data !== undefined && workspace.error === null;
@@ -156,7 +156,12 @@ function DocumentScreen({
               label: workspace.data?.name ?? 'Workspace',
               href: `/app/workspaces/${workspaceId}`,
             },
-            { label: 'Documents', href: `/app/workspaces/${workspaceId}/documents` },
+            {
+              get label() {
+                return uiText('ui.DocumentList.message001');
+              },
+              href: `/app/workspaces/${workspaceId}/documents`,
+            },
             { label: document.data?.title ?? 'Document' },
           ]}
           renderLink={(segment) => <Link to={segment.href}>{segment.label}</Link>}
@@ -171,13 +176,13 @@ function DocumentScreen({
           icon="comment"
           onClick={() => showContext('comments')}
         >
-          Comments
+          {uiText('ui.DocumentComments.message002')}
         </Button>
         <Button variant="secondary" icon="history" onClick={() => showContext('history')}>
-          History
+          {uiText('ui.DocumentDetailPage.message004')}
         </Button>
         <Button icon="sparkle" onClick={() => showContext('research')}>
-          Ask AI
+          {uiText('ui.ResearchPanel.message007')}
         </Button>
       </div>
     </div>
@@ -189,15 +194,15 @@ function DocumentScreen({
         ? topbar
         : createPortal(topbar, outlet.documentTopbarHost)}
       <ToolShell
-        label="Editor"
-        secondaryLabel="Workspace documents"
+        label={uiText('ui.AddMemberForm.message003')}
+        secondaryLabel={uiText('ui.DocumentList.message018')}
         secondaryWidth={240}
         contextOpen={contextOpen}
         onContextOpenChange={setContextOpen}
         secondary={
           <div className={styles.column}>
             <Link className={styles.back} to={`/app/workspaces/${workspaceId}/documents`}>
-              Back to the workspace
+              {uiText('ui.DocumentDetailPage.message003')}
             </Link>
             <DocumentList
               workspaceId={workspaceId}
@@ -215,18 +220,20 @@ function DocumentScreen({
             <ContentOriginLegend />
           </div>
         }
-        contextTitle="Research alongside the document"
+        contextTitle={uiText('ui.DocumentDetailPage.message008')}
         context={
           document.data !== undefined && authorized ? (
             <div className={styles.contextTabs}>
               <Tabs<ContextTab>
-                label="Document context"
+                label={uiText('ui.CanvasAiChat.message002')}
                 value={tab}
                 onChange={setTab}
                 items={[
                   {
                     value: 'sources',
-                    label: 'Sources',
+                    get label() {
+                      return uiText('ui.landingContent.message005');
+                    },
                     content: (
                       <DocumentSources
                         workspaceId={workspaceId}
@@ -250,7 +257,9 @@ function DocumentScreen({
                   },
                   {
                     value: 'research',
-                    label: 'Ask AI',
+                    get label() {
+                      return uiText('ui.ResearchPanel.message007');
+                    },
                     content: (
                       <ResearchPanel
                         workspaceId={workspaceId}
@@ -273,24 +282,32 @@ function DocumentScreen({
                     ? [
                         {
                           value: 'writing' as const,
-                          label: 'Writing',
+                          get label() {
+                            return uiText('ui.landingContent.message012');
+                          },
                           content: <div ref={attach(authoringHost)} />,
                         },
                       ]
                     : []),
                   {
                     value: 'comments',
-                    label: 'Comments',
+                    get label() {
+                      return uiText('ui.DocumentComments.message002');
+                    },
                     content: <div ref={attach(commentsHost)} />,
                   },
                   {
                     value: 'provenance',
-                    label: 'Provenance',
+                    get label() {
+                      return uiText('ui.DocumentProvenance.message002');
+                    },
                     content: <div ref={attach(provenanceHost)} />,
                   },
                   {
                     value: 'history',
-                    label: 'History',
+                    get label() {
+                      return uiText('ui.DocumentDetailPage.message004');
+                    },
                     content: <div ref={attach(historyHost)} />,
                   },
                 ]}
@@ -390,27 +407,27 @@ function EditorArea({
   readonly focusBlock: number | undefined;
   readonly onOpenAuthoring: () => void;
 }): ReactElement {
+  useUiLocale();
   if (document.isPending)
     return (
       <p role="status" aria-live="polite">
-        Loading this document…
+        {uiText('ui.DocumentDetailPage.message005')}
       </p>
     );
   if (document.error !== null)
     return (
       <>
-        <h1>Document</h1>
-        <p role="alert">Could not load this document: {describeError(document.error)}</p>
+        <h1>{uiText('ui.InsertAnalysisResult.message004')}</h1>
+        <p role="alert">
+          {uiText('ui.DocumentDetailPage.message006')} {describeError(document.error)}
+        </p>
       </>
     );
   return (
     <>
       <h1 className="visually-hidden">{document.data.title}</h1>
       {document.data.archivedAt !== null ? (
-        <p role="status">
-          This document is archived. It no longer appears in the workspace&apos;s document
-          list and can no longer be changed. Its text has not been deleted.
-        </p>
+        <p role="status">{uiText('ui.DocumentDetailPage.message007')}</p>
       ) : null}
       <DocumentEditorForm
         exportHost={exportHost}

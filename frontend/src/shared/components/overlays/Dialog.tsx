@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import { useId, useRef, type ReactElement, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -31,11 +32,12 @@ function ModalSurface({
   dismissible = true,
   initialFocusRef,
   returnFocusRef,
-  closeLabel = 'Close',
+  closeLabel = uiText('ui.CanvasContextPreview.message006'),
   closeDisabled = false,
   className,
   slideOver,
 }: DialogProps & { readonly slideOver: boolean }): ReactElement | null {
+  useUiLocale();
   const id = useId();
   const hostRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLElement>(null);

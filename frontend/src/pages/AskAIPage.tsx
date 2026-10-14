@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { ResearchPanel } from '../features/ai/components/ResearchPanel';
 import { SourceComparisonPanel } from '../features/ai/components/SourceComparisonPanel';
@@ -27,6 +28,7 @@ export function AskAIPage({
   readonly onInitialQuestionUsed?: () => void;
   readonly focus?: QuestionFocus;
 }): ReactElement {
+  useUiLocale();
   const sources = useSourcesQuery(workspaceId);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const starter =
@@ -47,7 +49,7 @@ export function AskAIPage({
         onInitialQuestionUsed={onInitialQuestionUsed}
         actions={
           <Button variant="ghost" icon="columns" onClick={() => setComparisonOpen(true)}>
-            Compare sources
+            {uiText('ui.SourceComparisonPanel.message001')}
           </Button>
         }
         sources={{
@@ -68,7 +70,7 @@ export function AskAIPage({
       <Dialog
         className={comparisonStyles.dialog}
         open={comparisonOpen}
-        title="Compare sources"
+        title={uiText('ui.SourceComparisonPanel.message001')}
         onClose={() => setComparisonOpen(false)}
       >
         <SourceComparisonPanel workspaceId={workspaceId} />

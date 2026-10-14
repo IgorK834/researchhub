@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import type { ReactElement, ReactNode } from 'react';
 
 import { Avatar, AvatarStack, type AvatarPerson } from '../identity';
@@ -20,13 +21,14 @@ export function AppShell({
   primaryAction,
   children,
 }: AppShellProps): ReactElement {
+  useUiLocale();
   return (
     <div className={styles.shell} data-tool={tool || undefined}>
       <a className={styles.skip} href="#researchhub-main">
-        Skip to content
+        {uiText('ui.LandingHeader.message003')}
       </a>
       <aside
-        aria-label="Application sidebar"
+        aria-label={uiText('ui.AppShell.message001')}
         className={styles.sidebar}
         data-rh-sidebar=""
       >
@@ -37,7 +39,7 @@ export function AppShell({
           {breadcrumb}
           <div className={styles.topbarActions}>
             {members && members.length > 1 ? (
-              <AvatarStack people={members} label="Workspace members" />
+              <AvatarStack people={members} label={uiText('ui.MemberList.message001')} />
             ) : null}
             {primaryAction}
           </div>

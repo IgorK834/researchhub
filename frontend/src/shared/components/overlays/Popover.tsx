@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import {
   useId,
   useLayoutEffect,
@@ -97,6 +98,7 @@ export function AnchoredPopover({
   readonly className?: string;
   readonly virtualAnchor?: VirtualAnchor;
 }): ReactElement {
+  useUiLocale();
   const id = useId();
   const trigger = useMemo(() => ({ current: anchor }), [anchor]);
   useLayoutEffect(() => {
@@ -137,7 +139,7 @@ export function AnchoredPopover({
             variant="ghost"
             iconOnly
             icon="x"
-            aria-label={`Close ${title}`}
+            aria-label={uiText('ui.Popover.message001', { value0: title })}
             onClick={onClose}
           />
         </header>
@@ -149,6 +151,7 @@ export function AnchoredPopover({
 }
 /** Non-modal content surface. Tab uses the document sequence; Escape and outside clicks close it. */
 export function Popover({ triggerLabel, title, children }: PopoverProps): ReactElement {
+  useUiLocale();
   const id = useId();
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<Element | null>(null);
@@ -197,7 +200,7 @@ export function Popover({ triggerLabel, title, children }: PopoverProps): ReactE
                     variant="ghost"
                     iconOnly
                     icon="x"
-                    aria-label={`Close ${title}`}
+                    aria-label={uiText('ui.Popover.message001', { value0: title })}
                     onClick={() => setOpen(false)}
                   />
                 </header>

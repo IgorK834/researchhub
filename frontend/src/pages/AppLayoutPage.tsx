@@ -1,9 +1,11 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import { useEffect, useState, type ReactElement } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useCurrentUser } from '../features/auth/api/useAuth';
 import type { AuthenticatedUser } from '../features/auth/api/authApi';
 import { LogoutButton } from '../features/auth/components/LogoutButton';
+import { LanguageSwitcher } from '../shared/i18n';
 import { useDocumentsQuery } from '../features/documents/api/useDocuments';
 import { useSourcesQuery } from '../features/sources/api/useSources';
 import { WorkspaceCommandSearch } from '../features/search/components/WorkspaceCommandSearch';
@@ -23,6 +25,7 @@ import { AppShell, ResearchHubMark, ShellSidebar } from '../shared/components/sh
 import styles from '../app/AppNavigation.module.css';
 import {
   WORKSPACE_SECTIONS,
+  workspaceSectionLabel,
   workspaceSectionPath,
   type WorkspaceSection,
 } from '../app/workspaceRoutes';
@@ -170,13 +173,10 @@ function WorkspaceSwitcher({
   readonly workspaces: readonly Workspace[] | undefined;
   readonly context: WorkspaceNavigation | undefined;
 }): ReactElement {
+  useUiLocale();
   const navigate = useNavigate();
   if (workspaces?.length === 0 && context === undefined)
-    return (
-      <DashedNote>
-        No workspace yet. Create one to see Documents, Sources and Ask AI here.
-      </DashedNote>
-    );
+    return <DashedNote>{uiText('ui.AppLayoutPage.message001')}</DashedNote>;
   const current = context?.workspace;
   const options =
     current && !workspaces?.some((workspace) => workspace.id === current.id)
@@ -189,7 +189,7 @@ function WorkspaceSwitcher({
       </span>
       <div className={styles.switcherText}>
         <select
-          aria-label="Workspace"
+          aria-label={uiText('ui.landingContent.message001')}
           value={current?.id ?? ''}
           disabled={options.length === 0}
           onChange={(event) => {
@@ -198,10 +198,10 @@ function WorkspaceSwitcher({
         >
           <option value="" disabled>
             {unavailable
-              ? 'Workspaces unavailable'
+              ? uiText('ui.AppLayoutPage.message002')
               : workspaces === undefined
-                ? 'Loading workspaces…'
-                : 'Choose a workspace'}
+                ? uiText('ui.AppLayoutPage.message003')
+                : uiText('ui.AppLayoutPage.message004')}
           </option>
           {options.map((workspace) => (
             <option key={workspace.id} value={workspace.id}>
@@ -214,7 +214,7 @@ function WorkspaceSwitcher({
             {workspaceRoleLabel(current.role)}
             {context?.members === undefined
               ? ''
-              : ` · ${context.members.length} ${context.members.length === 1 ? 'member' : 'members'}`}
+              : ` · ${uiText('counts.members', { count: context.members.length })}`}
           </span>
         ) : null}
       </div>
@@ -232,6 +232,7 @@ function ShellContent({
   readonly user: AuthenticatedUser;
   readonly context?: WorkspaceNavigation;
 }): ReactElement {
+  useUiLocale();
   const workspaces = useWorkspacesQuery();
   const location = useLocation();
   const navigate = useNavigate();
@@ -264,11 +265,27 @@ function ShellContent({
     workspaceId === undefined
       ? [{ label: location.pathname === '/app' ? 'Home' : 'Workspaces' }]
       : context === undefined
-        ? [{ label: 'Workspaces', href: '/app/workspaces' }, { label: 'Workspace' }]
+        ? [
+            {
+              get label() {
+                return uiText('ui.AppLayoutPage.message006');
+              },
+              href: '/app/workspaces',
+            },
+            {
+              get label() {
+                return uiText('ui.landingContent.message001');
+              },
+            },
+          ]
         : [
             { label: context.workspace.name, href: base },
             {
-              label: section,
+              label: workspaceSectionLabel(
+                sectionKey in WORKSPACE_SECTIONS
+                  ? (sectionKey as WorkspaceSection)
+                  : 'overview',
+              ),
               href: sectionHref,
             },
             ...(documentId
@@ -276,7 +293,14 @@ function ShellContent({
               : sourceId
                 ? [{ label: context.sourceTitle ?? 'Source' }]
                 : analysisId
-                  ? [{ label: analysisId === 'new' ? 'New analysis' : 'Analysis' }]
+                  ? [
+                      {
+                        label:
+                          analysisId === 'new'
+                            ? uiText('ui.AnalysisList.message003')
+                            : 'Analysis',
+                      },
+                    ]
                   : []),
           ];
   let action: ReactElement | undefined;
@@ -287,7 +311,7 @@ function ShellContent({
         ref={defaultTriggerRef}
         onClick={(event) => openCreateWorkspace(event.currentTarget)}
       >
-        New workspace
+        {uiText('ui.AppLayoutPage.message007')}
       </Button>
     );
   else if (canManage && section === 'Members')
@@ -298,7 +322,7 @@ function ShellContent({
           void navigate(`${base}/members#add-member-heading`);
         }}
       >
-        Add member
+        {uiText('ui.AddMemberForm.message006')}
       </Button>
     );
   else if (canEdit && section === 'Sources' && sourceId !== undefined)
@@ -309,7 +333,7 @@ function ShellContent({
           void navigate(`${base}/sources#upload-source-heading`);
         }}
       >
-        Upload source
+        {uiText('ui.SourceList.message015')}
       </Button>
     );
   else if (canEdit && (section === 'Overview' || section === 'Documents'))
@@ -320,7 +344,7 @@ function ShellContent({
           void navigate(`${base}/documents#create-document-heading`);
         }}
       >
-        New document
+        {uiText('ui.DocumentList.message004')}
       </Button>
     );
 
@@ -353,7 +377,7 @@ function ShellContent({
       sidebar={
         <ShellSidebar
           brand={
-            <Link to="/app" aria-label="ResearchHub home">
+            <Link to="/app" aria-label={uiText('ui.LandingHeader.message004')}>
               <ResearchHubMark />
               <span>ResearchHub</span>
             </Link>
@@ -367,21 +391,24 @@ function ShellContent({
               />
               {workspaces.error ? (
                 <p className={styles.queryError} role="status">
-                  Workspaces unavailable.{' '}
+                  {uiText('ui.AppLayoutPage.message008')}{' '}
                   <button
                     type="button"
                     onClick={() => {
                       void workspaces.refetch();
                     }}
                   >
-                    Retry
+                    {uiText('ui.CanvasContextPreview.message004')}
                   </button>
                 </p>
               ) : null}
             </>
           }
           navigation={
-            <nav aria-label="Application navigation" className={styles.navigation}>
+            <nav
+              aria-label={uiText('ui.AppLayoutPage.message009')}
+              className={styles.navigation}
+            >
               <WorkspaceCommandSearch
                 key={context?.workspace.id ?? 'no-workspace'}
                 workspaceId={context?.workspace.id}
@@ -389,13 +416,13 @@ function ShellContent({
               />
               <NavEntry
                 href="/app"
-                label="Home"
+                label={uiText('ui.AppLayoutPage.message010')}
                 icon="home"
                 selected={location.pathname === '/app'}
               />
               <NavEntry
                 href="/app/workspaces"
-                label="Workspaces"
+                label={uiText('ui.AppLayoutPage.message006')}
                 icon="library"
                 selected={location.pathname === '/app/workspaces'}
               />
@@ -403,25 +430,29 @@ function ShellContent({
                 variant="ghost"
                 icon="plus"
                 className={styles.createWorkspace}
-                aria-label="Create workspace"
-                title="Create workspace"
+                aria-label={uiText('ui.CreateWorkspaceDialog.message001')}
+                title={uiText('ui.CreateWorkspaceDialog.message001')}
                 onClick={(event) => openCreateWorkspace(event.currentTarget)}
               >
-                <span className={styles.navLabel}>Create workspace</span>
+                <span className={styles.navLabel}>
+                  {uiText('ui.CreateWorkspaceDialog.message001')}
+                </span>
               </Button>
               {context ? (
                 <>
-                  <p className={styles.groupLabel}>Workspace</p>
+                  <p className={styles.groupLabel}>
+                    {uiText('ui.landingContent.message001')}
+                  </p>
                   <NavEntry
                     href={base}
-                    label="Overview"
+                    label={uiText('ui.AppLayoutPage.message011')}
                     icon="grid"
                     tone="yellow"
                     selected={section === 'Overview'}
                   />
                   <NavEntry
                     href={`${base}/documents#workspace-documents-heading`}
-                    label="Documents"
+                    label={uiText('ui.DocumentList.message001')}
                     icon="file"
                     tone="coral"
                     count={context.documents}
@@ -429,21 +460,21 @@ function ShellContent({
                   />
                   <NavEntry
                     href={`${base}/sources#workspace-sources-heading`}
-                    label="Sources"
+                    label={uiText('ui.landingContent.message005')}
                     icon="book"
                     count={context.sources}
                     selected={section === 'Sources'}
                   />
                   <NavEntry
                     href={`${base}/ask#workspace-questions-heading`}
-                    label="Ask AI"
+                    label={uiText('ui.ResearchPanel.message007')}
                     icon="sparkle"
                     tone="lavender"
                     selected={section === 'Ask AI'}
                   />
                   <NavEntry
                     href={`${base}/analyses#workspace-analyses-heading`}
-                    label="Analyses"
+                    label={uiText('ui.AnalysisList.message001')}
                     icon="lineChart"
                     tone="mint"
                     count={context.analyses}
@@ -451,7 +482,7 @@ function ShellContent({
                   />
                   <NavEntry
                     href={`${base}/members#workspace-members-heading`}
-                    label="Members"
+                    label={uiText('ui.MemberList.message003')}
                     icon="users"
                     tone="yellow"
                     selected={section === 'Members'}
@@ -464,16 +495,16 @@ function ShellContent({
             context?.readySources === undefined ? undefined : (
               <Sticker
                 icon="sparkle"
-                label={`Grounded in ${context.readySources} ${context.readySources === 1 ? 'source' : 'sources'}`}
+                label={uiText('counts.grounded', { count: context.readySources })}
               />
             )
           }
           footer={
             canViewSettings ? (
-              <nav aria-label="Workspace settings">
+              <nav aria-label={uiText('ui.AppLayoutPage.message013')}>
                 <NavEntry
                   href={`${base}/settings#edit-workspace-heading`}
-                  label="Settings"
+                  label={uiText('ui.AppLayoutPage.message014')}
                   icon="sliders"
                   tone="lavender"
                   selected={section === 'Settings'}
@@ -489,11 +520,12 @@ function ShellContent({
                 variant="ghost"
                 size="compact"
                 icon="sliders"
-                aria-label="Account settings"
+                aria-label={uiText('ui.AccountLink.message017')}
               >
-                <span data-rh-label="">Account settings</span>
+                <span data-rh-label="">{uiText('ui.AccountLink.message017')}</span>
               </Button>
               <LogoutButton />
+              <LanguageSwitcher />
             </>
           }
         />

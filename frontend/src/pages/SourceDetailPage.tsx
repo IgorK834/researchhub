@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import type { ReactElement } from 'react';
 import { CitationVersionStatus } from '../features/ai/components/CitationVersionStatus';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -58,19 +60,17 @@ function SourceNotFound({
 }: {
   readonly workspaceId?: string;
 }): ReactElement {
+  useUiLocale();
   return (
     <section>
-      <h1>Source not found</h1>
-      <p>
-        This source is not available. It may have been removed, or you may not have
-        access.
-      </p>
+      <h1>{uiText('ui.SourceDetailPage.message001')}</h1>
+      <p>{uiText('ui.SourceDetailPage.message002')}</p>
       <Link
         to={
           workspaceId === undefined ? '/app/workspaces' : `/app/workspaces/${workspaceId}`
         }
       >
-        Back to the workspace
+        {uiText('ui.DocumentDetailPage.message003')}
       </Link>
     </section>
   );
@@ -85,6 +85,7 @@ function SourceDetail({
   readonly sourceId: string;
   readonly embedded: boolean;
 }): ReactElement {
+  useUiLocale();
   const {
     data: source,
     error,
@@ -128,10 +129,14 @@ function SourceDetail({
     return <SourceNotFound workspaceId={workspaceId} />;
   }
   if (isPending) {
-    return <p role="status">Loading source…</p>;
+    return <p role="status">{uiText('ui.SourceDetailPage.message003')}</p>;
   }
   if (error !== null) {
-    return <p role="alert">Could not load the source: {describeError(error)}</p>;
+    return (
+      <p role="alert">
+        {uiText('ui.SourceDetailPage.message004')} {describeError(error)}
+      </p>
+    );
   }
 
   const uploader =
@@ -157,36 +162,41 @@ function SourceDetail({
     <div
       className={`${styles.metadata} ${hasDatasetPreview ? styles.datasetMetadata : ''}`}
     >
-      <Panel title="Source information">
+      <Panel title={uiText('ui.SourceDetailPage.message005')}>
         <dl>
-          <dt>Type</dt>
+          <dt>{uiText('ui.DatasetPreviewPanel.message048')}</dt>
           <dd>
             <SourceTypeBadge sourceType={source.sourceType} />
           </dd>
-          <dt>Version</dt>
-          <dd>{source.activeVersionNumber} (latest)</dd>
-          <dt>Status</dt>
+          <dt>{uiText('ui.AnalysisStudio.message004')}</dt>
+          <dd>
+            {source.activeVersionNumber} {uiText('ui.DatasetPreviewPanel.message011')}
+          </dd>
+          <dt>{uiText('ui.SourceList.message005')}</dt>
           <dd>
             <SourceStatusChip status={source.status} />
           </dd>
-          <dt>Uploaded by</dt>
+          <dt>{uiText('ui.SourceList.message003')}</dt>
           <dd>{uploader}</dd>
-          <dt>Uploaded on</dt>
+          <dt>{uiText('ui.SourceDetailPage.message006')}</dt>
           <dd>
             <time dateTime={source.createdAt}>
-              {new Intl.DateTimeFormat(undefined, {
+              {new Intl.DateTimeFormat(getIntlLocale(), {
                 dateStyle: 'medium',
                 timeStyle: 'short',
               }).format(new Date(source.createdAt))}
             </time>
           </dd>
-          <dt>Size</dt>
-          <dd>{source.sizeBytes.toLocaleString()} bytes</dd>
+          <dt>{uiText('ui.DatasetPreviewPanel.message013')}</dt>
+          <dd>
+            {source.sizeBytes.toLocaleString(getIntlLocale())}{' '}
+            {uiText('ui.AnalysisProvenance.message027')}
+          </dd>
         </dl>
       </Panel>
       <SourceMetadataPanel source={source} canEdit={canEditContent} />
       <Button href={askSourcePath} icon="sparkle" disabled={source.status !== 'READY'}>
-        Ask this source
+        {uiText('ui.SourceDetailPage.message007')}
       </Button>
       <Button
         href={sourceContentPath(workspaceId, sourceId)}
@@ -194,7 +204,7 @@ function SourceDetail({
         variant="secondary"
         icon="download"
       >
-        Download source
+        {uiText('ui.SourceDetailPage.message008')}
       </Button>
     </div>
   );
@@ -212,7 +222,9 @@ function SourceDetail({
       metadata={hasDatasetPreview ? undefined : metadata}
       header={
         <>
-          <Link to={`/app/workspaces/${workspaceId}`}>Back to the workspace</Link>
+          <Link to={`/app/workspaces/${workspaceId}`}>
+            {uiText('ui.DocumentDetailPage.message003')}
+          </Link>
           {hasDatasetPreview ? null : (
             <header className={styles.header}>
               <SourceTypeTile sourceType={source.sourceType} />
@@ -237,7 +249,12 @@ function SourceDetail({
         />
       ) : null}
       {source.failureSummary === null ? null : (
-        <Banner tone="error" lead={`Failure: ${source.failureSummary}`} />
+        <Banner
+          tone="error"
+          lead={uiText('ui.SourceDetailPage.message010', {
+            value0: source.failureSummary,
+          })}
+        />
       )}
       {hasDatasetPreview ? null : processing}
       {hasDatasetPreview && previewVersionId ? (
@@ -296,7 +313,7 @@ function SourceDetail({
           });
         }}
       >
-        Refresh status
+        {uiText('ui.SourceDetailPage.message009')}
       </Button>
     </SourceDetailFrame>
   );

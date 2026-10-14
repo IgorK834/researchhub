@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import type { ReactElement } from 'react';
 
 import { Button } from '../Button';
@@ -41,6 +42,7 @@ export interface ChipProps extends BadgeProps {
   readonly onRemove?: () => void;
 }
 export function Chip({ onRemove, ...props }: ChipProps): ReactElement {
+  useUiLocale();
   return (
     <span className={styles.chip}>
       <Badge {...props} />
@@ -50,7 +52,9 @@ export function Chip({ onRemove, ...props }: ChipProps): ReactElement {
           size="compact"
           iconOnly
           icon="x"
-          aria-label={`Remove ${props.label}`}
+          aria-label={uiText('ui.SourceComparisonPanel.message008', {
+            value0: props.label,
+          })}
           onClick={onRemove}
           className={styles.remove}
         />
@@ -91,10 +95,11 @@ export function Avatar({
   name,
   size = 'md',
 }: AvatarPerson & { readonly size?: AvatarSize }): ReactElement {
+  useUiLocale();
   return (
     <span
       role="img"
-      aria-label={name.trim() || 'Unknown person'}
+      aria-label={name.trim() || uiText('ui.Identity.message001')}
       className={[styles.avatar, styles[avatarTone(userId)], styles[size]].join(' ')}
     >
       <span aria-hidden="true">{initials(name)}</span>
@@ -113,8 +118,9 @@ export function AvatarStack({
   people,
   limit = 3,
   size = 'sm',
-  label = 'People',
+  label = uiText('ui.Identity.message002'),
 }: AvatarStackProps): ReactElement {
+  useUiLocale();
   if (!Number.isInteger(limit) || limit < 1)
     throw new Error('AvatarStack limit must be a positive integer.');
   const visible = people.slice(0, limit);
@@ -127,7 +133,10 @@ export function AvatarStack({
       {rest.length > 0 ? (
         <span
           role="img"
-          aria-label={`${rest.length} more people: ${rest.map((person) => person.name).join(', ')}`}
+          aria-label={uiText('ui.Identity.message003', {
+            value0: rest.length,
+            value1: rest.map((person) => person.name).join(', '),
+          })}
           className={[styles.avatar, styles.overflow, styles[size]].join(' ')}
         >
           <span aria-hidden="true">+{rest.length}</span>

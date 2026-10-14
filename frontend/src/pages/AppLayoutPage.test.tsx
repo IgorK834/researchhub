@@ -342,7 +342,9 @@ it('keeps failed counts unknown and hides failed member identities', async () =>
   });
   await screen.findByRole('link', { name: 'Overview' });
   await waitFor(() =>
-    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('w1'),
+    expect(
+      (screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value,
+    ).toBe('w1'),
   );
   expect(within(navigation()).getByRole('link', { name: 'Documents' })).toBeTruthy();
   expect(within(navigation()).getByRole('link', { name: 'Sources' })).toBeTruthy();

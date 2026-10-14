@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import type { ReactElement } from 'react';
 import { WorkspaceGovernance } from '../features/workspaces/components/WorkspaceGovernance';
 import {
@@ -76,15 +77,13 @@ export function WorkspaceDetailPage({
  * withheld.
  */
 function WorkspaceNotFound(): ReactElement {
+  useUiLocale();
   return (
     <section>
-      <h1>Workspace not found</h1>
+      <h1>{uiText('ui.WorkspaceDetailPage.message001')}</h1>
+      <p>{uiText('ui.WorkspaceDetailPage.message002')}</p>
       <p>
-        This workspace is not available. It may have been removed, or you may not have
-        access.
-      </p>
-      <p>
-        <Link to="/app/workspaces">Back to your workspaces</Link>
+        <Link to="/app/workspaces">{uiText('ui.WorkspaceDetailPage.message003')}</Link>
       </p>
     </section>
   );
@@ -97,6 +96,7 @@ function WorkspaceDetail({
   readonly workspaceId: string;
   readonly section: WorkspaceSection;
 }): ReactElement {
+  useUiLocale();
   const { data: workspace, error, isPending } = useWorkspaceQuery(workspaceId);
   const { data: members } = useWorkspaceMembersQuery(
     workspaceId,
@@ -112,7 +112,7 @@ function WorkspaceDetail({
     return (
       <section>
         <p role="status" aria-live="polite">
-          Loading this workspace…
+          {uiText('ui.WorkspaceDetailPage.message004')}
         </p>
       </section>
     );
@@ -124,8 +124,10 @@ function WorkspaceDetail({
     }
     return (
       <section>
-        <h1>Workspace</h1>
-        <p role="alert">Could not load this workspace: {describeError(error)}</p>
+        <h1>{uiText('ui.landingContent.message001')}</h1>
+        <p role="alert">
+          {uiText('ui.WorkspaceDetailPage.message005')} {describeError(error)}
+        </p>
       </section>
     );
   }
@@ -219,19 +221,18 @@ function WorkspaceDetail({
       <h1>{heading}</h1>
 
       <p className={styles.sectionMeta}>
-        {heading === workspace.name ? 'Your role:' : workspace.name}{' '}
+        {heading === workspace.name
+          ? uiText('ui.WorkspaceDetailPage.message006')
+          : workspace.name}{' '}
         <RoleBadge role={workspace.role} />
       </p>
 
       {isArchived ? (
-        <p role="status">
-          This workspace is archived. It no longer appears in your workspace list, and its
-          content can no longer be changed. Nothing has been deleted.
-        </p>
+        <p role="status">{uiText('ui.WorkspaceDetailPage.message007')}</p>
       ) : null}
 
       {workspace.description === null ? (
-        <p>No description.</p>
+        <p>{uiText('ui.EditWorkspaceForm.message004')}</p>
       ) : (
         <p>{workspace.description}</p>
       )}
@@ -264,14 +265,17 @@ function WorkspaceDetail({
           server, which answers 403 to a non-owner and 409 on an archived workspace. */}
       {section === 'settings' ? (
         <div className={styles.settingsGrid}>
-          <nav className={styles.settingsNav} aria-label="Workspace settings sections">
+          <nav
+            className={styles.settingsNav}
+            aria-label={uiText('ui.WorkspaceDetailPage.message008')}
+          >
             <Link to={workspaceSectionPath(workspace.id, 'settings')} aria-current="page">
               <Icon name="sliders" size={18} />
-              General
+              {uiText('ui.EditWorkspaceForm.message001')}
             </Link>
             <Link to={workspaceSectionPath(workspace.id, 'members')}>
               <Icon name="users" size={18} />
-              Members
+              {uiText('ui.MemberList.message003')}
             </Link>
           </nav>
           <div className={styles.adminColumn}>
@@ -293,7 +297,7 @@ function WorkspaceDetail({
         </div>
       ) : null}
       <p>
-        <Link to="/app/workspaces">Back to your workspaces</Link>
+        <Link to="/app/workspaces">{uiText('ui.WorkspaceDetailPage.message003')}</Link>
       </p>
     </section>
   );

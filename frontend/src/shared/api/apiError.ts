@@ -4,6 +4,8 @@
  * stable `code`). Branch on `code`, never on HTTP status alone and never on a Java class name.
  */
 
+import { getLocale, t, type MessageKey } from '../i18n';
+
 /** Stable machine codes the backend may return. Mirrors `dev.researchhub.shared.error.ApiErrorCode`. */
 export const API_ERROR_CODES = [
   'VALIDATION_FAILED',
@@ -12,6 +14,7 @@ export const API_ERROR_CODES = [
   'FORBIDDEN',
   'RESOURCE_NOT_FOUND',
   'CONFLICT',
+  'DOCUMENT_LIMIT_REACHED',
   'COLLABORATION_STATE_REPLACED',
   'PAYLOAD_TOO_LARGE',
   'UNSUPPORTED_FILE_TYPE',
@@ -19,6 +22,8 @@ export const API_ERROR_CODES = [
   'AI_UNAVAILABLE',
   'EXTERNAL_SEARCH_UNAVAILABLE',
   'EXTERNAL_SEARCH_FAILED',
+  'METADATA_LOOKUP_UNAVAILABLE',
+  'METADATA_LOOKUP_FAILED',
   'AI_PROVIDER_ERROR',
   'AI_OUTPUT_INVALID',
   'AI_REFUSED',
@@ -137,7 +142,8 @@ export function fieldErrorsByName(error: unknown): Readonly<Record<string, strin
   const byName: Record<string, string> = {};
   for (const fieldError of error.fieldErrors) {
     if (!(fieldError.field in byName)) {
-      byName[fieldError.field] = fieldError.message;
+      byName[fieldError.field] =
+        getLocale() === 'pl' ? t('common.validationField') : fieldError.message;
     }
   }
   return byName;
@@ -146,6 +152,16 @@ export function fieldErrorsByName(error: unknown): Readonly<Record<string, strin
 /** Message safe to render in the UI for any error this layer can produce. */
 export function describeError(error: unknown): string {
   if (isApiError(error)) {
+    if (getLocale() === 'pl') {
+      const message =
+        error.code === 'UNKNOWN'
+          ? t('errors.INTERNAL_ERROR')
+          : t(`errors.${error.code}` as MessageKey);
+      return error.code === 'RATE_LIMIT_EXCEEDED' &&
+        error.problem.retryAfterSeconds !== undefined
+        ? `${message} ${t('errors.retryDelay', { seconds: error.problem.retryAfterSeconds })}`
+        : message;
+    }
     if (error.code === 'AI_OUTPUT_INVALID') {
       return 'The AI response could not be validated. Please try again or rephrase your request.';
     }
@@ -163,8 +179,8 @@ export function describeError(error: unknown): string {
   }
 
   if (isApiTransportError(error)) {
-    return error.message;
+    return getLocale() === 'pl' ? t('errors.transport') : error.message;
   }
 
-  return 'An unexpected error occurred';
+  return t('errors.INTERNAL_ERROR');
 }

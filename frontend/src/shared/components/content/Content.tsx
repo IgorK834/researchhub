@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import { useId, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 
 import { Icon, type IconName } from '../icons';
@@ -107,6 +108,7 @@ export function ListRow({
   className,
   ...props
 }: ListRowProps): ReactElement {
+  useUiLocale();
   return (
     <li
       {...props}
@@ -117,7 +119,9 @@ export function ListRow({
       <div className={styles.rowText}>
         <div className={styles.rowTitle}>
           {title}
-          {selected ? <span className="visually-hidden"> (selected)</span> : null}
+          {selected ? (
+            <span className="visually-hidden"> {uiText('ui.Content.message001')}</span>
+          ) : null}
         </div>
         {meta === undefined ? null : <div className={styles.meta}>{meta}</div>}
       </div>
@@ -155,6 +159,7 @@ export function DataTable<Row>({
   isSelected,
   footer,
 }: DataTableProps<Row>): ReactElement {
+  useUiLocale();
   const narrow = useNarrowDesktop();
   const visible = visibleTableColumns(columns, narrow);
   if (visible.length === 0)
@@ -189,7 +194,10 @@ export function DataTable<Row>({
                       <Cell key={column.id} scope={column.rowHeader ? 'row' : undefined}>
                         {column.render(row)}
                         {selected && index === 0 ? (
-                          <span className="visually-hidden"> (selected)</span>
+                          <span className="visually-hidden">
+                            {' '}
+                            {uiText('ui.Content.message001')}
+                          </span>
                         ) : null}
                       </Cell>
                     );
@@ -271,11 +279,12 @@ export interface KeyboardHint {
 /** Informational hints only: consumers must implement the shortcuts they advertise. */
 export function KeyboardHintBar({
   hints,
-  label = 'Keyboard shortcuts',
+  label = uiText('ui.Content.message004'),
 }: {
   readonly hints: readonly KeyboardHint[];
   readonly label?: string;
 }): ReactElement {
+  useUiLocale();
   return (
     <ul aria-label={label} className={styles.hints}>
       {hints.map((hint) => (

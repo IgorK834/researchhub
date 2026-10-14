@@ -1,33 +1,60 @@
+import { t as uiText } from '../../i18n';
 /** Components&states.pdf p.4. Art and actions are supplied by consumers, not fabricated here. */
 export const emptyStateCopy = {
   workspaces: {
-    context: 'Home · no workspaces',
-    title: 'Start your first research workspace.',
-    description:
-      'A workspace holds your sources, documents and analyses — and the people you work with.',
+    get context() {
+      return uiText('ui.emptyStateCopy.message001');
+    },
+    get title() {
+      return uiText('ui.Sections.message016');
+    },
+    get description() {
+      return uiText('ui.emptyStateCopy.message002');
+    },
   },
   documents: {
-    context: 'Documents · empty',
-    title: 'Nothing written yet',
-    description: 'Start a report or notes. Sources you add can be cited as you write.',
+    get context() {
+      return uiText('ui.emptyStateCopy.message003');
+    },
+    get title() {
+      return uiText('ui.DocumentList.message007');
+    },
+    get description() {
+      return uiText('ui.emptyStateCopy.message004');
+    },
   },
   sources: {
-    context: 'Sources · empty',
-    title: 'Bring in your research material',
-    description:
-      'PDF, DOCX, XLSX, CSV and TXT. We read them so answers can point back to a page.',
+    get context() {
+      return uiText('ui.SourceList.message007');
+    },
+    get title() {
+      return uiText('ui.SourceList.message009');
+    },
+    get description() {
+      return uiText('ui.emptyStateCopy.message005');
+    },
   },
   analyses: {
-    context: 'Analyses · empty',
-    title: 'No analyses yet',
-    description:
-      'Open a spreadsheet and describe what to calculate. Code and results stay together.',
+    get context() {
+      return uiText('ui.AnalysisList.message005');
+    },
+    get title() {
+      return uiText('ui.AnalysisList.message006');
+    },
+    get description() {
+      return uiText('ui.emptyStateCopy.message006');
+    },
   },
   evidence: {
-    context: 'AI · no evidence',
-    title: 'No evidence found',
-    description:
-      'None of the selected sources mention this claim. You can keep it as an open question.',
+    get context() {
+      return uiText('ui.emptyStateCopy.message007');
+    },
+    get title() {
+      return uiText('ui.emptyStateCopy.message008');
+    },
+    get description() {
+      return uiText('ui.emptyStateCopy.message009');
+    },
   },
 } as const;
 
@@ -40,7 +67,9 @@ export function searchEmptyStateCopy(
   },
 ) {
   return {
-    context: 'Search · no results',
+    get context() {
+      return uiText('ui.SourceSearchDialog.message013');
+    },
     title: `Nothing matches “${query}”`,
     description: `Try fewer words, or limit the search to sources. Searching ${counts.sources} sources, ${counts.documents} documents, ${counts.analyses} analyses.`,
   };

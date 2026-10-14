@@ -1,3 +1,4 @@
+import { t, type MessageKey } from '../shared/i18n';
 /** Section URLs and compatibility redirects are a public navigation contract. */
 export const WORKSPACE_SECTIONS = {
   overview: 'Overview',
@@ -10,6 +11,19 @@ export const WORKSPACE_SECTIONS = {
   settings: 'Settings',
 } as const;
 export type WorkspaceSection = keyof typeof WORKSPACE_SECTIONS;
+const sectionLabels: Record<WorkspaceSection, MessageKey> = {
+  overview: 'ui.AppLayoutPage.message011',
+  documents: 'ui.DocumentList.message001',
+  sources: 'ui.landingContent.message005',
+  'external-sources': 'ui.ExternalSources.message001',
+  ask: 'ui.ResearchPanel.message007',
+  analyses: 'ui.AnalysisList.message001',
+  members: 'ui.MemberList.message003',
+  settings: 'ui.AppLayoutPage.message014',
+};
+export function workspaceSectionLabel(section: WorkspaceSection): string {
+  return t(sectionLabels[section]);
+}
 
 export function workspaceSectionPath(id: string, section: WorkspaceSection): string {
   const base = `/app/workspaces/${encodeURIComponent(id)}`;

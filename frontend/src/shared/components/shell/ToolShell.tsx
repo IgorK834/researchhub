@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import { useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -25,15 +26,16 @@ export function ToolShell({
   children,
   label,
   secondary,
-  secondaryLabel = 'Tool navigation',
+  secondaryLabel = uiText('ui.ToolShell.message001'),
   secondaryWidth = 260,
   context,
-  contextTitle = 'Context panel',
+  contextTitle = uiText('ui.ToolShell.message002'),
   contextFooter,
   contextMode = 'auto',
   contextOpen,
   onContextOpenChange,
 }: ToolShellProps): ReactElement {
+  useUiLocale();
   return (
     <div className={styles.tool} data-secondary-width={secondaryWidth}>
       {secondary === undefined ? null : (
@@ -74,6 +76,7 @@ function ContextPanel({
   readonly mode: NonNullable<ToolShellProps['contextMode']>;
   readonly children: ReactNode;
 }): ReactElement {
+  useUiLocale();
   const narrow = useNarrowDesktop();
   const sliding = mode === 'slide-over' || (mode === 'auto' && narrow);
   const [localOpen, setLocalOpen] = useState(false);
@@ -106,7 +109,7 @@ function ContextPanel({
             aria-expanded={open}
             onClick={() => setOpen(true)}
           >
-            Open {title.toLocaleLowerCase()}
+            {uiText('ui.ClaimEvidencePanel.message011')} {title.toLocaleLowerCase()}
           </Button>
           <SlideOver
             open={open}

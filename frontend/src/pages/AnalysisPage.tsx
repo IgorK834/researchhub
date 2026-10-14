@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import type { ReactElement } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AnalysisStudio } from '../features/analysis/components/AnalysisStudio';
@@ -8,8 +9,9 @@ import { workspaceCapabilities } from '../shared/utils/workspaceCapabilities';
 import { describeError } from '../shared/api';
 
 export function AnalysisPage(): ReactElement {
+  useUiLocale();
   const { workspaceId, analysisId } = useParams();
-  if (!workspaceId || !analysisId) return <p>Analysis unavailable.</p>;
+  if (!workspaceId || !analysisId) return <p>{uiText('ui.AnalysisPage.message001')}</p>;
   return (
     <AuthorizedAnalysis
       key={`${workspaceId}/${analysisId}`}
@@ -25,6 +27,7 @@ function AuthorizedAnalysis({
   readonly workspaceId: string;
   readonly analysisId: string;
 }): ReactElement {
+  useUiLocale();
   const workspace = useWorkspaceQuery(workspaceId);
   const sources = useSourcesQuery(
     workspaceId,
@@ -32,9 +35,14 @@ function AuthorizedAnalysis({
   );
   const navigate = useNavigate();
   const [search] = useSearchParams();
-  if (workspace.isPending) return <p role="status">Loading workspace…</p>;
+  if (workspace.isPending)
+    return <p role="status">{uiText('ui.AnalysisPage.message002')}</p>;
   if (workspace.error)
-    return <p role="alert">Analysis unavailable: {describeError(workspace.error)}</p>;
+    return (
+      <p role="alert">
+        {uiText('ui.AnalysisPage.message003')} {describeError(workspace.error)}
+      </p>
+    );
   const { canEditContent } = workspaceCapabilities(
     workspace.data.role,
     workspace.data.archivedAt !== null,
@@ -50,14 +58,21 @@ function AuthorizedAnalysis({
   if (!canEditContent)
     return (
       <section>
-        <h1>Analyses</h1>
-        <p>This workspace is read-only for you.</p>
-        <Link to={`/app/workspaces/${workspaceId}/analyses`}>View saved analyses</Link>
+        <h1>{uiText('ui.AnalysisList.message001')}</h1>
+        <p>{uiText('ui.AnalysisPage.message004')}</p>
+        <Link to={`/app/workspaces/${workspaceId}/analyses`}>
+          {uiText('ui.AnalysisPage.message005')}
+        </Link>
       </section>
     );
-  if (sources.isPending) return <p role="status">Loading datasets…</p>;
+  if (sources.isPending)
+    return <p role="status">{uiText('ui.AnalysisPage.message006')}</p>;
   if (sources.error)
-    return <p role="alert">Could not load datasets: {describeError(sources.error)}</p>;
+    return (
+      <p role="alert">
+        {uiText('ui.AnalysisPage.message007')} {describeError(sources.error)}
+      </p>
+    );
   return (
     <NewAnalysis
       workspaceId={workspaceId}

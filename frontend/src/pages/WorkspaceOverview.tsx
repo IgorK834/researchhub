@@ -1,3 +1,5 @@
+import { getIntlLocale } from '../shared/i18n';
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import type { ReactElement, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -23,7 +25,7 @@ import styles from '../features/workspaces/components/WorkspaceViews.module.css'
 function UpdatedTime({ value }: { readonly value: string }): ReactElement {
   return (
     <time dateTime={value}>
-      {new Intl.DateTimeFormat(undefined, {
+      {new Intl.DateTimeFormat(getIntlLocale(), {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(new Date(value))}
@@ -46,16 +48,22 @@ function CollectionState({
   readonly scene: IllustrationScene;
   readonly children: ReactNode;
 }): ReactElement {
+  useUiLocale();
   if (pending)
     return (
       <>
-        <p role="status">Loading {label}…</p>
+        <p role="status">
+          {uiText('ui.WorkspaceOverview.message001')} {label}…
+        </p>
         <Skeleton height={64} shape="block" />
       </>
     );
   if (error !== null)
     return (
-      <Banner tone="error" lead={`Could not load ${label}`}>
+      <Banner
+        tone="error"
+        lead={uiText('ui.WorkspaceOverview.message011', { value0: label })}
+      >
         {describeError(error)}
       </Banner>
     );
@@ -63,7 +71,10 @@ function CollectionState({
     return (
       <div className={styles.collectionEmpty}>
         <Illustration scene={scene} size="compact" />
-        <p className={styles.quiet}>No {label} yet.</p>
+        <p className={styles.quiet}>
+          {uiText('ui.WorkspaceOverview.message002')} {label}{' '}
+          {uiText('ui.WorkspaceOverview.message003')}
+        </p>
       </div>
     );
   return <>{children}</>;
@@ -75,6 +86,7 @@ export function WorkspaceOverview({
 }: {
   readonly workspace: Workspace;
 }): ReactElement {
+  useUiLocale();
   const documents = useDocumentsQuery(workspace.id);
   const sources = useSourcesQuery(workspace.id);
   const members = useWorkspaceMembersQuery(workspace.id);
@@ -96,12 +108,12 @@ export function WorkspaceOverview({
           <RoleBadge role={workspace.role} />
           <h1 id="workspace-overview-heading">{workspace.name}</h1>
           <p className={styles.heroDescription}>
-            {workspace.description ?? 'No description.'}
+            {workspace.description ?? uiText('ui.EditWorkspaceForm.message004')}
           </p>
           <div className={styles.heroMeta}>
             {members.error === null && members.data !== undefined ? (
               <AvatarStack
-                label="Workspace members"
+                label={uiText('ui.MemberList.message001')}
                 people={members.data.map((member) => ({
                   userId: member.userId,
                   name: member.displayName,
@@ -111,12 +123,12 @@ export function WorkspaceOverview({
             {sources.error === null && readyCount !== undefined ? (
               <Sticker
                 icon="sparkle"
-                label={`Grounded in ${readyCount} ${readyCount === 1 ? 'source' : 'sources'}`}
+                label={uiText('counts.grounded', { count: readyCount })}
               />
             ) : null}
           </div>
           {members.error !== null ? (
-            <Banner tone="error" lead="Could not load workspace members">
+            <Banner tone="error" lead={uiText('ui.WorkspaceOverview.message012')}>
               {describeError(members.error)}
             </Banner>
           ) : null}
@@ -126,9 +138,8 @@ export function WorkspaceOverview({
         </div>
       </header>
       {workspace.archivedAt !== null ? (
-        <Banner lead="This workspace is archived.">
-          It no longer appears in your workspace list, and its content can no longer be
-          changed. Nothing has been deleted.
+        <Banner lead={uiText('ui.WorkspaceOverview.message013')}>
+          {uiText('ui.WorkspaceOverview.message004')}
         </Banner>
       ) : null}
       <WorkspaceQuestions
@@ -143,10 +154,10 @@ export function WorkspaceOverview({
       <div className={styles.overviewGrid}>
         <div className={styles.recentColumn}>
           <Panel
-            title="Recent documents"
+            title={uiText('ui.WorkspaceOverview.message005')}
             header={
               <Link to={workspaceSectionPath(workspace.id, 'documents')}>
-                All documents
+                {uiText('ui.WorkspaceOverview.message006')}
               </Link>
             }
           >
@@ -154,7 +165,7 @@ export function WorkspaceOverview({
               pending={documents.isPending}
               error={documents.error}
               empty={recentDocuments.length === 0}
-              label="documents"
+              label={uiText('ui.DocumentList.message003')}
               scene="documents"
             >
               <ul className={styles.recentList}>
@@ -172,8 +183,8 @@ export function WorkspaceOverview({
                     }
                     meta={
                       <>
-                        Updated <UpdatedTime value={document.updatedAt} /> · v
-                        {document.revision}
+                        {uiText('ui.DocumentList.message019')}
+                        <UpdatedTime value={document.updatedAt} /> · v{document.revision}
                       </>
                     }
                   />
@@ -182,16 +193,18 @@ export function WorkspaceOverview({
             </CollectionState>
           </Panel>
           <Panel
-            title="Recent sources"
+            title={uiText('ui.WorkspaceOverview.message007')}
             header={
-              <Link to={workspaceSectionPath(workspace.id, 'sources')}>All sources</Link>
+              <Link to={workspaceSectionPath(workspace.id, 'sources')}>
+                {uiText('ui.SourceList.message033')}
+              </Link>
             }
           >
             <CollectionState
               pending={sources.isPending}
               error={sources.error}
               empty={recentSources.length === 0}
-              label="sources"
+              label={uiText('ui.AiDraftBlock.message004')}
               scene="sources"
             >
               <ul className={styles.recentList}>
@@ -210,7 +223,8 @@ export function WorkspaceOverview({
                     }
                     meta={
                       <>
-                        <SourceTypeBadge sourceType={source.sourceType} /> · Updated{' '}
+                        <SourceTypeBadge sourceType={source.sourceType} />{' '}
+                        {uiText('ui.WorkspaceOverview.message008')}{' '}
                         <UpdatedTime value={source.updatedAt} />
                       </>
                     }
@@ -222,12 +236,12 @@ export function WorkspaceOverview({
           </Panel>
         </div>
         <div className={styles.aiActivity}>
-          <Panel title="Recent AI activity">
+          <Panel title={uiText('ui.WorkspaceOverview.message009')}>
             <CollectionState
               pending={conversations.isPending}
               error={conversations.error}
               empty={recentConversations.length === 0}
-              label="AI conversations"
+              label={uiText('ui.WorkspaceOverview.message010')}
               scene="thinking"
             >
               <ul className={styles.recentList}>

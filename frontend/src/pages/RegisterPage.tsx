@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
 import { useRef, useState, type ReactElement } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -17,6 +18,7 @@ import { RegistrationNotice } from '../features/auth/components/RegistrationNoti
  * submission sends them to the login form rather than into the app.
  */
 export function RegisterPage(): ReactElement {
+  useUiLocale();
   const { config } = usePublicConfig();
   const navigate = useNavigate();
   const invitationToken = useLocation().hash.slice(1);
@@ -35,7 +37,7 @@ export function RegisterPage(): ReactElement {
   // Compare the exact values: whitespace is part of a password. Confirmation is never sent to API.
   const confirmError =
     password !== confirmPassword && (confirmPassword.length > 0 || confirmTouched)
-      ? 'Passwords do not match.'
+      ? uiText('ui.RegisterPage.message001')
       : undefined;
 
   const fieldErrors = fieldErrorsByName(error);
@@ -78,9 +80,9 @@ export function RegisterPage(): ReactElement {
   return (
     <AuthLayout
       variant="register"
-      title="Register"
-      subtitle="Takes a minute. You can invite your team afterwards."
-      footer="By creating an account you accept the Terms and Privacy policy."
+      title={uiText('ui.RegisterPage.message002')}
+      subtitle={uiText('ui.RegisterPage.message003')}
+      footer={uiText('ui.RegisterPage.message004')}
     >
       <form
         onSubmit={(event) => {
@@ -99,7 +101,7 @@ export function RegisterPage(): ReactElement {
           size="large"
           id="displayName"
           name="displayName"
-          label="Display name"
+          label={uiText('ui.SourceMetadataPanel.message019')}
           type="text"
           value={displayName}
           autoComplete="name"
@@ -111,7 +113,7 @@ export function RegisterPage(): ReactElement {
           size="large"
           id="email"
           name="email"
-          label="Email"
+          label={uiText('ui.PasswordRecovery.message007')}
           type="email"
           value={email}
           autoComplete="email"
@@ -124,7 +126,7 @@ export function RegisterPage(): ReactElement {
             size="large"
             id="password"
             name="password"
-            label="Password"
+            label={uiText('ui.LoginPage.message003')}
             type="password"
             value={password}
             autoComplete="new-password"
@@ -135,7 +137,7 @@ export function RegisterPage(): ReactElement {
             size="large"
             id="confirmPassword"
             name="confirmPassword"
-            label="Confirm password"
+            label={uiText('ui.RegisterPage.message005')}
             type="password"
             value={confirmPassword}
             autoComplete="new-password"
@@ -149,16 +151,17 @@ export function RegisterPage(): ReactElement {
           type="submit"
           size="large"
           busy={isPending}
-          busyLabel="Creating account…"
-          aria-label={isPending ? 'Creating account…' : undefined}
+          busyLabel={uiText('ui.RegisterPage.message006')}
+          aria-label={isPending ? uiText('ui.RegisterPage.message006') : undefined}
           className={styles.submit}
         >
-          Create account
+          {uiText('ui.LandingHeader.message001')}
         </Button>
       </form>
 
       <p className={styles.accountLink}>
-        Already registered? <Link to="/login">Log in</Link>
+        {uiText('ui.RegisterPage.message007')}{' '}
+        <Link to="/login">{uiText('ui.AccountLink.message007')}</Link>
       </p>
     </AuthLayout>
   );

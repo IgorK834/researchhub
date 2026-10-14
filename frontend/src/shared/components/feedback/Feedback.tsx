@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 
 import { Icon, type IconName } from '../icons';
@@ -83,6 +84,7 @@ export interface ProgressProps {
   readonly tone?: 'blue' | 'yellow';
 }
 export function Progress({ label, value, tone = 'blue' }: ProgressProps): ReactElement {
+  useUiLocale();
   if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 100))
     throw new Error('Progress value must be between 0 and 100.');
   return (
@@ -98,7 +100,9 @@ export function Progress({ label, value, tone = 'blue' }: ProgressProps): ReactE
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
-        aria-valuetext={value === undefined ? 'In progress' : `${value}%`}
+        aria-valuetext={
+          value === undefined ? uiText('ui.AnalysisWidgets.message003') : `${value}%`
+        }
         className={styles.track}
       >
         <span

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import {
   createContext,
   useCallback,
@@ -62,6 +63,7 @@ function ToastItem({
   readonly entry: ToastEntry;
   readonly dismiss: (id: number) => void;
 }): ReactElement {
+  useUiLocale();
   const [paused, setPaused] = useState(false);
   const pointerInside = useRef(false);
   const focusInside = useRef(false);
@@ -131,7 +133,7 @@ function ToastItem({
         variant="ghost"
         iconOnly
         icon="x"
-        aria-label={`Dismiss ${input.title}`}
+        aria-label={uiText('ui.Toast.message001', { value0: input.title })}
         className={styles.dismiss}
         onClick={() => dismiss(id)}
       />
@@ -147,10 +149,11 @@ export function ToastHost({
   readonly entries: readonly ToastEntry[];
   readonly dismiss: (id: number) => void;
 }): ReactElement {
+  useUiLocale();
   const [portalRoot] = useState(() => document.createElement('div'));
   useLayoutEffect(() => registerToastHost(portalRoot), [portalRoot]);
   return createPortal(
-    <section aria-label="Notifications" className={styles.toastHost}>
+    <section aria-label={uiText('ui.Toast.message002')} className={styles.toastHost}>
       <div role="status" aria-live="polite" aria-atomic="false">
         {entries
           .filter((entry) => entry.input.tone !== 'blocking')

@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../i18n';
 import type { ReactElement } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -13,6 +14,7 @@ import { Banner } from './feedback';
  * end to end, and it should be replaced once real workspace data is fetched.
  */
 export function ApiStatusBanner(): ReactElement {
+  useUiLocale();
   const queryClient = useQueryClient();
   const { data, error, isPending, isFetching } = useHealthQuery();
 
@@ -28,7 +30,7 @@ export function ApiStatusBanner(): ReactElement {
 
   return (
     <section aria-labelledby="api-status-heading">
-      <h2 id="api-status-heading">Backend status</h2>
+      <h2 id="api-status-heading">{uiText('ui.ApiStatusBanner.message001')}</h2>
 
       <Banner
         role="status"
@@ -36,15 +38,24 @@ export function ApiStatusBanner(): ReactElement {
         icon={isPending ? 'refresh' : undefined}
         lead={
           isPending
-            ? 'Checking the API…'
+            ? uiText('ui.ApiStatusBanner.message002')
             : error !== null
-              ? `Unavailable: ${describeError(error)}${isApiError(error) ? ` (code ${error.code})` : ''}`
-              : `API reports ${data?.status ?? 'unknown'}`
+              ? uiText('ui.ApiStatusBanner.message004', {
+                  value0: describeError(error),
+                  value1: isApiError(error)
+                    ? uiText('ui.ApiStatusBanner.message005', { value0: error.code })
+                    : '',
+                })
+              : uiText('ui.ApiStatusBanner.message006', {
+                  value0: data?.status ?? uiText('ui.DatasetPreviewPanel.message067'),
+                })
         }
       />
 
       <button type="button" onClick={refresh} disabled={isFetching}>
-        {isFetching ? 'Refreshing…' : 'Refresh status'}
+        {isFetching
+          ? uiText('ui.ApiStatusBanner.message003')
+          : uiText('ui.SourceDetailPage.message009')}
       </button>
     </section>
   );

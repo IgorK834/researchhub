@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../i18n';
 import { useId, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 
 import { Icon } from '../icons';
@@ -144,9 +145,10 @@ export interface BreadcrumbProps {
 }
 export function Breadcrumb({
   segments,
-  label = 'Breadcrumb',
+  label = uiText('ui.Navigation.message001'),
   renderLink,
 }: BreadcrumbProps): ReactElement {
+  useUiLocale();
   return (
     <nav aria-label={label} className={styles.breadcrumb}>
       <ol>
