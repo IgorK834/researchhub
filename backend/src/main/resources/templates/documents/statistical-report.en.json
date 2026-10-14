@@ -1,0 +1,268 @@
+{
+  "id": "statistical-report",
+  "version": 1,
+  "locale": "en",
+  "title": "Statistical report",
+  "description": "Describe data, assumptions and checked results without fabricated numbers.",
+  "requiredPlaceholders": [
+    {
+      "id": "objective",
+      "hint": "State the objective and distinguish confirmatory from exploratory analysis."
+    },
+    {
+      "id": "data",
+      "hint": "Describe the real dataset, variables, units, exclusions and missing values."
+    },
+    {
+      "id": "method",
+      "hint": "Specify the methods, software and decision rules actually used."
+    },
+    {
+      "id": "assumptions",
+      "hint": "Check the assumptions; do not claim that unperformed checks passed."
+    },
+    {
+      "id": "results",
+      "hint": "Insert checked analysis outputs explicitly; no estimates, p-values or effects are generated here."
+    },
+    {
+      "id": "uncertainty",
+      "hint": "Report uncertainty, practical meaning and limitations supported by the analysis."
+    },
+    {
+      "id": "conclusion",
+      "hint": "Separate numerical results from interpretation and avoid unsupported causal claims."
+    },
+    {
+      "id": "references",
+      "hint": "Record verified sources and data provenance using the existing citation and analysis tools."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Template guidance — replace every TODO prompt with your own verified content. This outline contains no generated results or citations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Analysis objective"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:objective] State the objective and distinguish confirmatory from exploratory analysis.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Data and variables"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:data] Describe the real dataset, variables, units, exclusions and missing values.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Statistical methods"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:method] Specify the methods, software and decision rules actually used.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Assumptions and diagnostics"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:assumptions] Check the assumptions; do not claim that unperformed checks passed.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Verified results"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:results] Insert checked analysis outputs explicitly; no estimates, p-values or effects are generated here.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Uncertainty and limitations"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:uncertainty] Report uncertainty, practical meaning and limitations supported by the analysis.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Conclusions"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:conclusion] Separate numerical results from interpretation and avoid unsupported causal claims.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "References and data provenance"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Record verified sources and data provenance using the existing citation and analysis tools.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

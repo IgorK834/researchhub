@@ -60,6 +60,8 @@ researchhub:
       # Azurite settings. Blob container names and credentials belong to the adapter's own settings, never here.
       # Every runtime profile must supply an adapter; missing dependencies fail startup.
   documents:
+    # Free local creation is capped independently of paid AI admission; archived documents do not count.
+    max-active-per-workspace: ${DOCUMENT_MAX_ACTIVE_PER_WORKSPACE:100}
     history:
       # How old the newest restore point must be before an autosave takes another one. A manual save is always
       # a restore point; an autosave is one only when this much time has passed since the last. ISO-8601

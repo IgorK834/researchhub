@@ -1,0 +1,238 @@
+{
+  "id": "lab-report",
+  "version": 1,
+  "locale": "en",
+  "title": "Laboratory report",
+  "description": "A structure for your own measurements, methods and interpretation.",
+  "requiredPlaceholders": [
+    {
+      "id": "aim",
+      "hint": "State the objective and a testable question; do not invent a hypothesis."
+    },
+    {
+      "id": "background",
+      "hint": "Explain the relevant theory and add only verified source citations."
+    },
+    {
+      "id": "methods",
+      "hint": "Describe apparatus, procedure, units and measurement uncertainty."
+    },
+    {
+      "id": "results",
+      "hint": "Enter your actual measurements; leave unknown values empty."
+    },
+    {
+      "id": "discussion",
+      "hint": "Interpret only the observed results and describe limitations."
+    },
+    {
+      "id": "conclusion",
+      "hint": "Answer the research question using your own evidence."
+    },
+    {
+      "id": "references",
+      "hint": "Add verified citations using the editor; no references are supplied by this template."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Template guidance — replace every TODO prompt with your own verified content. This outline contains no generated results or citations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Aim and research question"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:aim] State the objective and a testable question; do not invent a hypothesis.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Background"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:background] Explain the relevant theory and add only verified source citations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Materials and methods"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:methods] Describe apparatus, procedure, units and measurement uncertainty.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Observed results"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:results] Enter your actual measurements; leave unknown values empty.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Discussion and limitations"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:discussion] Interpret only the observed results and describe limitations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Conclusions"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:conclusion] Answer the research question using your own evidence.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "References"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Add verified citations using the editor; no references are supplied by this template.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

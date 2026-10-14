@@ -1,0 +1,238 @@
+{
+  "id": "literature-review",
+  "version": 1,
+  "locale": "pl",
+  "title": "Przegląd literatury",
+  "description": "Zorganizuj przejrzysty przegląd bez wymyślonych publikacji i ustaleń.",
+  "requiredPlaceholders": [
+    {
+      "id": "scope",
+      "hint": "Określ pytanie, populację lub temat oraz granice przeglądu."
+    },
+    {
+      "id": "search",
+      "hint": "Zapisz bazy danych, frazy wyszukiwania i rzeczywiste daty wyszukiwań."
+    },
+    {
+      "id": "criteria",
+      "hint": "Opisz kryteria włączenia i wyłączenia oraz proces wyboru."
+    },
+    {
+      "id": "synthesis",
+      "hint": "Porównaj włączone publikacje; odróżnij ustalenia od własnej interpretacji."
+    },
+    {
+      "id": "gaps",
+      "hint": "Opisz niepewność, sprzeczne ustalenia i ograniczenia dostępnych dowodów."
+    },
+    {
+      "id": "conclusion",
+      "hint": "Podsumuj, co wynika ze zweryfikowanej literatury i co pozostaje nierozstrzygnięte."
+    },
+    {
+      "id": "references",
+      "hint": "Wstaw tylko zweryfikowane publikacje; wskazówki nie są cytowaniami."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Wskazówki szablonu — zastąp każde pole TODO własną zweryfikowaną treścią. Plan nie zawiera wygenerowanych wyników ani cytowań.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Pytanie przeglądu i zakres"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:scope] Określ pytanie, populację lub temat oraz granice przeglądu.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Strategia wyszukiwania"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:search] Zapisz bazy danych, frazy wyszukiwania i rzeczywiste daty wyszukiwań.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Kryteria wyboru"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:criteria] Opisz kryteria włączenia i wyłączenia oraz proces wyboru.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Synteza dowodów"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:synthesis] Porównaj włączone publikacje; odróżnij ustalenia od własnej interpretacji.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Luki i ograniczenia"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:gaps] Opisz niepewność, sprzeczne ustalenia i ograniczenia dostępnych dowodów.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Wnioski"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:conclusion] Podsumuj, co wynika ze zweryfikowanej literatury i co pozostaje nierozstrzygnięte.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Bibliografia"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Wstaw tylko zweryfikowane publikacje; wskazówki nie są cytowaniami.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

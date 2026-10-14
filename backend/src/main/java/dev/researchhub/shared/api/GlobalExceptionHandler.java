@@ -151,7 +151,7 @@ public class GlobalExceptionHandler {
             case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case CONFLICT, COLLABORATION_STATE_REPLACED -> HttpStatus.CONFLICT;
+            case CONFLICT, COLLABORATION_STATE_REPLACED, DOCUMENT_LIMIT_REACHED -> HttpStatus.CONFLICT;
             case PAYLOAD_TOO_LARGE -> HttpStatus.CONTENT_TOO_LARGE;
             case UNSUPPORTED_FILE_TYPE, UNSUPPORTED_MEDIA_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
             case AI_UNAVAILABLE, EXTERNAL_SEARCH_UNAVAILABLE, METADATA_LOOKUP_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
@@ -171,6 +171,7 @@ public class GlobalExceptionHandler {
             case FORBIDDEN -> "Forbidden";
             case RESOURCE_NOT_FOUND -> "Not found";
             case CONFLICT -> "Conflict";
+            case DOCUMENT_LIMIT_REACHED -> "Document limit reached";
             case COLLABORATION_STATE_REPLACED -> "Document snapshot restored";
             case PAYLOAD_TOO_LARGE -> "Payload too large";
             case UNSUPPORTED_FILE_TYPE -> "Unsupported file type";

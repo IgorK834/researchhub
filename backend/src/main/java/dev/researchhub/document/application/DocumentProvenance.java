@@ -52,6 +52,14 @@ public class DocumentProvenance {
             append(workspace,document,entry.getKey(),category,caller,actor,latest.containsKey(entry.getKey()) ? "EDITED" : category==Category.HUMAN ? "TRACKED" : "INSERTED",null,metadata,revision,hash);
         }
     }
+    /** Trusted bundled-template boundary in the creation transaction. Guidance is imported structure, not AI evidence. */
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void templateApplied(UUID workspace,UUID caller,DocumentDetail saved,UUID operation,JsonNode origin) {
+        var metadata=json.createObjectNode().put("originType","BUNDLED_TEMPLATE").put("placeholderGuidance",true);
+        metadata.set("documentTemplate",origin);
+        for(var block:blocks(saved.content()).entrySet())append(workspace,saved.summary().id(),block.getKey(),Category.IMPORTED,
+            caller,actorName(caller),"TEMPLATE_APPLIED",operation,metadata,saved.summary().revision(),hash(block.getValue()));
+    }
     /** Trusted application boundary: called only after explicit, validated AI approval in the same transaction. */
     @Transactional(propagation=Propagation.MANDATORY)
     public void aiAccepted(UUID workspace, UUID caller, DocumentDetail saved, UUID sourceOperation, Category category,

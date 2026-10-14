@@ -1,0 +1,238 @@
+{
+  "id": "thesis-chapter",
+  "version": 1,
+  "locale": "en",
+  "title": "Thesis chapter",
+  "description": "Start an editable chapter with a clear argument and source boundaries.",
+  "requiredPlaceholders": [
+    {
+      "id": "introduction",
+      "hint": "Explain the purpose of this chapter and its role in your thesis."
+    },
+    {
+      "id": "question",
+      "hint": "State the question and define the key concepts."
+    },
+    {
+      "id": "framework",
+      "hint": "Develop a sourced framework; do not treat this outline as evidence."
+    },
+    {
+      "id": "approach",
+      "hint": "Explain the analytical approach or method actually used."
+    },
+    {
+      "id": "argument",
+      "hint": "Present your own argument supported by verified sources or observations."
+    },
+    {
+      "id": "summary",
+      "hint": "Summarize the supported conclusions and link to the next chapter."
+    },
+    {
+      "id": "references",
+      "hint": "Add verified citations; do not invent author, publication or date metadata."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Template guidance — replace every TODO prompt with your own verified content. This outline contains no generated results or citations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Chapter introduction"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:introduction] Explain the purpose of this chapter and its role in your thesis.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Research question"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:question] State the question and define the key concepts.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Theoretical framework"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:framework] Develop a sourced framework; do not treat this outline as evidence.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Approach"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:approach] Explain the analytical approach or method actually used.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Analysis and argument"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:argument] Present your own argument supported by verified sources or observations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Chapter summary"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:summary] Summarize the supported conclusions and link to the next chapter.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "References"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Add verified citations; do not invent author, publication or date metadata.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

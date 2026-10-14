@@ -1,0 +1,238 @@
+{
+  "id": "thesis-chapter",
+  "version": 1,
+  "locale": "pl",
+  "title": "Rozdział pracy dyplomowej",
+  "description": "Rozpocznij edytowalny rozdział z jasną argumentacją i granicami źródeł.",
+  "requiredPlaceholders": [
+    {
+      "id": "introduction",
+      "hint": "Wyjaśnij cel rozdziału i jego rolę w pracy dyplomowej."
+    },
+    {
+      "id": "question",
+      "hint": "Podaj pytanie i zdefiniuj kluczowe pojęcia."
+    },
+    {
+      "id": "framework",
+      "hint": "Przedstaw podstawy oparte na źródłach; nie traktuj planu jako dowodu."
+    },
+    {
+      "id": "approach",
+      "hint": "Wyjaśnij rzeczywiście zastosowane podejście analityczne lub metodę."
+    },
+    {
+      "id": "argument",
+      "hint": "Przedstaw własną argumentację popartą zweryfikowanymi źródłami lub obserwacjami."
+    },
+    {
+      "id": "summary",
+      "hint": "Podsumuj uzasadnione wnioski i powiąż je z kolejnym rozdziałem."
+    },
+    {
+      "id": "references",
+      "hint": "Dodaj zweryfikowane cytowania; nie wymyślaj autorów, publikacji ani dat."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Wskazówki szablonu — zastąp każde pole TODO własną zweryfikowaną treścią. Plan nie zawiera wygenerowanych wyników ani cytowań.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Wprowadzenie do rozdziału"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:introduction] Wyjaśnij cel rozdziału i jego rolę w pracy dyplomowej.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Pytanie badawcze"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:question] Podaj pytanie i zdefiniuj kluczowe pojęcia.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Podstawy teoretyczne"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:framework] Przedstaw podstawy oparte na źródłach; nie traktuj planu jako dowodu.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Podejście"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:approach] Wyjaśnij rzeczywiście zastosowane podejście analityczne lub metodę.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Analiza i argumentacja"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:argument] Przedstaw własną argumentację popartą zweryfikowanymi źródłami lub obserwacjami.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Podsumowanie rozdziału"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:summary] Podsumuj uzasadnione wnioski i powiąż je z kolejnym rozdziałem.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Bibliografia"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Dodaj zweryfikowane cytowania; nie wymyślaj autorów, publikacji ani dat.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

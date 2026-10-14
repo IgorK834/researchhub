@@ -1,0 +1,268 @@
+{
+  "id": "statistical-report",
+  "version": 1,
+  "locale": "pl",
+  "title": "Raport statystyczny",
+  "description": "Opisz dane, założenia i sprawdzone wyniki bez fikcyjnych liczb.",
+  "requiredPlaceholders": [
+    {
+      "id": "objective",
+      "hint": "Podaj cel i odróżnij analizę potwierdzającą od eksploracyjnej."
+    },
+    {
+      "id": "data",
+      "hint": "Opisz rzeczywisty zbiór danych, zmienne, jednostki, wyłączenia i braki danych."
+    },
+    {
+      "id": "method",
+      "hint": "Podaj rzeczywiście zastosowane metody, oprogramowanie i reguły decyzyjne."
+    },
+    {
+      "id": "assumptions",
+      "hint": "Sprawdź założenia; nie twierdź, że niewykonane testy zakończyły się poprawnie."
+    },
+    {
+      "id": "results",
+      "hint": "Wstaw jawnie sprawdzone wyniki analizy; szablon nie generuje estymat, wartości p ani efektów."
+    },
+    {
+      "id": "uncertainty",
+      "hint": "Opisz niepewność, znaczenie praktyczne i ograniczenia wynikające z analizy."
+    },
+    {
+      "id": "conclusion",
+      "hint": "Oddziel wyniki liczbowe od interpretacji i unikaj nieuzasadnionych twierdzeń przyczynowych."
+    },
+    {
+      "id": "references",
+      "hint": "Zapisz zweryfikowane źródła i pochodzenie danych za pomocą istniejących narzędzi cytowania i analizy."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Wskazówki szablonu — zastąp każde pole TODO własną zweryfikowaną treścią. Plan nie zawiera wygenerowanych wyników ani cytowań.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Cel analizy"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:objective] Podaj cel i odróżnij analizę potwierdzającą od eksploracyjnej.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Dane i zmienne"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:data] Opisz rzeczywisty zbiór danych, zmienne, jednostki, wyłączenia i braki danych.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Metody statystyczne"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:method] Podaj rzeczywiście zastosowane metody, oprogramowanie i reguły decyzyjne.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Założenia i diagnostyka"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:assumptions] Sprawdź założenia; nie twierdź, że niewykonane testy zakończyły się poprawnie.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Zweryfikowane wyniki"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:results] Wstaw jawnie sprawdzone wyniki analizy; szablon nie generuje estymat, wartości p ani efektów.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Niepewność i ograniczenia"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:uncertainty] Opisz niepewność, znaczenie praktyczne i ograniczenia wynikające z analizy.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Wnioski"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:conclusion] Oddziel wyniki liczbowe od interpretacji i unikaj nieuzasadnionych twierdzeń przyczynowych.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Bibliografia i pochodzenie danych"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Zapisz zweryfikowane źródła i pochodzenie danych za pomocą istniejących narzędzi cytowania i analizy.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

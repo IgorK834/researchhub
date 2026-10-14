@@ -1,0 +1,238 @@
+{
+  "id": "lab-report",
+  "version": 1,
+  "locale": "pl",
+  "title": "Raport laboratoryjny",
+  "description": "Struktura dla własnych pomiarów, metod i interpretacji.",
+  "requiredPlaceholders": [
+    {
+      "id": "aim",
+      "hint": "Podaj cel i pytanie możliwe do zweryfikowania; nie wymyślaj hipotezy."
+    },
+    {
+      "id": "background",
+      "hint": "Wyjaśnij istotną teorię i dodaj tylko zweryfikowane cytowania źródeł."
+    },
+    {
+      "id": "methods",
+      "hint": "Opisz aparaturę, procedurę, jednostki i niepewność pomiaru."
+    },
+    {
+      "id": "results",
+      "hint": "Wpisz rzeczywiste pomiary; pozostaw nieznane wartości puste."
+    },
+    {
+      "id": "discussion",
+      "hint": "Interpretuj tylko zaobserwowane wyniki i opisz ograniczenia."
+    },
+    {
+      "id": "conclusion",
+      "hint": "Odpowiedz na pytanie badawcze na podstawie własnych dowodów."
+    },
+    {
+      "id": "references",
+      "hint": "Dodaj zweryfikowane cytowania w edytorze; szablon nie zawiera gotowych źródeł."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Wskazówki szablonu — zastąp każde pole TODO własną zweryfikowaną treścią. Plan nie zawiera wygenerowanych wyników ani cytowań.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Cel i pytanie badawcze"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:aim] Podaj cel i pytanie możliwe do zweryfikowania; nie wymyślaj hipotezy.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Podstawy teoretyczne"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:background] Wyjaśnij istotną teorię i dodaj tylko zweryfikowane cytowania źródeł.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Materiały i metody"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:methods] Opisz aparaturę, procedurę, jednostki i niepewność pomiaru.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Zaobserwowane wyniki"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:results] Wpisz rzeczywiste pomiary; pozostaw nieznane wartości puste.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Dyskusja i ograniczenia"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:discussion] Interpretuj tylko zaobserwowane wyniki i opisz ograniczenia.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Wnioski"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:conclusion] Odpowiedz na pytanie badawcze na podstawie własnych dowodów.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Bibliografia"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Dodaj zweryfikowane cytowania w edytorze; szablon nie zawiera gotowych źródeł.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

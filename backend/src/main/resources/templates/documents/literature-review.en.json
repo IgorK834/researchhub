@@ -1,0 +1,238 @@
+{
+  "id": "literature-review",
+  "version": 1,
+  "locale": "en",
+  "title": "Literature review",
+  "description": "Organize a transparent review without invented publications or findings.",
+  "requiredPlaceholders": [
+    {
+      "id": "scope",
+      "hint": "Define the question, population or topic, and review boundaries."
+    },
+    {
+      "id": "search",
+      "hint": "Record the databases, search terms and actual search dates."
+    },
+    {
+      "id": "criteria",
+      "hint": "Describe inclusion and exclusion criteria and the selection process."
+    },
+    {
+      "id": "synthesis",
+      "hint": "Compare the included publications; distinguish findings from your interpretation."
+    },
+    {
+      "id": "gaps",
+      "hint": "Describe uncertainty, conflicting findings and limits of the available evidence."
+    },
+    {
+      "id": "conclusion",
+      "hint": "Summarize what the verified literature supports and what remains unresolved."
+    },
+    {
+      "id": "references",
+      "hint": "Insert only publications you have verified; placeholders are not citations."
+    }
+  ],
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Template guidance — replace every TODO prompt with your own verified content. This outline contains no generated results or citations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Review question and scope"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:scope] Define the question, population or topic, and review boundaries.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Search strategy"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:search] Record the databases, search terms and actual search dates.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Selection criteria"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:criteria] Describe inclusion and exclusion criteria and the selection process.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Evidence synthesis"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:synthesis] Compare the included publications; distinguish findings from your interpretation.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Gaps and limitations"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:gaps] Describe uncertainty, conflicting findings and limits of the available evidence.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Conclusions"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:conclusion] Summarize what the verified literature supports and what remains unresolved.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "References"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "[TODO:references] Insert only publications you have verified; placeholders are not citations.",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

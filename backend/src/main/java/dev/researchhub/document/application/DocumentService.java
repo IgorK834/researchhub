@@ -67,6 +67,8 @@ public class DocumentService {
     private final dev.researchhub.user.application.UserLookupService users;
     private final List<DocumentReferenceValidator> referenceValidators;
     private final List<DocumentWriteGuard> writeGuards;
+    @org.springframework.beans.factory.annotation.Autowired
+    private dev.researchhub.document.infrastructure.DocumentCreationAdmission creationAdmission;
 
     public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
                            CheckpointPolicy checkpoints, WorkspaceAuthorizationService authorization,
@@ -94,6 +96,8 @@ public class DocumentService {
     @Transactional
     public DocumentDetail create(UUID workspaceId, UUID callerId, CreateDocumentCommand command) {
         requireEditor(workspaceId, callerId);
+
+        creationAdmission.requireCapacity(workspaceId);
 
         referenceValidators.forEach(validator -> validator.validate(workspaceId,callerId,command.content()));
 
