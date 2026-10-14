@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://researchhub.dev/contracts/document-templates/template.schema.json",
+  "title": "Bundled document template v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "locale", "title", "description", "requiredPlaceholders", "content"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z-]{1,40}$"},
+    "version": {"type": "integer", "minimum": 1},
+    "locale": {"enum": ["en", "pl"]},
+    "title": {"type": "string", "minLength": 1, "maxLength": 160},
+    "description": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "requiredPlaceholders": {
+      "type": "array", "minItems": 1, "maxItems": 100,
+      "items": {"type": "object", "additionalProperties": false, "required": ["id", "hint"], "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,39}$"}, "hint": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }}
+    },
+    "content": {"allOf": [{"$ref": "#/$defs/node"}, {"properties": {"type": {"const": "doc"}, "content": {"minItems": 1}}}]}
+  },
+  "$defs": {
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "properties": {
+        "type": {"enum": ["doc", "paragraph", "heading", "text", "bulletList", "orderedList", "listItem", "blockquote", "table", "tableRow", "tableHeader", "tableCell", "horizontalRule", "hardBreak"]},
+        "text": {"type": "string", "minLength": 1},
+        "content": {"type": "array", "maxItems": 2000, "items": {"$ref": "#/$defs/node"}},
+        "attrs": {"type": "object", "additionalProperties": false, "properties": {
+          "level": {"type": "integer", "minimum": 1, "maximum": 6}, "start": {"type": "integer", "minimum": 1},
+          "colspan": {"type": "integer", "minimum": 1}, "rowspan": {"type": "integer", "minimum": 1},
+          "colwidth": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 1}}
+        }},
+        "marks": {"type": "array", "maxItems": 2, "items": {"type": "object", "additionalProperties": false, "required": ["type"], "properties": {"type": {"enum": ["italic", "bold"]}}}}
+      }
+    }
+  }
+}

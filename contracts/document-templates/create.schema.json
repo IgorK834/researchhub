@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://researchhub.dev/contracts/document-templates/create.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["clientRequestId", "templateId", "version", "locale", "title"],
+  "properties": {
+    "clientRequestId": {"type": "string", "format": "uuid"},
+    "templateId": {"type": "string", "pattern": "^[a-z][a-z-]{1,40}$"},
+    "version": {"type": "integer", "minimum": 1},
+    "locale": {"enum": ["en", "pl"]},
+    "title": {"type": "string", "minLength": 1, "maxLength": 500}
+  }
+}
