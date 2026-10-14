@@ -85,6 +85,7 @@ jobs:
           CANVAS_BROWSER_TESTS: 'true'
           COLLABORATION_BROWSER_TESTS: 'true'
           EXPORT_BROWSER_TESTS: 'true'
+          DOCUMENT_TEMPLATE_BROWSER_TESTS: 'true'
           ANALYSIS_SANDBOX_TESTS: 'true'
         run: ./mvnw --batch-mode --no-transfer-progress verify
       - name: Verify pinned Azure agent metric names and timer units locally
@@ -141,6 +142,7 @@ jobs:
       - working-directory: frontend
         run: |
           npm ci
+          node ../scripts/i18n/validate.cjs
           npm run typecheck
           npm run lint
           npm run test:coverage -- --runInBand
