@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -13,22 +14,39 @@ import {
 import styles from './AiDebugger.module.css';
 
 const labels: Record<Feature, string> = {
-  ASK_WORKSPACE: 'Ask Workspace',
-  SECTION_GENERATION: 'Section generation',
-  REWRITE: 'Rewrite',
-  EVIDENCE_SEARCH: 'Evidence search',
-  SOURCE_ANALYSIS: 'Source analysis',
-  ANALYSIS_PLANNING: 'Analysis planning',
-  GROUNDED_RESPONSE: 'Grounded response',
+  get ASK_WORKSPACE() {
+    return uiText('ui.AiDebugger.message091');
+  },
+  get SECTION_GENERATION() {
+    return uiText('ui.AiDebugger.message092');
+  },
+  get REWRITE() {
+    return uiText('ui.AiDebugger.message093');
+  },
+  get EVIDENCE_SEARCH() {
+    return uiText('ui.AiDebugger.message094');
+  },
+  get SOURCE_ANALYSIS() {
+    return uiText('ui.AiDebugger.message095');
+  },
+  get ANALYSIS_PLANNING() {
+    return uiText('ui.AiDebugger.message096');
+  },
+  get GROUNDED_RESPONSE() {
+    return uiText('ui.AiDebugger.message097');
+  },
 };
 const number = (value: number | null | undefined): string =>
   value === null || value === undefined ? 'Unknown' : value.toLocaleString('en-US');
 const cost = (value: number | null | undefined): string =>
   value === null || value === undefined ? 'Unknown' : `$${value.toFixed(6)}`;
 const duration = (value: number | null | undefined): string =>
-  value === null || value === undefined ? 'Not run' : `${number(value)} ms`;
+  value === null || value === undefined
+    ? uiText('ui.AiDebugger.message001')
+    : `${number(value)} ms`;
 
 export function AiDebugger(): ReactElement {
+  useUiLocale();
   const { workspaceId = '' } = useParams();
   const [params, setParams] = useSearchParams();
   const [days, setDays] = useState(30);
@@ -51,21 +69,21 @@ export function AiDebugger(): ReactElement {
       <header className={styles.header}>
         <Link
           to={`/app/workspaces/${encodeURIComponent(workspaceId)}`}
-          aria-label="Back to workspace"
+          aria-label={uiText('ui.AiDebugger.message002')}
         >
           <ResearchHubMark />
           <span>ResearchHub</span>
         </Link>
         <span className={styles.divider} />
-        <strong>AI debugger</strong>
-        <span className={styles.staff}>INTERNAL · STAFF ONLY</span>
-        <span className={styles.environment}>Protected workspace diagnostics</span>
+        <strong>{uiText('ui.AiDebugger.message003')}</strong>
+        <span className={styles.staff}>{uiText('ui.AiDebugger.message004')}</span>
+        <span className={styles.environment}>{uiText('ui.AiDebugger.message005')}</span>
       </header>
       <main className={styles.main}>
         <div className={styles.heading}>
           <div>
-            <h1>Inside the answer</h1>
-            <p>Inspect retrieval, context and model usage in one place.</p>
+            <h1>{uiText('ui.AiDebugger.message006')}</h1>
+            <p>{uiText('ui.AiDebugger.message007')}</p>
           </div>
           <Button
             variant="secondary"
@@ -74,24 +92,24 @@ export function AiDebugger(): ReactElement {
               if (id !== undefined) void detail.refetch();
             }}
           >
-            Refresh
+            {uiText('ui.AiDebugger.message008')}
           </Button>
         </div>
         {overview.isPending ? (
-          <p role="status">Loading protected diagnostics…</p>
+          <p role="status">{uiText('ui.AiDebugger.message009')}</p>
         ) : overview.isError ? (
           <div className={styles.notice} role="alert">
-            <h2>Diagnostics unavailable</h2>
-            <p>
-              This tool requires an enabled deployment, an operator account and access to
-              this workspace.
-            </p>
+            <h2>{uiText('ui.AiDebugger.message010')}</h2>
+            <p>{uiText('ui.AiDebugger.message011')}</p>
           </div>
         ) : (
           <>
             <UsageOverview overview={overview.data} days={days} setDays={setDays} />
-            <section className={styles.requests} aria-label="RAG requests">
-              <label htmlFor="trace">RAG request</label>
+            <section
+              className={styles.requests}
+              aria-label={uiText('ui.AiDebugger.message012')}
+            >
+              <label htmlFor="trace">{uiText('ui.AiDebugger.message013')}</label>
               <select
                 id="trace"
                 value={id ?? ''}
@@ -104,25 +122,21 @@ export function AiDebugger(): ReactElement {
                 ))}
               </select>
               <span>
-                Latest 50 ·{' '}
+                {uiText('ui.AiDebugger.message014')}{' '}
                 {overview.data.contentCaptureEnabled
-                  ? 'Content capture enabled for operator requests'
-                  : 'Private content capture disabled'}
+                  ? uiText('ui.AiDebugger.message015')
+                  : uiText('ui.AiDebugger.message016')}
               </span>
             </section>
             {overview.data.traces.length === 0 ? (
               <div className={styles.notice}>
-                <h2>No RAG requests yet</h2>
-                <p>
-                  Ask a question in this workspace, then refresh to inspect its trace.
-                </p>
+                <h2>{uiText('ui.AiDebugger.message017')}</h2>
+                <p>{uiText('ui.AiDebugger.message018')}</p>
               </div>
             ) : detail.isPending ? (
-              <p role="status">Loading request…</p>
+              <p role="status">{uiText('ui.AiDebugger.message019')}</p>
             ) : detail.isError ? (
-              <p role="alert">
-                This request is unavailable. Refresh or select another request.
-              </p>
+              <p role="alert">{uiText('ui.AiDebugger.message020')}</p>
             ) : detail.data ? (
               <TraceDetail detail={detail.data} workspaceId={workspaceId} />
             ) : null}
@@ -141,20 +155,21 @@ function UsageOverview({
   readonly days: number;
   readonly setDays: (days: number) => void;
 }): ReactElement {
+  useUiLocale();
   return (
-    <section className={styles.usage} aria-label="Aggregate AI usage">
+    <section className={styles.usage} aria-label={uiText('ui.AiDebugger.message021')}>
       <div className={styles.sectionHeading}>
-        <h2>Usage by feature & model</h2>
+        <h2>{uiText('ui.AiDebugger.message022')}</h2>
         <label>
-          Window{' '}
+          {uiText('ui.AiDebugger.message023')}{' '}
           <select
-            aria-label="Usage window"
+            aria-label={uiText('ui.WorkspaceGovernance.message003')}
             value={days}
             onChange={(event) => setDays(Number(event.target.value))}
           >
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={90}>90 days</option>
+            <option value={7}>{uiText('ui.AiDebugger.message024')}</option>
+            <option value={30}>{uiText('ui.AiDebugger.message025')}</option>
+            <option value={90}>{uiText('ui.AiDebugger.message026')}</option>
           </select>
         </label>
       </div>
@@ -162,13 +177,13 @@ function UsageOverview({
         <table>
           <thead>
             <tr>
-              <th>Feature / template</th>
-              <th>Provider / model</th>
-              <th>Outcome</th>
-              <th>Requests</th>
-              <th>Input / output tokens</th>
-              <th>Avg. model latency</th>
-              <th>Estimated cost</th>
+              <th>{uiText('ui.AiDebugger.message027')}</th>
+              <th>{uiText('ui.AiDebugger.message028')}</th>
+              <th>{uiText('ui.AiDebugger.message029')}</th>
+              <th>{uiText('ui.WorkspaceGovernance.message012')}</th>
+              <th>{uiText('ui.AiDebugger.message030')}</th>
+              <th>{uiText('ui.AiDebugger.message031')}</th>
+              <th>{uiText('ui.AiDebugger.message032')}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,9 +194,10 @@ function UsageOverview({
                   <small>{row.templateId}</small>
                 </td>
                 <td>
-                  {row.model ?? 'Unknown'}
+                  {row.model ?? uiText('ui.ProblemForm.message012')}
                   <small>
-                    {row.provider ?? 'Unknown'} · {row.modelVersion ?? 'Unknown'}
+                    {row.provider ?? uiText('ui.ProblemForm.message012')} ·{' '}
+                    {row.modelVersion ?? uiText('ui.ProblemForm.message012')}
                   </small>
                 </td>
                 <td>{row.status}</td>
@@ -189,15 +205,15 @@ function UsageOverview({
                 <td>
                   {number(row.inputTokens)} / {number(row.outputTokens)}
                   <small>
-                    {row.usageKnown}/{row.requests} known · {row.estimatedUsageRequests}{' '}
-                    estimated
+                    {row.usageKnown}/{row.requests} {uiText('ui.AiDebugger.message033')}{' '}
+                    {row.estimatedUsageRequests} {uiText('ui.AiDebugger.message034')}
                   </small>
                 </td>
                 <td>{duration(Math.round(row.averageLatencyMs))}</td>
                 <td>
                   {cost(row.estimatedCostUsd)}
                   <small>
-                    {row.costKnown}/{row.requests} priced
+                    {row.costKnown}/{row.requests} {uiText('ui.AiDebugger.message035')}
                   </small>
                 </td>
               </tr>
@@ -205,11 +221,8 @@ function UsageOverview({
           </tbody>
         </table>
       </div>
-      {overview.usage.length === 0 ? <p>No model calls in this window.</p> : null}
-      <p className={styles.disclaimer}>
-        Unknown usage is excluded from totals. Costs use configured token rates and are
-        estimates; provider invoices may differ.
-      </p>
+      {overview.usage.length === 0 ? <p>{uiText('ui.AiDebugger.message036')}</p> : null}
+      <p className={styles.disclaimer}>{uiText('ui.AiDebugger.message037')}</p>
     </section>
   );
 }
@@ -220,97 +233,103 @@ function TraceDetail({
   readonly detail: Detail;
   readonly workspaceId: string;
 }): ReactElement {
+  useUiLocale();
   const { trace, usage, chunks } = detail;
   const response = trace.response;
   const claims = response?.generation?.result.answer.claims ?? [];
   return (
     <>
       <div className={styles.requestBar}>
-        <code title={trace.correlationId}>Request {trace.correlationId}</code>
+        <code title={trace.correlationId}>
+          {uiText('ui.AiDebugger.message038')} {trace.correlationId}
+        </code>
         <span className={styles.status} data-status={trace.status}>
           {trace.status}
         </span>
         <time>{trace.startedAt}</time>
       </div>
       <div className={styles.columns}>
-        <section className={styles.card} aria-label="Query and configuration">
-          <h2>Query & configuration</h2>
+        <section className={styles.card} aria-label={uiText('ui.AiDebugger.message039')}>
+          <h2>{uiText('ui.AiDebugger.message040')}</h2>
           <p className={styles.query}>
-            {trace.query ?? 'Private query was not captured.'}
+            {trace.query ?? uiText('ui.AiDebugger.message041')}
           </p>
           <dl>
-            <dt>Trace ID</dt>
+            <dt>{uiText('ui.AiDebugger.message042')}</dt>
             <dd>{trace.id}</dd>
-            <dt>Generation ID</dt>
-            <dd>{trace.generationRequestId ?? 'Not run'}</dd>
-            <dt>Workspace</dt>
+            <dt>{uiText('ui.AiDebugger.message043')}</dt>
+            <dd>{trace.generationRequestId ?? uiText('ui.AiDebugger.message001')}</dd>
+            <dt>{uiText('ui.landingContent.message001')}</dt>
             <dd>{trace.workspaceId}</dd>
-            <dt>Retrieval filters</dt>
+            <dt>{uiText('ui.AiDebugger.message044')}</dt>
             <dd>
               {trace.selectedSourceIds === null
-                ? 'All authorized sources'
+                ? uiText('ui.AiDebugger.message045')
                 : trace.selectedSourceIds.length === 0
-                  ? 'No sources selected'
+                  ? uiText('ui.ResearchPanel.message032')
                   : trace.selectedSourceIds.join(', ')}
             </dd>
-            <dt>Computed outputs</dt>
+            <dt>{uiText('ui.AiDebugger.message046')}</dt>
             <dd>{trace.selectedAnalysisOutputs.length}</dd>
-            <dt>Retrieval</dt>
-            <dd>Hybrid vector + lexical · k={trace.topK}</dd>
-            <dt>Reranking</dt>
-            <dd>Not applicable · no reranker configured</dd>
-            <dt>Model</dt>
+            <dt>{uiText('ui.AiDebugger.message047')}</dt>
+            <dd>
+              {uiText('ui.AiDebugger.message048')}
+              {trace.topK}
+            </dd>
+            <dt>{uiText('ui.AiDebugger.message049')}</dt>
+            <dd>{uiText('ui.AiDebugger.message050')}</dd>
+            <dt>{uiText('ui.AiDebugger.message051')}</dt>
             <dd>
               {usage?.model
                 ? `${usage.model.provider} / ${usage.model.name} / ${usage.model.version}`
-                : 'Unknown'}
+                : uiText('ui.ProblemForm.message012')}
             </dd>
-            <dt>Template</dt>
+            <dt>{uiText('ui.AiDebugger.message052')}</dt>
             <dd>{trace.templateId}</dd>
-            <dt>Template hash</dt>
+            <dt>{uiText('ui.AiDebugger.message053')}</dt>
             <dd>{trace.templateHash}</dd>
-            <dt>Temperature</dt>
-            <dd>{trace.parameters.temperature ?? 'Provider default'}</dd>
-            <dt>Max output tokens</dt>
+            <dt>{uiText('ui.AiDebugger.message054')}</dt>
+            <dd>{trace.parameters.temperature ?? uiText('ui.AiDebugger.message055')}</dd>
+            <dt>{uiText('ui.AiDebugger.message056')}</dt>
             <dd>{number(trace.parameters.maxOutputTokens)}</dd>
-            <dt>Retrieval latency</dt>
+            <dt>{uiText('ui.AiDebugger.message057')}</dt>
             <dd>{duration(trace.retrievalLatencyMs)}</dd>
-            <dt>Model latency</dt>
+            <dt>{uiText('ui.AiDebugger.message058')}</dt>
             <dd>{duration(usage?.latencyMs)}</dd>
-            <dt>Input / output tokens</dt>
+            <dt>{uiText('ui.AiDebugger.message030')}</dt>
             <dd>
               {number(usage?.usage?.inputTokens)} / {number(usage?.usage?.outputTokens)}
-              {usage?.usage?.estimated ? ' (estimated)' : ''}
+              {usage?.usage?.estimated ? ' ' + uiText('ui.AiDebugger.message059') : ''}
             </dd>
-            <dt>Cost estimate</dt>
+            <dt>{uiText('ui.AiDebugger.message060')}</dt>
             <dd>
               {cost(usage?.cost?.usd)}
               <small>
                 {usage?.cost
-                  ? `Rate version: ${usage.cost.pricingVersion}`
-                  : 'No matching price or usage available'}
+                  ? uiText('ui.AiDebugger.message061', {
+                      value0: usage.cost.pricingVersion,
+                    })
+                  : uiText('ui.AiDebugger.message062')}
               </small>
             </dd>
           </dl>
           {trace.errorCode ? (
             <p className={styles.failure} role="alert">
-              {trace.errorCode}. Inspect the completed stages and retry from Ask
-              Workspace.
+              {trace.errorCode}
+              {uiText('ui.AiDebugger.message063')}
             </p>
           ) : null}
         </section>
-        <section className={styles.card} aria-label="Retrieved chunks">
+        <section className={styles.card} aria-label={uiText('ui.AiDebugger.message064')}>
           <div className={styles.sectionHeading}>
-            <h2>Retrieved chunks</h2>
-            <span>{chunks.length} retrieved</span>
+            <h2>{uiText('ui.AiDebugger.message064')}</h2>
+            <span>
+              {chunks.length} {uiText('ui.AiDebugger.message065')}
+            </span>
           </div>
-          <p className={styles.disclaimer}>
-            Original hybrid order. Scores are ranking signals, not answer confidence.
-          </p>
+          <p className={styles.disclaimer}>{uiText('ui.AiDebugger.message066')}</p>
           {chunks.length === 0 ? (
-            <p>
-              No chunks retrieved. Check filters, source readiness and the error code.
-            </p>
+            <p>{uiText('ui.AiDebugger.message067')}</p>
           ) : (
             <div className={styles.chunkList}>
               {chunks.map((chunk, index) => {
@@ -320,7 +339,7 @@ function TraceDetail({
                     (item) => item.chunkId === citation.chunkId,
                   )?.title ??
                   citation.sectionTitle ??
-                  'Source';
+                  uiText('ui.AiDraftBlock.message007');
                 return (
                   <article key={citation.chunkId} className={styles.chunk}>
                     <div className={styles.chunkHeading}>
@@ -332,40 +351,46 @@ function TraceDetail({
                       </Link>
                       <span className={styles.contextChip}>
                         {chunk.citationKey
-                          ? `${chunk.citationKey} · in context`
-                          : 'Not in context'}
+                          ? uiText('ui.AiDebugger.message068', {
+                              value0: chunk.citationKey,
+                            })
+                          : uiText('ui.AiDebugger.message069')}
                       </span>
                     </div>
                     <p className={styles.snippet}>
                       {chunk.text ??
                         (chunk.availability === 'SOURCE_UNAVAILABLE'
-                          ? 'This source version is no longer available.'
-                          : 'Retrieved text capture is disabled.')}
+                          ? uiText('ui.AiDebugger.message070')
+                          : uiText('ui.AiDebugger.message071'))}
                     </p>
                     <dl className={styles.chunkStats}>
-                      <dt>Score</dt>
+                      <dt>{uiText('ui.AiDebugger.message072')}</dt>
                       <dd>{chunk.hit.score.toFixed(4)}</dd>
-                      <dt>Vector</dt>
+                      <dt>{uiText('ui.AiDebugger.message073')}</dt>
                       <dd>{chunk.hit.vectorSimilarity.toFixed(4)}</dd>
-                      <dt>Lexical</dt>
+                      <dt>{uiText('ui.AiDebugger.message074')}</dt>
                       <dd>{chunk.hit.lexicalScore.toFixed(4)}</dd>
-                      <dt>Bytes</dt>
+                      <dt>{uiText('ui.AiDebugger.message075')}</dt>
                       <dd>{number(chunk.hit.contentBytes)}</dd>
                     </dl>
                     <small>
-                      Page {citation.pageStart ?? 'n/a'}
+                      {uiText('ui.ExternalSources.message039')}{' '}
+                      {citation.pageStart ?? 'n/a'}
                       {citation.pageEnd !== citation.pageStart
                         ? `–${citation.pageEnd}`
                         : ''}{' '}
                       · {citation.processingVersion}
                       {chunk.textReference
-                        ? ` · shared text with ${chunk.textReference}`
+                        ? uiText('ui.AiDebugger.message076', {
+                            value0: chunk.textReference,
+                          })
                         : ''}
                     </small>
                     <code className={styles.chunkId}>{citation.chunkId}</code>
                     <small>
-                      Source {citation.sourceId} · version{' '}
-                      {citation.sourceVersionId ?? 'legacy'}
+                      {uiText('ui.AiDraftBlock.message007')} {citation.sourceId}{' '}
+                      {uiText('ui.CanvasDatasetPicker.message001')}{' '}
+                      {citation.sourceVersionId ?? uiText('ui.AiDebugger.message077')}
                     </small>
                   </article>
                 );
@@ -374,36 +399,41 @@ function TraceDetail({
           )}
         </section>
         <div className={styles.right}>
-          <section className={styles.card} aria-label="Context assembly">
-            <h2>Context assembly</h2>
+          <section
+            className={styles.card}
+            aria-label={uiText('ui.AiDebugger.message078')}
+          >
+            <h2>{uiText('ui.AiDebugger.message078')}</h2>
             <div className={styles.contextNumber}>
               {number(trace.context?.tokenUpperBound)}
-              <small>conservative request token bound</small>
+              <small>{uiText('ui.AiDebugger.message079')}</small>
             </div>
             <dl>
-              <dt>Context bytes</dt>
+              <dt>{uiText('ui.AiDebugger.message080')}</dt>
               <dd>{number(trace.context?.contextBytes)}</dd>
-              <dt>Token budget</dt>
+              <dt>{uiText('ui.AiDebugger.message081')}</dt>
               <dd>{number(trace.context?.budget.maxTokens)}</dd>
-              <dt>Byte budget</dt>
+              <dt>{uiText('ui.AiDebugger.message082')}</dt>
               <dd>{number(trace.context?.budget.maxBytes)}</dd>
-              <dt>Builder</dt>
-              <dd>{trace.context?.builderVersion ?? 'Not run'}</dd>
-              <dt>Policy</dt>
-              <dd>{trace.context?.tokenPolicy ?? 'Not run'}</dd>
+              <dt>{uiText('ui.AiDebugger.message083')}</dt>
+              <dd>
+                {trace.context?.builderVersion ?? uiText('ui.AiDebugger.message001')}
+              </dd>
+              <dt>{uiText('ui.AiDebugger.message084')}</dt>
+              <dd>{trace.context?.tokenPolicy ?? uiText('ui.AiDebugger.message001')}</dd>
             </dl>
-            <p className={styles.disclaimer}>
-              The UTF-8 bound reserves context capacity. Provider token usage is measured
-              separately.
-            </p>
+            <p className={styles.disclaimer}>{uiText('ui.AiDebugger.message085')}</p>
           </section>
-          <section className={styles.card} aria-label="Answer and citations">
-            <h2>Answer & citations</h2>
+          <section
+            className={styles.card}
+            aria-label={uiText('ui.AiDebugger.message086')}
+          >
+            <h2>{uiText('ui.AiDebugger.message087')}</h2>
             {response === null ? (
               <p>
                 {trace.errorCode
-                  ? 'No validated answer was produced.'
-                  : 'Private answer was not captured.'}
+                  ? uiText('ui.AiDebugger.message088')
+                  : uiText('ui.AiDebugger.message089')}
               </p>
             ) : (
               <>
@@ -431,7 +461,7 @@ function TraceDetail({
                 )}
                 <details>
                   <summary>
-                    Final structured citations (
+                    {uiText('ui.AiDebugger.message090')}
                     {response.citations.length +
                       (response.analysisCitations?.length ?? 0)}
                     )
