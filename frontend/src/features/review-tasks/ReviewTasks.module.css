@@ -1,0 +1,32 @@
+.page {
+  padding: var(--space-4);
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block: var(--space-3);
+}
+.card {
+  padding: var(--space-4);
+  margin-block: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+.form fieldset {
+  display: grid;
+  gap: var(--space-2);
+  border: 0;
+  padding: var(--space-3);
+}
+
+.card time {
+  display: block;
+  margin-block: var(--space-2);
+}
+.filters button[aria-pressed='true'] {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border-strong);
+}

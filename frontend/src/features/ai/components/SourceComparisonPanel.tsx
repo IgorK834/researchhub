@@ -1,4 +1,5 @@
 import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
+import { CreateReviewTaskButton } from '../../review-tasks/TaskComposer';
 import { SourcePicker } from './SourcePicker';
 import { useRef, useState, type ReactElement } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -559,7 +560,20 @@ export function DisagreementResult({
         <p>{uiText('ui.SourceComparisonPanel.message046')}</p>
       ) : null}
       {analysis.answer.findings.map((finding, index) => (
-        <article key={index} className={styles.finding}>
+        <article
+          key={index}
+          id={`evidence-finding-${analysis.id}-${index}`}
+          tabIndex={-1}
+          className={styles.finding}
+        >
+          <CreateReviewTaskButton
+            workspaceId={analysis.workspaceId}
+            target={{
+              targetType: 'EVIDENCE_FINDING',
+              targetId: analysis.id,
+              findingIndex: index,
+            }}
+          />
           <h4>{categories[finding.category]}</h4>
           <p>{finding.description}</p>
           {finding.sides.map((side) => (
