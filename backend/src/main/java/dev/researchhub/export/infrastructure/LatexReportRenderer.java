@@ -67,16 +67,16 @@ public final class LatexReportRenderer {
         var writer = new Writer(bibliography);
         var tex = new StringBuilder(PREAMBLE);
         tex.append("\\title{").append(escape(report.title())).append("}\n\\begin{document}\n\\maketitle\n");
-        tex.append("{\\small Document revision ").append(report.revision()).append("; captured at ")
+        tex.append("{\\small ").append(report.exportLanguage().choose("Document revision ","Rewizja dokumentu ")).append(report.revision()).append(report.exportLanguage().choose("; captured at ","; zapisano "))
             .append(escape(report.capturedAt().toString())).append(".}\\par\n");
         writer.blocks(tex, report.blocks(), false);
         if (!bibliography.entries().isEmpty()) {
-            tex.append("\\section*{References}\n");
+            tex.append("\\section*{").append(report.exportLanguage().choose("References","Bibliografia")).append("}\n");
             for (var entry : bibliography.entries()) tex.append("{\\raggedright ")
                 .append(escape(entry)).append("\\par}\n");
         }
         if (!report.warnings().isEmpty()) {
-            tex.append("\\section*{Export notes}\n\\begin{itemize}\n");
+            tex.append("\\section*{").append(report.exportLanguage().choose("Export notes","Uwagi do eksportu")).append("}\n\\begin{itemize}\n");
             for (var warning : report.warnings()) tex.append("\\item ").append(escape(warning)).append('\n');
             tex.append("\\end{itemize}\n");
         }
@@ -172,7 +172,7 @@ public final class LatexReportRenderer {
                         out.append("\\begin{center}\n\\includegraphics[width=\\linewidth,height=0.72\\textheight,keepaspectratio]{")
                             .append(name).append("}\n\\end{center}\n");
                         caption(out, image.caption().isBlank() ? image.alt() : image.caption());
-                        caption(out, ReportText.provenance(image.provenance()));
+                        caption(out, ReportText.provenance(image.provenance(),bibliography.language()));
                     }
                     case Container container -> {
                         if (container.quote()) out.append("\\begin{quote}\n");
@@ -189,7 +189,7 @@ public final class LatexReportRenderer {
                             caption(out,dev.researchhub.export.application.ReportMath.FALLBACK);
                             literal(out,equation.source());
                         }
-                        caption(out,ReportText.provenance(equation.provenance()));
+                        caption(out,ReportText.provenance(equation.provenance(),bibliography.language()));
                     }
                 }
             }
@@ -267,7 +267,7 @@ public final class LatexReportRenderer {
             }
             out.append("\\end{").append(environment).append("}\n\\par\n");
             caption(out, table.caption());
-            caption(out, ReportText.provenance(table.provenance()));
+            caption(out, ReportText.provenance(table.provenance(),bibliography.language()));
         }
 
         private static String column(int span, int columns) {

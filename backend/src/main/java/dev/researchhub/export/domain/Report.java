@@ -8,11 +8,21 @@ import java.util.*;
 /** Versioned, browser-independent snapshot. Renderers consume only this contract, never editor JSON. */
 public record Report(String schemaVersion, UUID workspaceId, UUID documentId, long revision, String title,
                      CitationStyle citationStyle, Instant capturedAt, List<Block> blocks, List<BibliographyEntry> bibliography,
-                     List<Origin> origins, List<String> warnings) {
+                     List<Origin> origins, List<String> warnings, dev.researchhub.shared.localization.ContentLanguage exportLanguage) {
     public Report {
         if (!Set.of("1.0","2.0","3.0").contains(schemaVersion) || revision < 1) throw new IllegalArgumentException("Invalid report version");
         if (citationStyle == null) citationStyle = CitationStyle.IEEE;
+        if (exportLanguage == null) exportLanguage = dev.researchhub.shared.localization.ContentLanguage.EN;
         blocks=List.copyOf(blocks); bibliography=List.copyOf(bibliography); origins=List.copyOf(origins); warnings=List.copyOf(warnings);
+    }
+    /** Additive language metadata; historical snapshots default to English labels. */
+    public Report(String schemaVersion, UUID workspaceId, UUID documentId, long revision, String title,
+                  CitationStyle citationStyle, Instant capturedAt, List<Block> blocks, List<BibliographyEntry> bibliography,
+                  List<Origin> origins, List<String> warnings) {
+        this(schemaVersion,workspaceId,documentId,revision,title,citationStyle,capturedAt,blocks,bibliography,origins,warnings,null);
+    }
+    public Report withExportLanguage(dev.researchhub.shared.localization.ContentLanguage language) {
+        return new Report(schemaVersion,workspaceId,documentId,revision,title,citationStyle,capturedAt,blocks,bibliography,origins,warnings,language);
     }
     /** Historical snapshots and internal fixtures used the original numeric bibliography. */
     public Report(String schemaVersion, UUID workspaceId, UUID documentId, long revision, String title,

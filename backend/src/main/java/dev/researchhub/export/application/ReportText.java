@@ -48,4 +48,19 @@ public final class ReportText {
             .reduce((a,b) -> a+"; "+b).orElse("");
         return "Source: "+inputs+". Analysis: "+p.analysisId()+"; execution: "+p.executionId()+"; output: "+p.outputId()+"; code SHA-256: "+p.codeSha256()+".";
     }
+    public static String provenance(AnalysisProvenance p,dev.researchhub.shared.localization.ContentLanguage language) {
+        if(language==dev.researchhub.shared.localization.ContentLanguage.EN)return provenance(p);
+        if(p==null)return "";
+        if(p.solution()!=null) {
+            var s=p.solution();
+            return "PROBLEM: analiza "+p.analysisId()+"; wykonanie "+p.executionId()+"; wynik "+p.outputId()
+                +"; krok "+s.stepId()+"; rozmowa "+s.conversationId()+". Arytmetyka: "+s.arithmetic()
+                +"; interpretacja: "+s.interpretation()+"; dziedzina "+s.domain()+". SHA-256 danych: "+s.inputHash()
+                +"; SHA-256 planu: "+s.planHash()+"; SHA-256 kandydata: "+s.candidateHash()
+                +". Środowisko: "+s.runtimeVersion()+"; obraz: "+s.imageId()+"; weryfikacja: "+s.verificationVersion()
+                +"; precyzja: "+s.precision()+"; skróty kodu: "+new java.util.TreeMap<>(s.codeHashes())+".";
+        }
+        String inputs=p.inputs().stream().map(s -> s.title()+" (v"+s.versionNumber()+", "+s.sourceVersionId()+")").collect(java.util.stream.Collectors.joining("; "));
+        return "Źródło: "+inputs+". Analiza: "+p.analysisId()+"; wykonanie: "+p.executionId()+"; wynik: "+p.outputId()+"; SHA-256 kodu: "+p.codeSha256()+".";
+    }
 }

@@ -21,11 +21,11 @@ public final class DocxReportRenderer {
             var run=title.createRun();run.setText(report.title());run.setFontFamily("Times New Roman");run.setFontSize(24);run.setBold(true);
             blocks(document,document,report.blocks(),0,bibliography);
             if (!bibliography.entries().isEmpty()) {
-                heading(document,1,List.of(new Text("References",Set.of())),bibliography);
+                heading(document,1,List.of(new Text(report.exportLanguage().choose("References","Bibliografia"),Set.of())),bibliography);
                 bibliography.entries().forEach(e -> paragraph(document,List.of(new Text(e,Set.of())),false,bibliography));
             }
             if(!report.warnings().isEmpty()) {
-                heading(document,1,List.of(new Text("Export notes",Set.of())),bibliography);
+                heading(document,1,List.of(new Text(report.exportLanguage().choose("Export notes","Uwagi do eksportu"),Set.of())),bibliography);
                 report.warnings().forEach(w -> paragraph(document,List.of(new Text(w,Set.of())),false,bibliography));
             }
             document.write(output);return output.toByteArray();
@@ -35,6 +35,7 @@ public final class DocxReportRenderer {
         doc.getProperties().getCoreProperties().setTitle(report.title());
         doc.getProperties().getCoreProperties().setDescription("ResearchHub document "+report.documentId()+", revision "+report.revision());
         var styles=doc.createStyles();styles.setDefaultFonts(new CTFontsBuilder().font());
+        styles.setSpellingLanguage(report.exportLanguage().locale());
         for (int i=1;i<=6;i++) {
             var style=CTStyle.Factory.newInstance();style.setStyleId("Heading"+i);style.setType(STStyleType.PARAGRAPH);
             style.addNewName().setVal("heading "+i);style.addNewPPr().addNewOutlineLvl().setVal(BigInteger.valueOf(i-1));
@@ -129,7 +130,7 @@ public final class DocxReportRenderer {
         }
     }
     private void provenance(IBody body,AnalysisProvenance p,FormattedBibliography bibliography) {
-        if (p!=null) paragraph(body,List.of(new Text(ReportText.provenance(p),Set.of())),true,bibliography);
+        if (p!=null) paragraph(body,List.of(new Text(ReportText.provenance(p,bibliography.language()),Set.of())),true,bibliography);
     }
     private XWPFParagraph newParagraph(IBody body) {
         var p=body instanceof XWPFDocument d ? d.createParagraph() : ((XWPFTableCell)body).addParagraph();

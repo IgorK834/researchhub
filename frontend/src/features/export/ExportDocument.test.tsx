@@ -83,7 +83,7 @@ it.each(['PDF', 'LATEX'] as const)(
     if (format === 'LATEX') expect(screen.getByText(/Extract the ZIP/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Generate export' }));
     await waitFor(() =>
-      expect(createExport).toHaveBeenCalledWith('w', 'd', format, 'APA_7', 3),
+      expect(createExport).toHaveBeenCalledWith('w', 'd', format, 'APA_7', 3, 'en'),
     );
     await waitFor(() =>
       expect(screen.getByText(new RegExp(`Preparing ${label}`))).toBeTruthy(),
@@ -112,7 +112,7 @@ it('submits the selected IEEE citation style', async () => {
   fireEvent.click(screen.getByRole('radio', { name: /IEEE/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Generate export' }));
   await waitFor(() =>
-    expect(createExport).toHaveBeenCalledWith('w', 'd', 'DOCX', 'IEEE', 3),
+    expect(createExport).toHaveBeenCalledWith('w', 'd', 'DOCX', 'IEEE', 3, 'en'),
   );
 });
 it.each(['FAILED', 'EXPIRED'] as const)(

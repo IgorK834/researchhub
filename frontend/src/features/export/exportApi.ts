@@ -1,9 +1,13 @@
+import { t as uiText } from '../../shared/i18n';
 import { apiClient } from '../../shared/api';
+import type { Locale } from '../../shared/i18n';
 
 export type ExportFormat = 'DOCX' | 'PDF' | 'LATEX';
 export type CitationStyle = 'APA_7' | 'IEEE';
 export const citationStyleLabels: Readonly<Record<CitationStyle, string>> = {
-  APA_7: 'APA 7th edition',
+  get APA_7() {
+    return uiText('citation.apa');
+  },
   IEEE: 'IEEE',
 };
 export const exportFormatLabels: Readonly<Record<ExportFormat, string>> = {
@@ -43,9 +47,10 @@ export function createExport(
   format: ExportFormat,
   citationStyle: CitationStyle,
   revision: number,
+  exportLanguage: Locale = 'en',
 ): Promise<ExportJob> {
   return apiClient.post(path(workspace, document), {
-    body: { format, citationStyle, revision },
+    body: { format, citationStyle, revision, exportLanguage },
   });
 }
 export function fetchExport(
@@ -78,12 +83,12 @@ export async function downloadExport(job: ExportJob): Promise<void> {
 export function exportFailure(code: string | null): string {
   switch (code) {
     case 'ACCESS_REVOKED':
-      return 'Workspace access changed. Check your access before exporting again.';
+      return uiText('ui.exportApi.message001');
     case 'OUTPUT_TOO_LARGE':
-      return 'The report is too large. Export a smaller document.';
+      return uiText('ui.exportApi.message002');
     case 'RENDER_INTERRUPTED':
-      return 'Rendering was interrupted. Generate the export again.';
+      return uiText('ui.exportApi.message003');
     default:
-      return 'The report could not be rendered. Generate the export again.';
+      return uiText('ui.exportApi.message004');
   }
 }

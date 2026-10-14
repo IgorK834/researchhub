@@ -1,3 +1,4 @@
+import { t as uiText, useLocale as useUiLocale } from '../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '../../shared/components/Button';
@@ -14,6 +15,8 @@ import {
   type CitationStyle,
 } from './exportApi';
 import styles from './ExportDocument.module.css';
+import type { Locale } from '../../shared/i18n';
+import { Select } from '../../shared/components/forms';
 
 /** Exports only saved revisions. Closing the dialog leaves the durable server job running. */
 export function ExportDocument({
@@ -27,12 +30,21 @@ export function ExportDocument({
   readonly revision: number;
   readonly settled: boolean;
 }): ReactElement {
+  useUiLocale();
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>('DOCX');
   const [citationStyle, setCitationStyle] = useState<CitationStyle>('APA_7');
+  const [exportLanguage, setExportLanguage] = useState<Locale>('en');
   const create = useMutation({
     mutationFn: () =>
-      createExport(workspaceId, documentId, format, citationStyle, revision),
+      createExport(
+        workspaceId,
+        documentId,
+        format,
+        citationStyle,
+        revision,
+        exportLanguage,
+      ),
   });
   const jobId = create.data?.id;
   const job = useQuery({
@@ -54,17 +66,17 @@ export function ExportDocument({
   return (
     <>
       <Button variant="secondary" icon="download" onClick={() => setOpen(true)}>
-        Export
+        {uiText('ui.ExportDocument.message001')}
       </Button>
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Export document"
-        description="Take a saved report into your university or research workflow."
+        title={uiText('ui.ExportDocument.message002')}
+        description={uiText('ui.ExportDocument.message003')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
-              Close
+              {uiText('ui.CanvasContextPreview.message006')}
             </Button>
             {job.data?.status === 'SUCCEEDED' ? (
               <Button
@@ -72,7 +84,8 @@ export function ExportDocument({
                 disabled={download.isPending}
                 onClick={() => download.mutate()}
               >
-                Download {exportFormatLabels[job.data.format]}
+                {uiText('ui.ExportDocument.message004')}{' '}
+                {exportFormatLabels[job.data.format]}
               </Button>
             ) : null}
             <Button
@@ -82,14 +95,26 @@ export function ExportDocument({
                 create.mutate();
               }}
             >
-              {pending ? 'Preparing report…' : 'Generate export'}
+              {pending
+                ? uiText('ui.ExportDocument.message005')
+                : uiText('ui.ExportDocument.message006')}
             </Button>
           </>
         }
       >
         <div className={styles.content}>
+          <Select
+            label={uiText('export.language')}
+            value={exportLanguage}
+            disabled={pending}
+            onChange={(event) => setExportLanguage(event.target.value as Locale)}
+          >
+            <option value="en">English</option>
+            <option value="pl">Polski</option>
+          </Select>
+          <p>{uiText('export.languageHint')}</p>
           <fieldset className={styles.formats} disabled={pending}>
-            <legend>File format</legend>
+            <legend>{uiText('ui.ExportDocument.message007')}</legend>
             <label>
               <input
                 type="radio"
@@ -98,8 +123,8 @@ export function ExportDocument({
                 checked={format === 'DOCX'}
                 onChange={() => setFormat('DOCX')}
               />
-              <strong>Word document (.docx)</strong>
-              <span>Edit and submit in office software.</span>
+              <strong>{uiText('ui.ExportDocument.message008')}</strong>
+              <span>{uiText('ui.ExportDocument.message009')}</span>
             </label>
             <label>
               <input
@@ -109,8 +134,8 @@ export function ExportDocument({
                 checked={format === 'PDF'}
                 onChange={() => setFormat('PDF')}
               />
-              <strong>PDF report (.pdf)</strong>
-              <span>A final report with paginated pages.</span>
+              <strong>{uiText('ui.ExportDocument.message010')}</strong>
+              <span>{uiText('ui.ExportDocument.message011')}</span>
             </label>
             <label>
               <input
@@ -120,15 +145,12 @@ export function ExportDocument({
                 checked={format === 'LATEX'}
                 onChange={() => setFormat('LATEX')}
               />
-              <strong>LaTeX sources (.zip)</strong>
-              <span>
-                Edit report.tex or report.bib and compile locally with included chart
-                images.
-              </span>
+              <strong>{uiText('ui.ExportDocument.message012')}</strong>
+              <span>{uiText('ui.ExportDocument.message013')}</span>
             </label>
           </fieldset>
           <fieldset className={styles.formats} disabled={pending}>
-            <legend>Citation style</legend>
+            <legend>{uiText('ui.ExportDocument.message014')}</legend>
             {(Object.keys(citationStyleLabels) as CitationStyle[]).map((style) => (
               <label key={style}>
                 <input
@@ -141,28 +163,20 @@ export function ExportDocument({
                 <strong>{citationStyleLabels[style]}</strong>
                 <span>
                   {style === 'APA_7'
-                    ? 'Author–date citations and an alphabetized reference list.'
-                    : 'Numbered citations and references in citation order.'}
+                    ? uiText('ui.ExportDocument.message015')
+                    : uiText('ui.ExportDocument.message016')}
                 </span>
               </label>
             ))}
           </fieldset>
-          {format === 'LATEX' ? (
-            <p>Extract the ZIP, then use XeLaTeX or LuaLaTeX to typeset your report.</p>
-          ) : null}
-          <p>
-            Includes headings, lists, tables, charts, captions, and selected-style
-            citations with references.
-          </p>
+          {format === 'LATEX' ? <p>{uiText('ui.ExportDocument.message017')}</p> : null}
+          <p>{uiText('ui.ExportDocument.message018')}</p>
           <p>
             {settled
-              ? `Saved revision ${revision} is ready to export.`
-              : 'Wait for your changes to be saved before generating an export.'}
+              ? uiText('ui.ExportDocument.message019', { value0: revision })
+              : uiText('ui.ExportDocument.message020')}
           </p>
-          <p>
-            You can close this dialog while the report is prepared. Reopen it to download.
-            Downloads are available for seven days by default.
-          </p>
+          <p>{uiText('ui.ExportDocument.message021')}</p>
           {error !== null ? (
             <div role="alert">
               {describeError(error)}
@@ -173,28 +187,31 @@ export function ExportDocument({
                     void job.refetch();
                   }}
                 >
-                  Check export status
+                  {uiText('ui.ExportDocument.message022')}
                 </Button>
               ) : null}
             </div>
           ) : null}
           {job.data?.status === 'QUEUED' || job.data?.status === 'RUNNING' ? (
             <p role="status">
-              Preparing {exportFormatLabels[job.data.format]} from revision{' '}
-              {job.data.revision}…
+              {uiText('ui.AnalysisStatus.message002')}{' '}
+              {exportFormatLabels[job.data.format]}{' '}
+              {uiText('ui.ExportDocument.message023')} {job.data.revision}…
             </p>
           ) : null}
           {job.data?.status === 'SUCCEEDED' ? (
             <p role="status">
-              Your {exportFormatLabels[job.data.format]} report from revision{' '}
-              {job.data.revision} is ready.
+              {uiText('ui.ExportDocument.message024')}{' '}
+              {exportFormatLabels[job.data.format]}{' '}
+              {uiText('ui.ExportDocument.message025')} {job.data.revision}{' '}
+              {uiText('ui.ExportDocument.message026')}
             </p>
           ) : null}
           {job.data?.status === 'FAILED' ? (
             <p role="alert">{exportFailure(job.data.failureCode)}</p>
           ) : null}
           {job.data?.status === 'EXPIRED' ? (
-            <p role="status">This export has expired. Generate it again to download.</p>
+            <p role="status">{uiText('ui.ExportDocument.message027')}</p>
           ) : null}
           {job.data?.warnings.map((warning) => (
             <p key={warning} role="status">

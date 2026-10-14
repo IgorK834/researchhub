@@ -14,15 +14,17 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/workspaces/{workspaceId}/documents/{documentId}/exports")
 public class ExportController {
-    public record Request(@NotNull ExportFormat format,CitationStyle citationStyle,@Min(1) long revision) {
-        public Request { if (citationStyle == null) citationStyle = CitationStyle.APA_7; }
+    public record Request(@NotNull ExportFormat format,CitationStyle citationStyle,@Min(1) long revision,
+                          dev.researchhub.shared.localization.ContentLanguage exportLanguage) {
+        public Request { if (citationStyle == null) citationStyle = CitationStyle.APA_7;
+            if (exportLanguage == null) exportLanguage = dev.researchhub.shared.localization.ContentLanguage.EN; }
     }
     private final ExportService exports;
     private final CurrentUserResolver users;
     public ExportController(ExportService exports,CurrentUserResolver users) { this.exports=exports;this.users=users; }
     @PostMapping
     ResponseEntity<ExportJob> create(@PathVariable UUID workspaceId,@PathVariable UUID documentId,@Valid @RequestBody Request input) {
-        var job=exports.enqueue(workspaceId,users.requireCurrentUser().id(),documentId,input.format(),input.citationStyle(),input.revision());
+        var job=exports.enqueue(workspaceId,users.requireCurrentUser().id(),documentId,input.format(),input.citationStyle(),input.revision(),input.exportLanguage());
         return ResponseEntity.accepted().location(URI.create(path(workspaceId,documentId,job.id())))
             .cacheControl(CacheControl.noStore()).body(job);
     }

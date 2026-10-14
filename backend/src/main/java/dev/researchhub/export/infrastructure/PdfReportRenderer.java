@@ -44,10 +44,10 @@ public final class PdfReportRenderer {
             .append("</style></head><body><h1>").append(escape(report.title())).append("</h1>");
         blocks(html,report.blocks(),bibliography);
         if (!bibliography.entries().isEmpty()) {
-            html.append("<h2>References</h2>");
+            html.append("<h2>").append(report.exportLanguage().choose("References","Bibliografia")).append("</h2>");
             bibliography.entries().forEach(e -> html.append("<p class=\"reference\">").append(escape(e)).append("</p>"));
         }
-        if(!report.warnings().isEmpty()) {html.append("<h2>Export notes</h2>");report.warnings().forEach(w -> html.append("<p>").append(escape(w)).append("</p>"));}
+        if(!report.warnings().isEmpty()) {html.append("<h2>").append(report.exportLanguage().choose("Export notes","Uwagi do eksportu")).append("</h2>");report.warnings().forEach(w -> html.append("<p>").append(escape(w)).append("</p>"));}
         return html.append("</body></html>").toString();
     }
     private void blocks(StringBuilder html,List<Block> blocks,FormattedBibliography bibliography) {
@@ -75,14 +75,14 @@ public final class PdfReportRenderer {
                     html.append("</tr>");
                 }
                 html.append(header && table.rows().size()==1 ? "</thead>" : "</tbody>").append("</table>");
-                provenance(html,table.provenance());
+                provenance(html,table.provenance(),bibliography);
             }
             case Image image -> {
                 double scale=Math.min(445d/image.width(),500d/image.height());
                 html.append("<div class=\"image\"><img src=\"data:image/png;base64,").append(image.pngBase64())
                     .append("\" alt=\"").append(escape(image.alt())).append("\" style=\"width:").append((int)(image.width()*scale))
                     .append("pt;height:").append((int)(image.height()*scale)).append("pt;\"/>");
-                caption(html,image.caption());html.append("</div>");provenance(html,image.provenance());
+                caption(html,image.caption());html.append("</div>");provenance(html,image.provenance(),bibliography);
             }
             case Container container -> { html.append(container.quote() ? "<blockquote>" : "<div>");blocks(html,container.blocks(),bibliography);html.append(container.quote() ? "</blockquote>" : "</div>"); }
             case Code code -> html.append("<pre>").append(escape(code.text())).append("</pre>");
@@ -91,7 +91,7 @@ public final class PdfReportRenderer {
                 html.append("<div class=\"equation\">");
                 if(equation.math()!=null) {math(html,equation.math(),false);caption(html,equation.math().accessibleText());}
                 else html.append("<p>").append(escape(dev.researchhub.export.application.ReportMath.FALLBACK+" "+equation.source())).append("</p>");
-                html.append("</div>");provenance(html,equation.provenance());
+                html.append("</div>");provenance(html,equation.provenance(),bibliography);
             }
         }
     }
@@ -116,8 +116,8 @@ public final class PdfReportRenderer {
     private void caption(StringBuilder html,String caption) {
         if (!caption.isBlank()) html.append("<p class=\"caption\">").append(escape(caption)).append("</p>");
     }
-    private void provenance(StringBuilder html,AnalysisProvenance p) {
-        if (p!=null) html.append("<p class=\"provenance\">").append(escape(ReportText.provenance(p))).append("</p>");
+    private void provenance(StringBuilder html,AnalysisProvenance p,FormattedBibliography bibliography) {
+        if (p!=null) html.append("<p class=\"provenance\">").append(escape(ReportText.provenance(p,bibliography.language()))).append("</p>");
     }
     static String escape(String value) {
         return value.replaceAll("[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]", "")

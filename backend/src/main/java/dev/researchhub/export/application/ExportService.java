@@ -45,12 +45,17 @@ public class ExportService {
     }
     @Transactional(isolation=Isolation.REPEATABLE_READ)
     public ExportJob enqueue(UUID workspace,UUID caller,UUID document,ExportFormat format,CitationStyle citationStyle,long revision) {
+        return enqueue(workspace,caller,document,format,citationStyle,revision,dev.researchhub.shared.localization.ContentLanguage.EN);
+    }
+    @Transactional(isolation=Isolation.REPEATABLE_READ)
+    public ExportJob enqueue(UUID workspace,UUID caller,UUID document,ExportFormat format,CitationStyle citationStyle,long revision,
+                             dev.researchhub.shared.localization.ContentLanguage exportLanguage) {
         var detail=documents.findOne(workspace,caller,document);
         if (revision!=detail.summary().revision()) throw new StaleRevisionException(detail.summary().revision(),revision);
         var origins=new ArrayList<Origin>();
         collectOrigins(json.readTree(detail.content()),workspace,caller,document,origins,0);
         var report=new EditorReportAdapter(json).convert(workspace,document,revision,detail.summary().title(),citationStyle,detail.content(),clock.instant(),
-            new WorkspaceExportReferences(workspace,caller,sources,executions,solutions,problems),origins);
+            new WorkspaceExportReferences(workspace,caller,sources,executions,solutions,problems),origins).withExportLanguage(exportLanguage);
         // Reject malformed or impractically wide tables before creating a durable job.
         validateTables(report.blocks());
         if (json.writeValueAsString(report).getBytes(StandardCharsets.UTF_8).length>24*1024*1024)
