@@ -86,6 +86,7 @@ jobs:
           COLLABORATION_BROWSER_TESTS: 'true'
           EXPORT_BROWSER_TESTS: 'true'
           DOCUMENT_TEMPLATE_BROWSER_TESTS: 'true'
+          COLLABORATION_WORKFLOW_BROWSER_TESTS: 'true'
           ANALYSIS_SANDBOX_TESTS: 'true'
         run: ./mvnw --batch-mode --no-transfer-progress verify
       - name: Verify pinned Azure agent metric names and timer units locally

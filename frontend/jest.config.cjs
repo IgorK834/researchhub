@@ -17,6 +17,7 @@ module.exports = {
   },
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   collectCoverageFrom: [
+    'src/features/{notifications,comments,review-tasks}/**/*.{ts,tsx}',
     'src/shared/i18n/{locale,LanguageSwitcher}.{ts,tsx}',
     'src/features/documents/api/documentTemplateApi.ts',
     'src/features/documents/components/{CreateDocumentForm,CreateDocumentDialog,TemplatePreview}.tsx',
@@ -52,6 +53,19 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/notifications/': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
+    'src/features/comments/': { lines: 80, branches: 80, functions: 80, statements: 80 },
+    'src/features/review-tasks/': {
+      lines: 80,
+      branches: 80,
+      functions: 80,
+      statements: 80,
+    },
     'src/shared/i18n/{locale,LanguageSwitcher}.{ts,tsx}': { lines: 80, branches: 80 },
     'src/features/documents/api/documentTemplateApi.ts': { lines: 80, branches: 80 },
     'src/features/documents/components/{CreateDocumentForm,CreateDocumentDialog,TemplatePreview}.tsx':
