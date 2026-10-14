@@ -7,6 +7,7 @@ export const WORKSPACE_SECTIONS = {
   'external-sources': 'External web references',
   ask: 'Ask AI',
   analyses: 'Analyses',
+  'review-tasks': 'Review tasks',
   members: 'Members',
   settings: 'Settings',
 } as const;
@@ -18,6 +19,7 @@ const sectionLabels: Record<WorkspaceSection, MessageKey> = {
   'external-sources': 'ui.ExternalSources.message001',
   ask: 'ui.ResearchPanel.message007',
   analyses: 'ui.AnalysisList.message001',
+  'review-tasks': 'collab.reviewTasks',
   members: 'ui.MemberList.message003',
   settings: 'ui.AppLayoutPage.message014',
 };

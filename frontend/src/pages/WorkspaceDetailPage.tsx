@@ -1,4 +1,6 @@
 import { t as uiText, useLocale as useUiLocale } from '../shared/i18n';
+import { EvidenceReviewTarget } from '../features/review-tasks/EvidenceReviewTarget';
+import { ReviewTasks } from '../features/review-tasks/ReviewTasks';
 import type { ReactElement } from 'react';
 import { WorkspaceGovernance } from '../features/workspaces/components/WorkspaceGovernance';
 import {
@@ -139,6 +141,14 @@ function WorkspaceDetail({
     isArchived,
   );
 
+  if (section === 'review-tasks')
+    return (
+      <ReviewTasks
+        key={workspace.id}
+        workspaceId={workspace.id}
+        canEdit={canEditContent}
+      />
+    );
   if (section === 'overview') return <WorkspaceOverview workspace={workspace} />;
   if (section === 'analyses')
     return (
@@ -186,24 +196,27 @@ function WorkspaceDetail({
     );
   if (section === 'ask')
     return (
-      <AskAIPage
-        workspaceId={workspace.id}
-        initialQuestion={initialQuestion}
-        canEdit={canEditContent}
-        initialConversationId={search.get('conversation') ?? undefined}
-        initialSourceId={search.get('askSource') ?? undefined}
-        onInitialQuestionUsed={() => {
-          void navigate(`${location.pathname}${location.search}${location.hash}`, {
-            replace: true,
-            state: null,
-          });
-        }}
-        {...(analyzeSource === null
-          ? {}
-          : {
-              focus: { sourceId: analyzeSource, sheetName: search.get('analyzeSheet') },
-            })}
-      />
+      <>
+        <EvidenceReviewTarget workspaceId={workspace.id} />
+        <AskAIPage
+          workspaceId={workspace.id}
+          initialQuestion={initialQuestion}
+          canEdit={canEditContent}
+          initialConversationId={search.get('conversation') ?? undefined}
+          initialSourceId={search.get('askSource') ?? undefined}
+          onInitialQuestionUsed={() => {
+            void navigate(`${location.pathname}${location.search}${location.hash}`, {
+              replace: true,
+              state: null,
+            });
+          }}
+          {...(analyzeSource === null
+            ? {}
+            : {
+                focus: { sourceId: analyzeSource, sheetName: search.get('analyzeSheet') },
+              })}
+        />
+      </>
     );
   const heading =
     section === 'members'

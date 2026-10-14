@@ -52,6 +52,7 @@ export const appRoutes: RouteObject[] = [
               'external-sources',
               'ask',
               'analyses',
+              'review-tasks',
               'members',
               'settings',
             ] as const

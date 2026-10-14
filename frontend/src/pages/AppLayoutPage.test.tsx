@@ -315,7 +315,11 @@ it.each(['/app', '/app/workspaces'])(
     expect(document.activeElement).toBe(sidebarOpener);
     expect(
       fetch.mock.calls.every(([url]) =>
-        ['/api/me', '/api/workspaces'].includes(String(url)),
+        [
+          '/api/me',
+          '/api/workspaces',
+          '/api/notifications?limit=1&unread=false',
+        ].includes(String(url)),
       ),
     ).toBe(true);
   },

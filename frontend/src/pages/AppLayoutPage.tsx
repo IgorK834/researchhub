@@ -40,6 +40,8 @@ import {
 } from '../features/workspaces/components/CreateWorkspaceDialog';
 import type { AppOutletContext } from '../app/AppOutletContext';
 
+import { NotificationBell } from '../features/notifications/NotificationBell';
+
 interface WorkspaceNavigation {
   readonly workspace: Workspace;
   readonly members?: readonly AvatarPerson[];
@@ -439,6 +441,14 @@ function ShellContent({
                 </span>
               </Button>
               {context ? (
+                <NavEntry
+                  href={`${base}/review-tasks`}
+                  label={uiText('collab.reviewTasks')}
+                  icon="check"
+                  selected={sectionKey === 'review-tasks'}
+                />
+              ) : null}
+              {context ? (
                 <>
                   <p className={styles.groupLabel}>
                     {uiText('ui.landingContent.message001')}
@@ -524,6 +534,7 @@ function ShellContent({
               >
                 <span data-rh-label="">{uiText('ui.AccountLink.message017')}</span>
               </Button>
+              <NotificationBell userId={user.id} workspaceId={context?.workspace.id} />
               <LogoutButton />
               <LanguageSwitcher />
             </>
