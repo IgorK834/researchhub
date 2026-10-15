@@ -358,6 +358,11 @@
                             <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
                         </configuration>
                     </execution>
+                    <execution><id>analysis-input-evolution-coverage</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration>
+                        <includes><include>dev/researchhub/analysis/**/Parameter*</include><include>dev/researchhub/analysis/**/PostgresParameterRuns*</include><include>dev/researchhub/analysis/**/AnalysisStaleness*</include><include>dev/researchhub/analysis/**/PostgresAnalysisStaleness*</include><include>dev/researchhub/analysis/api/AnalysisController*</include><include>dev/researchhub/analysis/infrastructure/PostgresAnalysisStore*</include></includes>
+                        <outputDirectory>${project.reporting.outputDirectory}/jacoco-analysis-input-evolution</outputDirectory>
+                        <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
+                    </configuration></execution>
                     <execution><id>notifications-coverage</id><phase>verify</phase><goals><goal>report</goal><goal>check</goal></goals><configuration>
                         <includes><include>dev/researchhub/notification/**</include></includes><outputDirectory>${project.reporting.outputDirectory}/jacoco-notifications</outputDirectory>
                         <rules><rule><element>BUNDLE</element><limits><limit><counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit><limit><counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.80</minimum></limit></limits></rule></rules>
