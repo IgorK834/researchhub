@@ -11,6 +11,7 @@ import java.time.Clock;
 @Component
 public class NotificationDispatcher {
     private final PostgresNotifications store;
+    @org.springframework.beans.factory.annotation.Autowired private DigestService digests;
     private final TransactionTemplate transactions;
     private final Clock clock;
     private final boolean enabled;
@@ -36,6 +37,8 @@ public class NotificationDispatcher {
             }
         }
     }
+    @Scheduled(fixedDelayString="${researchhub.notifications.cleanup.delay:PT1H}")
+    public void scheduledDigests() {if(enabled)digests.dispatch();}
     @Scheduled(fixedDelayString="${researchhub.notifications.cleanup.delay:PT1H}")
     public void scheduledCleanup() {if(enabled)cleanup();}
     public void cleanup() {transactions.executeWithoutResult(status->store.cleanup(clock.instant().minus(NotificationService.RETENTION)));}

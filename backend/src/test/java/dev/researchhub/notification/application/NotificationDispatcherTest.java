@@ -20,4 +20,11 @@ class NotificationDispatcherTest {
         reset(store);var disabled=new NotificationDispatcher(store,manager,Clock.systemUTC(),false);
         disabled.scheduledDispatch();disabled.scheduledCleanup();verifyNoInteractions(store);
     }
+    @org.junit.jupiter.api.Test void digestSchedulingUsesExistingEnableSwitch() {
+        var digests=org.mockito.Mockito.mock(DigestService.class);
+        var enabled=new NotificationDispatcher(org.mockito.Mockito.mock(dev.researchhub.notification.infrastructure.PostgresNotifications.class),org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class),java.time.Clock.systemUTC(),true);
+        org.springframework.test.util.ReflectionTestUtils.setField(enabled,"digests",digests);enabled.scheduledDigests();org.mockito.Mockito.verify(digests).dispatch();
+        var disabled=new NotificationDispatcher(org.mockito.Mockito.mock(dev.researchhub.notification.infrastructure.PostgresNotifications.class),org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class),java.time.Clock.systemUTC(),false);disabled.scheduledDigests();
+    }
+
 }
