@@ -14,6 +14,7 @@ import java.util.*;
 @RequestMapping("/api/workspaces/{workspaceId}/analyses")
 public class AnalysisController {
     @org.springframework.beans.factory.annotation.Autowired private ProblemService problems;
+    @org.springframework.beans.factory.annotation.Autowired private ParameterRunService parameterRuns;
     @org.springframework.beans.factory.annotation.Autowired private SolutionService solutions;
     @org.springframework.beans.factory.annotation.Autowired private tools.jackson.databind.ObjectMapper json;
     private final AnalysisService analyses;
@@ -79,7 +80,7 @@ public class AnalysisController {
     }
     @GetMapping("/{analysisId}/executions/{executionId}/record") ResponseEntity<?> record(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId,@PathVariable UUID executionId) {
-        if(problems.isProblem(workspaceId,analysisId)){var a=problems.find(workspaceId,users.requireCurrentUser().id(),analysisId);var e=problems.execution(workspaceId,users.requireCurrentUser().id(),analysisId,executionId);return ok(Map.of("schemaVersion","2.0","workload","PROBLEM","snapshot",a.snapshot(),"plan",a.plan(),"audit",a.audit(),"execution",e));}
+        if(problems.isProblem(workspaceId,analysisId)){var a=problems.find(workspaceId,users.requireCurrentUser().id(),analysisId);var e=problems.execution(workspaceId,users.requireCurrentUser().id(),analysisId,executionId);var record=new LinkedHashMap<String,Object>();record.put("schemaVersion","2.0");record.put("workload","PROBLEM");record.put("snapshot",a.snapshot());record.put("plan",a.plan());record.put("audit",a.audit());record.put("parentAnalysisId",a.parentAnalysisId());record.put("execution",e);return ok(record);}
         return ok(executions.record(workspaceId,users.requireCurrentUser().id(),analysisId,executionId));
     }
     @GetMapping("/{analysisId}/executions/{executionId}/solution") ResponseEntity<SolutionContracts.Bundle> solution(
@@ -99,6 +100,20 @@ public class AnalysisController {
         String location="/api/workspaces/"+workspaceId+"/analyses/"+result.analysisId();
         if (result.execution()!=null) location+="/executions/"+result.execution().id();
         return ResponseEntity.accepted().location(URI.create(location)).cacheControl(CacheControl.noStore()).body(result);
+    }
+    @GetMapping("/{analysisId}/parameters") ResponseEntity<?> parameters(@PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
+        return ok(parameterRuns.definitions(workspaceId,users.requireCurrentUser().id(),analysisId));
+    }
+    @PostMapping("/{analysisId}/runs") ResponseEntity<ParameterRunContracts.Result> parameterRun(@PathVariable UUID workspaceId,@PathVariable UUID analysisId,@RequestBody tools.jackson.databind.JsonNode body) {
+        ParameterRunContracts.Run command;
+        try {
+            command=json.rebuild().enable(tools.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(tools.jackson.databind.MapperFeature.ALLOW_COERCION_OF_SCALARS).disable(tools.jackson.databind.DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                .withCoercionConfig(tools.jackson.databind.type.LogicalType.Textual,cfg->{for(var shape:List.of(tools.jackson.databind.cfg.CoercionInputShape.Integer,tools.jackson.databind.cfg.CoercionInputShape.Float,tools.jackson.databind.cfg.CoercionInputShape.Boolean))cfg.setCoercion(shape,tools.jackson.databind.cfg.CoercionAction.Fail);}).build().treeToValue(body,ParameterRunContracts.Run.class);
+        }catch(IllegalArgumentException|tools.jackson.core.JacksonException invalid){throw new dev.researchhub.shared.error.ApiException(dev.researchhub.shared.error.ApiErrorCode.VALIDATION_FAILED,"Invalid parameter run");}
+        if(command==null)throw new dev.researchhub.shared.error.ApiException(dev.researchhub.shared.error.ApiErrorCode.VALIDATION_FAILED,"Invalid parameter run");
+        var result=parameterRuns.run(workspaceId,users.requireCurrentUser().id(),analysisId,command);
+        return ResponseEntity.accepted().cacheControl(CacheControl.noStore()).body(result);
     }
     @GetMapping("/{analysisId}/origin") ResponseEntity<ReproductionContracts.Origin> origin(
         @PathVariable UUID workspaceId,@PathVariable UUID analysisId) {
