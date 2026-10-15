@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public final class NotificationContracts {
     private NotificationContracts() {}
-    public enum Type { COMMENT, MENTION, ANALYSIS_COMPLETED, ANALYSIS_FAILED, REVIEW_TASK, ATTENTION }
+    public enum Type { COMMENT, MENTION, ANALYSIS_COMPLETED, ANALYSIS_FAILED, REVIEW_TASK, ATTENTION, ANALYSIS_STALE }
     public record Notification(UUID id, UUID eventId, UUID workspaceId, Type type, String targetType,
                                UUID targetId, UUID documentId, Instant createdAt, Instant readAt, String href, String workspaceLabel, String targetLabel) {}
     public record Page(List<Notification> items, String nextCursor, int unreadCount, boolean countCapped) {}

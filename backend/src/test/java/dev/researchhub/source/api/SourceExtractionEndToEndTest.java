@@ -364,8 +364,12 @@ class SourceExtractionEndToEndTest {
         assertEquals("TABLE",ready.get("plan").get("outputs").get(0).get("kind").asString());
         assertEquals(version,ready.get("plan").get("inputs").get(0).get("sourceVersionId").asString());
         replace(source,"new-measurements.csv","frequency,voltage,current\n300,5,1\n400,4,1\n500,6,2\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));dispatch();
-        assertNotEquals(version,activeVersion(source));assertEquals(ready,owner.json(owner.get(path+"/"+id)));
-        assertEquals(ready,owner.json(owner.postJson(path+"/"+id+"/plan","{}")));
+        assertNotEquals(version,activeVersion(source));
+        var current=owner.json(owner.get(path+"/"+id));assertTrue(current.path("staleness").path("stale").asBoolean());
+        var frozenReady=(tools.jackson.databind.node.ObjectNode)ready.deepCopy();frozenReady.remove("staleness");
+        var frozenCurrent=(tools.jackson.databind.node.ObjectNode)current.deepCopy();frozenCurrent.remove("staleness");
+        assertEquals(frozenReady,frozenCurrent,"Only mutable input assessment changes; accepted intent stays frozen");
+        assertEquals(current,owner.json(owner.postJson(path+"/"+id+"/plan","{}")));
         assertEquals(audit,owner.json(owner.get(path+"/"+id+"/plans")));
         var first=executeAnalysis(path,id);
         var table=first.get("result").get("outputs").get(0);

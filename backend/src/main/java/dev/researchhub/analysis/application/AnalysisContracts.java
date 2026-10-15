@@ -26,7 +26,11 @@ public final class AnalysisContracts {
         }
     }
     public record Analysis(UUID id, UUID workspaceId, UUID createdBy, String userPrompt, AnalysisStatus status,
-                           Instant createdAt, Instant updatedAt, List<Input> inputs, UUID planId, Plan plan, String failureCode) {}
+                           Instant createdAt, Instant updatedAt, List<Input> inputs, UUID planId, Plan plan, String failureCode, AnalysisStaleness staleness) {
+        public Analysis(UUID id,UUID workspaceId,UUID createdBy,String userPrompt,AnalysisStatus status,Instant createdAt,Instant updatedAt,List<Input> inputs,UUID planId,Plan plan,String failureCode) {
+            this(id,workspaceId,createdBy,userPrompt,status,createdAt,updatedAt,inputs,planId,plan,failureCode,AnalysisStaleness.current());
+        }
+    }
     public record InspectedInput(Input selection, DatasetPreview preview) {}
     public record PlanningRequest(String schemaVersion, UUID analysisId, Request request,
                                   List<InspectedInput> inputs, List<String> repairHints) {}

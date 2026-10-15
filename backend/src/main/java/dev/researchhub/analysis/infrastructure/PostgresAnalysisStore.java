@@ -15,6 +15,7 @@ import java.util.*;
 @Repository
 public class PostgresAnalysisStore implements AnalysisStore {
     private final JdbcTemplate jdbc;
+    @org.springframework.beans.factory.annotation.Autowired private PostgresAnalysisStaleness staleness;
     private final ObjectMapper json;
     public PostgresAnalysisStore(JdbcTemplate jdbc,ObjectMapper json) { this.jdbc=jdbc; this.json=json; }
     @Transactional public Analysis create(Analysis a) {
@@ -49,7 +50,7 @@ public class PostgresAnalysisStore implements AnalysisStore {
             row.getObject("created_by",UUID.class),row.getString("user_prompt"),AnalysisStatus.valueOf(row.getString("status")),
             row.getTimestamp("created_at").toInstant(),row.getTimestamp("updated_at").toInstant(),
             Arrays.asList(json.readValue(row.getString("inputs"),Input[].class)),row.getObject("plan_id",UUID.class),
-            row.getString("plan")==null ? null : json.readValue(row.getString("plan"),Plan.class),row.getString("failure_code")),args);
+            row.getString("plan")==null ? null : json.readValue(row.getString("plan"),Plan.class),row.getString("failure_code"),staleness.assess(row.getObject("workspace_id",UUID.class),row.getObject("id",UUID.class))),args);
     }
     public boolean beginPlanning(UUID workspace,UUID id,Instant now) {
         return jdbc.update("UPDATE analyses SET status='PLANNING',updated_at=? WHERE workspace_id=? AND id=? AND status='DRAFT'",Timestamp.from(now),workspace,id)==1;

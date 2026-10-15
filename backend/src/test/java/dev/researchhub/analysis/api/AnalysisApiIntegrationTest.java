@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
-@TestPropertySource(properties={"researchhub.sources.storage.adapter=in-memory","researchhub.processing.dispatcher.enabled=false","researchhub.analysis.execution.dispatcher.enabled=false","researchhub.notifications.dispatcher.enabled=false"})
+@TestPropertySource(properties={"researchhub.sources.storage.adapter=in-memory","researchhub.processing.dispatcher.enabled=false","researchhub.analysis.execution.dispatcher.enabled=false","researchhub.notifications.dispatcher.enabled=false","researchhub.ai.canvas.dispatcher.enabled=false","researchhub.export.dispatcher.enabled=false"})
 @Import({PostgresTestcontainersConfiguration.class,AnalysisApiIntegrationTest.Configuration.class})
 class AnalysisApiIntegrationTest {
     @TestConfiguration(proxyBeanMethods=false) static class Configuration {
@@ -332,6 +332,10 @@ class AnalysisApiIntegrationTest {
         // This database belongs only to this Testcontainers application. Recreate its V21 state, retaining real
         // completed evidence, then run the exact production migration against non-empty historical data.
         // Remove newer projections and their triggers before reverting columns they depend on.
+        jdbc.execute("DROP TRIGGER notify_stale_analysis ON sources");
+        jdbc.execute("DROP TRIGGER revoke_digest_projection ON workspace_members");
+        jdbc.execute("DROP FUNCTION notify_stale_analysis(),revoke_digest_projection()");
+        jdbc.execute("DROP TABLE digest_preferences,notification_digests,digest_seen,analysis_parameter_runs");
         jdbc.execute("DROP VIEW visible_notifications");
         jdbc.execute("DROP TRIGGER product_notification_outbox ON product_audit_events");
         jdbc.execute("DROP TRIGGER revoke_product_projections ON workspace_members");
@@ -504,4 +508,36 @@ class AnalysisApiIntegrationTest {
         replacement("PROCESSING");assertEquals(409,owner.postJson(base+"/rerun","{\"inputMode\":\"LATEST\"}").statusCode());
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM analyses",Integer.class));
     }
+    @Test void replacementOnlyMarksDependentAnalysesAndDoesNotRewriteFrozenEvidenceOrLaunchWork() throws Exception {
+        String id=ready(),run=enqueue(id);dispatcher.dispatchAvailable();
+        var frozen=owner.json(owner.get(path+"/"+id+"/executions/"+run+"/record"));
+        UUID unrelated=UUID.randomUUID(),unrelatedVersion=seed(unrelated,workspace,ownerId);
+        var other=owner.json(owner.postJson(path,command(unrelated,unrelatedVersion))).path("id").asString();
+        int planned=planner.calls,executed=runner.calls;UUID latest=replacement("READY");
+        var activity=owner.get("/api/workspaces/"+workspace+"/audit-events");assertEquals(200,activity.statusCode(),activity.body());assertTrue(activity.body().contains("ANALYSIS_INPUT_CHANGED"));
+        var detail=owner.json(owner.get(path+"/"+id));assertTrue(detail.path("staleness").path("stale").asBoolean());
+        var changed=detail.path("staleness").path("changedInputs").get(0);
+        assertEquals(version.toString(),changed.path("originalVersion").path("id").asString());assertEquals(latest.toString(),changed.path("currentVersion").path("id").asString());
+        assertFalse(owner.json(owner.get(path+"/"+other)).path("staleness").path("stale").asBoolean());
+        assertTrue(owner.json(owner.get(path)).toString().contains("SOURCE_REPLACED"));
+        assertEquals(frozen,owner.json(owner.get(path+"/"+id+"/executions/"+run+"/record")));
+        assertEquals(planned,planner.calls);assertEquals(executed,runner.calls);
+        var notifications=new dev.researchhub.notification.application.NotificationDispatcher(new dev.researchhub.notification.infrastructure.PostgresNotifications(jdbc),new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()),clock,true);
+        notifications.dispatchAvailable();jdbc.update("UPDATE notification_outbox SET delivered_at=NULL,available_at=now() WHERE type='ANALYSIS_STALE'");notifications.dispatchAvailable();
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM notifications WHERE type='ANALYSIS_STALE' AND user_id=?",Integer.class,ownerId));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM notification_outbox WHERE type='ANALYSIS_STALE' AND target_id=?",Integer.class,UUID.fromString(other)));
+        assertEquals(200,owner.postJson("/api/workspaces/"+workspace+"/archive","{}").statusCode());
+        assertEquals("WORKSPACE_ARCHIVED",owner.json(owner.get(path+"/"+id)).path("staleness").path("staleReasons").get(0).asString());
+    }
+
+    @Test @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="ANALYSIS_EVOLUTION_BROWSER_TESTS",matches="true")
+    void productionBrowserShowsStaleDetailsAndEmbeddedStatusWithoutRetargetingDocument() throws Exception {
+        String id=ready(),execution=enqueue(id);dispatcher.dispatchAvailable();UUID block=UUID.randomUUID();
+        var created=owner.postJson("/api/workspaces/"+workspace+"/documents","{\"title\":\"Frozen result report\",\"content\":"+reportContent(id,execution,"TABLE","result",block)+"}");assertEquals(201,created.statusCode(),created.body());String doc=owner.json(created).path("id").asString();
+        var before=owner.json(owner.get("/api/workspaces/"+workspace+"/documents/"+doc)).path("content");var frozen=owner.json(owner.get(path+"/"+id+"/executions/"+execution+"/record"));replacement("READY");int plans=planner.calls,runs=runner.calls;
+        var builder=new ProcessBuilder("node","e2e/analysis-staleness.cjs").directory(Path.of("../frontend").toFile());builder.environment().put("E2E_BACKEND_URL","http://127.0.0.1:"+port);builder.environment().put("E2E_WORKSPACE_ID",workspace.toString());builder.environment().put("E2E_ANALYSIS_ID",id);builder.environment().put("E2E_DOCUMENT_ID",doc);builder.environment().put("E2E_BLOCK_ID",block.toString());
+        var log=Path.of("target/analysis-staleness-browser.log");var process=builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();if(!process.waitFor(50,java.util.concurrent.TimeUnit.SECONDS)){process.destroyForcibly();fail("Browser deadline exceeded: "+log);}assertEquals(0,process.exitValue(),Files.readString(log));
+        assertEquals(before,owner.json(owner.get("/api/workspaces/"+workspace+"/documents/"+doc)).path("content"));assertEquals(frozen,owner.json(owner.get(path+"/"+id+"/executions/"+execution+"/record")));assertEquals(plans,planner.calls);assertEquals(runs,runner.calls);
+    }
+
 }
