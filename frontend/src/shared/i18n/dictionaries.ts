@@ -7,6 +7,48 @@ export interface PluralMessage {
   readonly other: string;
 }
 export const en = {
+  'parameters.compare': 'Comparison with original',
+  'parameters.output': 'Output',
+  'parameters.new': 'New result',
+  'parameters.noComparison': 'No completed original result available.',
+  'collab.event.ANALYSIS_STALE': 'Analysis inputs changed',
+  'digest.title': 'Catch up',
+  'digest.since': 'Since last seen:',
+  'digest.empty': 'No new activity.',
+  'digest.seen': 'Mark digest as seen',
+  'digest.bounded': 'Showing a bounded summary; open workspaces for more.',
+  'digest.DAILY': 'Daily',
+  'digest.WEEKLY': 'Weekly',
+  'digest.MUTED': 'Muted',
+  'digest.settings': 'Digest preferences',
+  'digest.workspace': 'Workspace',
+  'digest.session': 'These preferences apply only to this demo session.',
+  'digest.frequency': 'Frequency',
+  'digest.restore': 'Restore defaults',
+  'digest.policy':
+    'In-app only. 30-day retention. Checked categories are muted. Security and account notices remain separate and cannot be muted here.',
+  'stale.title': 'Older inputs',
+  'stale.policy':
+    'The saved result and provenance stay unchanged. Original reproduces the frozen inputs and saved runtime when available. Latest creates a linked analysis and requires an explicit model and execution budget.',
+  'stale.original': 'Original inputs',
+  'stale.latest': 'Newest inputs',
+  'stale.unavailable': 'Unavailable',
+  'stale.SOURCE_REPLACED': 'Source replaced',
+  'stale.INPUT_UNAVAILABLE':
+    'Input unavailable; execution requires accessible source bytes.',
+  'stale.WORKSPACE_ARCHIVED': 'Workspace archived; execution disabled.',
+  'parameters.title': 'Run with new parameters',
+  'parameters.cost':
+    'Approved plan · sandbox only · 0 LLM tokens. Creates a linked result; original results stay unchanged. A new formula or unit requires separate planning.',
+  'parameters.original': 'Original',
+  'parameters.inputs': 'Input snapshot',
+  'parameters.inputPolicy':
+    'This scientific problem has no uploaded sources. Both modes retain its frozen formulas, units and context.',
+  'parameters.start': 'Plot start',
+  'parameters.end': 'Plot end',
+  'parameters.points': 'Plot points',
+  'parameters.preview': 'Change preview',
+  'parameters.run': 'Run approved plan',
   ...generatedEn,
   'collab.newest': 'Newest',
   'collab.notifications': 'Notifications',
@@ -215,6 +257,49 @@ export const en = {
 export type MessageKey = keyof typeof en;
 export type Message = string | PluralMessage;
 export const pl = {
+  'parameters.compare': 'Porównanie z oryginałem',
+  'parameters.output': 'Wynik',
+  'parameters.new': 'Nowy wynik',
+  'parameters.noComparison': 'Brak ukończonego wyniku oryginalnego.',
+  'collab.event.ANALYSIS_STALE': 'Zmieniły się dane wejściowe analizy',
+  'digest.title': 'Podsumowanie zmian',
+  'digest.since': 'Od ostatniej wizyty:',
+  'digest.empty': 'Brak nowych zdarzeń.',
+  'digest.seen': 'Oznacz podsumowanie jako przeczytane',
+  'digest.bounded':
+    'Podsumowanie jest ograniczone; więcej zmian znajdziesz w obszarach roboczych.',
+  'digest.DAILY': 'Codziennie',
+  'digest.WEEKLY': 'Co tydzień',
+  'digest.MUTED': 'Wyciszone',
+  'digest.settings': 'Ustawienia podsumowania',
+  'digest.workspace': 'Obszar roboczy',
+  'digest.session': 'Te ustawienia dotyczą wyłącznie tej sesji demonstracyjnej.',
+  'digest.frequency': 'Częstotliwość',
+  'digest.restore': 'Przywróć domyślne',
+  'digest.policy':
+    'Podsumowanie w aplikacji. Retencja: 30 dni. Zaznaczone kategorie są wyciszone. Komunikaty bezpieczeństwa i konta pozostają odrębne i nie można ich tutaj wyciszyć.',
+  'stale.title': 'Starsze dane wejściowe',
+  'stale.policy':
+    'Zapisany wynik i provenance pozostają niezmienne. Original odtwarza zamrożone dane i zapisane środowisko, gdy jest dostępne. Latest tworzy powiązaną analizę i wymaga świadomego użycia budżetu modelu i wykonania.',
+  'stale.original': 'Oryginalne dane',
+  'stale.latest': 'Najnowsze dane',
+  'stale.unavailable': 'Niedostępne',
+  'stale.SOURCE_REPLACED': 'Zastąpiono źródło',
+  'stale.INPUT_UNAVAILABLE':
+    'Dane niedostępne; wykonanie wymaga dostępu do plików źródłowych.',
+  'stale.WORKSPACE_ARCHIVED': 'Obszar zarchiwizowany; wykonanie niedostępne.',
+  'parameters.title': 'Uruchom z nowymi parametrami',
+  'parameters.cost':
+    'Zatwierdzony plan · tylko sandbox · 0 tokenów LLM. Tworzy powiązany wynik; oryginalne wyniki pozostają niezmienne. Nowy wzór lub jednostka wymaga oddzielnego planowania.',
+  'parameters.original': 'Oryginał',
+  'parameters.inputs': 'Snapshot wejścia',
+  'parameters.inputPolicy':
+    'Ten problem naukowy nie ma przesłanych źródeł. Oba tryby zachowują zamrożone wzory, jednostki i kontekst.',
+  'parameters.start': 'Początek wykresu',
+  'parameters.end': 'Koniec wykresu',
+  'parameters.points': 'Liczba punktów',
+  'parameters.preview': 'Podgląd zmian',
+  'parameters.run': 'Uruchom zatwierdzony plan',
   ...generatedPl,
   'collab.newest': 'Najnowsze',
   'collab.notifications': 'Powiadomienia',
