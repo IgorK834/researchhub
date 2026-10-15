@@ -1,0 +1,17 @@
+{
+  "idempotencyKey": "00000000-0000-4000-8000-000000000036",
+  "parameters": {
+    "distance": {
+      "type": "DECIMAL",
+      "value": "200",
+      "unit": "cm"
+    },
+    "time": {
+      "type": "DECIMAL",
+      "value": "2",
+      "unit": "s"
+    }
+  },
+  "inputMode": "ORIGINAL",
+  "plot": null
+}

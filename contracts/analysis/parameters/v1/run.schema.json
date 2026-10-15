@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://researchhub.dev/contracts/analysis/parameters/v1/run.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "idempotencyKey",
+    "parameters",
+    "inputMode"
+  ],
+  "properties": {
+    "idempotencyKey": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "inputMode": {
+      "enum": [
+        "ORIGINAL",
+        "LATEST"
+      ]
+    },
+    "parameters": {
+      "type": "object",
+      "maxProperties": 20,
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9]{0,15}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "type": {
+            "const": "DECIMAL"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+            "not": {
+              "const": "-0"
+            }
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "plot": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "parameter",
+            "start",
+            "end",
+            "points",
+            "output"
+          ],
+          "properties": {
+            "parameter": {
+              "type": "string"
+            },
+            "start": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+              "not": {
+                "const": "-0"
+              }
+            },
+            "end": {
+              "type": "string",
+              "maxLength": 40,
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$",
+              "not": {
+                "const": "-0"
+              }
+            },
+            "points": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 201
+            },
+            "output": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

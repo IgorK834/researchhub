@@ -54,6 +54,8 @@ solution/chart packages and mathematical DOCX/PDF/LaTeX exports with frozen prov
 See [Canvas AI](docs/development/canvas-ai.md) and the
 [technical backlog](docs/development/canvas-ai-backlog.md).
 
+Tasks 36.5–36.7 add in-app catch-up digests, deterministic source-staleness status and approved scientific parameter runs without replanning: [digest and analysis evolution](docs/development/digests-and-analysis-evolution.md).
+
 Run the complete interaction/runtime suite from the repository root:
 `python3 scripts/demo/canvas-suite.py --output .demo/canvas-suite`.
 Add `--live` for the explicit Gemini benchmark with a worker-only `GEMINI_API_KEY`; API charges
