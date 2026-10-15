@@ -1,0 +1,28 @@
+.panel {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-4);
+}
+.fields {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 48rem;
+}
+.fields label {
+  display: grid;
+  gap: var(--space-2);
+}
+.fields input,
+.fields select {
+  font: inherit;
+  padding: var(--space-2);
+}
+.comparison {
+  border-collapse: collapse;
+}
+.comparison td,
+.comparison th {
+  text-align: start;
+  padding: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}

@@ -1,3 +1,5 @@
+import { ParameterComparison } from './ParameterComparison';
+import { ParameterRunForm } from './ParameterRunForm';
 import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import styles from './Problem.module.css';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -130,6 +132,7 @@ export function ProblemStudio({
           </Button>
         </>
       )}
+      {canEdit && a.plan && !busy ? <ParameterRunForm key={a.id} analysis={a} /> : null}
       {change && (
         <ProblemForm
           workspaceId={workspaceId}
@@ -175,6 +178,13 @@ export function ProblemStudio({
               {uiText('ui.ProblemStudio.message020')} {e.failureCode}
             </p>
           )}
+          {a.parentAnalysisId && e.result ? (
+            <ParameterComparison
+              workspaceId={workspaceId}
+              parentAnalysisId={a.parentAnalysisId}
+              current={e}
+            />
+          ) : null}
           {e.result && (
             <>
               <p>{uiText('ui.ProblemStudio.message021')}</p>
