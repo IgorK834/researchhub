@@ -53,6 +53,30 @@ module.exports = {
     '!src/**/testing/**',
   ],
   coverageThreshold: {
+    'src/features/analysis/components/InputFreshness.tsx': {
+      lines: 80,
+      branches: 80,
+      statements: 80,
+      functions: 80,
+    },
+    'src/features/analysis/components/ParameterRunForm.tsx': {
+      lines: 80,
+      branches: 80,
+      statements: 80,
+      functions: 80,
+    },
+    'src/features/analysis/components/ParameterComparison.tsx': {
+      lines: 80,
+      branches: 80,
+      statements: 80,
+      functions: 80,
+    },
+    'src/features/analysis/api/parameterRunApi.ts': {
+      lines: 80,
+      branches: 80,
+      statements: 80,
+      functions: 80,
+    },
     'src/features/notifications/': {
       lines: 80,
       branches: 80,
