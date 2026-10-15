@@ -138,6 +138,18 @@ const server = createServer(async (req, res) => {
     assert.equal(comment.mentions[0].userId, memberId);
     assert.equal(comment.revision, 1);
     await expect(owner.getByText('Please @Member', { exact: true })).toBeVisible();
+    await expect
+      .poll(
+        async () => {
+          const response = await member.request.get(`${origin}/api/notifications`);
+          const feed = await response.json();
+          return feed.items?.some(
+            (item) => item.type === 'MENTION' && item.targetId === comment.id,
+          );
+        },
+        { timeout: 10000 },
+      )
+      .toBe(true);
     await member.reload();
     await member.getByRole('button', { name: 'Notifications', exact: true }).click();
     let notifications = member.getByRole('dialog', {
@@ -147,6 +159,24 @@ const server = createServer(async (req, res) => {
     await expect(
       notifications.getByRole('link', { name: 'You were mentioned', exact: true }),
     ).toBeVisible();
+    const digest = notifications.getByRole('region', { name: 'Catch up' });
+    await expect(
+      digest.getByRole('link', { name: 'You were mentioned: 1', exact: true }),
+    ).toBeVisible();
+    await digest.getByRole('button', { name: 'Mark digest as seen' }).click();
+    await expect(digest.getByText('No new activity.')).toBeVisible();
+    const frequency = notifications.getByLabel('Frequency');
+    const savedPreference = member.waitForResponse(
+      (r) => r.url().includes('/digests/preferences/') && r.request().method() === 'PUT',
+    );
+    await frequency.selectOption('MUTED');
+    assert.equal((await savedPreference).status(), 204);
+    await member.reload();
+    await member.getByRole('button', { name: 'Notifications', exact: true }).click();
+    notifications = member.getByRole('dialog', { name: 'Notifications', exact: true });
+    await expect(notifications.getByLabel('Frequency')).toHaveValue('MUTED');
+    await notifications.getByRole('button', { name: 'Restore defaults' }).click();
+    await expect(notifications.getByLabel('Frequency')).toHaveValue('DAILY');
     const violations = (
       await new AxeBuilder({ page: member }).include('[role="dialog"]').analyze()
     ).violations;

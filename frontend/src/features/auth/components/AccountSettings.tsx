@@ -1,3 +1,4 @@
+import { DigestPreferences } from '../../notifications/DigestPanel';
 import { getIntlLocale } from '../../../shared/i18n';
 import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
@@ -66,6 +67,7 @@ export function AccountSettings(): ReactElement {
     <section className={styles.page}>
       <h1>{uiText('ui.AccountLink.message017')}</h1>
       <AccountDataSettings />
+      <DigestPreferences />
       {message ? <p role="status">{message}</p> : null}
       {error ? <p role="alert">{describeError(error)}</p> : null}
       <section>

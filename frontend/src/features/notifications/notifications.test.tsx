@@ -2,6 +2,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { digestApi } from './digestApi';
+jest.mock('./digestApi');
 import { NotificationBell } from './NotificationBell';
 import {
   notificationApi,
@@ -62,6 +64,21 @@ async function open() {
   await screen.findByRole('dialog');
 }
 beforeEach(() => {
+  jest.mocked(digestApi.feed).mockResolvedValue({
+    since: date,
+    through: date,
+    sinceLastSeen: [],
+    digests: [],
+    truncated: false,
+  });
+  jest.mocked(digestApi.preferences).mockResolvedValue([
+    {
+      workspaceId: 'w',
+      sessionLocal: false,
+      settings: { frequency: 'DAILY', mutedCategories: [] },
+    },
+  ]);
+  jest.mocked(digestApi.save).mockResolvedValue();
   setLocale('en');
   client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -155,7 +172,7 @@ it('shows loading, empty and zero badge states', async () => {
   );
   setup(false);
   await open();
-  expect(screen.getByText('Loading…')).toBeTruthy();
+  expect(screen.getAllByText('Loading…').length).toBeGreaterThan(0);
   await act(async () => resolve({ ...page, items: [], unreadCount: 0 }));
   await screen.findByText('No notifications.');
   expect(
@@ -182,28 +199,31 @@ it('hides cached feed data on authorization errors and allows retry', async () =
   await screen.findByRole('link', { name: 'You were mentioned' });
 });
 it('surfaces mutation failure and stores workspace mute settings', async () => {
-  jest
-    .mocked(notificationApi.preferences)
-    .mockResolvedValue([{ type: 'MENTION', muted: true }]);
+  jest.mocked(digestApi.preferences).mockResolvedValue([
+    {
+      workspaceId: 'w',
+      sessionLocal: false,
+      settings: { frequency: 'DAILY', mutedCategories: ['MENTION'] },
+    },
+  ]);
   jest.mocked(notificationApi.read).mockRejectedValue(new Error('read failed'));
   setup();
   await open();
   fireEvent.click(await screen.findByRole('button', { name: 'Mark as read' }));
   await screen.findByRole('alert');
-  fireEvent.click(screen.getByText('Mute future events in this workspace'));
   const checkbox = await screen.findByRole('checkbox', { name: 'You were mentioned' });
   expect((checkbox as HTMLInputElement).checked).toBe(true);
   fireEvent.click(checkbox);
   await waitFor(() =>
-    expect(notificationApi.mute).toHaveBeenCalledWith('w', 'MENTION', false),
+    expect(digestApi.save).toHaveBeenCalledWith('w', {
+      frequency: 'DAILY',
+      mutedCategories: [],
+    }),
   );
 });
 it('shows preference loading and failures', async () => {
-  jest
-    .mocked(notificationApi.preferences)
-    .mockRejectedValue(new Error('preferences failed'));
+  jest.mocked(digestApi.preferences).mockRejectedValue(new Error('preferences failed'));
   setup();
   await open();
-  fireEvent.click(screen.getByText('Mute future events in this workspace'));
   await screen.findByRole('alert');
 });

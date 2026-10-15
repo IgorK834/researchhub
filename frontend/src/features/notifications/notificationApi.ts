@@ -6,6 +6,7 @@ export const notificationTypes = [
   'ANALYSIS_FAILED',
   'REVIEW_TASK',
   'ATTENTION',
+  'ANALYSIS_STALE',
 ] as const;
 export type NotificationType = (typeof notificationTypes)[number];
 export interface ProductNotification {

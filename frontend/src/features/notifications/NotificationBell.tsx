@@ -1,3 +1,4 @@
+import { DigestPanel, DigestPreferences } from './DigestPanel';
 import { useId, useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -19,7 +20,6 @@ import styles from './Notifications.module.css';
 
 export function NotificationBell({
   userId,
-  workspaceId,
 }: {
   readonly userId: string;
   readonly workspaceId?: string;
@@ -88,6 +88,7 @@ export function NotificationBell({
         returnFocusRef={trigger}
         title={t('collab.notifications')}
       >
+        <DigestPanel />
         <div className={styles.filters}>
           <Button
             variant="ghost"
@@ -190,48 +191,8 @@ export function NotificationBell({
             {t('collab.more')}
           </Button>
         ) : null}
-        {workspaceId ? <NotificationPreferences workspaceId={workspaceId} /> : null}
+        <DigestPreferences />
       </SlideOver>
     </>
-  );
-}
-function NotificationPreferences({
-  workspaceId,
-}: {
-  readonly workspaceId: string;
-}): ReactElement {
-  const client = useQueryClient(),
-    key = ['notification-preferences', workspaceId];
-  const preferences = useQuery({
-    queryKey: key,
-    queryFn: () => notificationApi.preferences(workspaceId),
-    retry: false,
-  });
-  const mutation = useMutation({
-    mutationFn: ({ type, muted }: { type: NotificationType; muted: boolean }) =>
-      notificationApi.mute(workspaceId, type, muted),
-    onSuccess: () => client.invalidateQueries({ queryKey: key }),
-  });
-  return (
-    <details>
-      <summary>{t('collab.mutePreferences')}</summary>
-      {preferences.isPending ? <p role="status">{t('collab.loading')}</p> : null}
-      {preferences.error || mutation.error ? (
-        <p role="alert">{describeError(preferences.error ?? mutation.error)}</p>
-      ) : null}
-      {preferences.isSuccess
-        ? notificationTypes.map((type) => (
-            <label className={styles.preference} key={type}>
-              <input
-                type="checkbox"
-                disabled={mutation.isPending}
-                checked={preferences.data.some((p) => p.type === type && p.muted)}
-                onChange={(e) => mutation.mutate({ type, muted: e.target.checked })}
-              />
-              {t(`collab.event.${type}`)}
-            </label>
-          ))
-        : null}
-    </details>
   );
 }
