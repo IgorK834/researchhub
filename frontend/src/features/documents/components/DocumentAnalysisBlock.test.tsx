@@ -30,6 +30,7 @@ beforeEach(() => {
     .spyOn(api, 'fetchExecutionRecord')
     .mockImplementation(async (_w, _a, e) => semanticRecord(e));
   jest.spyOn(api, 'fetchAnalyses').mockResolvedValue([semanticAnalysis()]);
+  jest.spyOn(api, 'fetchAnalysis').mockResolvedValue(semanticAnalysis());
   jest
     .spyOn(api, 'fetchExecutions')
     .mockResolvedValue([semanticRecord(newerId).execution, semanticRecord().execution]);
@@ -54,6 +55,21 @@ function mount(child: ReactElement) {
   );
 }
 test('chart block displays exact saved output and source version, and opens provenance', async () => {
+  jest.mocked(api.fetchAnalysis).mockResolvedValue({
+    ...semanticAnalysis(),
+    staleness: {
+      stale: true,
+      staleReasons: ['SOURCE_REPLACED'],
+      changedInputs: [
+        {
+          sourceId: 's',
+          reason: 'SOURCE_REPLACED',
+          originalVersion: { id: 'v3', number: 3, sha256: 'hash' },
+          currentVersion: { id: 'v4', number: 4, sha256: 'hash' },
+        },
+      ],
+    },
+  });
   jest
     .mocked(sources.fetchSources)
     .mockResolvedValue([{ id: 's', activeVersionId: 'v4' }] as never);
@@ -70,7 +86,8 @@ test('chart block displays exact saved output and source version, and opens prov
   expect(screen.getByRole('status')).toBeTruthy();
   expect(await screen.findByAltText('Impedance magnitude versus frequency')).toBeTruthy();
   expect(screen.getByText(/Source: measurements.xlsx · v3 · measurements/)).toBeTruthy();
-  expect(screen.getByText('Out of date')).toBeTruthy();
+  expect(await screen.findByText('Older inputs')).toBeTruthy();
+  expect(screen.getByText(/Original inputs: 3/)).toBeTruthy();
   expect(screen.getByText('<script>caption</script>')).toBeTruthy();
   expect(
     screen.getByRole('link', { name: 'Open analysis provenance' }).getAttribute('href'),
@@ -134,6 +151,7 @@ test('missing and wrong-mode outputs never substitute another execution or outpu
 test('failed lookup and unavailable source freshness leave provenance metadata intact', async () => {
   jest.mocked(api.fetchExecutionRecord).mockRejectedValue(new Error('private detail'));
   jest.mocked(sources.fetchSources).mockRejectedValue(new Error('private detail'));
+  jest.mocked(api.fetchAnalysis).mockRejectedValue(new Error('private detail'));
   mount(
     <ReferencedOutput
       workspaceId="w"

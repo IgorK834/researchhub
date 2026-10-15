@@ -86,6 +86,7 @@ export function AnalysisList({
               <IconTile icon="lineChart" tone="mint" size="large" />
               <div>
                 <AnalysisStatus status={analysis.status} />
+                {analysis.staleness?.stale ? <p>{uiText('stale.title')}</p> : null}
                 <h2>
                   <Link to={`/app/workspaces/${workspaceId}/analyses/${analysis.id}`}>
                     {analysis.plan?.summary ?? analysis.userPrompt}

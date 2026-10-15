@@ -1,3 +1,4 @@
+import { EmbeddedInputFreshness } from '../../analysis/components/InputFreshness';
 import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { useState, type ReactElement } from 'react';
 import { NodeViewWrapper, useEditorState, type NodeViewProps } from '@tiptap/react';
@@ -6,9 +7,7 @@ import { Link } from 'react-router-dom';
 import { fetchExecutionRecord } from '../../analysis/api/analysisApi';
 import { AnalysisChart } from '../../analysis/components/AnalysisChart';
 import { ResultTable } from '../../analysis/components/AnalysisResult';
-import { AnalysisFreshnessBanner } from '../../analysis/components/AnalysisWidgets';
 import { AnalysisOutputPicker } from '../../analysis/components/AnalysisOutputPicker';
-import { fetchSources } from '../../sources/api/sourceApi';
 import { describeError, queryKeys } from '../../../shared/api';
 import { Button } from '../../../shared/components/Button';
 import { isAnalysisBlockAttrs, type AnalysisReference } from '../api/analysisReference';
@@ -110,10 +109,6 @@ export function ReferencedOutput({
         signal,
       ),
   });
-  const sources = useQuery({
-    queryKey: queryKeys.sources(workspaceId),
-    queryFn: ({ signal }) => fetchSources(workspaceId, signal),
-  });
   const saved = record.error ? undefined : record.data;
   const output =
     saved?.execution.status === 'SUCCEEDED'
@@ -128,14 +123,6 @@ export function ReferencedOutput({
     (output) => output.name === reference.outputId,
   );
   const details = `/app/workspaces/${workspaceId}/analyses/${reference.analysisId}?execution=${encodeURIComponent(reference.executionId)}#output-${index ?? 0}`;
-  const changed =
-    saved?.snapshot.inputs.some((input) =>
-      sources.data?.some(
-        (source) =>
-          source.id === input.sourceId &&
-          source.activeVersionId !== input.sourceVersionId,
-      ),
-    ) ?? false;
   return (
     <>
       {record.isPending ? (
@@ -203,13 +190,10 @@ export function ReferencedOutput({
             .join('; ')}
         </p>
       ) : null}
-      <AnalysisFreshnessBanner
-        outOfDate={changed}
-        message={uiText('ui.DocumentAnalysisBlock.message011')}
+      <EmbeddedInputFreshness
+        workspaceId={workspaceId}
+        analysisId={reference.analysisId}
       />
-      {sources.error ? (
-        <p role="status">{uiText('ui.DocumentAnalysisBlock.message012')}</p>
-      ) : null}
       <ProvenancePanel
         target={detailsOpen ? { kind: 'analysis', workspaceId, reference } : null}
         onClose={() => setDetailsOpen(false)}

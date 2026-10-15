@@ -42,7 +42,26 @@ export interface AnalysisPlan {
   readonly warnings: readonly string[];
   readonly code: { readonly language: 'PYTHON'; readonly source: string };
 }
+export interface AnalysisStaleness {
+  readonly stale: boolean;
+  readonly staleReasons: readonly string[];
+  readonly changedInputs: readonly {
+    readonly sourceId: string;
+    readonly originalVersion: {
+      readonly id: string;
+      readonly number: number;
+      readonly sha256: string;
+    } | null;
+    readonly currentVersion: {
+      readonly id: string;
+      readonly number: number;
+      readonly sha256: string;
+    } | null;
+    readonly reason: 'SOURCE_REPLACED' | 'INPUT_UNAVAILABLE' | 'WORKSPACE_ARCHIVED';
+  }[];
+}
 export interface Analysis {
+  readonly staleness?: AnalysisStaleness;
   readonly workload?: 'DATASET' | 'PROBLEM';
   readonly id: string;
   readonly workspaceId: string;

@@ -1,3 +1,4 @@
+import { InputFreshness } from './InputFreshness';
 import { getIntlLocale } from '../../../shared/i18n';
 import { t as uiText, useLocale as useUiLocale } from '../../../shared/i18n';
 import { ProblemStudio } from './ProblemStudio';
@@ -169,6 +170,7 @@ function DatasetStudio({
         <h1>
           {saved?.snapshot.plan.summary ?? current.plan?.summary ?? current.userPrompt}
         </h1>
+        <InputFreshness staleness={current.staleness} />
         <div className={styles.actions}>
           {canRun && !selectedId && history.data?.length === 0 ? (
             <Button
